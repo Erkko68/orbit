@@ -69,7 +69,8 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - All review conversations resolved.
 - Required checks: `Android build + tests`, `iOS compile + tests` (`ci.yml`), `PR title`, `Branch name` (`pr-conventions.yml`).
 - Squash merge only: the squash commit is the PR title + description. The branch is deleted after merge.
-- Agents: never push to `main`. Work on a correctly named branch and open a PR for humans to review.
+- The repo owner (admin) can bypass these rules. Team members and agents cannot.
+- Agents: never push to `main` or merge, even when running with the owner's credentials, unless the owner explicitly asks for that specific push. Work on a correctly named branch and open a PR for humans to review.
 
 ## Before committing
 - `./gradlew :androidApp:assembleDebug :shared:compileKotlinIosSimulatorArm64` passes.
