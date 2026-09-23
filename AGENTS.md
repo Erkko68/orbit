@@ -56,10 +56,20 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `build`.
 - Commit body: 1–3 short lines on what and why, never how. No bullet walls.
 - Always suggest small, focused commits, one logical change each. Never bundle unrelated changes.
-- Branches: `feature/<issue>-short-name`, `fix/<issue>-short-name`.
-- PRs: one per complete functionality, not per commit. Title uses the commit convention. Body: what, `Closes #<issue>`, how to test, reviewer notes (see `.github/pull_request_template.md`).
-- At least 1 approval and green CI (`.github/workflows/ci.yml`: Android + iOS). Squash merge.
-- The PR title becomes the squash commit, so `pr-title.yml` checks it against the commit convention.
+- Branches: `<type>/<issue>-short-name`, lowercase, one branch per issue (CI-checked).
+  - `<type>`: `feature` (for feat), `fix`, `refactor`, `docs`, `test`, `chore`, `build`.
+  - e.g. `feature/42-balance-calculation`, `fix/57-rotation-skips-member`.
+- PRs: one per complete functionality, not per commit.
+  - Title: Conventional Commits **without** the issue number (GitHub appends the PR number on squash), e.g. `feat(expenses): add balance calculation`. CI-checked.
+  - Body: what, `Closes #<issue>`, how to test, reviewer notes (`.github/pull_request_template.md`).
+
+## Merge rules (`main` ruleset, enforced by GitHub)
+- No direct pushes, force pushes or deletion of `main`. Every change goes through a PR, including docs.
+- **2 approvals** from other team members. New pushes dismiss existing approvals; the last push must be approved by someone else.
+- All review conversations resolved.
+- Required checks: `Android build + tests`, `iOS compile + tests` (`ci.yml`), `PR title`, `Branch name` (`pr-conventions.yml`).
+- Squash merge only: the squash commit is the PR title + description. The branch is deleted after merge.
+- Agents: never push to `main`. Work on a correctly named branch and open a PR for humans to review.
 
 ## Before committing
 - `./gradlew :androidApp:assembleDebug :shared:compileKotlinIosSimulatorArm64` passes.

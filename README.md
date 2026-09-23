@@ -47,5 +47,5 @@ shared/src/androidMain, iosMain   Platform actuals under the same packages
 ## Team workflow
 - GitHub Projects kanban; every commit relates to an issue.
 - Conventional Commits: `feat(expenses): add balance calculation (#42)`. Small, focused commits.
-- Branches `feature/<issue>-name` / `fix/<issue>-name`. One PR per complete feature, 1 approval + green CI, squash merge.
+- Branches `<type>/<issue>-name` (e.g. `feature/42-balances`). One PR per complete feature, 2 approvals + green CI, squash merge. No direct pushes to `main`.
 - Full rules: [AGENTS.md](AGENTS.md) (also read by Claude via [CLAUDE.md](CLAUDE.md)).
