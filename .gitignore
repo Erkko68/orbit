@@ -24,6 +24,8 @@ DerivedData/
 *.jks
 *.keystore
 .env
-# On-device AI model files (downloaded at runtime, never committed)
-*.litertlm
-*.task
+# Firebase
+.firebase/
+*-debug.log
+firebase/functions/venv/
+__pycache__/
