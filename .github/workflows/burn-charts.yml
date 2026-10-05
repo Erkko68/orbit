@@ -1,0 +1,26 @@
+name: Burn charts
+
+# Keeps the pinned "Burn charts" issue up to date as issues are opened, closed and moved between milestones.
+on:
+  issues:
+    types: [opened, closed, reopened, deleted, milestoned, demilestoned]
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: burn-charts
+  cancel-in-progress: true
+
+permissions:
+  issues: write
+
+jobs:
+  charts:
+    name: Burn charts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 .github/scripts/burn_charts.py
+        env:
+          GH_TOKEN: ${{ github.token }}
