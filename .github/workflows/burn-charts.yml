@@ -21,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
       - run: python3 .github/scripts/burn_charts.py
         env:
           GH_TOKEN: ${{ github.token }}

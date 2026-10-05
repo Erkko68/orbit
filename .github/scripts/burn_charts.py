@@ -72,8 +72,9 @@ def main():
 def check():
     d = date(2026, 10, 1)
     issues = [{"created": d, "closed": d + timedelta(1)}, {"created": d + timedelta(1), "closed": None}]
-    assert series(issues, d + timedelta(2), d + timedelta(2)) == (
-        [d, d + timedelta(1), d + timedelta(2)], [1, 2, 2], [0, 1, 1], [2.0, 1.0, 0.0])
+    expected = ([d, d + timedelta(1), d + timedelta(2)], [1, 2, 2], [0, 1, 1], [2.0, 1.0, 0.0])
+    if series(issues, d + timedelta(2), d + timedelta(2)) != expected:
+        raise RuntimeError("series() self-check failed")
 
 
 if __name__ == "__main__":
