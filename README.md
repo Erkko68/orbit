@@ -1,20 +1,19 @@
 # Orbit
 
-Orbit is a shared-life organizer for any group that shares responsibilities: flatmates, families, couples, trips, sports teams, study groups. Each group is a **space** with tasks, recurring chores that rotate automatically, a shared calendar, live shared lists and expenses with balances.
+Orbit is a shared-life organizer for any group that shares responsibilities: flatmates, families, couples, trips, sports teams, study groups. Each group is a **space** whose members share tasks, rotating chores, bills, lists, events and expenses with balances, synced in real time.
 
-You don't fill in setup forms. You describe your group in text, voice or a photo, and an on-device LLM (Gemma 4 E2B via LiteRT-LM on Android, an equivalent on iOS) proposes actions such as "create space", "add chore" or "add expense". You review and confirm them; nothing is saved without your confirmation. A receipt scanner (ML Kit OCR + the local model) turns a photo of a receipt into split expenses.
+You don't fill in setup forms. A cloud AI assistant asks a few short questions and proposes a plan for the space. You review each proposal and confirm; nothing is saved without your confirmation. A receipt scanner turns a photo of a receipt into a split expense.
 
 ## Features
-- Spaces and members
-- Tasks and recurring chores with rotation
-- Shared calendar
-- Live shared lists
+- Accounts, spaces and members
+- Modular items: tasks, chores with rotation, bills, lists, events
+- Agenda and calendar
 - Expenses and balances
-- "Just tell it" setup assistant (on-device AI) *(planned)*
-- Receipt scanner *(planned)*
+- Guided planning assistant (cloud AI)
+- Receipt scanner
 
 ## Tech stack
-Kotlin 2.4 · Compose Multiplatform 1.12 + Material 3 · Navigation Compose (type-safe routes) · AndroidX Lifecycle ViewModel · Koin · Room KMP (bundled SQLite) · Ktor · kotlinx coroutines / serialization / datetime · Multiplatform Settings · Coil 3 · Kermit.
+Kotlin 2.4 · Compose Multiplatform 1.12 + Material 3 · Navigation Compose (type-safe routes) · AndroidX Lifecycle ViewModel · Koin · Room KMP (bundled SQLite) · Firebase (Authentication, Firestore, Cloud Functions in Python) · kotlinx coroutines / serialization / datetime · Multiplatform Settings · Coil 3 · Kermit.
 All versions are in [gradle/libs.versions.toml](gradle/libs.versions.toml).
 
 ## Run
@@ -28,24 +27,20 @@ androidApp/                 Android entry point (Application, Activity)
 iosApp/                     Xcode project, SwiftUI entry point
 shared/src/commonMain/kotlin/com/orbit/app/
   core/designsystem/theme   OrbitTheme: colors, type, shapes, motion
-  core/designsystem/component  Shared composables (buttons, cards, empty states)
   core/navigation           Type-safe routes and OrbitNavHost
-  core/common, core/util    Cross-cutting helpers and extensions
-  domain/model              Plain Kotlin models (Space, Chore, Expense, SetupAction…)
+  domain/model              Plain Kotlin models
   domain/repository         Repository interfaces
-  domain/usecase            Business rules
   data/local                Room database, DAOs, entities
-  data/remote               Ktor APIs and DTOs
   data/mapper               DTO/entity ↔ domain mapping
   data/repository           Repository implementations
-  data/ai                   SetupAssistant and ReceiptScanner interfaces
   feature/<name>            ui/, ViewModel and UiState per feature
   di                        Koin modules and initKoin()
 shared/src/androidMain, iosMain   Platform actuals under the same packages
+firebase/                   Firestore rules and Cloud Functions (Python)
 ```
 
 ## Team workflow
-- GitHub Projects kanban; every commit relates to an issue.
+- GitHub Projects kanban (Backlog, Planned, In progress, Done). Every commit references its issue.
 - Conventional Commits: `feat(expenses): add balance calculation (#42)`. Small, focused commits.
-- Branches `<type>/<issue>-name` (e.g. `feature/42-balances`). One PR per complete feature, 2 approvals + green CI, squash merge. No direct pushes to `main`.
+- Branches `<type>/<issue>-name` (e.g. `feature/42-balances`). One PR per complete feature, 1 approval + green CI, squash merge. No direct pushes to `main`.
 - Full rules: [AGENTS.md](AGENTS.md) (also read by Claude via [CLAUDE.md](CLAUDE.md)).
