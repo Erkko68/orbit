@@ -39,8 +39,5 @@ shared/src/androidMain, iosMain   Platform actuals under the same packages
 firebase/                   Firestore rules and Cloud Functions (Python)
 ```
 
-## Team workflow
-- GitHub Projects kanban (Backlog, Planned, In progress, Done). Every commit references its issue.
-- Conventional Commits: `feat(expenses): add balance calculation (#42)`. Small, focused commits.
-- Branches `<type>/<issue>-name` (e.g. `feature/42-balances`). One PR per complete feature, 1 approval + green CI, squash merge. No direct pushes to `main`.
-- Full rules: [AGENTS.md](AGENTS.md) (also read by Claude via [CLAUDE.md](CLAUDE.md)).
+## Contributing
+Work is tracked on a GitHub Projects board with one milestone per sprint, and every change starts from an issue. See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [AGENTS.md](AGENTS.md) for the full project rules.
