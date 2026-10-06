@@ -2,16 +2,11 @@ package com.orbit.app.di
 
 import androidx.room.RoomDatabase
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.orbit.app.data.ai.NoopSetupAssistant
-import com.orbit.app.data.ai.SetupAssistant
 import com.orbit.app.data.local.OrbitDatabase
 import com.orbit.app.data.repository.LocalSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.space.SpaceViewModel
 import com.russhwolf.settings.Settings
-import io.ktor.client.HttpClient
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import org.koin.core.context.startKoin
@@ -42,9 +37,7 @@ val dataModule = module {
     }
     single { get<OrbitDatabase>().spaceDao() }
     singleOf(::LocalSpaceRepository) bind SpaceRepository::class
-    single { HttpClient { install(ContentNegotiation) { json() } } }
     single { Settings() }
-    single<SetupAssistant> { NoopSetupAssistant() }
 }
 
 val domainModule = module {

@@ -78,8 +78,6 @@ kotlin {
             implementation(libs.kotlinx.datetime)
 
             implementation(libs.ktor.client.core)
-            implementation(libs.ktor.client.contentNegotiation)
-            implementation(libs.ktor.serialization.json)
 
             implementation(libs.room.runtime)
             implementation(libs.sqlite.bundled)
