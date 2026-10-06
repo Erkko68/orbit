@@ -13,7 +13,7 @@ You don't fill in setup forms. A cloud AI assistant asks a few short questions a
 - Receipt scanner
 
 ## Tech stack
-Kotlin 2.4 · Compose Multiplatform 1.12 + Material 3 · Navigation Compose (type-safe routes) · AndroidX Lifecycle ViewModel · Koin · Room KMP (bundled SQLite) · Firebase (Authentication, Firestore, Cloud Functions in Python) · kotlinx coroutines / serialization / datetime · Multiplatform Settings · Coil 3 · Kermit.
+Kotlin 2.4 · Compose Multiplatform 1.12 + Material 3 · Navigation Compose (type-safe routes) · AndroidX Lifecycle ViewModel · Koin · Firebase (Authentication, Firestore with offline persistence, Cloud Functions in Python) · kotlinx coroutines / serialization / datetime · Multiplatform Settings · Coil 3 · Kermit.
 All versions are in [gradle/libs.versions.toml](gradle/libs.versions.toml).
 
 ## Run
@@ -30,8 +30,6 @@ shared/src/commonMain/kotlin/com/orbit/app/
   core/navigation           Type-safe routes and OrbitNavHost
   domain/model              Plain Kotlin models
   domain/repository         Repository interfaces
-  data/local                Room database, DAOs, entities
-  data/mapper               DTO/entity ↔ domain mapping
   data/repository           Repository implementations
   feature/<name>            ui/, ViewModel and UiState per feature
   di                        Koin modules and initKoin()

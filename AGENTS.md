@@ -8,7 +8,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - Package root: `com.orbit.app`. Code lives in `shared/src/commonMain` by default.
 - `expect`/`actual` only where platforms really differ (camera, notifications, text recognition, file paths). Actuals go in `androidMain`/`iosMain` under the same package path.
 - `domain/`: models, repository **interfaces**, use cases. Pure Kotlin only (kotlinx coroutines/datetime allowed). No Compose, Room, Firebase or Koin.
-- `data/`: repository **implementations**, Room (`local/`), mappers.
+- `data/`: repository **implementations** and Firestore document mappers.
 - `feature/<name>/`: `ui/` (screen + components), `<Name>ViewModel.kt`, `<Name>UiState.kt`. `feature/space` is the reference.
 - UI talks only to ViewModels; ViewModels talk to repositories/use cases. UI never touches data sources.
 - No placeholder folders: create a folder when its first file exists.
@@ -17,7 +17,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - DI: Koin. Register in `di/Koin.kt` (`dataModule`, `domainModule`, `featureModule`) or the `platformModule` actuals. ViewModels: `viewModelOf(::X)` + `koinViewModel()` in the screen.
 - Navigation: Navigation Compose with `@Serializable` routes in `core/navigation/Routes.kt`, wired in `OrbitNavHost`.
 - Backend: Firebase only (Authentication, Firestore, Cloud Functions). No other servers or REST APIs. The app calls Cloud Functions, never an AI provider directly.
-- Database: Room KMP. Entities in `data/local/entity`, DAOs in `data/local/dao`, registered in `OrbitDatabase`. On schema change: bump `version`, add a migration, commit `shared/schemas/`.
+- Local persistence: Firestore's offline cache only, no local database (Room, SQLDelight). Repositories read and write Firestore and work offline through its cache. See [ADR 0001](docs/adr/0001-local-persistence.md).
 - Key-value preferences: Multiplatform Settings (`Settings` from Koin).
 - Images: Coil 3. Logging: Kermit (no `println`). Dates: kotlinx-datetime. Serialization: kotlinx-serialization.
 - Money: `Long` minor units (cents), never `Double`.
