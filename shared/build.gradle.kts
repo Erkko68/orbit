@@ -6,15 +6,9 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
-    alias(libs.plugins.ksp)
-    alias(libs.plugins.room)
 }
 
 kotlin {
-    compilerOptions {
-        freeCompilerArgs.add("-Xexpect-actual-classes") // Room's generated database constructor
-    }
-
     listOf(
         iosArm64(),
         iosSimulatorArm64()
@@ -79,8 +73,6 @@ kotlin {
 
             implementation(libs.ktor.client.core)
 
-            implementation(libs.room.runtime)
-            implementation(libs.sqlite.bundled)
             implementation(libs.multiplatformSettings)
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
@@ -96,9 +88,4 @@ kotlin {
 
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
-    listOf("kspAndroid", "kspIosArm64", "kspIosSimulatorArm64").forEach { add(it, libs.room.compiler) }
-}
-
-room {
-    schemaDirectory("$projectDir/schemas")
 }
