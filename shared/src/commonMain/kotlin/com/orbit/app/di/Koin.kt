@@ -1,14 +1,9 @@
 package com.orbit.app.di
 
-import androidx.room.RoomDatabase
-import androidx.sqlite.driver.bundled.BundledSQLiteDriver
-import com.orbit.app.data.local.OrbitDatabase
 import com.orbit.app.data.repository.LocalSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.space.SpaceViewModel
 import com.russhwolf.settings.Settings
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
@@ -25,17 +20,10 @@ fun initKoin(config: KoinAppDeclaration? = null) {
     }
 }
 
-/** Provides a `RoomDatabase.Builder<OrbitDatabase>` plus any platform-only implementations. */
+/** Platform-only implementations (camera, notifications, text recognition, file paths). */
 expect val platformModule: Module
 
 val dataModule = module {
-    single {
-        get<RoomDatabase.Builder<OrbitDatabase>>()
-            .setDriver(BundledSQLiteDriver())
-            .setQueryCoroutineContext(Dispatchers.IO)
-            .build()
-    }
-    single { get<OrbitDatabase>().spaceDao() }
     singleOf(::LocalSpaceRepository) bind SpaceRepository::class
     single { Settings() }
 }
