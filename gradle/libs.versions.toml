@@ -19,10 +19,9 @@ material3 = "1.9.0"
 multiplatformSettings = "1.3.0"
 navigation = "2.9.2"
 
-# Planned, not wired yet (see commented entries below)
+google-services = "4.5.0"
 # camerax = "1.6.2"
 # firebase-gitlive = "2.7.0"
-# google-services = "4.5.0"
 # mlkit-textRecognition = "16.0.1"
 
 [libraries]
@@ -84,4 +83,4 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMul
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-# googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }  # Firebase config (androidApp)
+googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }
