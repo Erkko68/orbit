@@ -18,6 +18,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - Navigation: Navigation Compose with `@Serializable` routes in `core/navigation/Routes.kt`, wired in `OrbitNavHost`.
 - Backend: Firebase only (Authentication, Firestore, Cloud Functions). No other servers or REST APIs. The app calls Cloud Functions, never an AI provider directly.
 - Local persistence: Firestore's offline cache only, no local database (Room, SQLDelight). Repositories read and write Firestore and work offline through its cache. See [ADR 0001](docs/adr/0001-local-persistence.md).
+- Firestore schema: [ADR 0002](docs/adr/0002-firestore-data-model.md) is the source of truth for collections, fields and indexes. A schema change updates the ADR in the same PR.
 - Key-value preferences: Multiplatform Settings (`Settings` from Koin).
 - Images: Coil 3. Logging: Kermit (no `println`). Dates: kotlinx-datetime. Serialization: kotlinx-serialization.
 - Money: `Long` minor units (cents), never `Double`.
