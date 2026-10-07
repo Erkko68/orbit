@@ -62,7 +62,7 @@ jobs:
           cache: npm
           cache-dependency-path: firebase/package-lock.json
       - name: Install dependencies
-        run: npm ci
+        run: npm install
         working-directory: firebase
       - name: Run rules tests with Firestore emulator
         run: npx --yes firebase-tools emulators:exec --only firestore "npm test"
