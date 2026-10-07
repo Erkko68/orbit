@@ -41,7 +41,8 @@ def estimates():
         owner = gh("repo", "view", "--json", "owner", "-q", ".owner.login").strip()
         items = json.loads(gh("project", "item-list", PROJECT, "--owner", owner, "--limit", "1000", "--format", "json",
                               env={**os.environ, "GH_TOKEN": token} if token else None))["items"]
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as error:
+        print(error.stderr, file=sys.stderr)
         return {}
     return {i["content"]["number"]: i["estimate"] for i in items
             if i.get("estimate") and i["content"].get("type") == "Issue"}
