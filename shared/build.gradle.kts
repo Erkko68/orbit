@@ -1,4 +1,6 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.plugin.mpp.TestExecutable
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -27,7 +29,7 @@ kotlin {
         minSdk = libs.versions.android.minSdk.get().toInt()
 
         compilerOptions {
-            jvmTarget = JvmTarget.JVM_11
+            jvmTarget = JvmTarget.JVM_17
         }
         androidResources {
             enable = true
@@ -78,6 +80,9 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.network.ktor)
             implementation(libs.kermit)
+
+            implementation(libs.firebase.auth)
+            implementation(libs.firebase.firestore)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
@@ -98,4 +103,23 @@ dependencies {
 // Robolectric reaches into JDK internals that Java 17+ no longer exports by default.
 tasks.withType<Test>().configureEach {
     jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
+}
+
+// The Firebase KMP klibs ask the linker for the Firebase iOS frameworks, which only the Xcode app
+// build provides (SwiftPM). Test binaries never call Firebase (repositories are faked), so they link
+// against empty static archives instead of downloading the real SDK.
+val firebaseTestStubs = tasks.register("firebaseTestStubs") {
+    val dir = layout.buildDirectory.dir("firebaseTestStubs")
+    outputs.dir(dir)
+    doLast {
+        listOf("FirebaseCore", "FirebaseAuth", "FirebaseFirestore", "FirebaseFirestoreInternal").forEach {
+            dir.get().file("$it.framework/$it").asFile.apply { parentFile.mkdirs() }.writeText("!<arch>\n")
+        }
+    }
+}
+kotlin.targets.withType<KotlinNativeTarget>().configureEach {
+    binaries.withType<TestExecutable>().configureEach {
+        linkerOpts("-F${layout.buildDirectory.dir("firebaseTestStubs").get().asFile}")
+        linkTaskProvider.configure { dependsOn(firebaseTestStubs) }
+    }
 }
