@@ -63,7 +63,10 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 
 ## Git workflow
 - 4 members, GitHub Projects kanban with columns Backlog, Planned, In progress, Done.
-- The board follows the work on its own (`project-sync.yml`): assigning an issue moves it to In progress and sets its `Start date`, opening its PR sets its `Target date`. The Roadmap view draws its bars from those two fields, with the milestones as markers. Don't edit them by hand.
+- The board and its roadmap keep themselves up to date (`project-sync.yml`). How it works: [docs/project-automation](docs/project-automation/README.md).
+  - Never edit Status, `Start date`, `Target date` or `Deviation (days)` by hand: the next run overwrites them.
+  - What people maintain: the milestone, the "Blocked by" links, `Priority`, and `Estimate` in hours (or at least a `size:` label). The plan is computed from those.
+  - Assign yourself the day you start, not when you finish: the assignment starts the issue's bar and the clock for its deviation.
 - Starting work. Agents do these steps, in order, before changing any code:
   1. Check the GitHub CLI with `gh auth status`. If `gh` is missing or not logged in, suggest setting it up in the terminal (`brew install gh` or https://cli.github.com, then `gh auth login`) before anything else.
   2. Find the current milestone (the open one with the earliest due date) and list its free issues: `gh issue list --milestone "<milestone>" --search "no:assignee"`. Ask the user which one to work on. Skip issues whose "Blocked by" issues are still open.
