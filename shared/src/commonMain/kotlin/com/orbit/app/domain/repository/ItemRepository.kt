@@ -9,7 +9,8 @@ import kotlinx.coroutines.flow.Flow
 /**
  * Narrow operations only, no `save(item)`: each write touches one field or one module so that
  * concurrent edits merge (ADR 0002). Callers check `validateItem` first. Acts as the signed-in
- * user. Writes suspend until done and throw on failure.
+ * user. Writes return once applied locally, without waiting for the server, so they work offline.
+ * They throw on failure.
  */
 interface ItemRepository {
     /** Items of a space, oldest first. */

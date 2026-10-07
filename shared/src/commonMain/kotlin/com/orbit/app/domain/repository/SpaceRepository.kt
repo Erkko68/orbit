@@ -5,8 +5,8 @@ import com.orbit.app.domain.model.Space
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Acts as the signed-in user: callers never pass a user id. Writes suspend until done and throw
- * on failure.
+ * Acts as the signed-in user: callers never pass a user id. Writes return once applied locally,
+ * without waiting for the server, so they work offline. They throw on failure.
  */
 interface SpaceRepository {
     /** The spaces the signed-in user is a member of. Empty when signed out. */
