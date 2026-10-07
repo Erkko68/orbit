@@ -80,7 +80,8 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - All review conversations resolved.
 - Required checks: `Android build + tests`, `iOS compile + tests` (`ci.yml`), `PR title`, `Branch name` (`pr-conventions.yml`), `SonarCloud Code Analysis` (quality gate).
 - `sonarqube.yml` runs SonarQube Cloud on every PR (`sonar-project.properties`). A failed quality gate blocks the merge, so fix what it reports before asking for review.
-  - Temporary: `sonar.coverage.exclusions` skips `.github/scripts/**` and `firebase/functions/**` because CI feeds Sonar no coverage report yet. Remove the `firebase/functions/**` exclusion once the functions have pytest coverage reported to Sonar.
+  - Kotlin coverage comes from Kover: the workflow runs `./gradlew :shared:koverXmlReport` (Android host tests) and Sonar reads `shared/build/reports/kover/report.xml`. The gate needs 80% coverage on new code, so new logic ships with tests.
+  - Temporary: `sonar.coverage.exclusions` skips `.github/scripts/**` and `firebase/functions/**` because the Python code has no coverage report yet. Remove the `firebase/functions/**` exclusion once the functions have pytest coverage reported to Sonar.
 - Squash merge only: the squash commit is the PR title + description. The branch is deleted after merge.
 - The repo owner (admin) can bypass these rules. Team members and agents cannot.
 - Agents: never push to `main` or merge, even when running with the owner's credentials, unless the owner explicitly asks for that specific push. Work on a correctly named branch and open a PR for humans to review.
