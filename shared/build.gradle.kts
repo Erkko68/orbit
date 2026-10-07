@@ -83,10 +83,19 @@ kotlin {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.koin.test)
+            implementation(libs.compose.uiTest)
+        }
+        getByName("androidHostTest").dependencies {
+            implementation(libs.robolectric)
         }
     }
 }
 
 dependencies {
     androidRuntimeClasspath(libs.compose.uiTooling)
+}
+
+// Robolectric reaches into JDK internals that Java 17+ no longer exports by default.
+tasks.withType<Test>().configureEach {
+    jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
 }

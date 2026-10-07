@@ -21,6 +21,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - Firestore schema: [ADR 0002](docs/adr/0002-firestore-data-model.md) is the source of truth for collections, fields and indexes. A schema change updates the ADR in the same PR.
 - Key-value preferences: Multiplatform Settings (`Settings` from Koin).
 - Images: Coil 3. Logging: Kermit (no `println`). Dates: kotlinx-datetime. Serialization: kotlinx-serialization.
+- UI tests: Compose `ui-test` in `commonTest`, so they run on Android (host, through Robolectric) and iOS. The test class extends `ComposeTest` and uses `runComposeUiTest` from `androidx.compose.ui.test.v2`. New screens and design-system components ship with one.
 - Money: `Long` minor units (cents), never `Double`.
 
 ## AI
@@ -40,7 +41,15 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - Dark `onPrimary` is navy on purpose.
   - Teal, coral and sun are fills, never text on light backgrounds; text on them is navy.
   - `spaceAccents` are decorative (avatars, dots, borders), no body text on them.
+- Spacing and layout: styling decisions live in `core/designsystem/`, screens only compose.
+  - Every padding and gap is an `OrbitSpacing` token (`xs` 4, `sm` 8, `md` 16, `lg` 24, `xl` 32). No raw `.dp` / `.sp` or `Color(0x…)` outside `core/designsystem/` (CI-checked in `ci.yml`).
+  - Need a value that is not on the scale? Use the nearest token. Add a token only when the design really needs it, never a one-off number.
+  - Every screen is built on `OrbitScreen`, which owns the scaffold, the insets, the screen gutter and the gap between sections. Screens never set their own outer padding.
+  - Components have no outer margin: they pad their inside, take a `modifier` parameter, and the parent sets the gaps with `Arrangement.spacedBy(OrbitSpacing.…)`.
+  - Typography by role (`titleMedium`, `bodyLarge`…), used as is. No `.copy(fontSize = …)` at the call site: if a role looks wrong, fix it in `Type.kt`.
+  - The same styled element on a second screen becomes a wrapper in `core/designsystem/component/`. A screen that needs a visual tweak changes the wrapper or the theme, not itself.
 - No experimental Compose APIs (e.g. the Styles API, Material 3 Expressive `MotionScheme`). Revisit when stable.
+  - Only exception: tests opt in to `ExperimentalTestApi`, because `runComposeUiTest` is the only multiplatform Compose test entry point. Never in production code.
 - No hardcoded strings in composables: use `composeResources/values/strings.xml`.
 - One public composable per file.
 - Immutable UI state (`data class` + `StateFlow`), no mutable collections in state.
