@@ -21,6 +21,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - Firestore schema: [ADR 0002](docs/adr/0002-firestore-data-model.md) is the source of truth for collections, fields and indexes. A schema change updates the ADR in the same PR.
 - Key-value preferences: Multiplatform Settings (`Settings` from Koin).
 - Images: Coil 3. Logging: Kermit (no `println`). Dates: kotlinx-datetime. Serialization: kotlinx-serialization.
+- UI tests: Compose `ui-test` in `commonTest`, so they run on Android (host, through Robolectric) and iOS. The test class extends `ComposeTest` and uses `runComposeUiTest` from `androidx.compose.ui.test.v2`. New screens and design-system components ship with one.
 - Money: `Long` minor units (cents), never `Double`.
 
 ## AI
@@ -48,6 +49,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - Typography by role (`titleMedium`, `bodyLarge`…), used as is. No `.copy(fontSize = …)` at the call site: if a role looks wrong, fix it in `Type.kt`.
   - The same styled element on a second screen becomes a wrapper in `core/designsystem/component/`. A screen that needs a visual tweak changes the wrapper or the theme, not itself.
 - No experimental Compose APIs (e.g. the Styles API, Material 3 Expressive `MotionScheme`). Revisit when stable.
+  - Only exception: tests opt in to `ExperimentalTestApi`, because `runComposeUiTest` is the only multiplatform Compose test entry point. Never in production code.
 - No hardcoded strings in composables: use `composeResources/values/strings.xml`.
 - One public composable per file.
 - Immutable UI state (`data class` + `StateFlow`), no mutable collections in state.
