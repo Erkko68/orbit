@@ -1,11 +1,20 @@
 name: Project sync
 
-# Moves issues on the project board and fills the roadmap dates as work starts and PRs open.
+# Keeps the project board and its roadmap in step with the issues: status, dates, the plan and the deviation.
+# Every run recomputes the whole board, so the event only says "something changed".
 on:
   issues:
-    types: [assigned]
+    types: [opened, closed, reopened, assigned, unassigned, milestoned, demilestoned, labeled, unlabeled]
   pull_request:
-    types: [opened]
+    types: [opened, edited, reopened, closed]
+  # Edits on the board itself (Estimate, Size, Priority) and "Blocked by" links trigger nothing: this picks them up.
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: project-sync
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -14,7 +23,7 @@ jobs:
   sync:
     name: Project sync
     # PRs from forks get no secrets, so there is nothing they can sync.
-    if: github.event_name == 'issues' || github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
