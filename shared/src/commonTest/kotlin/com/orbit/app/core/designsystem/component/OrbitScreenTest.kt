@@ -1,6 +1,12 @@
 package com.orbit.app.core.designsystem.component
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
@@ -18,6 +24,26 @@ class OrbitScreenTest : ComposeTest() {
                 OrbitScreen { Text("content") }
             }
         }
+        onNodeWithText("content").assertIsDisplayed()
+    }
+
+    @Test
+    fun keepsItsContentWhenTheCallerRecomposes() = runComposeUiTest {
+        var alignment by mutableStateOf(Alignment.Start)
+        var title by mutableStateOf("first")
+        setContent {
+            OrbitTheme {
+                Text(title)
+                OrbitScreen(Modifier, Arrangement.Top, alignment) { Text("content") }
+            }
+        }
+        onNodeWithText("content").assertIsDisplayed()
+
+        alignment = Alignment.CenterHorizontally
+        waitForIdle()
+        title = "second"
+
+        onNodeWithText("second").assertIsDisplayed()
         onNodeWithText("content").assertIsDisplayed()
     }
 }
