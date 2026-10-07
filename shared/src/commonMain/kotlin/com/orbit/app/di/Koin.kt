@@ -1,6 +1,10 @@
 package com.orbit.app.di
 
-import com.orbit.app.data.repository.LocalSpaceRepository
+import com.orbit.app.data.repository.InMemoryAuthRepository
+import com.orbit.app.data.repository.InMemoryItemRepository
+import com.orbit.app.data.repository.InMemorySpaceRepository
+import com.orbit.app.domain.repository.AuthRepository
+import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.space.SpaceViewModel
 import com.russhwolf.settings.Settings
@@ -24,7 +28,10 @@ fun initKoin(config: KoinAppDeclaration? = null) {
 expect val platformModule: Module
 
 val dataModule = module {
-    singleOf(::LocalSpaceRepository) bind SpaceRepository::class
+    // In-memory stand-ins. The Firebase implementations replace them in #15, #21 and #30.
+    singleOf(::InMemoryAuthRepository) bind AuthRepository::class
+    singleOf(::InMemorySpaceRepository) bind SpaceRepository::class
+    singleOf(::InMemoryItemRepository) bind ItemRepository::class
     single { Settings() }
 }
 
