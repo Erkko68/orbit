@@ -108,4 +108,18 @@ class ItemValidationTest {
         assertNull(without[ModuleType.ASSIGNMENT])
         assertEquals(listOf(ModuleType.SCHEDULE, ModuleType.REMINDER), without.all.map { it.type })
     }
+
+    @Test
+    fun everyModuleTypeCanBeRemoved() {
+        val full = ItemModules()
+            .with(Schedule(friday))
+            .with(Assignment.Anyone)
+            .with(Checklist(emptyList()))
+            .with(Reminder(emptyList()))
+        assertEquals(ModuleType.entries, full.all.map { it.type })
+
+        ModuleType.entries.forEach { type ->
+            assertEquals(ModuleType.entries - type, full.without(type).all.map { it.type })
+        }
+    }
 }
