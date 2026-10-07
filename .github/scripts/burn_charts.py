@@ -12,7 +12,7 @@ import sys
 from datetime import date, datetime, timedelta
 
 TITLE = "Burn charts"
-PROJECT = "3"  # the repo owner's "orbit" project, where the Estimate field (hours) lives
+PROJECT = 3  # the repo owner's "orbit" project, where the Estimate field (hours) lives
 QUERY = """query($owner: String!, $name: String!, $endCursor: String) {
   repository(owner: $owner, name: $name) {
     issues(first: 100, after: $endCursor) {
@@ -28,6 +28,20 @@ QUERY = """query($owner: String!, $name: String!, $endCursor: String) {
   }
 }"""
 
+PROJECT_QUERY = """query($owner: String!, $number: Int!, $endCursor: String) {
+  user(login: $owner) {
+    projectV2(number: $number) {
+      items(first: 100, after: $endCursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          content { ... on Issue { number } }
+          estimate: fieldValueByName(name: "Estimate") { ... on ProjectV2ItemFieldNumberValue { number } }
+        }
+      }
+    }
+  }
+}"""
+
 
 def gh(*args, stdin=None, env=None):
     return subprocess.run(["gh", *args], input=stdin, check=True, capture_output=True, text=True, env=env).stdout
@@ -36,16 +50,16 @@ def gh(*args, stdin=None, env=None):
 def estimates():
     """Issue number -> estimated hours, from the project. Empty when the token cannot read the project."""
     # GITHUB_TOKEN cannot read a user-owned project, so CI passes a PAT with the project scope as PROJECT_TOKEN.
+    # Plain GraphQL, because `gh project` hides the real error (bad credentials, missing scope) behind "unknown owner type".
     token = os.environ.get("PROJECT_TOKEN")
     try:
-        owner = gh("repo", "view", "--json", "owner", "-q", ".owner.login").strip()
-        items = json.loads(gh("project", "item-list", PROJECT, "--owner", owner, "--limit", "1000", "--format", "json",
-                              env={**os.environ, "GH_TOKEN": token} if token else None))["items"]
+        pages = json.loads(gh("api", "graphql", "--paginate", "--slurp", "-F", "owner={owner}", "-F", f"number={PROJECT}",
+                              "-f", f"query={PROJECT_QUERY}", env={**os.environ, "GH_TOKEN": token} if token else None))
     except subprocess.CalledProcessError as error:
-        print(error.stderr, file=sys.stderr)
+        print(error.stdout, error.stderr, file=sys.stderr)
         return {}
-    return {i["content"]["number"]: i["estimate"] for i in items
-            if i.get("estimate") and i["content"].get("type") == "Issue"}
+    items = [n for p in pages for n in p["data"]["user"]["projectV2"]["items"]["nodes"]]
+    return {i["content"]["number"]: i["estimate"]["number"] for i in items if i["estimate"] and i["content"]}
 
 
 def worked(node):
