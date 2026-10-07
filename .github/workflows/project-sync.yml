@@ -1,0 +1,26 @@
+name: Project sync
+
+# Moves issues on the project board and fills the roadmap dates as work starts and PRs open.
+on:
+  issues:
+    types: [assigned]
+  pull_request:
+    types: [opened]
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Project sync
+    # PRs from forks get no secrets, so there is nothing they can sync.
+    if: github.event_name == 'issues' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: python3 .github/scripts/project_sync.py
+        env:
+          # GITHUB_TOKEN cannot write to a user-owned project: a classic PAT with the project scope.
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
