@@ -46,6 +46,22 @@ jobs:
           path: ~/.konan
           key: konan-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
       - run: ./gradlew :shared:linkDebugFrameworkIosSimulatorArm64 :shared:iosSimulatorArm64Test
+      - uses: actions/cache@v6
+        with:
+          path: build/swiftpm
+          key: swiftpm-${{ runner.os }}-${{ hashFiles('iosApp/iosApp.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+      # Builds the real app, so the Xcode project and the Swift packages (Firebase) are checked too.
+      - name: Build the iOS app
+        run: |
+          xcodebuild build \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/ios \
+            -clonedSourcePackagesDirPath build/swiftpm \
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO
 
   firestore-rules:
     name: Firestore rules
