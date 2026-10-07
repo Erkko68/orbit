@@ -5,6 +5,7 @@ estimated hours against the time the issues really took.
 Run with --print to see the markdown without touching GitHub.
 """
 import json
+import math
 import os
 import subprocess
 import sys
@@ -157,7 +158,7 @@ def check():
         raise RuntimeError("series() self-check failed")
     node = {"timelineItems": {"nodes": [{"createdAt": "2026-10-01T08:00:00Z"}]},
             "closedByPullRequestsReferences": {"nodes": [{"createdAt": "2026-10-01T11:30:00Z"}]}}
-    if worked(node) != 3.5:
+    if not math.isclose(worked(node), 3.5):
         raise RuntimeError("worked() self-check failed")
     timed = [{"number": 1, "created": d, "closed": d, "estimate": 2, "hours": 3.5, "who": "a"},
              {"number": 2, "created": d, "closed": None, "estimate": 6, "hours": None, "who": ""}]
