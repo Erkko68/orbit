@@ -63,10 +63,11 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 
 ## Git workflow
 - 4 members, GitHub Projects kanban with columns Backlog, Planned, In progress, Done.
+- The board follows the work on its own (`project-sync.yml`): assigning an issue moves it to In progress and sets its `Start date`, opening its PR sets its `Target date`. The Roadmap view draws its bars from those two fields, with the milestones as markers. Don't edit them by hand.
 - Starting work. Agents do these steps, in order, before changing any code:
   1. Check the GitHub CLI with `gh auth status`. If `gh` is missing or not logged in, suggest setting it up in the terminal (`brew install gh` or https://cli.github.com, then `gh auth login`) before anything else.
   2. Find the current milestone (the open one with the earliest due date) and list its free issues: `gh issue list --milestone "<milestone>" --search "no:assignee"`. Ask the user which one to work on. Skip issues whose "Blocked by" issues are still open.
-  3. Assign it to the user with `gh issue edit <issue> --add-assignee @me` and remind them to move it to In progress on the board.
+  3. Assign it to the user with `gh issue edit <issue> --add-assignee @me` when the work starts, not when it is done: the assignment moves it to In progress and starts its bar on the roadmap.
   4. Create the branch for that issue (see below).
 - An assigned issue is taken. Never pick, reassign or commit against an issue assigned to someone else unless the user explicitly says they are helping on it. In that case add the user as a second assignee and leave the original one.
 - **Every commit references its issue as `(#<issue>)` at the end of the subject, and every PR closes it with `Closes #<issue>`. No issue, no commit: create the issue first.**
