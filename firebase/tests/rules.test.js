@@ -40,13 +40,17 @@ describe('Firestore Security Rules', () => {
 
   it('denies unauthenticated read and write by default', async () => {
     const unauthDb = testEnv.unauthenticatedContext().firestore();
-    await assertFails(unauthDb.collection('spaces').get());
-    await assertFails(unauthDb.collection('spaces').doc('s1').set({ name: 'Test' }));
+    const readErr = await assertFails(unauthDb.collection('spaces').get());
+    assert.ok(readErr);
+    const writeErr = await assertFails(unauthDb.collection('spaces').doc('s1').set({ name: 'Test' }));
+    assert.ok(writeErr);
   });
 
   it('denies authenticated read and write under current deny-all rule', async () => {
     const authDb = testEnv.authenticatedContext('alice').firestore();
-    await assertFails(authDb.collection('spaces').get());
-    await assertFails(authDb.collection('spaces').doc('s1').set({ name: 'Test' }));
+    const readErr = await assertFails(authDb.collection('spaces').get());
+    assert.ok(readErr);
+    const writeErr = await assertFails(authDb.collection('spaces').doc('s1').set({ name: 'Test' }));
+    assert.ok(writeErr);
   });
 });
