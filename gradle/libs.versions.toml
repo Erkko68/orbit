@@ -10,6 +10,7 @@ composeMultiplatform = "1.12.1"
 coroutines = "1.11.0"
 kermit = "2.2.0"
 koin = "4.2.2"
+kover = "0.9.11"
 kotlin = "2.4.20"
 kotlinx-datetime = "0.8.0"
 kotlinx-serialization = "1.11.0"
@@ -83,4 +84,5 @@ composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMul
 composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlinSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
 googleServices = { id = "com.google.gms.google-services", version.ref = "google-services" }
