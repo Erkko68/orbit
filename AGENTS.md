@@ -40,6 +40,13 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - Dark `onPrimary` is navy on purpose.
   - Teal, coral and sun are fills, never text on light backgrounds; text on them is navy.
   - `spaceAccents` are decorative (avatars, dots, borders), no body text on them.
+- Spacing and layout: styling decisions live in `core/designsystem/`, screens only compose.
+  - Every padding and gap is an `OrbitSpacing` token (`xs` 4, `sm` 8, `md` 16, `lg` 24, `xl` 32). No raw `.dp` / `.sp` or `Color(0x…)` outside `core/designsystem/` (CI-checked in `ci.yml`).
+  - Need a value that is not on the scale? Use the nearest token. Add a token only when the design really needs it, never a one-off number.
+  - Every screen is built on `OrbitScreen`, which owns the scaffold, the insets, the screen gutter and the gap between sections. Screens never set their own outer padding.
+  - Components have no outer margin: they pad their inside, take a `modifier` parameter, and the parent sets the gaps with `Arrangement.spacedBy(OrbitSpacing.…)`.
+  - Typography by role (`titleMedium`, `bodyLarge`…), used as is. No `.copy(fontSize = …)` at the call site: if a role looks wrong, fix it in `Type.kt`.
+  - The same styled element on a second screen becomes a wrapper in `core/designsystem/component/`. A screen that needs a visual tweak changes the wrapper or the theme, not itself.
 - No experimental Compose APIs (e.g. the Styles API, Material 3 Expressive `MotionScheme`). Revisit when stable.
 - No hardcoded strings in composables: use `composeResources/values/strings.xml`.
 - One public composable per file.
