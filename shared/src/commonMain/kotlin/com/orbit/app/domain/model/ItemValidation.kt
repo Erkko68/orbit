@@ -25,32 +25,48 @@ fun validateItem(
     title: String,
     modules: ItemModules,
     memberIds: Collection<String>,
-): List<ItemError> = buildList {
+): List<ItemError> = titleErrors(title) +
+    scheduleErrors(modules.schedule) +
+    assignmentErrors(modules.assignment, memberIds) +
+    checklistErrors(modules.checklist) +
+    reminderErrors(modules.reminder, hasSchedule = modules.schedule != null)
+
+private fun titleErrors(title: String): List<ItemError> {
     val trimmed = title.trim()
-    if (trimmed.isEmpty()) add(ItemError.BlankTitle)
-    if (trimmed.length > ITEM_TITLE_MAX_LENGTH) add(ItemError.TitleTooLong)
+    return listOfNotNull(
+        ItemError.BlankTitle.takeIf { trimmed.isEmpty() },
+        ItemError.TitleTooLong.takeIf { trimmed.length > ITEM_TITLE_MAX_LENGTH },
+    )
+}
 
-    modules.schedule?.let { schedule ->
-        if (schedule.endDate != null) {
-            if (schedule.time != null) add(ItemError.TimeWithEndDate)
-            if (schedule.endDate <= schedule.date) add(ItemError.EndNotAfterStart)
-        }
-        if (schedule.duration != null && schedule.duration <= Duration.ZERO) {
-            add(ItemError.NonPositiveDuration)
-        }
+private fun scheduleErrors(schedule: Schedule?): List<ItemError> {
+    if (schedule == null) return emptyList()
+    val endDate = schedule.endDate
+    val duration = schedule.duration
+    return listOfNotNull(
+        ItemError.TimeWithEndDate.takeIf { endDate != null && schedule.time != null },
+        ItemError.EndNotAfterStart.takeIf { endDate != null && endDate <= schedule.date },
+        ItemError.NonPositiveDuration.takeIf { duration != null && duration <= Duration.ZERO },
+    )
+}
+
+private fun assignmentErrors(assignment: Assignment?, memberIds: Collection<String>): List<ItemError> {
+    val assigneeId = assignment?.assigneeId ?: return emptyList()
+    return listOfNotNull(ItemError.AssigneeNotMember.takeIf { assigneeId !in memberIds })
+}
+
+private fun checklistErrors(checklist: Checklist?): List<ItemError> =
+    checklist?.entries.orEmpty().flatMap { entry ->
+        listOfNotNull(
+            ItemError.BlankChecklistEntry(entry.id).takeIf { entry.text.isBlank() },
+            ItemError.NonPositiveQuantity(entry.id).takeIf { entry.quantity != null && entry.quantity <= 0 },
+        )
     }
 
-    modules.assignment?.assigneeId?.let { assigneeId ->
-        if (assigneeId !in memberIds) add(ItemError.AssigneeNotMember)
-    }
-
-    modules.checklist?.entries?.forEach { entry ->
-        if (entry.text.isBlank()) add(ItemError.BlankChecklistEntry(entry.id))
-        if (entry.quantity != null && entry.quantity <= 0) add(ItemError.NonPositiveQuantity(entry.id))
-    }
-
-    modules.reminder?.let { reminder ->
-        if (modules.schedule == null) add(ItemError.ReminderWithoutSchedule)
-        if (reminder.offsets.any { it < Duration.ZERO }) add(ItemError.NegativeReminderOffset)
-    }
+private fun reminderErrors(reminder: Reminder?, hasSchedule: Boolean): List<ItemError> {
+    if (reminder == null) return emptyList()
+    return listOfNotNull(
+        ItemError.ReminderWithoutSchedule.takeIf { !hasSchedule },
+        ItemError.NegativeReminderOffset.takeIf { reminder.offsets.any { it < Duration.ZERO } },
+    )
 }
