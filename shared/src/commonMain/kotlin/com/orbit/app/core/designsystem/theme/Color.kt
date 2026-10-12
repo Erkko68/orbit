@@ -37,6 +37,7 @@ private val CoralContainerDark = Color(0xFF663646)
 
 // Teal, coral and sun fail with white text (2.2, 2.6, 1.5:1), so their on-color is navy (6.9 to 11.6:1).
 // Error keeps the M3 defaults: coral is for actions, not errors.
+// surfaceBright fills outlined buttons: white in light, navyElevated in dark, on the canvas and on cards.
 internal val LightColors = lightColorScheme(
     primary = VioletDeep,
     onPrimary = White,
@@ -62,6 +63,7 @@ internal val LightColors = lightColorScheme(
     surfaceContainer = LavenderSurface,
     surfaceContainerHigh = LavenderSurface,
     surfaceContainerHighest = LavenderSurface,
+    surfaceBright = White,
     inverseSurface = Navy,
     inverseOnSurface = White,
     outline = Border,
@@ -93,6 +95,7 @@ internal val DarkColors = darkColorScheme(
     surfaceContainer = NavyElevated,
     surfaceContainerHigh = NavyElevated,
     surfaceContainerHighest = NavyElevated,
+    surfaceBright = NavyElevated,
     inverseSurface = White,
     inverseOnSurface = Navy,
     outline = Violet.copy(alpha = 0.5f),
