@@ -22,6 +22,8 @@ class ComponentContrastTest {
             (onSurfaceVariant to surface),
         "error on a card" to (error to surfaceContainer),
         "error on the canvas" to (error to surface),
+        "avatar initials" to (onPrimaryContainer to primaryContainer),
+        "extended FAB label" to (onTertiary to tertiary),
     )
 
     private fun contrast(a: Color, b: Color): Float {
