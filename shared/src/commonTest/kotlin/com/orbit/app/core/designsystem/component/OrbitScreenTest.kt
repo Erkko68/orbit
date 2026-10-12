@@ -7,13 +7,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import kotlin.test.Test
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class OrbitScreenTest : ComposeTest() {
@@ -45,5 +49,17 @@ class OrbitScreenTest : ComposeTest() {
 
         onNodeWithText("second").assertIsDisplayed()
         onNodeWithText("content").assertIsDisplayed()
+    }
+
+    @Test
+    fun showsItsTopBarAboveTheContent() = runComposeUiTest {
+        setContent {
+            OrbitTheme {
+                OrbitScreen(topBar = { OrbitTopBar("Items", Modifier.testTag("bar")) }) { Text("content") }
+            }
+        }
+        val bar = onNodeWithTag("bar").getUnclippedBoundsInRoot()
+        val content = onNodeWithText("content").getUnclippedBoundsInRoot()
+        assertTrue(content.top >= bar.bottom)
     }
 }
