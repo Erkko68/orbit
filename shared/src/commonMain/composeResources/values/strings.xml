@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Orbit</string>
     <string name="spaces_empty">No spaces yet</string>
+    <string name="module_card_remove">Remove %1$s</string>
 </resources>
