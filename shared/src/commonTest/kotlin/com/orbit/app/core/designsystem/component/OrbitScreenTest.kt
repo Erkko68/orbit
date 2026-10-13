@@ -62,4 +62,16 @@ class OrbitScreenTest : ComposeTest() {
         val content = onNodeWithText("content").getUnclippedBoundsInRoot()
         assertTrue(content.top >= bar.bottom)
     }
+
+    @Test
+    fun showsItsFloatingActionButtonBelowTheContent() = runComposeUiTest {
+        setContent {
+            OrbitTheme {
+                OrbitScreen(floatingActionButton = { Text("New item") }) { Text("content") }
+            }
+        }
+        val button = onNodeWithText("New item").getUnclippedBoundsInRoot()
+        val content = onNodeWithText("content").getUnclippedBoundsInRoot()
+        assertTrue(button.top > content.bottom)
+    }
 }

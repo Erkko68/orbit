@@ -13,7 +13,8 @@ import com.orbit.app.core.designsystem.theme.OrbitSpacing
 
 /**
  * Base layout of every screen: owns the scaffold, the screen gutter and the gap between sections.
- * [topBar] is usually an [OrbitTopBar], drawn edge to edge above the gutter.
+ * [topBar] is usually an [OrbitTopBar], drawn edge to edge above the gutter, and
+ * [floatingActionButton] an [OrbitExtendedFab].
  */
 @Composable
 fun OrbitScreen(
@@ -21,9 +22,10 @@ fun OrbitScreen(
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(OrbitSpacing.md),
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     topBar: @Composable () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Scaffold(modifier = modifier, topBar = topBar) { padding ->
+    Scaffold(modifier = modifier, topBar = topBar, floatingActionButton = floatingActionButton) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = OrbitSpacing.md),
             verticalArrangement = verticalArrangement,

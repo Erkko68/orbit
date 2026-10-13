@@ -6,7 +6,10 @@ import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import com.orbit.app.feature.auth.SessionViewModel
+import com.orbit.app.feature.auth.SignInViewModel
 import com.orbit.app.feature.space.SpaceViewModel
+import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.russhwolf.settings.Settings
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
@@ -40,5 +43,8 @@ val domainModule = module {
 }
 
 val featureModule = module {
+    viewModelOf(::SessionViewModel)
+    viewModelOf(::SignInViewModel)
     viewModelOf(::SpaceViewModel)
+    viewModelOf(::SpaceHomeViewModel) // spaceId comes from parametersOf in SpaceHomeScreen
 }
