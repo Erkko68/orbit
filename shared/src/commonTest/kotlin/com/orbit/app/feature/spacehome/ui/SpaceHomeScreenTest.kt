@@ -15,13 +15,30 @@ import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.data.repository.InMemoryItemRepository
 import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
+import com.orbit.app.testing.startTestKoin
+import org.koin.core.context.stopKoin
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class SpaceHomeScreenTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
-    private val viewModel = SpaceHomeViewModel("space-1", InMemorySpaceRepository(auth), InMemoryItemRepository(auth))
+    private val spaces = InMemorySpaceRepository(auth)
+    private val items = InMemoryItemRepository(auth)
+    private val viewModel = SpaceHomeViewModel("space-1", spaces, items)
+
+    // The items and members tabs get their view models from Koin.
+    @BeforeTest
+    fun startDi() {
+        startTestKoin(auth, spaces, items)
+    }
+
+    @AfterTest
+    fun stopDi() {
+        stopKoin()
+    }
 
     @Test
     fun showsTheSummaryAndSwitchesBetweenTabs() = runComposeUiTest {

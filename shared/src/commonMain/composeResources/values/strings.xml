@@ -8,10 +8,9 @@
     <string name="sign_in_subtitle">Sign in to continue to your shared spaces.</string>
     <string name="sign_in_email">Email address</string>
     <string name="sign_in_password">Password</string>
-    <string name="sign_in_show_password">Show password</string>
-    <string name="sign_in_hide_password">Hide password</string>
     <string name="sign_in_forgot_password">Forgot password?</string>
     <string name="sign_in">Sign in</string>
+    <string name="sign_in_failed">Could not sign in. Check your details and try again.</string>
     <string name="sign_in_google">Continue with Google</string>
     <string name="sign_in_apple">Continue with Apple</string>
     <string name="sign_in_new">New to Orbit?</string>
@@ -24,6 +23,7 @@
     <string name="spaces_create_subtitle">Set up a space for the people you organize with.</string>
     <string name="spaces_create_name">Flat 4B</string>
     <string name="spaces_create">Create space</string>
+    <string name="spaces_create_failed">Could not create the space. Try again.</string>
     <string name="spaces_join_title">Join a space</string>
     <string name="spaces_join_subtitle">Use the invite you received from another member.</string>
     <string name="spaces_join_code">Invite code or link</string>

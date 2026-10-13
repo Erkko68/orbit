@@ -5,7 +5,6 @@ import com.orbit.app.data.repository.InMemoryItemRepository
 import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
-import com.orbit.app.domain.model.Role
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -14,10 +13,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.role_admin
-import orbit.shared.generated.resources.role_member
-import orbit.shared.generated.resources.role_owner
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -40,72 +35,40 @@ class SpaceHomeViewModelTest {
     }
 
     @Test
-    fun showsTheSpaceAndItsOwner() = runTest {
+    fun showsTheSpaceAndItsMembersInitials() = runTest {
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
         val id = spaces.createSpace("Flat 4B", accent = 0)
 
-        val state = SpaceHomeViewModel(id, spaces, items).uiState.first { it.members.isNotEmpty() }
+        val state = SpaceHomeViewModel(id, spaces, items).uiState.first { it.memberInitials.isNotEmpty() }
 
         assertEquals("Flat 4B", state.name)
-        assertEquals(listOf(SpaceMember("ana@orbit.app", "Ana López", "AL", Res.string.role_owner)), state.members)
+        assertEquals(listOf("AL"), state.memberInitials)
     }
 
     @Test
-    fun labelsEveryRole() = runTest {
-        val repository = FakeSpaceRepository.withMembers("Ana" to Role.OWNER, "Ben" to Role.ADMIN, "Cy" to Role.MEMBER)
-
-        val state = SpaceHomeViewModel("space-1", repository, items).uiState.first { it.members.isNotEmpty() }
-
-        assertEquals(
-            listOf(Res.string.role_owner, Res.string.role_admin, Res.string.role_member),
-            state.members.map { it.role },
-        )
-    }
-
-    @Test
-    fun listsItemsByTypeAndCountsOpenTasks() = runTest {
+    fun countsOpenTasks() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
         items.create(id, NewItem("Book plumber", preset = Preset.TASK))
+        items.create(id, NewItem("Call the landlord"))
         items.create(id, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
-        items.create(id, NewItem("Dinner at 20:00", preset = Preset.EVENT))
         val done = items.create(id, NewItem("Take out recycling"))
         items.complete(id, done)
 
-        val state = SpaceHomeViewModel(id, spaces, items).uiState.first { it.items.size == 4 }
+        val state = SpaceHomeViewModel(id, spaces, items).uiState.first { it.openTasks > 0 }
 
-        assertEquals(
-            listOf(ItemType.TASK, ItemType.LIST, ItemType.EVENT, ItemType.OTHER),
-            state.items.map { it.type },
-        )
-        assertEquals(1, state.openTasks)
+        assertEquals(2, state.openTasks)
     }
 
     @Test
-    fun filtersItemsWithTheSelectedChip() = runTest {
-        auth.signIn("ana@orbit.app", "secret")
-        val id = spaces.createSpace("Flat 4B", accent = 0)
-        items.create(id, NewItem("Book plumber", preset = Preset.TASK))
-        items.create(id, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
-        items.create(id, NewItem("Dinner at 20:00", preset = Preset.EVENT))
-        val viewModel = SpaceHomeViewModel(id, spaces, items)
+    fun opensOnItemsAndSwitchesTab() = runTest {
+        val viewModel = SpaceHomeViewModel("space-1", spaces, items)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        assertEquals(SpaceHomeTab.ITEMS, viewModel.uiState.value.tab)
 
-        val titlesByFilter = ItemFilter.entries.associateWith { filter ->
-            viewModel.select(filter)
-            viewModel.uiState.first { it.filter == filter && it.name.isNotEmpty() }.items.map { it.title }
-        }
+        viewModel.selectTab(SpaceHomeTab.MEMBERS)
 
-        assertEquals(
-            mapOf(
-                ItemFilter.ALL to listOf("Book plumber", "Groceries", "Dinner at 20:00"),
-                ItemFilter.TASKS to listOf("Book plumber"),
-                ItemFilter.CHORES to emptyList(),
-                ItemFilter.BILLS to emptyList(),
-                ItemFilter.LISTS to listOf("Groceries"),
-                ItemFilter.EVENTS to listOf("Dinner at 20:00"),
-            ),
-            titlesByFilter,
-        )
+        assertEquals(SpaceHomeTab.MEMBERS, viewModel.uiState.value.tab)
     }
 
     @Test

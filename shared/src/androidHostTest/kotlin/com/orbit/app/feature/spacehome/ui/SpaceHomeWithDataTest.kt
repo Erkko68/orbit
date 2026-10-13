@@ -16,14 +16,23 @@ import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Role
-import com.orbit.app.feature.spacehome.FakeSpaceRepository
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
+import com.orbit.app.testing.FakeSpaceRepository
+import com.orbit.app.testing.startTestKoin
+import org.koin.core.context.stopKoin
+import kotlin.test.AfterTest
 import kotlin.test.Test
 
 /** Android only: the data arrives through the view model's flows, which these host tests run on the main looper. */
 @OptIn(ExperimentalTestApi::class)
 class SpaceHomeWithDataTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
+
+    // The items and members tabs get their view models from Koin.
+    @AfterTest
+    fun stopDi() {
+        stopKoin()
+    }
 
     @Test
     fun showsFourAvatarsThenACountAndListsEveryone() = runComposeUiTest {
@@ -35,7 +44,9 @@ class SpaceHomeWithDataTest : ComposeTest() {
             "Ed" to Role.MEMBER,
             "Flo" to Role.MEMBER,
         )
-        val viewModel = SpaceHomeViewModel("space-1", spaces, InMemoryItemRepository(auth))
+        val items = InMemoryItemRepository(auth)
+        startTestKoin(auth, spaces, items)
+        val viewModel = SpaceHomeViewModel("space-1", spaces, items)
         setContent {
             OrbitTheme {
                 SpaceHomeScreen("space-1", onSwitchSpace = {}, viewModel = viewModel)
@@ -58,6 +69,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val id = spaces.createSpace("Flat 4B", accent = 0)
         items.create(id, NewItem("Book plumber", preset = Preset.TASK))
         items.create(id, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
+        startTestKoin(auth, spaces, items)
         val viewModel = SpaceHomeViewModel(id, spaces, items)
         setContent {
             OrbitTheme {
