@@ -7,7 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
@@ -24,14 +24,14 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class OrbitButtonTest : ComposeTest() {
     @Test
-    fun clicksWithA48dpTouchTarget() = runComposeUiTest {
+    fun clicksAndIsAsTallAsATextField() = runComposeUiTest {
         var clicks = 0
         setContent {
             OrbitTheme {
                 OrbitButton("Sign in", onClick = { clicks++ })
             }
         }
-        onNodeWithText("Sign in").assertHeightIsAtLeast(48.dp).performClick()
+        onNodeWithText("Sign in").assertHeightIsEqualTo(56.dp).performClick()
         assertEquals(1, clicks)
     }
 

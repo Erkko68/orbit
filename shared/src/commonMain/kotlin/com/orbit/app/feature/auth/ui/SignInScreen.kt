@@ -44,13 +44,18 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Sign-in, laid out as in the Sprint 1 mockup. Placeholders until their issues land: forgot
- * password, Google, Apple and create account are disabled, and there is no validation yet.
+ * Sign-in as one centered column: the Orbit header, the form, then the other ways in.
+ * Placeholders until their issues land: forgot password, Google, Apple and create account are
+ * disabled, and there is no validation yet.
  */
 @Composable
 fun SignInScreen(viewModel: SignInViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    OrbitScreen(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.lg), scrollable = true) {
+    OrbitScreen(
+        verticalArrangement = Arrangement.spacedBy(OrbitSpacing.lg, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        scrollable = true,
+    ) {
         OrbitScreenHeader(stringResource(Res.string.sign_in_title), stringResource(Res.string.sign_in_subtitle))
         Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
             OrbitTextField(
@@ -71,15 +76,15 @@ fun SignInScreen(viewModel: SignInViewModel = koinViewModel()) {
                 isError = state.failed,
                 supportingText = if (state.failed) stringResource(Res.string.sign_in_failed) else null,
             )
-            TextButton(onClick = {}, modifier = Modifier.align(Alignment.End), enabled = false) {
-                Text(stringResource(Res.string.sign_in_forgot_password))
-            }
             OrbitButton(
                 text = stringResource(Res.string.sign_in),
                 onClick = viewModel::signIn,
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !state.submitting,
             )
+            TextButton(onClick = {}, modifier = Modifier.align(Alignment.CenterHorizontally), enabled = false) {
+                Text(stringResource(Res.string.sign_in_forgot_password))
+            }
         }
         OrbitLabeledDivider(stringResource(Res.string.or))
         Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
@@ -96,11 +101,7 @@ fun SignInScreen(viewModel: SignInViewModel = koinViewModel()) {
                 enabled = false,
             )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(Res.string.sign_in_new),
                 style = MaterialTheme.typography.bodyMedium,

@@ -34,23 +34,41 @@ class SpaceViewModelTest {
     fun createsASpaceForTheSignedInUser() = runTest {
         val auth = InMemoryAuthRepository()
         auth.signIn("ana@orbit.app", "secret")
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth))
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
 
+        viewModel.openCreate()
         viewModel.onNewSpaceNameChange("  Flat 4B ")
         viewModel.createSpace()
 
         val state = viewModel.uiState.first { it.spaceIds.isNotEmpty() }
         assertEquals(1, state.spaceIds.size)
-        // The form is ready for the next space.
+        assertEquals("A", state.userInitials)
+        // The dialog is closed and ready for the next space.
+        assertFalse(state.createOpen)
         assertEquals("", state.newSpaceName)
         assertFalse(state.canCreate)
+    }
+
+    @Test
+    fun opensTheCreateDialogAndForgetsItsNameWhenDismissed() = runTest {
+        val auth = InMemoryAuthRepository()
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.openCreate()
+        viewModel.onNewSpaceNameChange("Flat 4B")
+        assertTrue(viewModel.uiState.value.createOpen)
+
+        viewModel.dismissCreate()
+
+        assertEquals(SpaceUiState(), viewModel.uiState.value)
     }
 
     @Test
     fun createsOnlyWithAName() = runTest {
         val auth = InMemoryAuthRepository()
         auth.signIn("ana@orbit.app", "secret")
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth))
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.onNewSpaceNameChange("   ")
@@ -63,13 +81,15 @@ class SpaceViewModelTest {
     @Test
     fun aFailedCreateKeepsTheNameAndIsFlaggedUntilTheNextEdit() = runTest {
         // This fake's createSpace always throws.
-        val viewModel = SpaceViewModel(FakeSpaceRepository.withMembers())
+        val viewModel = SpaceViewModel(FakeSpaceRepository.withMembers(), InMemoryAuthRepository())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
+        viewModel.openCreate()
         viewModel.onNewSpaceNameChange("Flat 4B")
         viewModel.createSpace()
 
         val failed = viewModel.uiState.value
+        assertTrue(failed.createOpen)
         assertEquals("Flat 4B", failed.newSpaceName)
         assertTrue(failed.createFailed)
         assertTrue(failed.canCreate)

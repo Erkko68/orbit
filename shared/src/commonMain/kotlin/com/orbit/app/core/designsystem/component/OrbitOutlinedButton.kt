@@ -27,7 +27,7 @@ fun OrbitOutlinedButton(
     val colors = MaterialTheme.colorScheme
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.heightIn(min = ButtonMinHeight),
+        modifier = modifier.heightIn(min = ControlHeight),
         enabled = enabled,
         colors = ButtonDefaults.outlinedButtonColors(
             containerColor = colors.surfaceBright,
@@ -40,6 +40,6 @@ fun OrbitOutlinedButton(
             Box(Modifier.size(ButtonDefaults.IconSize)) { icon() }
             Spacer(Modifier.width(OrbitSpacing.md))
         }
-        Text(text)
+        Text(text, style = MaterialTheme.typography.titleMedium)
     }
 }

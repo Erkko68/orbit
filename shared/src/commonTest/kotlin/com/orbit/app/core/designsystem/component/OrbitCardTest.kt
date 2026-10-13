@@ -33,6 +33,16 @@ class OrbitCardTest : ComposeTest() {
     }
 
     @Test
+    fun showsItsContentWhenElevated() = runComposeUiTest {
+        setContent {
+            OrbitTheme {
+                OrbitCard(elevated = true) { Text("Flat 4B") }
+            }
+        }
+        onNodeWithText("Flat 4B").assertIsDisplayed()
+    }
+
+    @Test
     fun clicksWhenItHasAnAction() = runComposeUiTest {
         var clicks = 0
         setContent {
