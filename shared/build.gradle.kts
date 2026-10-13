@@ -112,8 +112,39 @@ val firebaseTestStubs = tasks.register("firebaseTestStubs") {
     val dir = layout.buildDirectory.dir("firebaseTestStubs")
     outputs.dir(dir)
     doLast {
+        val stubDir = dir.get().asFile
         listOf("FirebaseCore", "FirebaseAuth", "FirebaseFirestore", "FirebaseFirestoreInternal").forEach {
-            dir.get().file("$it.framework/$it").asFile.apply { parentFile.mkdirs() }.writeText("!<arch>\n")
+            val frameworkDir = File(stubDir, "$it.framework")
+            frameworkDir.mkdirs()
+            File(frameworkDir, it).writeText("!<arch>\n")
+        }
+        if (System.getProperty("os.name").contains("Mac", ignoreCase = true)) {
+            val stubC = File(stubDir, "stubs.c").apply {
+                writeText(
+                    """
+                    void *FIRAuthErrorDomain = 0;
+                    void *FIRFirestoreErrorDomain = 0;
+                    void *OBJC_CLASS_${'$'}_FIRAuth = 0;
+                    void *OBJC_CLASS_${'$'}_FIRAuthDataResult = 0;
+                    void *OBJC_CLASS_${'$'}_FIRDocumentReference = 0;
+                    void *OBJC_CLASS_${'$'}_FIRFieldValue = 0;
+                    void *OBJC_CLASS_${'$'}_FIRFirestore = 0;
+                    void *OBJC_CLASS_${'$'}_FIRMultiFactorResolver = 0;
+                    """.trimIndent(),
+                )
+            }
+            listOf("FirebaseAuth", "FirebaseFirestore").forEach { name ->
+                val objFile = File(stubDir, "$name.o")
+                val binary = File(File(stubDir, "$name.framework"), name)
+                ProcessBuilder("clang", "-target", "arm64-apple-ios-simulator", "-c", stubC.absolutePath, "-o", objFile.absolutePath)
+                    .inheritIO()
+                    .start()
+                    .waitFor()
+                ProcessBuilder("ar", "rcs", binary.absolutePath, objFile.absolutePath)
+                    .inheritIO()
+                    .start()
+                    .waitFor()
+            }
         }
     }
 }
