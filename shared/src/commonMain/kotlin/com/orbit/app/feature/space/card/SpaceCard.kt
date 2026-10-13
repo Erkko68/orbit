@@ -42,7 +42,6 @@ internal fun SpaceCard(
     viewModel: SpaceCardViewModel = koinViewModel(key = spaceId) { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val accents = OrbitTheme.colors.spaceAccents
     OrbitCard(modifier, onClick = onClick, elevated = true) {
         Row(horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs)) {
@@ -51,7 +50,8 @@ internal fun SpaceCard(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     // The space's accent, as a dot.
-                    Box(Modifier.size(OrbitSpacing.sm).background(accents[state.accent.mod(accents.size)], CircleShape))
+                    val accent = OrbitTheme.colors.spaceAccent(state.accent)
+                    Box(Modifier.size(OrbitSpacing.sm).background(accent, CircleShape))
                     Text(
                         text = pluralStringResource(Res.plurals.spaces_members, state.memberCount, state.memberCount),
                         style = MaterialTheme.typography.labelMedium,

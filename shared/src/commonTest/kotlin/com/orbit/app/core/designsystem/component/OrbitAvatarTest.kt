@@ -33,19 +33,32 @@ class OrbitAvatarTest : ComposeTest() {
     }
 
     @Test
+    fun keepsTheInitialsWhenThePhotoCannotLoad() = runComposeUiTest {
+        setContent {
+            OrbitTheme {
+                // No fetcher handles this scheme, so the load fails at once without touching the network.
+                OrbitAvatar("AL", Color.Red, photoUrl = "orbit-test://missing")
+            }
+        }
+        onNodeWithText("AL").assertIsDisplayed()
+    }
+
+    @Test
     fun followsItsInputsWhenTheCallerRecomposes() = runComposeUiTest {
         var initials by mutableStateOf("AL")
+        var photoUrl by mutableStateOf<String?>(null)
         var other by mutableStateOf("first")
         setContent {
             OrbitTheme {
                 Text(other)
-                OrbitAvatar(initials, accent = Color.Red, modifier = Modifier.testTag("avatar"))
+                OrbitAvatar(initials, accent = Color.Red, modifier = Modifier.testTag("avatar"), photoUrl = photoUrl)
             }
         }
         other = "second"
         onNodeWithText("second").assertIsDisplayed()
 
         initials = "MK"
+        photoUrl = "orbit-test://missing"
         onNodeWithText("MK").assertIsDisplayed()
     }
 }
