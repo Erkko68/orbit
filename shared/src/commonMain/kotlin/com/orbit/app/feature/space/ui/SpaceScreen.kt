@@ -13,8 +13,10 @@ import com.orbit.app.core.designsystem.component.OrbitAvatar
 import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitDialog
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
+import com.orbit.app.core.designsystem.component.OrbitErrorState
 import com.orbit.app.core.designsystem.component.OrbitExtendedFab
 import com.orbit.app.core.designsystem.component.OrbitLabeledDivider
+import com.orbit.app.core.designsystem.component.OrbitLoadingState
 import com.orbit.app.core.designsystem.component.OrbitOutlinedButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitTextField
@@ -31,6 +33,7 @@ import orbit.shared.generated.resources.ic_home
 import orbit.shared.generated.resources.ic_link
 import orbit.shared.generated.resources.ic_orbit
 import orbit.shared.generated.resources.or
+import orbit.shared.generated.resources.retry
 import orbit.shared.generated.resources.spaces_create
 import orbit.shared.generated.resources.spaces_create_failed
 import orbit.shared.generated.resources.spaces_create_name
@@ -38,6 +41,9 @@ import orbit.shared.generated.resources.spaces_empty
 import orbit.shared.generated.resources.spaces_empty_body
 import orbit.shared.generated.resources.spaces_join
 import orbit.shared.generated.resources.spaces_join_code
+import orbit.shared.generated.resources.spaces_load_failed
+import orbit.shared.generated.resources.spaces_load_failed_body
+import orbit.shared.generated.resources.spaces_loading
 import orbit.shared.generated.resources.spaces_new
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -80,7 +86,17 @@ fun SpaceScreen(onOpenSpace: (String) -> Unit, viewModel: SpaceViewModel = koinV
         },
         scrollable = true,
     ) {
-        if (state.spaceIds.isEmpty()) {
+        if (state.loading) {
+            OrbitLoadingState(stringResource(Res.string.spaces_loading), Modifier.fillMaxWidth())
+        } else if (state.loadFailed) {
+            OrbitErrorState(
+                title = stringResource(Res.string.spaces_load_failed),
+                body = stringResource(Res.string.spaces_load_failed_body),
+                retryText = stringResource(Res.string.retry),
+                onRetry = viewModel::retry,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else if (state.spaceIds.isEmpty()) {
             OrbitEmptyState(
                 title = stringResource(Res.string.spaces_empty),
                 body = stringResource(Res.string.spaces_empty_body),

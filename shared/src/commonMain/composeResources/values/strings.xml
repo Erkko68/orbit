@@ -5,6 +5,7 @@
     <string name="hide_password">Hide password</string>
     <string name="cancel">Cancel</string>
     <string name="more_count">+%1$d</string>
+    <string name="retry">Try again</string>
     <!-- Sign in -->
     <string name="sign_in_title">Welcome back</string>
     <string name="sign_in_subtitle">Sign in to continue to your shared spaces.</string>
@@ -57,5 +58,8 @@
     <string name="role_admin">Admin</string>
     <string name="role_member">Member</string>
     <string name="spaces_empty">No spaces yet</string>
+    <string name="spaces_loading">Loading your spaces…</string>
+    <string name="spaces_load_failed">Could not load your spaces</string>
+    <string name="spaces_load_failed_body">Check your connection and try again.</string>
     <string name="spaces_empty_body">Tap New space to create one for the people you organize with, or to join one with an invite.</string>
 </resources>

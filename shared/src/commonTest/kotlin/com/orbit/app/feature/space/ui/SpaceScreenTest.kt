@@ -17,6 +17,7 @@ import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.domain.model.Role
 import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.testing.FakeSpaceRepository
+import com.orbit.app.testing.FlakySpaceRepository
 import com.orbit.app.testing.startTestKoin
 import org.koin.core.context.stopKoin
 import kotlin.test.AfterTest
@@ -42,6 +43,26 @@ class SpaceScreenTest : ComposeTest() {
         onNodeWithText("Orbit").assertIsDisplayed()
         onNodeWithText("No spaces yet").assertIsDisplayed()
         onNodeWithText("New space").assertIsDisplayed()
+    }
+
+    @Test
+    fun saysSoWhenTheSpacesCouldNotLoadAndLoadsThemOnRetry() = runComposeUiTest {
+        val spaces = FlakySpaceRepository(failures = 1)
+        // The space cards get their view models from Koin.
+        startTestKoin(auth, spaces)
+        val viewModel = SpaceViewModel(spaces, auth)
+        setContent {
+            OrbitTheme {
+                SpaceScreen(onOpenSpace = {}, viewModel = viewModel)
+            }
+        }
+        onNodeWithText("Could not load your spaces").assertIsDisplayed()
+        onNodeWithText("No spaces yet").assertDoesNotExist()
+
+        onNodeWithText("Try again").performClick()
+
+        onNodeWithText("Flat 4B").assertIsDisplayed()
+        onNodeWithText("Could not load your spaces").assertDoesNotExist()
     }
 
     @Test

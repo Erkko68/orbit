@@ -7,10 +7,12 @@ import com.orbit.app.core.initialsOf
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -19,9 +21,23 @@ class SpaceViewModel(private val repository: SpaceRepository, auth: AuthReposito
     /** The create dialog. Its user and spaces stay empty: [uiState] fills them from the repositories. */
     private val form = MutableStateFlow(SpaceUiState())
 
+    /** A tap on "Try again" while the spaces failed to load. */
+    private val retries = Channel<Unit>(Channel.CONFLATED)
+
     val uiState: StateFlow<SpaceUiState> = combine(repository.observeSpaces(), auth.session, form) { spaces, user, form ->
         form.copy(userInitials = initialsOf(user?.displayName.orEmpty()), spaceIds = spaces.map { it.id })
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceUiState())
+    }.retryWhen { cause, _ ->
+        Logger.e(cause) { "Loading the spaces failed" }
+        emit(SpaceUiState(loadFailed = true))
+        retries.receive()
+        emit(SpaceUiState(loading = true))
+        true
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceUiState(loading = true))
+
+    /** Loads the spaces again after they failed to load. */
+    fun retry() {
+        retries.trySend(Unit)
+    }
 
     fun openCreate() = form.update { it.copy(createOpen = true) }
 
