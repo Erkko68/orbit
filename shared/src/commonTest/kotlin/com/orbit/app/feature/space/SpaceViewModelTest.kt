@@ -3,6 +3,7 @@ package com.orbit.app.feature.space
 import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.testing.FakeSpaceRepository
+import com.orbit.app.testing.FlakySpaceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -28,6 +29,34 @@ class SpaceViewModelTest {
     @AfterTest
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun startsLoadingThenShowsTheSpaces() = runTest {
+        val auth = InMemoryAuthRepository()
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
+        assertTrue(viewModel.uiState.value.loading)
+
+        val loaded = viewModel.uiState.first { !it.loading }
+
+        assertFalse(loaded.loadFailed)
+        assertEquals(emptyList(), loaded.spaceIds)
+    }
+
+    @Test
+    fun flagsAFailedLoadAndRetriesIt() = runTest {
+        val viewModel = SpaceViewModel(FlakySpaceRepository(failures = 1), InMemoryAuthRepository())
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        assertTrue(viewModel.uiState.value.loadFailed)
+        assertFalse(viewModel.uiState.value.loading)
+
+        viewModel.retry()
+
+        val loaded = viewModel.uiState.value
+        assertFalse(loaded.loadFailed)
+        assertFalse(loaded.loading)
+        assertEquals(listOf("space-1"), loaded.spaceIds)
     }
 
     @Test
