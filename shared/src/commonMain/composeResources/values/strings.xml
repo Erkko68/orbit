@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name">Orbit</string>
     <string name="or">or</string>
+    <string name="show_password">Show password</string>
+    <string name="hide_password">Hide password</string>
     <!-- Sign in -->
     <string name="sign_in_title">Welcome back</string>
     <string name="sign_in_subtitle">Sign in to continue to your shared spaces.</string>
