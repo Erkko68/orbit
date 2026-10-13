@@ -119,7 +119,10 @@ val firebaseTestStubs = tasks.register("firebaseTestStubs") {
 }
 kotlin.targets.withType<KotlinNativeTarget>().configureEach {
     binaries.withType<TestExecutable>().configureEach {
-        linkerOpts("-F${layout.buildDirectory.dir("firebaseTestStubs").get().asFile}")
+        linkerOpts(
+            "-F${layout.buildDirectory.dir("firebaseTestStubs").get().asFile}",
+            "-Wl,-undefined,dynamic_lookup",
+        )
         linkTaskProvider.configure { dependsOn(firebaseTestStubs) }
     }
 }
