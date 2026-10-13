@@ -113,7 +113,10 @@ data class OrbitColors(
     val onInfo: Color,
     /** Per-space identity fills (avatars, dots, borders). Decorative: never put body text on them. */
     val spaceAccents: List<Color>,
-)
+) {
+    /** The accent for [index] (a space's `accent`, a member's position), wrapping around the list. */
+    fun spaceAccent(index: Int): Color = spaceAccents[index.mod(spaceAccents.size)]
+}
 
 internal val LightOrbitColors = OrbitColors(
     success = Teal,

@@ -41,7 +41,8 @@ class SpaceMembersViewModelTest {
 
         val state = SpaceMembersViewModel(id, spaces).uiState.first { it.members.isNotEmpty() }
 
-        assertEquals(listOf(SpaceMember("ana@orbit.app", "Ana López", "AL", Res.string.role_owner)), state.members)
+        val owner = SpaceMember("ana@orbit.app", "Ana López", "AL", photoUrl = null, role = Res.string.role_owner)
+        assertEquals(listOf(owner), state.members)
     }
 
     @Test

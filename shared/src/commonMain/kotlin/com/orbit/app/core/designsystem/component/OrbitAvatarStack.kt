@@ -17,10 +17,9 @@ import org.jetbrains.compose.resources.stringResource
  */
 @Composable
 fun OrbitAvatarStack(initials: List<String>, modifier: Modifier = Modifier, max: Int = 4) {
-    val accents = OrbitTheme.colors.spaceAccents
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(-OrbitSpacing.sm)) {
         initials.take(max).forEachIndexed { index, memberInitials ->
-            OrbitAvatar(memberInitials, accents[index % accents.size])
+            OrbitAvatar(memberInitials, OrbitTheme.colors.spaceAccent(index))
         }
         val hidden = initials.size - max
         if (hidden > 0) {

@@ -22,13 +22,14 @@ internal fun SpaceMembersTab(
     viewModel: SpaceMembersViewModel = koinViewModel(key = spaceId) { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val accents = OrbitTheme.colors.spaceAccents
     Column(modifier, verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
         state.members.forEachIndexed { index, member ->
             OrbitListItem(
                 title = member.name,
                 supporting = stringResource(member.role),
-                leading = { OrbitAvatar(member.initials, accents[index % accents.size]) },
+                leading = {
+                    OrbitAvatar(member.initials, OrbitTheme.colors.spaceAccent(index), photoUrl = member.photoUrl)
+                },
             )
         }
     }

@@ -26,6 +26,7 @@ private fun toSpaceMember(member: Member) = SpaceMember(
     id = member.userId,
     name = member.displayName,
     initials = initialsOf(member.displayName),
+    photoUrl = member.photoUrl,
     role = when (member.role) {
         Role.OWNER -> Res.string.role_owner
         Role.ADMIN -> Res.string.role_admin
