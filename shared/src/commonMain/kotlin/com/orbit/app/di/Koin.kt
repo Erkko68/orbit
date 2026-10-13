@@ -1,8 +1,8 @@
 package com.orbit.app.di
 
 import com.orbit.app.data.repository.FirebaseAuthRepository
+import com.orbit.app.data.repository.FirestoreSpaceRepository
 import com.orbit.app.data.repository.InMemoryItemRepository
-import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -37,11 +37,11 @@ fun initKoin(config: KoinAppDeclaration? = null) {
 expect val platformModule: Module
 
 val dataModule = module {
-    // In-memory stand-ins. The Firebase implementations replace them in #21 and #30.
+    // In-memory stand-in. The Firebase implementation replaces it in #30.
     single { Firebase.auth }
     single { Firebase.firestore }
     singleOf(::FirebaseAuthRepository) bind AuthRepository::class
-    singleOf(::InMemorySpaceRepository) bind SpaceRepository::class
+    singleOf(::FirestoreSpaceRepository) bind SpaceRepository::class
     singleOf(::InMemoryItemRepository) bind ItemRepository::class
     single { Settings() }
 }

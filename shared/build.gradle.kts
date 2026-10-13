@@ -126,10 +126,21 @@ val firebaseTestStubs = tasks.register("firebaseTestStubs") {
                     void *FIRFirestoreErrorDomain = 0;
                     void *OBJC_CLASS_${'$'}_FIRAuth = 0;
                     void *OBJC_CLASS_${'$'}_FIRAuthDataResult = 0;
+                    void *OBJC_CLASS_${'$'}_FIRCollectionReference = 0;
+                    void *OBJC_CLASS_${'$'}_FIRDocumentChange = 0;
                     void *OBJC_CLASS_${'$'}_FIRDocumentReference = 0;
+                    void *OBJC_CLASS_${'$'}_FIRDocumentSnapshot = 0;
+                    void *OBJC_CLASS_${'$'}_FIRFieldPath = 0;
                     void *OBJC_CLASS_${'$'}_FIRFieldValue = 0;
+                    void *OBJC_CLASS_${'$'}_FIRFilter = 0;
                     void *OBJC_CLASS_${'$'}_FIRFirestore = 0;
+                    void *OBJC_CLASS_${'$'}_FIRGeoPoint = 0;
                     void *OBJC_CLASS_${'$'}_FIRMultiFactorResolver = 0;
+                    void *OBJC_CLASS_${'$'}_FIRQuery = 0;
+                    void *OBJC_CLASS_${'$'}_FIRQuerySnapshot = 0;
+                    void *OBJC_CLASS_${'$'}_FIRSnapshotMetadata = 0;
+                    void *OBJC_CLASS_${'$'}_FIRTimestamp = 0;
+                    void *OBJC_CLASS_${'$'}_FIRWriteBatch = 0;
                     """.trimIndent(),
                 )
             }
