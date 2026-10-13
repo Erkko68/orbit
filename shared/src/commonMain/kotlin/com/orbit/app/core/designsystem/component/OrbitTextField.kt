@@ -1,5 +1,6 @@
 package com.orbit.app.core.designsystem.component
 
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -35,7 +36,7 @@ fun OrbitTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier,
+        modifier = modifier.heightIn(min = ControlHeight),
         enabled = enabled,
         placeholder = { Text(placeholder) },
         leadingIcon = leadingIcon,

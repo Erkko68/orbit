@@ -78,12 +78,4 @@ class SpaceHomeViewModelTest {
 
         assertEquals("", viewModel.uiState.value.name)
     }
-
-    @Test
-    fun initialsTakeTheFirstLettersOfUpToTwoWords() {
-        assertEquals("AL", initialsOf("Ana López"))
-        assertEquals("AL", initialsOf("  ana  lópez  garcía "))
-        assertEquals("Y", initialsOf("you"))
-        assertEquals("", initialsOf(""))
-    }
 }

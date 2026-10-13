@@ -2,6 +2,7 @@ package com.orbit.app.feature.spacehome
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.orbit.app.core.initialsOf
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.repository.ItemRepository
@@ -36,7 +37,3 @@ class SpaceHomeViewModel(spaceId: String, spaces: SpaceRepository, items: ItemRe
 
 /** Items without a preset count as tasks too. */
 private val TASK_PRESETS = setOf(Preset.TASK, null)
-
-/** Up to two initials, from the first letters of the name's words: "Ana López" is "AL". */
-internal fun initialsOf(name: String): String =
-    name.split(' ').filter { it.isNotBlank() }.take(2).joinToString("") { it.first().uppercase() }

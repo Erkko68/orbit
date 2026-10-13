@@ -3,6 +3,8 @@
     <string name="or">or</string>
     <string name="show_password">Show password</string>
     <string name="hide_password">Hide password</string>
+    <string name="cancel">Cancel</string>
+    <string name="more_count">+%1$d</string>
     <!-- Sign in -->
     <string name="sign_in_title">Welcome back</string>
     <string name="sign_in_subtitle">Sign in to continue to your shared spaces.</string>
@@ -16,16 +18,10 @@
     <string name="sign_in_new">New to Orbit?</string>
     <string name="sign_in_create_account">Create account</string>
     <!-- Spaces -->
-    <string name="spaces_title">Create or join a space</string>
-    <string name="spaces_subtitle">Start a shared space or join one with an invite.</string>
-    <string name="spaces_yours">Your spaces</string>
-    <string name="spaces_create_title">Create a new space</string>
-    <string name="spaces_create_subtitle">Set up a space for the people you organize with.</string>
+    <string name="spaces_new">New space</string>
     <string name="spaces_create_name">Flat 4B</string>
     <string name="spaces_create">Create space</string>
     <string name="spaces_create_failed">Could not create the space. Try again.</string>
-    <string name="spaces_join_title">Join a space</string>
-    <string name="spaces_join_subtitle">Use the invite you received from another member.</string>
     <string name="spaces_join_code">Invite code or link</string>
     <string name="spaces_join">Join space</string>
     <plurals name="spaces_members">
@@ -47,7 +43,6 @@
     <string name="item_type_list">List</string>
     <string name="item_type_event">Event</string>
     <string name="item_type_other">Item</string>
-    <string name="space_more_members">+%1$d</string>
     <string name="space_open_tasks">open tasks</string>
     <string name="space_bills_due">bills due</string>
     <string name="space_events_today">events today</string>
@@ -62,4 +57,5 @@
     <string name="role_admin">Admin</string>
     <string name="role_member">Member</string>
     <string name="spaces_empty">No spaces yet</string>
+    <string name="spaces_empty_body">Tap New space to create one for the people you organize with, or to join one with an invite.</string>
 </resources>

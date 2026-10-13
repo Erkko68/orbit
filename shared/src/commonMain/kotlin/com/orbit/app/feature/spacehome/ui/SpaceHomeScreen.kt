@@ -17,7 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.orbit.app.core.designsystem.component.OrbitAvatar
+import com.orbit.app.core.designsystem.component.OrbitAvatarStack
 import com.orbit.app.core.designsystem.component.OrbitCard
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitExtendedFab
@@ -25,7 +25,6 @@ import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
-import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.feature.spacehome.SpaceHomeTab
 import com.orbit.app.feature.spacehome.SpaceHomeUiState
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
@@ -39,7 +38,6 @@ import orbit.shared.generated.resources.space_agenda_empty_body
 import orbit.shared.generated.resources.space_agenda_empty_title
 import orbit.shared.generated.resources.space_bills_due
 import orbit.shared.generated.resources.space_events_today
-import orbit.shared.generated.resources.space_more_members
 import orbit.shared.generated.resources.space_new_item
 import orbit.shared.generated.resources.space_notifications
 import orbit.shared.generated.resources.space_open_tasks
@@ -50,8 +48,6 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
-
-private const val VISIBLE_AVATARS = 4
 
 /**
  * Home of a space, laid out as in the Sprint 1 mockups: its members, a summary and the items, agenda
@@ -93,7 +89,7 @@ fun SpaceHomeScreen(
         scrollable = true,
     ) {
         if (state.memberInitials.isNotEmpty()) {
-            MemberAvatars(state.memberInitials)
+            OrbitAvatarStack(state.memberInitials)
         }
         Summary(state)
         PrimaryTabRow(selectedTabIndex = state.tab.ordinal) {
@@ -122,21 +118,6 @@ private fun Agenda() {
             body = stringResource(Res.string.space_agenda_empty_body),
             modifier = Modifier.fillMaxWidth(),
         )
-    }
-}
-
-@Composable
-private fun MemberAvatars(initials: List<String>) {
-    val accents = OrbitTheme.colors.spaceAccents
-    // Overlapping, as in the mockup.
-    Row(horizontalArrangement = Arrangement.spacedBy(-OrbitSpacing.sm)) {
-        initials.take(VISIBLE_AVATARS).forEachIndexed { index, memberInitials ->
-            OrbitAvatar(memberInitials, accents[index % accents.size])
-        }
-        val hidden = initials.size - VISIBLE_AVATARS
-        if (hidden > 0) {
-            OrbitAvatar(stringResource(Res.string.space_more_members, hidden), MaterialTheme.colorScheme.outline)
-        }
     }
 }
 

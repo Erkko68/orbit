@@ -8,7 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
@@ -38,7 +38,7 @@ class OrbitOutlinedButtonTest : ComposeTest() {
         val text = onNodeWithText("Continue with Google", useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertTrue(logo.right <= text.left)
 
-        onNodeWithText("Continue with Google").assertHeightIsAtLeast(48.dp).performClick()
+        onNodeWithText("Continue with Google").assertHeightIsEqualTo(56.dp).performClick()
         assertEquals(1, clicks)
     }
 

@@ -1,14 +1,24 @@
 package com.orbit.app.feature.space.card
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.orbit.app.core.designsystem.component.OrbitAvatar
+import com.orbit.app.core.designsystem.component.OrbitAvatarStack
 import com.orbit.app.core.designsystem.component.OrbitCard
-import com.orbit.app.core.designsystem.component.OrbitListItem
+import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_chevron_right
@@ -18,9 +28,11 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
+private const val VISIBLE_AVATARS = 3
+
 /**
- * One of the user's spaces, loaded by its own view model: its badge in the space's accent, its name
- * and size, and a chevron to open it.
+ * One of the user's spaces, loaded by its own view model: a line about the space (its size, for now)
+ * over its name, an arrow to open it, and its members' avatars.
  */
 @Composable
 internal fun SpaceCard(
@@ -31,18 +43,42 @@ internal fun SpaceCard(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val accents = OrbitTheme.colors.spaceAccents
-    OrbitCard(modifier, onClick = onClick) {
-        OrbitListItem(
-            title = state.name,
-            supporting = pluralStringResource(Res.plurals.spaces_members, state.memberCount, state.memberCount),
-            leading = { OrbitAvatar(state.name.take(1).uppercase(), accents[state.accent.mod(accents.size)]) },
-            trailing = {
+    OrbitCard(modifier, onClick = onClick, elevated = true) {
+        Row(horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // The space's accent, as a dot.
+                    Box(Modifier.size(OrbitSpacing.sm).background(accents[state.accent.mod(accents.size)], CircleShape))
+                    Text(
+                        text = pluralStringResource(Res.plurals.spaces_members, state.memberCount, state.memberCount),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Text(
+                    text = state.name,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Box(
+                modifier = Modifier.size(OrbitSpacing.xl).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                contentAlignment = Alignment.Center,
+            ) {
                 Icon(
                     painter = painterResource(Res.drawable.ic_chevron_right),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
-            },
-        )
+            }
+        }
+        if (state.memberInitials.isNotEmpty()) {
+            OrbitAvatarStack(state.memberInitials, max = VISIBLE_AVATARS)
+        }
     }
 }

@@ -13,7 +13,9 @@ class ComponentContrastTest {
 
     private fun ColorScheme.textOnFill(): Map<String, Pair<Color, Color>> = mapOf(
         "button label" to (onPrimary to primary),
-        "outlined button label" to (onSurface to surfaceBright),
+        "outlined button label, text on an elevated card or a dialog" to (onSurface to surfaceBright),
+        "secondary text on an elevated card or a dialog" to (onSurfaceVariant to surfaceBright),
+        "dialog actions" to (primary to surfaceBright),
         "text on a card or a field on the canvas" to (onSurface to surfaceContainer),
         "placeholder, icons and supporting text on a card or a field on the canvas" to
             (onSurfaceVariant to surfaceContainer),
@@ -22,7 +24,7 @@ class ComponentContrastTest {
             (onSurfaceVariant to surface),
         "error on a card" to (error to surfaceContainer),
         "error on the canvas" to (error to surface),
-        "avatar initials" to (onPrimaryContainer to primaryContainer),
+        "avatar initials and the arrow of a card" to (onPrimaryContainer to primaryContainer),
         "extended FAB label" to (onTertiary to tertiary),
     )
 

@@ -11,28 +11,40 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 
 /** True inside an [OrbitCard], so components on it can stand out from the card fill (see [OrbitTextField]). */
 internal val LocalInsideCard = staticCompositionLocalOf { false }
 
-/** Tonal container for a group of content: card fill, 16dp corners, no shadow. Tappable when [onClick] is set. */
+private val ElevatedCardElevation = 4.dp
+
+/**
+ * Container for a group of content, with 24dp corners. Tonal by default: the card fill and no shadow,
+ * for secondary content and groups. [elevated] lifts it off the canvas with a bright fill and a soft
+ * shadow: use it for the main content of a screen, such as the cards of a list. Tappable when
+ * [onClick] is set.
+ */
 @Composable
 fun OrbitCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    elevated: Boolean = false,
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(OrbitSpacing.md),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+    val scheme = MaterialTheme.colorScheme
+    val shape = MaterialTheme.shapes.large
+    val colors = CardDefaults.cardColors(containerColor = if (elevated) scheme.surfaceBright else scheme.surfaceContainer)
+    val elevation = CardDefaults.cardElevation(defaultElevation = if (elevated) ElevatedCardElevation else 0.dp)
     val body: @Composable ColumnScope.() -> Unit = {
         CompositionLocalProvider(LocalInsideCard provides true) {
             Column(Modifier.padding(OrbitSpacing.md), verticalArrangement = verticalArrangement, content = content)
         }
     }
     if (onClick == null) {
-        Card(modifier = modifier, colors = colors, content = body)
+        Card(modifier = modifier, shape = shape, colors = colors, elevation = elevation, content = body)
     } else {
-        Card(onClick = onClick, modifier = modifier, colors = colors, content = body)
+        Card(onClick = onClick, modifier = modifier, shape = shape, colors = colors, elevation = elevation, content = body)
     }
 }

@@ -2,10 +2,10 @@ package com.orbit.app.feature.spacehome.members
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.orbit.app.core.initialsOf
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.repository.SpaceRepository
-import com.orbit.app.feature.spacehome.initialsOf
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map

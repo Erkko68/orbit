@@ -3,7 +3,7 @@ package com.orbit.app.core.navigation
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -64,11 +64,11 @@ class OrbitNavHostTest : ComposeTest() {
         onNodeWithText("Sign in").performScrollTo().performClick()
 
         onNodeWithText("No spaces yet").assertIsDisplayed()
-        onNodeWithText("Flat 4B").performScrollTo().performTextInput("Flat 4B")
-        onNodeWithText("Create space").performScrollTo().performClick()
-        onNodeWithText("1 member", substring = true).assertIsDisplayed()
-        // The new space's card, not the emptied field whose placeholder is also "Flat 4B".
-        onNode(hasText("Flat 4B") and !hasSetTextAction()).performScrollTo().performClick()
+        onNodeWithText("New space").performClick()
+        onNode(hasSetTextAction() and isEnabled()).performTextInput("Flat 4B")
+        onNodeWithText("Create space").performClick()
+        onNodeWithText("1 member").assertIsDisplayed()
+        onNodeWithText("Flat 4B").performScrollTo().performClick()
 
         onNodeWithText("No items yet").assertIsDisplayed()
         onNodeWithText("Members").performClick()
@@ -76,7 +76,7 @@ class OrbitNavHostTest : ComposeTest() {
         onNodeWithText("Owner").performScrollTo().assertIsDisplayed()
 
         onNodeWithContentDescription("Switch space").performClick()
-        onNodeWithText("Your spaces").assertIsDisplayed()
+        onNodeWithText("New space").assertIsDisplayed()
     }
 
     @Test
@@ -87,11 +87,11 @@ class OrbitNavHostTest : ComposeTest() {
             }
         }
         onNodeWithText("Sign in").performScrollTo().performClick()
-        onNodeWithText("Your spaces").assertIsDisplayed()
+        onNodeWithText("New space").assertIsDisplayed()
 
         auth.signOut()
 
         onNodeWithText("Welcome back").assertIsDisplayed()
-        onNodeWithText("Your spaces").assertDoesNotExist()
+        onNodeWithText("New space").assertDoesNotExist()
     }
 }

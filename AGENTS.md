@@ -55,6 +55,16 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - Wrap UI in `OrbitTheme`. Use `MaterialTheme.colorScheme` / `.typography` / `.shapes` and `OrbitTheme.colors` (success, warning, info, `spaceAccents`).
 - Material3 components, styled only through the theme. Shared wrappers go in `core/designsystem/component/`.
 - Animations use `OrbitMotion.spatial()` / `OrbitMotion.effects()`.
+- Material 3 Expressive, on stable material3: we follow its look through our own tokens and wrappers, not its alpha APIs.
+  - Depth, not flat: the main content of a screen sits on elevated cards (`OrbitCard(elevated = true)`: bright fill, soft shadow), secondary content and groups on tonal cards (the default), and the screen's create action floats in an `OrbitExtendedFab`. Never elevate everything: one level of emphasis per screen.
+  - Shape: cards use `shapes.large`, text fields `shapes.medium`, buttons, chips and the FAB are full pills, avatars and icon badges circles.
+  - Rhythm: buttons, text fields and the FAB are all 56dp tall (`ControlHeight`: the M3 text field and the M3 Expressive medium button), and in a form they all take the full width. Gaps are `md` inside a group and `lg` between groups. Never size a control at the call site.
+  - Type: headlines are bold, titles and labels semibold (set once in `Type.kt`). A card's name is a `titleLarge`, the line about it a `labelMedium` above it.
+  - One primary action per screen (the FAB or one filled button). Everything else is a tonal or text action.
+  - A short task over the screen (adding a space: name a new one, or enter an invite code) is an `OrbitDialog`, not a form in the page. Whether it is open is a field of the `UiState`. Alternatives for the same goal share one dialog, split by an `OrbitLabeledDivider`, instead of one entry point each.
+  - Signed-out screens (sign-in, create account) are one centered column on the canvas: `OrbitScreenHeader`, the fields and their one filled button, then the other ways in. No card around the form: every control has the same width and the groups are told apart by spacing and the labeled divider.
+  - Every signed-in screen has a top bar (`OrbitTopBar` through `OrbitScreen`). The spaces list shows the Orbit mark and name with the user's account avatar on the right.
+  - No control for a feature that does not exist yet, unless the layout was agreed with it (e.g. joining with an invite code).
 - No hardcoded colors: only `core/designsystem/theme/Color.kt` defines colors.
 - Brand palette only: no dynamic (wallpaper) color.
 - Contrast: every text/background pair must pass WCAG AA (4.5:1). Re-check before changing any scheme mapping.
@@ -69,7 +79,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - Components have no outer margin: they pad their inside, take a `modifier` parameter, and the parent sets the gaps with `Arrangement.spacedBy(OrbitSpacing.…)`.
   - Typography by role (`titleMedium`, `bodyLarge`…), used as is. No `.copy(fontSize = …)` at the call site: if a role looks wrong, fix it in `Type.kt`.
   - The same styled element on a second screen becomes a wrapper in `core/designsystem/component/`. A screen that needs a visual tweak changes the wrapper or the theme, not itself.
-  - Before writing a private composable in a feature, look in `core/designsystem/component/`. A title over a subtitle is `OrbitHeading`, the opening of a screen without a top bar `OrbitScreenHeader`, a row of a list `OrbitListItem` (in an `OrbitCard` for a card), "nothing here yet" `OrbitEmptyState`, an icon-only action `OrbitIconButton`, a password `OrbitPasswordField`.
+  - Before writing a private composable in a feature, look in `core/designsystem/component/`. A title over a subtitle is `OrbitHeading`, the opening of a screen without a top bar `OrbitScreenHeader`, a row of a list `OrbitListItem` (in an `OrbitCard` for a card), "nothing here yet" `OrbitEmptyState`, an icon-only action `OrbitIconButton`, a password `OrbitPasswordField`, a group's overlapping avatars `OrbitAvatarStack`, a task over the screen `OrbitDialog`.
   - A private composable stays in a feature only for a layout that belongs to that one screen (e.g. the space home summary). Anything generic, such as text + icon + text, goes to the design system, takes plain values (`String`, not `StringResource`) and no ViewModel.
 - No experimental Compose APIs (e.g. the Styles API, Material 3 Expressive `MotionScheme`). Revisit when stable.
   - Only exception: tests opt in to `ExperimentalTestApi`, because `runComposeUiTest` is the only multiplatform Compose test entry point. Never in production code.

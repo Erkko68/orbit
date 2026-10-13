@@ -36,9 +36,9 @@ class SpaceCardViewModelTest {
         spaces.createSpace("Garage", accent = 1)
         val id = spaces.createSpace("Flat 4B", accent = 2)
 
-        val state = SpaceCardViewModel(id, spaces).uiState.first { it.name.isNotEmpty() }
+        val state = SpaceCardViewModel(id, spaces).uiState.first { it.memberInitials.isNotEmpty() }
 
-        assertEquals(SpaceCardUiState(name = "Flat 4B", accent = 2, memberCount = 1), state)
+        assertEquals(SpaceCardUiState(name = "Flat 4B", accent = 2, memberCount = 1, memberInitials = listOf("A")), state)
     }
 
     @Test

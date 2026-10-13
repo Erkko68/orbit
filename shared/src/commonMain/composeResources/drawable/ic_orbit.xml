@@ -1,0 +1,17 @@
+<!-- Placeholder Orbit mark until the brand logo is delivered: a body with a satellite on its orbit. Tinted by Icon at runtime. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.5"
+        android:pathData="M16,16m-11.5,0a11.5,11.5 0,1 1,23 0a11.5,11.5 0,1 1,-23 0" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M16,16m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M24.1,7.9m-3.5,0a3.5,3.5 0,1 1,7 0a3.5,3.5 0,1 1,-7 0" />
+</vector>
