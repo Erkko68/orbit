@@ -2,6 +2,8 @@ package com.orbit.app.data.repository
 
 import co.touchlab.kermit.Logger
 import com.orbit.app.data.mapper.mapUser
+import com.orbit.app.data.mapper.registerException
+import com.orbit.app.data.mapper.signInException
 import com.orbit.app.data.mapper.userProfileDocument
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
@@ -11,6 +13,7 @@ import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import dev.gitlive.firebase.firestore.firestore
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -76,11 +79,23 @@ class FirebaseAuthRepository(
     }
 
     override suspend fun signIn(email: String, password: String) {
-        auth.signInWithEmailAndPassword(email, password)
+        try {
+            auth.signInWithEmailAndPassword(email, password)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw signInException(e)
+        }
     }
 
     override suspend fun register(email: String, password: String, displayName: String) {
-        val result = auth.createUserWithEmailAndPassword(email, password)
+        val result = try {
+            auth.createUserWithEmailAndPassword(email, password)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw registerException(e)
+        }
         val user = checkNotNull(result.user) { "No user returned after registration" }
         val profile = userProfileDocument(displayName = displayName) + mapOf("createdAt" to FieldValue.serverTimestamp)
         firestore.collection(USERS_COLLECTION)

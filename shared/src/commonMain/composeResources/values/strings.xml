@@ -13,11 +13,28 @@
     <string name="sign_in_password">Password</string>
     <string name="sign_in_forgot_password">Forgot password?</string>
     <string name="sign_in">Sign in</string>
-    <string name="sign_in_failed">Could not sign in. Check your details and try again.</string>
     <string name="sign_in_google">Continue with Google</string>
     <string name="sign_in_apple">Continue with Apple</string>
     <string name="sign_in_new">New to Orbit?</string>
     <string name="sign_in_create_account">Create account</string>
+    <!-- Create account -->
+    <string name="create_account_title">Create your account</string>
+    <string name="create_account_subtitle">Get started and organize your shared spaces together.</string>
+    <string name="create_account_confirm">Confirm password</string>
+    <string name="create_account_hint">Use at least 8 characters.</string>
+    <string name="create_account">Create account</string>
+    <string name="create_account_have_account">Already have an account?</string>
+    <!-- What went wrong signing in or creating an account -->
+    <string name="error_email_blank">Enter your email address.</string>
+    <string name="error_email_invalid">Enter a valid email address.</string>
+    <string name="error_password_blank">Enter your password.</string>
+    <string name="error_password_short">Use at least 8 characters.</string>
+    <string name="error_passwords_differ">The passwords do not match.</string>
+    <string name="error_wrong_credentials">Wrong email or password.</string>
+    <string name="error_email_in_use">An account with this email already exists.</string>
+    <string name="error_weak_password">Choose a stronger password.</string>
+    <string name="error_network">No connection. Check your internet and try again.</string>
+    <string name="error_unknown">Something went wrong. Try again.</string>
     <!-- Spaces -->
     <string name="spaces_new">New space</string>
     <string name="spaces_create_name">Flat 4B</string>

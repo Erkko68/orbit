@@ -19,6 +19,7 @@ import com.orbit.app.di.featureModule
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import kotlinx.coroutines.runBlocking
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -61,6 +62,7 @@ class OrbitNavHostTest : ComposeTest() {
             }
         }
         onNodeWithText("Email address").performTextInput("ana@orbit.app")
+        onNodeWithText("Password").performTextInput("secret")
         onNodeWithText("Sign in").performScrollTo().performClick()
 
         onNodeWithText("No spaces yet").assertIsDisplayed()
@@ -80,13 +82,48 @@ class OrbitNavHostTest : ComposeTest() {
     }
 
     @Test
-    fun signingOutGoesBackToSignIn() = runComposeUiTest {
+    fun createsAnAccountFromSignInAndLandsInTheSpaces() = runComposeUiTest {
         setContent {
             OrbitTheme {
                 OrbitNavHost()
             }
         }
+        onNodeWithText("Create account").performScrollTo().performClick()
+        onNodeWithText("Create your account").assertIsDisplayed()
+
+        onNodeWithText("Email address").performTextInput("ana@orbit.app")
+        onNodeWithText("Password").performTextInput("12345678")
+        onNodeWithText("Confirm password").performTextInput("12345678")
+        onNodeWithText("Create account").performScrollTo().performClick()
+
+        onNodeWithText("No spaces yet").assertIsDisplayed()
+        onNodeWithText("Create your account").assertDoesNotExist()
+    }
+
+    @Test
+    fun goesBackToSignInFromCreateAccount() = runComposeUiTest {
+        setContent {
+            OrbitTheme {
+                OrbitNavHost()
+            }
+        }
+        onNodeWithText("Create account").performScrollTo().performClick()
+        onNodeWithText("Create your account").assertIsDisplayed()
+
         onNodeWithText("Sign in").performScrollTo().performClick()
+
+        // Sign-in comes back scrolled where it was left, down at "Create account".
+        onNodeWithText("Welcome back").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun signingOutGoesBackToSignIn() = runComposeUiTest {
+        runBlocking { auth.signIn("ana@orbit.app", "secret") }
+        setContent {
+            OrbitTheme {
+                OrbitNavHost()
+            }
+        }
         onNodeWithText("New space").assertIsDisplayed()
 
         auth.signOut()

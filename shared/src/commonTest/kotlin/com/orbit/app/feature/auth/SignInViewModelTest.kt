@@ -1,6 +1,9 @@
 package com.orbit.app.feature.auth
 
 import com.orbit.app.data.repository.InMemoryAuthRepository
+import com.orbit.app.domain.model.AuthError
+import com.orbit.app.domain.model.AuthException
+import com.orbit.app.domain.model.CredentialsError
 import com.orbit.app.testing.FailingAuthRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,6 +17,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -43,9 +47,30 @@ class SignInViewModelTest {
     }
 
     @Test
-    fun aBlankEmailSignsInThePlaceholderAccount() = runTest {
-        SignInViewModel(auth).signIn()
-        assertEquals("you@orbit.app", auth.session.first()?.id)
+    fun anEmptyFormSignsNobodyInAndSaysWhatIsMissing() = runTest {
+        val viewModel = SignInViewModel(auth)
+
+        viewModel.signIn()
+
+        assertNull(auth.session.first())
+        assertEquals(
+            listOf(CredentialsError.BlankEmail, CredentialsError.BlankPassword),
+            viewModel.uiState.value.errors,
+        )
+    }
+
+    @Test
+    fun editingAFieldClearsTheErrors() {
+        val viewModel = SignInViewModel(FailingAuthRepository())
+        viewModel.signIn()
+        assertTrue(viewModel.uiState.value.errors.isNotEmpty())
+
+        viewModel.onEmailChange("ana@orbit.app")
+        assertTrue(viewModel.uiState.value.errors.isEmpty())
+
+        viewModel.signIn()
+        viewModel.onPasswordChange("secret")
+        assertTrue(viewModel.uiState.value.errors.isEmpty())
     }
 
     @Test
@@ -60,17 +85,28 @@ class SignInViewModelTest {
     }
 
     @Test
-    fun aFailedSignInIsFlaggedUntilTheNextEdit() {
-        val viewModel = SignInViewModel(FailingAuthRepository())
+    fun saysWhyFirebaseRefusedAndClearsItOnTheNextEdit() {
+        val viewModel = SignInViewModel(FailingAuthRepository(AuthException(AuthError.WRONG_CREDENTIALS)))
+        viewModel.onEmailChange("ana@orbit.app")
+        viewModel.onPasswordChange("wrong")
 
         viewModel.signIn()
-        assertEquals(SignInUiState(failed = true), viewModel.uiState.value)
+
+        assertEquals(AuthError.WRONG_CREDENTIALS, viewModel.uiState.value.authError)
+        assertFalse(viewModel.uiState.value.submitting)
 
         viewModel.onPasswordChange("secret")
-        assertFalse(viewModel.uiState.value.failed)
+        assertNull(viewModel.uiState.value.authError)
+    }
+
+    @Test
+    fun anUnexpectedFailureIsAnUnknownError() {
+        val viewModel = SignInViewModel(FailingAuthRepository())
+        viewModel.onEmailChange("ana@orbit.app")
+        viewModel.onPasswordChange("secret")
 
         viewModel.signIn()
-        viewModel.onEmailChange("ana@orbit.app")
-        assertFalse(viewModel.uiState.value.failed)
+
+        assertEquals(AuthError.UNKNOWN, viewModel.uiState.value.authError)
     }
 }
