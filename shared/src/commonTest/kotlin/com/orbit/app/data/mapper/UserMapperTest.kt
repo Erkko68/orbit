@@ -87,7 +87,6 @@ class UserMapperTest {
         assertEquals("https://example.com/charlie.png", doc["photoUrl"])
         assertEquals("es", doc["language"])
         assertEquals("UTC", doc["timeZone"])
-        assertNotNull(doc["createdAt"])
     }
 
     @Test

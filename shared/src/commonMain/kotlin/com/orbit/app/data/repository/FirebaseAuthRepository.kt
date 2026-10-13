@@ -8,6 +8,7 @@ import com.orbit.app.domain.repository.AuthRepository
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.auth
+import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import dev.gitlive.firebase.firestore.firestore
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -81,9 +82,10 @@ class FirebaseAuthRepository(
     override suspend fun register(email: String, password: String, displayName: String) {
         val result = auth.createUserWithEmailAndPassword(email, password)
         val user = checkNotNull(result.user) { "No user returned after registration" }
+        val profile = userProfileDocument(displayName = displayName) + mapOf("createdAt" to FieldValue.serverTimestamp)
         firestore.collection(USERS_COLLECTION)
             .document(user.uid)
-            .set(userProfileDocument(displayName = displayName), merge = true)
+            .set(profile, merge = true)
     }
 
     override suspend fun signOut() {

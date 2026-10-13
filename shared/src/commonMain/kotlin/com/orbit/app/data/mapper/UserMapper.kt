@@ -1,7 +1,6 @@
 package com.orbit.app.data.mapper
 
 import com.orbit.app.domain.model.User
-import dev.gitlive.firebase.firestore.FieldValue
 import kotlinx.datetime.TimeZone
 
 internal fun mapUser(
@@ -45,7 +44,6 @@ internal fun userProfileDocument(
     if (photoUrl != null) put("photoUrl", photoUrl)
     put("language", language)
     put("timeZone", timeZone.id)
-    put("createdAt", FieldValue.serverTimestamp)
 }
 
 private const val DEFAULT_LANGUAGE = "en"
