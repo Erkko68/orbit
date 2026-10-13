@@ -18,6 +18,7 @@ import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.feature.auth.SignInViewModel
+import com.orbit.app.testing.FailingAuthRepository
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
@@ -38,6 +39,17 @@ class SignInScreenTest : ComposeTest() {
         onNodeWithText("Continue with Google").performScrollTo().assertIsNotEnabled()
         onNodeWithText("Continue with Apple").performScrollTo().assertIsNotEnabled()
         onNodeWithText("Create account").performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun saysWhenSigningInFailed() = runComposeUiTest {
+        setContent {
+            OrbitTheme {
+                SignInScreen(SignInViewModel(FailingAuthRepository()))
+            }
+        }
+        onNodeWithText("Sign in").performScrollTo().performClick()
+        onNodeWithText("Could not sign in. Check your details and try again.").performScrollTo().assertIsDisplayed()
     }
 
     @Test

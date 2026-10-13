@@ -13,6 +13,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
@@ -61,6 +65,24 @@ class OrbitScreenTest : ComposeTest() {
         val bar = onNodeWithTag("bar").getUnclippedBoundsInRoot()
         val content = onNodeWithText("content").getUnclippedBoundsInRoot()
         assertTrue(content.top >= bar.bottom)
+    }
+
+    @Test
+    fun scrollsToContentBelowTheFoldAndClearsTheFloatingActionButton() = runComposeUiTest {
+        setContent {
+            OrbitTheme {
+                OrbitScreen(floatingActionButton = { Text("New item") }, scrollable = true) {
+                    repeat(60) { Text("row $it") }
+                    Text("last")
+                }
+            }
+        }
+        // Scrolling to a node stops as soon as it shows: swipe on to the end of the screen.
+        onNodeWithText("last").performScrollTo().assertIsDisplayed()
+        onRoot().performTouchInput { swipeUp() }
+        val button = onNodeWithText("New item").getUnclippedBoundsInRoot()
+        val last = onNodeWithText("last").getUnclippedBoundsInRoot()
+        assertTrue(last.bottom <= button.top)
     }
 
     @Test

@@ -9,7 +9,10 @@ import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.auth.SessionViewModel
 import com.orbit.app.feature.auth.SignInViewModel
 import com.orbit.app.feature.space.SpaceViewModel
+import com.orbit.app.feature.space.card.SpaceCardViewModel
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
+import com.orbit.app.feature.spacehome.items.SpaceItemsViewModel
+import com.orbit.app.feature.spacehome.members.SpaceMembersViewModel
 import com.russhwolf.settings.Settings
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
@@ -46,5 +49,9 @@ val featureModule = module {
     viewModelOf(::SessionViewModel)
     viewModelOf(::SignInViewModel)
     viewModelOf(::SpaceViewModel)
-    viewModelOf(::SpaceHomeViewModel) // spaceId comes from parametersOf in SpaceHomeScreen
+    // The id of these comes from parametersOf in the composable they belong to.
+    viewModelOf(::SpaceCardViewModel)
+    viewModelOf(::SpaceHomeViewModel)
+    viewModelOf(::SpaceItemsViewModel)
+    viewModelOf(::SpaceMembersViewModel)
 }

@@ -1,4 +1,4 @@
-package com.orbit.app.feature.spacehome
+package com.orbit.app.testing
 
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role

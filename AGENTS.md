@@ -10,11 +10,32 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - `domain/`: models, repository **interfaces**, use cases. Pure Kotlin only (kotlinx coroutines/datetime allowed). No Compose, Room, Firebase or Koin.
 - `data/`: repository **implementations** and Firestore document mappers.
 - `feature/<name>/`: `ui/` (screen + components), `<Name>ViewModel.kt`, `<Name>UiState.kt`. `feature/space` is the reference.
+  - A component with its own ViewModel gets a subfolder, `feature/<name>/<component>/`, holding its composable, `<Component>ViewModel.kt` and `<Component>UiState.kt`. E.g. `feature/space/card/`, `feature/spacehome/items/`. See "State and ViewModels".
 - UI talks only to ViewModels; ViewModels talk to repositories/use cases. UI never touches data sources.
 - No placeholder folders: create a folder when its first file exists.
 
+## State and ViewModels
+- Screens and components hold no state. Every value they show or edit (field text, password visibility, selected tab or filter, loading, error) is a field of a `UiState` and changes only through a ViewModel function.
+  - No `remember { mutableStateOf(…) }` or `rememberSaveable` for that in the UI. Only Compose's own holders stay there (scroll state, focus requesters, animation state).
+  - A ViewModel exposes one `uiState: StateFlow<<Name>UiState>`. Repository flows are combined into it with `stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), …)`; what the user types or selects lives in a private `MutableStateFlow` combined with them.
+  - The UI calls one ViewModel function per user action (`onEmailChange`, `selectTab`, `createSpace`) and passes no state back: the ViewModel reads what it needs from its own state.
+  - Values derived from the state are properties of the `UiState` (`canCreate`), not expressions in the composable.
+- Repositories: ViewModels depend on the repository interfaces in `domain/` only, never on an implementation, so the in-memory and Firebase ones swap in Koin without touching a feature.
+  - Repository writes throw on failure. The ViewModel launches them in `viewModelScope`, catches the failure (rethrowing `CancellationException`), logs it with Kermit and flags it in the `UiState` (`failed`, `createFailed`), cleared by the next edit or attempt. A failed write never crashes the app.
+  - A write in progress is a flag too (`submitting`, `creating`) and disables its button, so it cannot run twice.
+- Component ViewModels: not one ViewModel per screen. A part of a screen that reads or writes a repository for one entity (a space card, the items tab, the members tab) has its own ViewModel.
+  - The screen ViewModel holds screen-level state and the **ids** of what the screen lists (`spaceIds`), never the loaded entities. The component gets the id, and its ViewModel loads and changes that entity.
+  - The component is an `internal` composable in its own file that takes the id, a `modifier` and its ViewModel: `viewModel: XViewModel = koinViewModel(key = id) { parametersOf(id) }`, registered with `viewModelOf(::XViewModel)`. In a list, wrap it in `key(id) { … }`.
+  - Keyed `koinViewModel`, not `rememberViewModelStoreOwner`: the ViewModel then lives as long as the screen's navigation entry, so a tab keeps its filter when the user switches tabs and comes back.
+  - It follows every rule above: one `uiState`, repository interfaces only, failures become state.
+  - Add one when the component does its own repository work. A part that only shows fields its parent already has stays a plain composable, and purely visual components (avatar, chip, button, list row) never get one: they take values and callbacks.
+- Tests: every ViewModel has its own unit test, including the failure path of each write.
+  - A screen test whose components resolve their ViewModels calls `startTestKoin(…)`, and `stopKoin()` after.
+  - Test doubles shared by several tests (`FakeSpaceRepository`, `FailingAuthRepository`, `startTestKoin`) live in `commonTest/…/testing/`, not next to the first test that needed them.
+  - In a UI test, `performScrollTo()` before `performClick()`: the host test window is small and a click on something off screen does nothing.
+
 ## Libraries (use these, don't add alternatives)
-- DI: Koin. Register in `di/Koin.kt` (`dataModule`, `domainModule`, `featureModule`) or the `platformModule` actuals. ViewModels: `viewModelOf(::X)` + `koinViewModel()` in the screen.
+- DI: Koin. Register in `di/Koin.kt` (`dataModule`, `domainModule`, `featureModule`) or the `platformModule` actuals. ViewModels: `viewModelOf(::X)` + `koinViewModel()` in the screen, or `koinViewModel(key = id) { parametersOf(id) }` in a component with its own ViewModel.
 - Navigation: Navigation Compose with `@Serializable` routes in `core/navigation/Routes.kt`, wired in `OrbitNavHost`.
 - Backend: Firebase only (Authentication, Firestore, Cloud Functions). No other servers or REST APIs. The app calls Cloud Functions, never an AI provider directly.
 - Local persistence: Firestore's offline cache only, no local database (Room, SQLDelight). Repositories read and write Firestore and work offline through its cache. See [ADR 0001](docs/adr/0001-local-persistence.md).
@@ -44,10 +65,12 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - Spacing and layout: styling decisions live in `core/designsystem/`, screens only compose.
   - Every padding and gap is an `OrbitSpacing` token (`xs` 4, `sm` 8, `md` 16, `lg` 24, `xl` 32). No raw `.dp` / `.sp` or `Color(0x…)` outside `core/designsystem/` (CI-checked in `ci.yml`).
   - Need a value that is not on the scale? Use the nearest token. Add a token only when the design really needs it, never a one-off number.
-  - Every screen is built on `OrbitScreen`, which owns the scaffold, the insets, the screen gutter and the gap between sections. Screens never set their own outer padding.
+  - Every screen is built on `OrbitScreen`, which owns the scaffold, the insets, the screen gutter, the gap between sections and the scrolling. Screens never set their own outer padding or wrap their content in a `verticalScroll`: pass `scrollable = true` (leave it off only when the content scrolls itself, e.g. a lazy list).
   - Components have no outer margin: they pad their inside, take a `modifier` parameter, and the parent sets the gaps with `Arrangement.spacedBy(OrbitSpacing.…)`.
   - Typography by role (`titleMedium`, `bodyLarge`…), used as is. No `.copy(fontSize = …)` at the call site: if a role looks wrong, fix it in `Type.kt`.
   - The same styled element on a second screen becomes a wrapper in `core/designsystem/component/`. A screen that needs a visual tweak changes the wrapper or the theme, not itself.
+  - Before writing a private composable in a feature, look in `core/designsystem/component/`. A title over a subtitle is `OrbitHeading`, the opening of a screen without a top bar `OrbitScreenHeader`, a row of a list `OrbitListItem` (in an `OrbitCard` for a card), "nothing here yet" `OrbitEmptyState`, an icon-only action `OrbitIconButton`, a password `OrbitPasswordField`.
+  - A private composable stays in a feature only for a layout that belongs to that one screen (e.g. the space home summary). Anything generic, such as text + icon + text, goes to the design system, takes plain values (`String`, not `StringResource`) and no ViewModel.
 - No experimental Compose APIs (e.g. the Styles API, Material 3 Expressive `MotionScheme`). Revisit when stable.
   - Only exception: tests opt in to `ExperimentalTestApi`, because `runComposeUiTest` is the only multiplatform Compose test entry point. Never in production code.
 - No hardcoded strings in composables: use `composeResources/values/strings.xml`.
