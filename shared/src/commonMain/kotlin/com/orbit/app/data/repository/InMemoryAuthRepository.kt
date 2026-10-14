@@ -29,6 +29,13 @@ class InMemoryAuthRepository : AuthRepository {
     override suspend fun signOut() {
         user.value = null
     }
+
+    override suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone) {
+        val current = requireUser()
+        require(displayName.isNotBlank()) { "A display name is required" }
+        require(language in listOf("es", "ca", "en")) { "Unsupported language" }
+        user.value = current.copy(displayName = displayName.trim(), language = language, timeZone = timeZone)
+    }
 }
 
 internal suspend fun AuthRepository.requireUser(): User = checkNotNull(session.first()) { "Not signed in" }

@@ -17,6 +17,28 @@
     <string name="sign_in_apple">Continue with Apple</string>
     <string name="sign_in_new">New to Orbit?</string>
     <string name="sign_in_create_account">Create account</string>
+    <!-- Account -->
+    <string name="account_title">Account</string>
+    <string name="account_back">Back to spaces</string>
+    <string name="account_subtitle">Your name and preferences.</string>
+    <string name="account_display_name">Display name</string>
+    <string name="account_language">Language</string>
+    <string name="account_language_es">Español</string>
+    <string name="account_language_ca">Català</string>
+    <string name="account_language_en">English</string>
+    <string name="account_time_zone">Time zone</string>
+    <string name="account_time_zone_select">Choose a time zone</string>
+    <string name="account_time_zone_search">Search time zones</string>
+    <string name="account_time_zone_empty">No time zones found.</string>
+    <string name="account_time_zone_hint">For example, Europe/Rome</string>
+    <string name="account_time_zone_invalid">Enter a valid time zone, such as Europe/Rome.</string>
+    <string name="account_save">Save changes</string>
+    <string name="account_saving">Saving…</string>
+    <string name="account_saved">Profile updated.</string>
+    <string name="account_save_failed">Could not update your profile. Try again.</string>
+    <string name="account_sign_out">Sign out</string>
+    <string name="account_signing_out">Signing out…</string>
+    <string name="account_sign_out_failed">Could not sign out. Try again.</string>
     <!-- Create account -->
     <string name="create_account_title">Create your account</string>
     <string name="create_account_subtitle">Get started and organize your shared spaces together.</string>

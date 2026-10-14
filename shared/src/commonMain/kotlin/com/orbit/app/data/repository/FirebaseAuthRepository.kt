@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.TimeZone
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FirebaseAuthRepository(
@@ -36,10 +37,26 @@ class FirebaseAuthRepository(
                 .snapshots
                 .map { snapshot ->
                     if (snapshot.exists) {
-                        val displayName = try { snapshot.get<String?>("displayName") } catch (_: Exception) { null }
-                        val photoUrl = try { snapshot.get<String?>("photoUrl") } catch (_: Exception) { null }
-                        val language = try { snapshot.get<String?>("language") } catch (_: Exception) { null }
-                        val timeZone = try { snapshot.get<String?>("timeZone") } catch (_: Exception) { null }
+                        val displayName = try {
+                            snapshot.get<String?>("displayName")
+                        } catch (_: Exception) {
+                            null
+                        }
+                        val photoUrl = try {
+                            snapshot.get<String?>("photoUrl")
+                        } catch (_: Exception) {
+                            null
+                        }
+                        val language = try {
+                            snapshot.get<String?>("language")
+                        } catch (_: Exception) {
+                            null
+                        }
+                        val timeZone = try {
+                            snapshot.get<String?>("timeZone")
+                        } catch (_: Exception) {
+                            null
+                        }
                         mapUser(
                             id = firebaseUser.uid,
                             displayName = displayName,
@@ -101,6 +118,11 @@ class FirebaseAuthRepository(
         firestore.collection(USERS_COLLECTION)
             .document(user.uid)
             .set(profile, merge = true)
+    }
+
+    // Profile persistence is a separate implementation in #172.
+    override suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone) {
+        throw UnsupportedOperationException("Profile updates are not implemented yet (#172)")
     }
 
     override suspend fun signOut() {

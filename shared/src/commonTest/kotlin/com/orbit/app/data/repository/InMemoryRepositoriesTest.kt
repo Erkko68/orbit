@@ -10,6 +10,7 @@ import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Role
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -33,6 +34,31 @@ class InMemoryRepositoriesTest {
 
         auth.signOut()
         assertNull(auth.session.first())
+    }
+
+    @Test
+    fun updatingTheProfilePreservesTheAccountAndPublishesItsPreferences() = runTest {
+        auth.register("ana@orbit.app", "secret", displayName = "Ana")
+        val original = auth.session.first()!!
+
+        auth.updateProfile("  Ana López  ", "ca", TimeZone.of("Europe/Madrid"))
+
+        assertEquals(
+            original.copy(displayName = "Ana López", language = "ca", timeZone = TimeZone.of("Europe/Madrid")),
+            auth.session.first(),
+        )
+    }
+
+    @Test
+    fun updatingTheProfileNeedsASessionAndValidFields() = runTest {
+        assertFailsWith<IllegalStateException> { auth.updateProfile("Ana", "en", TimeZone.UTC) }
+        auth.register("ana@orbit.app", "secret", displayName = "Ana")
+        val original = auth.session.first()
+
+        assertFailsWith<IllegalArgumentException> { auth.updateProfile("  ", "en", TimeZone.UTC) }
+        assertFailsWith<IllegalArgumentException> { auth.updateProfile("Ana", "xx", TimeZone.UTC) }
+
+        assertEquals(original, auth.session.first())
     }
 
     @Test
