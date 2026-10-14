@@ -2,6 +2,7 @@ package com.orbit.app.domain.repository
 
 import com.orbit.app.domain.model.User
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.TimeZone
 
 /**
  * Sign-in, registration and sign-out need a connection and throw on failure. Signing in and
@@ -14,6 +15,9 @@ interface AuthRepository {
     suspend fun signIn(email: String, password: String)
 
     suspend fun register(email: String, password: String, displayName: String)
+
+    /** Updates the signed-in user's profile. Throws when signed out or when the write fails. */
+    suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone)
 
     suspend fun signOut()
 }

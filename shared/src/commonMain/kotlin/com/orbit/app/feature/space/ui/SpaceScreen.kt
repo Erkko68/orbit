@@ -9,7 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.orbit.app.core.designsystem.component.OrbitAvatar
+import com.orbit.app.core.designsystem.component.OrbitAvatarButton
 import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitDialog
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
@@ -27,6 +27,7 @@ import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.feature.space.card.SpaceCard
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.app_name
+import orbit.shared.generated.resources.account_title
 import orbit.shared.generated.resources.cancel
 import orbit.shared.generated.resources.ic_add
 import orbit.shared.generated.resources.ic_home
@@ -54,7 +55,11 @@ import org.koin.compose.viewmodel.koinViewModel
  * Tapping a space calls [onOpenSpace] with its id. "New space" opens the dialog to create or join one.
  */
 @Composable
-fun SpaceScreen(onOpenSpace: (String) -> Unit, viewModel: SpaceViewModel = koinViewModel()) {
+fun SpaceScreen(
+    onOpenSpace: (String) -> Unit,
+    onOpenAccount: () -> Unit,
+    viewModel: SpaceViewModel = koinViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     OrbitScreen(
         topBar = {
@@ -69,9 +74,11 @@ fun SpaceScreen(onOpenSpace: (String) -> Unit, viewModel: SpaceViewModel = koinV
                     )
                 },
                 actions = {
-                    OrbitAvatar(
+                    OrbitAvatarButton(
                         initials = state.userInitials,
                         accent = MaterialTheme.colorScheme.primary,
+                        contentDescription = stringResource(Res.string.account_title),
+                        onClick = onOpenAccount,
                         modifier = Modifier.padding(end = OrbitSpacing.sm),
                     )
                 },

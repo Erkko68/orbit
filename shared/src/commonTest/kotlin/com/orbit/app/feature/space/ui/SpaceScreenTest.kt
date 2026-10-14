@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
@@ -37,7 +38,7 @@ class SpaceScreenTest : ComposeTest() {
         val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, viewModel = viewModel)
+                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("Orbit").assertIsDisplayed()
@@ -53,13 +54,13 @@ class SpaceScreenTest : ComposeTest() {
         val viewModel = SpaceViewModel(spaces, auth)
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, viewModel = viewModel)
+                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("Could not load your spaces").assertIsDisplayed()
         onNodeWithText("No spaces yet").assertDoesNotExist()
 
-        onNodeWithText("Try again").performClick()
+        onNodeWithText("Try again").performScrollTo().performClick()
 
         onNodeWithText("Flat 4B").assertIsDisplayed()
         onNodeWithText("Could not load your spaces").assertDoesNotExist()
@@ -70,7 +71,7 @@ class SpaceScreenTest : ComposeTest() {
         val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, viewModel = viewModel)
+                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("Create space").assertDoesNotExist()
@@ -103,7 +104,7 @@ class SpaceScreenTest : ComposeTest() {
         val viewModel = SpaceViewModel(spaces, auth)
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, viewModel = viewModel)
+                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("Flat 4B").assertIsDisplayed()
