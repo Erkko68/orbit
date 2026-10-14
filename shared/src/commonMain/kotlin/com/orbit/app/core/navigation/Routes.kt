@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
 data object SignInRoute
 
 @Serializable
+data object CreateAccountRoute
+
+@Serializable
 data object SpacesRoute
 
 /** Home of one space, with its items, agenda and members tabs. */

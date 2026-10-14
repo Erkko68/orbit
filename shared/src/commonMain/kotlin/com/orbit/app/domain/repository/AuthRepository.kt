@@ -3,7 +3,10 @@ package com.orbit.app.domain.repository
 import com.orbit.app.domain.model.User
 import kotlinx.coroutines.flow.Flow
 
-/** Sign-in, registration and sign-out need a connection and throw on failure. */
+/**
+ * Sign-in, registration and sign-out need a connection and throw on failure. Signing in and
+ * registering throw an [com.orbit.app.domain.model.AuthException] that says why.
+ */
 interface AuthRepository {
     /** The signed-in user, or null when signed out. */
     val session: Flow<User?>

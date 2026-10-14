@@ -6,6 +6,7 @@ import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import com.orbit.app.feature.auth.CreateAccountViewModel
 import com.orbit.app.feature.auth.SessionViewModel
 import com.orbit.app.feature.auth.SignInViewModel
 import com.orbit.app.feature.space.SpaceViewModel
@@ -53,6 +54,7 @@ val domainModule = module {
 val featureModule = module {
     viewModelOf(::SessionViewModel)
     viewModelOf(::SignInViewModel)
+    viewModelOf(::CreateAccountViewModel)
     viewModelOf(::SpaceViewModel)
     // The id of these comes from parametersOf in the composable they belong to.
     viewModelOf(::SpaceCardViewModel)

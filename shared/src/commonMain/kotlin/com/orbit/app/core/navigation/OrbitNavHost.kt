@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.orbit.app.feature.auth.SessionViewModel
+import com.orbit.app.feature.auth.ui.CreateAccountScreen
 import com.orbit.app.feature.auth.ui.SignInScreen
 import com.orbit.app.feature.space.ui.SpaceScreen
 import com.orbit.app.feature.spacehome.ui.SpaceHomeScreen
@@ -23,7 +24,8 @@ fun OrbitNavHost(sessionViewModel: SessionViewModel = koinViewModel()) {
     key(signedIn) {
         val navController = rememberNavController()
         NavHost(navController = navController, startDestination = if (signedIn) SpacesRoute else SignInRoute) {
-            composable<SignInRoute> { SignInScreen() }
+            composable<SignInRoute> { SignInScreen(onCreateAccount = { navController.navigate(CreateAccountRoute) }) }
+            composable<CreateAccountRoute> { CreateAccountScreen(onSignIn = { navController.popBackStack() }) }
             composable<SpacesRoute> {
                 SpaceScreen(onOpenSpace = { spaceId -> navController.navigate(SpaceHomeRoute(spaceId)) })
             }

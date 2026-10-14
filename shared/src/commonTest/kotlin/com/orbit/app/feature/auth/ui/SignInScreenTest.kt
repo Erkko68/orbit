@@ -1,6 +1,7 @@
 package com.orbit.app.feature.auth.ui
 
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
@@ -17,48 +18,106 @@ import androidx.compose.ui.text.AnnotatedString
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.data.repository.InMemoryAuthRepository
+import com.orbit.app.domain.model.AuthError
+import com.orbit.app.domain.model.AuthException
+import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.feature.auth.SignInViewModel
 import com.orbit.app.testing.FailingAuthRepository
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class SignInScreenTest : ComposeTest() {
+    private fun ComposeUiTest.showSignIn(
+        auth: AuthRepository = InMemoryAuthRepository(),
+        onCreateAccount: () -> Unit = {},
+    ) = setContent {
+        OrbitTheme {
+            SignInScreen(onCreateAccount, SignInViewModel(auth))
+        }
+    }
+
     @Test
     fun showsTheFormWithItsPlaceholdersDisabled() = runComposeUiTest {
-        setContent {
-            OrbitTheme {
-                SignInScreen(SignInViewModel(InMemoryAuthRepository()))
-            }
-        }
+        showSignIn()
         onNodeWithText("Welcome back").assertIsDisplayed()
         onNodeWithText("Email address").assertIsDisplayed()
         onNodeWithText("Password").assertIsDisplayed()
         onNodeWithText("Sign in").assertIsEnabled()
+        onNodeWithText("Create account").performScrollTo().assertIsEnabled()
 
         onNodeWithText("Forgot password?").assertIsNotEnabled()
         onNodeWithText("Continue with Google").performScrollTo().assertIsNotEnabled()
         onNodeWithText("Continue with Apple").performScrollTo().assertIsNotEnabled()
-        onNodeWithText("Create account").performScrollTo().assertIsNotEnabled()
     }
 
     @Test
-    fun saysWhenSigningInFailed() = runComposeUiTest {
-        setContent {
-            OrbitTheme {
-                SignInScreen(SignInViewModel(FailingAuthRepository()))
-            }
-        }
+    fun opensCreateAccount() = runComposeUiTest {
+        var opened = 0
+        showSignIn(onCreateAccount = { opened++ })
+
+        onNodeWithText("Create account").performScrollTo().performClick()
+
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun saysWhatIsMissingWhenTheFormIsEmpty() = runComposeUiTest {
+        showSignIn()
+
         onNodeWithText("Sign in").performScrollTo().performClick()
-        onNodeWithText("Could not sign in. Check your details and try again.").performScrollTo().assertIsDisplayed()
+
+        onNodeWithText("Enter your email address.").assertIsDisplayed()
+        onNodeWithText("Enter your password.").assertIsDisplayed()
+    }
+
+    @Test
+    fun saysWhenTheEmailIsNotAnEmail() = runComposeUiTest {
+        showSignIn()
+        onNodeWithText("Email address").performTextInput("ana")
+        onNodeWithText("Password").performTextInput("secret")
+
+        onNodeWithText("Sign in").performScrollTo().performClick()
+
+        onNodeWithText("Enter a valid email address.").assertIsDisplayed()
+    }
+
+    @Test
+    fun saysWhyItCouldNotSignIn() = runComposeUiTest {
+        showSignIn(FailingAuthRepository(AuthException(AuthError.WRONG_CREDENTIALS)))
+        onNodeWithText("Email address").performTextInput("ana@orbit.app")
+        onNodeWithText("Password").performTextInput("wrong")
+
+        onNodeWithText("Sign in").performScrollTo().performClick()
+
+        onNodeWithText("Wrong email or password.").assertIsDisplayed()
+    }
+
+    @Test
+    fun saysWhenThereIsNoConnection() = runComposeUiTest {
+        showSignIn(FailingAuthRepository(AuthException(AuthError.NETWORK)))
+        onNodeWithText("Email address").performTextInput("ana@orbit.app")
+        onNodeWithText("Password").performTextInput("secret")
+
+        onNodeWithText("Sign in").performScrollTo().performClick()
+
+        onNodeWithText("No connection. Check your internet and try again.").assertIsDisplayed()
+    }
+
+    @Test
+    fun showsAnEmailProblemFromFirebaseUnderTheEmail() = runComposeUiTest {
+        showSignIn(FailingAuthRepository(AuthException(AuthError.INVALID_EMAIL)))
+        onNodeWithText("Email address").performTextInput("ana@orbit.app")
+        onNodeWithText("Password").performTextInput("secret")
+
+        onNodeWithText("Sign in").performScrollTo().performClick()
+
+        onNodeWithText("Enter a valid email address.").assertIsDisplayed()
     }
 
     @Test
     fun takesTheEmailAndShowsThePasswordOnRequest() = runComposeUiTest {
-        setContent {
-            OrbitTheme {
-                SignInScreen(SignInViewModel(InMemoryAuthRepository()))
-            }
-        }
+        showSignIn()
         onNodeWithText("Email address").performTextInput("ana@orbit.app")
         onNodeWithText("ana@orbit.app").assertIsDisplayed()
 
