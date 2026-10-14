@@ -28,6 +28,17 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class OrbitTextFieldTest : ComposeTest() {
     @Test
+    fun keepsTheLabelVisibleWhenTheFieldHasAValue() = runComposeUiTest {
+        setContent {
+            OrbitTheme {
+                OrbitTextField("Ana", onValueChange = {}, placeholder = "Name", label = "Display name")
+            }
+        }
+        onNodeWithText("Display name").assertIsDisplayed()
+        onNodeWithText("Ana").assertIsDisplayed()
+    }
+
+    @Test
     fun showsThePlaceholderUntilSomethingIsTyped() = runComposeUiTest {
         var value by mutableStateOf("")
         setContent {
