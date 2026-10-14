@@ -1,4 +1,4 @@
-package com.orbit.app.feature.auth.ui
+package com.orbit.app.feature.auth
 
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.CredentialsError

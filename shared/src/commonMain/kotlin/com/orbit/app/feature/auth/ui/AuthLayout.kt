@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,6 +14,7 @@ import com.orbit.app.core.designsystem.component.OrbitLabeledDivider
 import com.orbit.app.core.designsystem.component.OrbitOutlinedButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitScreenHeader
+import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.or
@@ -35,8 +35,8 @@ internal fun AuthLayout(
     switchPrompt: StringResource,
     switchAction: StringResource,
     onSwitch: () -> Unit,
-    onGoogleSignIn: () -> Unit = {},
-    googleSignInEnabled: Boolean = false,
+    onGoogleSignIn: () -> Unit,
+    googleSignInEnabled: Boolean,
     form: @Composable ColumnScope.() -> Unit,
 ) {
     OrbitScreen(
@@ -67,9 +67,7 @@ internal fun AuthLayout(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            TextButton(onClick = onSwitch) {
-                Text(stringResource(switchAction))
-            }
+            OrbitTextButton(stringResource(switchAction), onSwitch)
         }
     }
 }

@@ -2,6 +2,7 @@ package com.orbit.app.feature.auth
 
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.CredentialsError
+import org.jetbrains.compose.resources.StringResource
 
 data class SignInUiState(
     val email: String = "",
@@ -12,4 +13,11 @@ data class SignInUiState(
     val errors: List<CredentialsError> = emptyList(),
     /** Why the last attempt failed. Cleared by the next edit or attempt. */
     val authError: AuthError? = null,
-)
+) {
+    /** What to say under the email field. */
+    val emailError: StringResource? get() = emailMessage(errors, authError)
+
+    /** What to say under the password, the last field: a blank password, or why Firebase refused. */
+    val passwordError: StringResource?
+        get() = errors.firstOrNull { it == CredentialsError.BlankPassword }?.message() ?: otherAuthMessage(authError)
+}
