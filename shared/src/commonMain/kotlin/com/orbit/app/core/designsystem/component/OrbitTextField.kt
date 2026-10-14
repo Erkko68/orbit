@@ -31,8 +31,6 @@ fun OrbitTextField(
     trailingIcon: (@Composable () -> Unit)? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
-    label: String? = null,
-    readOnly: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     val insideCard = LocalInsideCard.current
@@ -44,7 +42,6 @@ fun OrbitTextField(
         modifier = modifier.heightIn(min = ControlHeight),
         enabled = enabled,
         placeholder = { Text(placeholder) },
-        label = label?.let { { Text(it) } },
         leadingIcon = leadingIcon?.let { { Icon(painterResource(it), contentDescription = null) } },
         trailingIcon = trailingIcon,
         supportingText = supportingText?.let { { Text(it) } },
@@ -52,7 +49,6 @@ fun OrbitTextField(
         visualTransformation = visualTransformation,
         keyboardOptions = keyboardOptions,
         singleLine = true,
-        readOnly = readOnly,
         shape = MaterialTheme.shapes.medium,
         colors = OutlinedTextFieldDefaults.colors(
             focusedContainerColor = fill,
