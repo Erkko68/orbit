@@ -4,9 +4,8 @@ import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.datetime.TimeZone
 
-/** Auth writes fail with [failure]. Optionally starts with a signed-in user for profile tests. */
+/** Auth writes fail with [failure] (signing out as without a connection). Optionally starts signed in as [user]. */
 internal class FailingAuthRepository(
     private val failure: Exception = IllegalStateException("No connection"),
     user: User? = null,
@@ -17,8 +16,11 @@ internal class FailingAuthRepository(
 
     override suspend fun register(email: String, password: String, displayName: String) = throw failure
 
-    override suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone) =
-        error("No connection")
+    override suspend fun updateDisplayName(displayName: String) = throw failure
+
+    override suspend fun changePassword(currentPassword: String, newPassword: String) = throw failure
+
+    override suspend fun deleteAccount() = throw failure
 
     override suspend fun signInWithGoogle() = throw failure
 

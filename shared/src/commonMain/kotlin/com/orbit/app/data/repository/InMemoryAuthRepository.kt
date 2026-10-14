@@ -1,5 +1,7 @@
 package com.orbit.app.data.repository
 
+import com.orbit.app.domain.model.AuthError
+import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
@@ -7,9 +9,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.datetime.TimeZone
 
-/** Stand-in until the Firebase repository replaces it (#15). Accepts any credentials. */
+/** Stand-in for tests. Signing in accepts any credentials; the password is only checked when changing it. */
 class InMemoryAuthRepository : AuthRepository {
     private val user = MutableStateFlow<User?>(null)
+    private var password = ""
 
     override val session: Flow<User?> = user
 
@@ -17,12 +20,14 @@ class InMemoryAuthRepository : AuthRepository {
         register(email, password, displayName = email.substringBefore('@'))
 
     override suspend fun register(email: String, password: String, displayName: String) {
+        this.password = password
         user.value = User(
             id = email,
             displayName = displayName,
             photoUrl = null,
             language = "en",
             timeZone = TimeZone.currentSystemDefault(),
+            email = email,
         )
     }
 
@@ -32,11 +37,21 @@ class InMemoryAuthRepository : AuthRepository {
         user.value = null
     }
 
-    override suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone) {
+    override suspend fun updateDisplayName(displayName: String) {
         val current = requireUser()
         require(displayName.isNotBlank()) { "A display name is required" }
-        require(language in listOf("es", "ca", "en")) { "Unsupported language" }
-        user.value = current.copy(displayName = displayName.trim(), language = language, timeZone = timeZone)
+        user.value = current.copy(displayName = displayName.trim())
+    }
+
+    override suspend fun changePassword(currentPassword: String, newPassword: String) {
+        requireUser()
+        if (currentPassword != password) throw AuthException(AuthError.WRONG_CREDENTIALS)
+        password = newPassword
+    }
+
+    override suspend fun deleteAccount() {
+        requireUser()
+        user.value = null
     }
 }
 

@@ -58,4 +58,13 @@ class AuthValidationTest {
             validateRegistration("", "123", "456"),
         )
     }
+
+    @Test
+    fun aPasswordChangeNeedsTheCurrentOneAndANewOneTypedTwice() {
+        assertEquals(emptyList(), validatePasswordChange("old", "12345678", "12345678"))
+        assertEquals(
+            listOf(CredentialsError.BlankPassword, CredentialsError.ShortPassword, CredentialsError.PasswordsDiffer),
+            validatePasswordChange("", "short", "other"),
+        )
+    }
 }

@@ -1,149 +1,102 @@
 package com.orbit.app.feature.account.ui
 
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.SemanticsProperties
-import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.core.navigation.OrbitNavHost
 import com.orbit.app.data.repository.InMemoryAuthRepository
-import com.orbit.app.data.repository.InMemorySpaceRepository
+import com.orbit.app.domain.model.User
+import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.feature.account.AccountViewModel
 import com.orbit.app.testing.FailingAuthRepository
-import com.orbit.app.testing.startTestKoin
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.TimeZone
-import org.koin.core.context.stopKoin
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 @OptIn(ExperimentalTestApi::class)
 class AccountScreenTest : ComposeTest() {
-    private val auth = InMemoryAuthRepository()
-    private lateinit var failingAuth: FailingAuthRepository
-
-    @BeforeTest
-    fun setUp() {
-        runTest {
-            auth.register("ana@orbit.app", "secret", "Ana López")
-            auth.updateProfile("Ana López", "en", TimeZone.UTC)
-            failingAuth = FailingAuthRepository(user = auth.session.first())
-        }
-        startTestKoin(auth, InMemorySpaceRepository(auth))
+    private val auth = InMemoryAuthRepository().apply {
+        runBlocking { register("ana@orbit.app", "secret", "Ana López") }
     }
 
-    @AfterTest
-    fun stopDi() {
-        stopKoin()
+    private fun ComposeUiTest.show(repository: AuthRepository = auth) =
+        setContent { OrbitTheme { AccountScreen(onBack = {}, viewModel = AccountViewModel(repository)) } }
+
+    /** The button of the open dialog that reads [text]. */
+    private fun ComposeUiTest.dialogButton(text: String): SemanticsNodeInteraction =
+        onNode(hasText(text) and hasClickAction() and hasAnyAncestor(isDialog()))
+
+    @Test
+    fun showsWhoIsSignedInAndTheirActions() = runComposeUiTest {
+        show()
+
+        onNodeWithText("Ana López").assertIsDisplayed()
+        onNodeWithText("ana@orbit.app").assertIsDisplayed()
+        onNodeWithText("Change password").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Sign out").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Delete account").performScrollTo().assertIsDisplayed()
     }
 
     @Test
-    fun displaysTheProfileAndDisablesSavingInvalidFields() = runComposeUiTest {
-        setContent { OrbitTheme { AccountScreen(onBack = {}) } }
-        onNodeWithText("Account").assertIsDisplayed()
-        onNodeWithText("AL").assertIsDisplayed()
-        onNodeWithContentDescription("Display name").assertTextContains("Ana López")
-        onNodeWithText("English").performScrollTo().assertIsSelected()
-        onNodeWithText("Save changes").performScrollTo().assertIsNotEnabled()
+    fun renamesFromItsDialog() = runComposeUiTest {
+        show()
 
-        onNodeWithContentDescription("Display name").performScrollTo().performTextReplacement(" ")
-        onNodeWithText("Save changes").performScrollTo().assertIsNotEnabled()
-        onNodeWithContentDescription("Display name").performScrollTo().performTextReplacement("Ana Maria")
-        onNodeWithContentDescription("Time zone").performScrollTo().performClick()
-        onNodeWithContentDescription("Search time zones").performTextReplacement("Rome")
-        onNode(hasText("Europe/Rome") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
-            .performScrollTo().performClick()
-        onNodeWithText("Save changes").performScrollTo().assertIsEnabled()
+        onNodeWithContentDescription("Edit name").performClick()
+        onNode(hasSetTextAction() and hasAnyAncestor(isDialog())).performTextReplacement("Ana")
+        dialogButton("Save").performClick()
+
+        onNode(isDialog()).assertDoesNotExist()
+        onNodeWithText("Ana").assertIsDisplayed()
+        assertEquals("Ana", runBlocking { auth.session.first() }?.displayName)
     }
 
     @Test
-    fun savesOnlyAfterConfirmationAndShowsTheUpdatedInitials() = runComposeUiTest {
-        setContent { OrbitTheme { AccountScreen(onBack = {}) } }
-        onNodeWithContentDescription("Display name").performScrollTo().performTextReplacement("Ana Maria")
-        onNodeWithText("Español").performScrollTo().performClick().assertIsSelected()
-        onNodeWithText("Català").performScrollTo().performClick().assertIsSelected()
-        onNodeWithContentDescription("Time zone").performScrollTo().performClick()
-        onNodeWithContentDescription("Search time zones").performTextReplacement("Madrid")
-        onNode(hasText("Europe/Madrid") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
-            .performScrollTo().performClick()
-        runTest { assertEquals("Ana López", auth.session.first()?.displayName) }
+    fun aWrongCurrentPasswordIsShownInTheDialog() = runComposeUiTest {
+        show()
 
-        onNodeWithText("Save changes").performScrollTo().performClick()
+        onNodeWithText("Change password").performScrollTo().performClick()
+        onNodeWithText("Current password").performTextReplacement("wrong")
+        onNodeWithText("New password").performTextReplacement("new-secret")
+        onNodeWithText("Confirm password").performTextReplacement("new-secret")
+        dialogButton("Change password").performClick()
 
-        onNodeWithText("Profile updated.").performScrollTo().assertIsDisplayed()
-        onNodeWithText("Save changes").assertIsNotEnabled()
-        onNodeWithText("AM").performScrollTo().assertIsDisplayed()
-        runTest {
-            val user = auth.session.first()!!
-            assertEquals("Ana Maria", user.displayName)
-            assertEquals("ca", user.language)
-            assertEquals(TimeZone.of("Europe/Madrid"), user.timeZone)
-        }
+        onNodeWithText("That is not your current password.").assertIsDisplayed()
     }
 
     @Test
-    fun showsWriteErrorsAndKeepsTheEditedName() = runComposeUiTest {
-        val viewModel = AccountViewModel(failingAuth)
-        setContent { OrbitTheme { AccountScreen(onBack = {}, viewModel = viewModel) } }
-        onNodeWithContentDescription("Display name").performScrollTo().performTextReplacement("Ana Maria")
-        onNodeWithText("Save changes").performScrollTo().performClick()
+    fun deletesTheAccountOnceConfirmed() = runComposeUiTest {
+        show()
 
-        onNodeWithText("Could not update your profile. Try again.").performScrollTo().assertIsDisplayed()
-        onNodeWithContentDescription("Display name").performScrollTo().assertTextContains("Ana Maria")
-        onNodeWithText("Save changes").performScrollTo().assertIsEnabled()
+        onNodeWithText("Delete account").performScrollTo().performClick()
+        onNodeWithText("Delete your account?").assertIsDisplayed()
+        dialogButton("Delete account").performClick()
+
+        assertNull(runBlocking { auth.session.first() })
+    }
+
+    @Test
+    fun aFailedSignOutSaysSo() = runComposeUiTest {
+        show(FailingAuthRepository(user = User("ana", "Ana López", null, "en", TimeZone.UTC)))
+
         onNodeWithText("Sign out").performScrollTo().performClick()
+
         onNodeWithText("Could not sign out. Try again.").performScrollTo().assertIsDisplayed()
-        onNodeWithText("Sign out").performScrollTo().assertIsEnabled()
     }
-
-    @Test
-    fun opensFromTheSpacesAvatarReturnsAndSignsOutThroughTheAuthGate() = runComposeUiTest {
-        setContent { OrbitTheme { OrbitNavHost() } }
-        onNodeWithText("Orbit").assertIsDisplayed()
-        onNodeWithContentDescription("Account").assertIsDisplayed().performClick()
-        onNodeWithText("Account").assertIsDisplayed()
-
-        onNodeWithContentDescription("Back to spaces").assertIsDisplayed().performClick()
-        onNodeWithText("Orbit").assertIsDisplayed()
-        onNodeWithContentDescription("Account").assertIsDisplayed().performClick()
-        onNodeWithText("Sign out").performScrollTo().performClick()
-
-        onNodeWithText("Welcome back").assertIsDisplayed()
-        onNodeWithText("Sign in").assertIsDisplayed()
-        onNodeWithText("Account").assertDoesNotExist()
-        onNodeWithContentDescription("Back to spaces").assertDoesNotExist()
-    }
-
-    @Test
-    fun cancellingTheTimeZonePickerLeavesTheProfileUnchanged() = runComposeUiTest {
-        setContent { OrbitTheme { AccountScreen(onBack = {}) } }
-        onNodeWithContentDescription("Time zone").performScrollTo().performClick()
-        onNode(hasText(TimeZone.UTC.id) and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
-            .performScrollTo().assertIsSelected()
-        onNodeWithContentDescription("Search time zones").performTextReplacement("no-such-zone")
-        onNodeWithText("No time zones found.").assertIsDisplayed()
-        onNodeWithText("Cancel").assertIsDisplayed().performClick()
-
-        onNodeWithText("Choose a time zone").assertDoesNotExist()
-        onNodeWithContentDescription("Time zone").assertTextContains(TimeZone.UTC.id)
-        onNodeWithText("Save changes").performScrollTo().assertIsNotEnabled()
-        runTest { assertEquals(TimeZone.UTC, auth.session.first()?.timeZone) }
-    }
-
 }

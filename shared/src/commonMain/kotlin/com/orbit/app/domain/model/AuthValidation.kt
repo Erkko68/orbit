@@ -20,10 +20,16 @@ fun validateSignIn(email: String, password: String): List<CredentialsError> =
 
 /** The checks before creating an account: a valid email, a long enough password, typed twice the same. */
 fun validateRegistration(email: String, password: String, confirmation: String): List<CredentialsError> =
-    emailErrors(email) + listOfNotNull(
-        CredentialsError.ShortPassword.takeIf { password.length < MIN_PASSWORD_LENGTH },
-        CredentialsError.PasswordsDiffer.takeIf { confirmation != password },
-    )
+    emailErrors(email) + newPasswordErrors(password, confirmation)
+
+/** The checks before changing the password: the current one typed, then the new one as for creating an account. */
+fun validatePasswordChange(current: String, new: String, confirmation: String): List<CredentialsError> =
+    listOfNotNull(CredentialsError.BlankPassword.takeIf { current.isEmpty() }) + newPasswordErrors(new, confirmation)
+
+private fun newPasswordErrors(password: String, confirmation: String): List<CredentialsError> = listOfNotNull(
+    CredentialsError.ShortPassword.takeIf { password.length < MIN_PASSWORD_LENGTH },
+    CredentialsError.PasswordsDiffer.takeIf { confirmation != password },
+)
 
 private fun emailErrors(email: String): List<CredentialsError> {
     val trimmed = email.trim()

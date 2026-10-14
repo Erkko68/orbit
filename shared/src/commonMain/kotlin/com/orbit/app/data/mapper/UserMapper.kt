@@ -11,6 +11,7 @@ internal fun mapUser(
     timeZone: String?,
     fallbackDisplayName: String? = null,
     fallbackPhotoUrl: String? = null,
+    email: String? = null,
 ): User {
     val resolvedDisplayName = displayName?.takeIf { it.isNotBlank() }
         ?: fallbackDisplayName?.takeIf { it.isNotBlank() }
@@ -31,6 +32,7 @@ internal fun mapUser(
         photoUrl = resolvedPhotoUrl,
         language = resolvedLanguage,
         timeZone = resolvedTimeZone,
+        email = email,
     )
 }
 
