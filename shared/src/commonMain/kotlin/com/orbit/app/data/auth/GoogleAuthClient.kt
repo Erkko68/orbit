@@ -9,7 +9,7 @@ data class GoogleAuthCredential(
  * Platform client that presents the Google account picker to the user and retrieves
  * the resulting credentials for Firebase Auth.
  */
-interface GoogleAuthClient {
+fun interface GoogleAuthClient {
     /**
      * Prompts the user to select an account and returns their Google credential,
      * or null if the user cancelled the flow.

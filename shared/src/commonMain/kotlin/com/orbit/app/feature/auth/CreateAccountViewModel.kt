@@ -2,12 +2,8 @@ package com.orbit.app.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import co.touchlab.kermit.Logger
-import com.orbit.app.domain.model.AuthError
-import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.validateRegistration
 import com.orbit.app.domain.repository.AuthRepository
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,14 +43,8 @@ class CreateAccountViewModel(private val auth: AuthRepository) : ViewModel() {
         _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
         viewModelScope.launch {
             val email = form.email.trim()
-            val authError = try {
+            val authError = executeAuth("Registration") {
                 auth.register(email, form.password, displayName = email.substringBefore('@'))
-                null
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Registration failed" }
-                (e as? AuthException)?.error ?: AuthError.UNKNOWN
             }
             _uiState.update { it.copy(submitting = false, authError = authError) }
         }
@@ -65,15 +55,7 @@ class CreateAccountViewModel(private val auth: AuthRepository) : ViewModel() {
         if (form.submitting) return
         _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
         viewModelScope.launch {
-            val authError = try {
-                auth.signInWithGoogle()
-                null
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Google sign-in failed" }
-                (e as? AuthException)?.error ?: AuthError.UNKNOWN
-            }
+            val authError = executeAuth("Google sign-in") { auth.signInWithGoogle() }
             _uiState.update { it.copy(submitting = false, authError = authError) }
         }
     }
