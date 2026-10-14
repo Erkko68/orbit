@@ -6,8 +6,6 @@ plugins {
     alias(libs.plugins.googleServices)
 }
 
-val demoAuth = providers.gradleProperty("orbit.demoAuth").map { it.toBooleanStrict() }.getOrElse(false)
-
 kotlin {
     compilerOptions {
         jvmTarget = JvmTarget.JVM_17
@@ -34,8 +32,6 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
-        buildConfigField("boolean", "DEMO_AUTH", "false")
-        manifestPlaceholders["firebaseInitEnabled"] = "true"
     }
     packaging {
         resources {
@@ -43,10 +39,6 @@ android {
         }
     }
     buildTypes {
-        getByName("debug") {
-            buildConfigField("boolean", "DEMO_AUTH", demoAuth.toString())
-            manifestPlaceholders["firebaseInitEnabled"] = (!demoAuth).toString()
-        }
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -60,7 +52,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
-        buildConfig = true
         compose = true
     }
 }

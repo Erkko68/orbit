@@ -9,10 +9,6 @@
             android:roundIcon="@mipmap/ic_launcher_round"
             android:supportsRtl="true"
             android:theme="@android:style/Theme.Material.Light.NoActionBar">
-        <provider
-                android:name="com.google.firebase.provider.FirebaseInitProvider"
-                android:authorities="${applicationId}.firebaseinitprovider"
-                android:enabled="${firebaseInitEnabled}"/>
         <activity
                 android:exported="true"
                 android:name=".MainActivity">
