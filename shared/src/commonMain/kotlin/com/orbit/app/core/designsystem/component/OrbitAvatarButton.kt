@@ -7,7 +7,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 
-/** An account avatar with an accessible action and Material's minimum touch target. */
+/**
+ * An account avatar (its [photoUrl], or the initials) with an accessible action and Material's minimum
+ * touch target.
+ */
 @Composable
 fun OrbitAvatarButton(
     initials: String,
@@ -15,11 +18,12 @@ fun OrbitAvatarButton(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    photoUrl: String? = null,
 ) {
     IconButton(
         onClick = onClick,
         modifier = modifier.semantics { this.contentDescription = contentDescription },
     ) {
-        OrbitAvatar(initials, accent)
+        OrbitAvatar(initials, accent, photoUrl = photoUrl)
     }
 }

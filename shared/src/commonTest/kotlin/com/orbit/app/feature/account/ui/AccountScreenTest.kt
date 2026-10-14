@@ -19,10 +19,8 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.navigation.OrbitNavHost
-import com.orbit.app.di.initDemoKoin
 import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.data.repository.InMemorySpaceRepository
-import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.feature.account.AccountViewModel
 import com.orbit.app.testing.FailingAuthRepository
 import com.orbit.app.testing.startTestKoin
@@ -146,39 +144,6 @@ class AccountScreenTest : ComposeTest() {
         onNodeWithContentDescription("Time zone").assertTextContains(TimeZone.UTC.id)
         onNodeWithText("Save changes").performScrollTo().assertIsNotEnabled()
         runTest { assertEquals(TimeZone.UTC, auth.session.first()?.timeZone) }
-    }
-
-    @Test
-    fun demoConfigurationSupportsSignInProfileSaveAndSignOutWithoutFirebase() = runComposeUiTest {
-        stopKoin()
-        val demoAuth = initDemoKoin().koin.get<AuthRepository>()
-        setContent { OrbitTheme { OrbitNavHost() } }
-        onNodeWithText("Email address").performScrollTo().performTextReplacement("demo@orbit.app")
-        onNodeWithText("Password").performScrollTo().performTextReplacement("demo1234")
-        onNodeWithText("Sign in").performScrollTo().performClick()
-
-        onNodeWithContentDescription("Account").assertIsDisplayed().performClick()
-        onNodeWithContentDescription("Display name").performScrollTo().performTextReplacement("Demo User")
-        onNodeWithText("Català").performScrollTo().performClick()
-        onNodeWithContentDescription("Time zone").performScrollTo().performClick()
-        onNodeWithContentDescription("Search time zones").performTextReplacement("Rome")
-        onNode(hasText("Europe/Rome") and SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
-            .performScrollTo().performClick()
-        runTest { assertEquals("demo", demoAuth.session.first()?.displayName) }
-
-        onNodeWithText("Save changes").performScrollTo().performClick()
-
-        onNodeWithText("Profile updated.").performScrollTo().assertIsDisplayed()
-        onNodeWithText("DU").performScrollTo().assertIsDisplayed()
-        runTest {
-            val user = demoAuth.session.first()!!
-            assertEquals("Demo User", user.displayName)
-            assertEquals("ca", user.language)
-            assertEquals(TimeZone.of("Europe/Rome"), user.timeZone)
-        }
-        onNodeWithText("Sign out").performScrollTo().performClick()
-        onNodeWithText("Welcome back").assertIsDisplayed()
-        runTest { assertEquals(null, demoAuth.session.first()) }
     }
 
 }

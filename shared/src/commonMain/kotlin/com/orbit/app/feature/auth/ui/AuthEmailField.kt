@@ -2,7 +2,6 @@ package com.orbit.app.feature.auth.ui
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -12,7 +11,6 @@ import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_mail
 import orbit.shared.generated.resources.sign_in_email
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /** The email field of sign-in and create account, with the [error] under it when there is one. */
@@ -25,7 +23,7 @@ internal fun AuthEmailField(value: String, onValueChange: (String) -> Unit, erro
         modifier = Modifier.fillMaxWidth(),
         isError = error != null,
         supportingText = error?.let { stringResource(it) },
-        leadingIcon = { Icon(painterResource(Res.drawable.ic_mail), contentDescription = null) },
+        leadingIcon = Res.drawable.ic_mail,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
     )
 }

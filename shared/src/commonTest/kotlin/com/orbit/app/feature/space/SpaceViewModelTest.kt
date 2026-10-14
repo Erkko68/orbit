@@ -60,6 +60,21 @@ class SpaceViewModelTest {
     }
 
     @Test
+    fun aFailedLoadKeepsTheAvatarAndTheOpenDialog() = runTest {
+        val auth = InMemoryAuthRepository()
+        auth.register("ana@orbit.app", "secret", displayName = "Ana López")
+        val viewModel = SpaceViewModel(FlakySpaceRepository(failures = 1), auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.openCreate()
+
+        val failed = viewModel.uiState.value
+        assertTrue(failed.loadFailed)
+        assertEquals("AL", failed.userInitials)
+        assertTrue(failed.createOpen)
+    }
+
+    @Test
     fun createsASpaceForTheSignedInUser() = runTest {
         val auth = InMemoryAuthRepository()
         auth.signIn("ana@orbit.app", "secret")

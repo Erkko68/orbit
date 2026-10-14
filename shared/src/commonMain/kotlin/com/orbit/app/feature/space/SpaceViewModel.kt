@@ -4,14 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.orbit.app.core.initialsOf
+import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -24,14 +28,26 @@ class SpaceViewModel(private val repository: SpaceRepository, auth: AuthReposito
     /** A tap on "Try again" while the spaces failed to load. */
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
-    val uiState: StateFlow<SpaceUiState> = combine(repository.observeSpaces(), auth.session, form) { spaces, user, form ->
-        form.copy(userInitials = initialsOf(user?.displayName.orEmpty()), spaceIds = spaces.map { it.id })
-    }.retryWhen { cause, _ ->
-        Logger.e(cause) { "Loading the spaces failed" }
-        emit(SpaceUiState(loadFailed = true))
-        retries.receive()
-        emit(SpaceUiState(loading = true))
-        true
+    /** The ids of the spaces, or why there are none yet. Only this part fails and retries: the rest stays on screen. */
+    private val spaces: Flow<SpacesLoad> = repository.observeSpaces()
+        .map<List<Space>, SpacesLoad> { spaces -> SpacesLoad.Loaded(spaces.map { it.id }) }
+        .retryWhen { cause, _ ->
+            Logger.e(cause) { "Loading the spaces failed" }
+            emit(SpacesLoad.Failed)
+            retries.receive()
+            emit(SpacesLoad.Loading)
+            true
+        }
+        .onStart { emit(SpacesLoad.Loading) }
+
+    val uiState: StateFlow<SpaceUiState> = combine(spaces, auth.session, form) { spaces, user, form ->
+        form.copy(
+            loading = spaces == SpacesLoad.Loading,
+            loadFailed = spaces == SpacesLoad.Failed,
+            userInitials = initialsOf(user?.displayName.orEmpty()),
+            userPhotoUrl = user?.photoUrl,
+            spaceIds = (spaces as? SpacesLoad.Loaded)?.ids.orEmpty(),
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceUiState(loading = true))
 
     /** Loads the spaces again after they failed to load. */
@@ -65,4 +81,12 @@ class SpaceViewModel(private val repository: SpaceRepository, auth: AuthReposito
             }
         }
     }
+}
+
+private sealed interface SpacesLoad {
+    data object Loading : SpacesLoad
+
+    data object Failed : SpacesLoad
+
+    data class Loaded(val ids: List<String>) : SpacesLoad
 }

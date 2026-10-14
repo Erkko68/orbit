@@ -26,15 +26,7 @@ class InMemoryAuthRepository : AuthRepository {
         )
     }
 
-    override suspend fun signInWithGoogle(idToken: String?, accessToken: String?) {
-        user.value = User(
-            id = "google-user@orbit.app",
-            displayName = "Google User",
-            photoUrl = "https://lh3.googleusercontent.com/a/default-user",
-            language = "en",
-            timeZone = TimeZone.currentSystemDefault(),
-        )
-    }
+    override suspend fun signInWithGoogle() = register("google@orbit.app", password = "", displayName = "Google User")
 
     override suspend fun signOut() {
         user.value = null

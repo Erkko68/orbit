@@ -1,10 +1,8 @@
 package com.orbit.app.di
 
 import com.orbit.app.data.repository.FirebaseAuthRepository
-import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.data.repository.FirestoreSpaceRepository
 import com.orbit.app.data.repository.InMemoryItemRepository
-import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -21,7 +19,6 @@ import com.russhwolf.settings.Settings
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.firestore
-import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
@@ -30,40 +27,25 @@ import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
-/** Normal DI entry point. Android passes `androidContext`; iOS calls it with no config. */
+/** Single DI entry point. Android passes `androidContext`; iOS calls it with no config. */
 fun initKoin(config: KoinAppDeclaration? = null) {
-    startOrbitKoin(dataModule, config)
+    startKoin {
+        config?.invoke(this)
+        modules(platformModule, dataModule, domainModule, featureModule)
+    }
 }
 
-/** Local development entry point: all repositories stay in memory, with no Firebase account needed. */
-fun initDemoKoin(config: KoinAppDeclaration? = null): KoinApplication = startOrbitKoin(demoDataModule, config)
-
-private fun startOrbitKoin(repositories: Module, config: KoinAppDeclaration?): KoinApplication = startKoin {
-    config?.invoke(this)
-    modules(platformModule, repositories, domainModule, featureModule)
-}
-
-/** Platform-only implementations (camera, notifications, text recognition, file paths). */
+/** Platform-only implementations (camera, notifications, text recognition, file paths, Google sign-in). */
 expect val platformModule: Module
 
-private val sharedDataModule = module {
+val dataModule = module {
+    single { Firebase.auth }
+    single { Firebase.firestore }
+    singleOf(::FirebaseAuthRepository) bind AuthRepository::class
+    singleOf(::FirestoreSpaceRepository) bind SpaceRepository::class
     // In-memory stand-in. The Firebase implementation replaces it in #30.
     singleOf(::InMemoryItemRepository) bind ItemRepository::class
     single { Settings() }
-}
-
-val dataModule = module {
-    includes(sharedDataModule)
-    single { Firebase.auth }
-    single { Firebase.firestore }
-    single<AuthRepository> { FirebaseAuthRepository(get(), get(), getOrNull()) }
-    singleOf(::FirestoreSpaceRepository) bind SpaceRepository::class
-}
-
-private val demoDataModule = module {
-    includes(sharedDataModule)
-    singleOf(::InMemoryAuthRepository) bind AuthRepository::class
-    singleOf(::InMemorySpaceRepository) bind SpaceRepository::class
 }
 
 val domainModule = module {

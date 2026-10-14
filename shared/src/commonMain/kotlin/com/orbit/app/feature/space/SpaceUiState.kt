@@ -7,6 +7,8 @@ data class SpaceUiState(
     val loadFailed: Boolean = false,
     /** The signed-in user's initials, for the account avatar. */
     val userInitials: String = "",
+    /** The signed-in user's photo, for the account avatar. */
+    val userPhotoUrl: String? = null,
     /** The signed-in user's spaces. Each one is drawn by a space card, which loads it by id. */
     val spaceIds: List<String> = emptyList(),
     /** The "Create a new space" dialog is showing. */

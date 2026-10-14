@@ -76,6 +76,7 @@ fun SpaceScreen(
                 actions = {
                     OrbitAvatarButton(
                         initials = state.userInitials,
+                        photoUrl = state.userPhotoUrl,
                         accent = MaterialTheme.colorScheme.primary,
                         contentDescription = stringResource(Res.string.account_title),
                         onClick = onOpenAccount,
@@ -87,7 +88,7 @@ fun SpaceScreen(
         floatingActionButton = {
             OrbitExtendedFab(
                 text = stringResource(Res.string.spaces_new),
-                icon = { Icon(painterResource(Res.drawable.ic_add), contentDescription = null) },
+                icon = Res.drawable.ic_add,
                 onClick = viewModel::openCreate,
             )
         },
@@ -136,7 +137,7 @@ private fun NewSpaceDialog(state: SpaceUiState, viewModel: SpaceViewModel) {
             modifier = Modifier.fillMaxWidth(),
             isError = state.createFailed,
             supportingText = if (state.createFailed) stringResource(Res.string.spaces_create_failed) else null,
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_home), contentDescription = null) },
+            leadingIcon = Res.drawable.ic_home,
         )
         OrbitButton(
             text = stringResource(Res.string.spaces_create),
@@ -151,7 +152,7 @@ private fun NewSpaceDialog(state: SpaceUiState, viewModel: SpaceViewModel) {
             placeholder = stringResource(Res.string.spaces_join_code),
             modifier = Modifier.fillMaxWidth(),
             enabled = false,
-            leadingIcon = { Icon(painterResource(Res.drawable.ic_link), contentDescription = null) },
+            leadingIcon = Res.drawable.ic_link,
         )
         OrbitOutlinedButton(
             text = stringResource(Res.string.spaces_join),

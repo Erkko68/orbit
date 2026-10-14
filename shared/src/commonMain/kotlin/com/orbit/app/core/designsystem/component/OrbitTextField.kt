@@ -2,6 +2,7 @@ package com.orbit.app.core.designsystem.component
 
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -10,6 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.VisualTransformation
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.painterResource
 
 /**
  * Single-line input: a tonal fill with no stroke until it is focused (primary) or in error.
@@ -24,7 +27,7 @@ fun OrbitTextField(
     enabled: Boolean = true,
     isError: Boolean = false,
     supportingText: String? = null,
-    leadingIcon: (@Composable () -> Unit)? = null,
+    leadingIcon: DrawableResource? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
@@ -42,7 +45,7 @@ fun OrbitTextField(
         enabled = enabled,
         placeholder = { Text(placeholder) },
         label = label?.let { { Text(it) } },
-        leadingIcon = leadingIcon,
+        leadingIcon = leadingIcon?.let { { Icon(painterResource(it), contentDescription = null) } },
         trailingIcon = trailingIcon,
         supportingText = supportingText?.let { { Text(it) } },
         isError = isError,

@@ -116,7 +116,7 @@ class SignInViewModelTest {
 
         viewModel.signInWithGoogle()
 
-        assertEquals("google-user@orbit.app", auth.session.first()?.id)
+        assertEquals("google@orbit.app", auth.session.first()?.id)
         assertFalse(viewModel.uiState.value.submitting)
         assertNull(viewModel.uiState.value.authError)
     }

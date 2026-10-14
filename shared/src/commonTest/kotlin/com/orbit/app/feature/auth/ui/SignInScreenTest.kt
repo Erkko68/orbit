@@ -140,7 +140,7 @@ class SignInScreenTest : ComposeTest() {
 
         onNodeWithText("Continue with Google").performScrollTo().performClick()
 
-        assertEquals("google-user@orbit.app", runBlocking { auth.session.first() }?.id)
+        assertEquals("google@orbit.app", runBlocking { auth.session.first() }?.id)
     }
 
     @Test
