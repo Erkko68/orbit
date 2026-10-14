@@ -1,8 +1,8 @@
 package com.orbit.app.di
 
 import com.orbit.app.data.repository.FirebaseAuthRepository
+import com.orbit.app.data.repository.FirestoreItemRepository
 import com.orbit.app.data.repository.FirestoreSpaceRepository
-import com.orbit.app.data.repository.InMemoryItemRepository
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -43,8 +43,7 @@ val dataModule = module {
     single { Firebase.firestore }
     singleOf(::FirebaseAuthRepository) bind AuthRepository::class
     singleOf(::FirestoreSpaceRepository) bind SpaceRepository::class
-    // In-memory stand-in. The Firebase implementation replaces it in #30.
-    singleOf(::InMemoryItemRepository) bind ItemRepository::class
+    singleOf(::FirestoreItemRepository) bind ItemRepository::class
     single { Settings() }
 }
 
