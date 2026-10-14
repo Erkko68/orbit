@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Tab
@@ -44,7 +43,6 @@ import orbit.shared.generated.resources.space_open_tasks
 import orbit.shared.generated.resources.space_switch
 import orbit.shared.generated.resources.space_today
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -82,7 +80,7 @@ fun SpaceHomeScreen(
             // Placeholder until the create-item flow (#36).
             OrbitExtendedFab(
                 text = stringResource(Res.string.space_new_item),
-                icon = { Icon(painterResource(Res.drawable.ic_add), contentDescription = null) },
+                icon = Res.drawable.ic_add,
                 onClick = {},
             )
         },

@@ -1,7 +1,6 @@
 package com.orbit.app.core.designsystem.component
 
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
@@ -14,7 +13,6 @@ import orbit.shared.generated.resources.ic_lock
 import orbit.shared.generated.resources.ic_visibility
 import orbit.shared.generated.resources.ic_visibility_off
 import orbit.shared.generated.resources.show_password
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
@@ -40,7 +38,7 @@ fun OrbitPasswordField(
         modifier = modifier,
         isError = isError,
         supportingText = supportingText,
-        leadingIcon = { Icon(painterResource(Res.drawable.ic_lock), contentDescription = null) },
+        leadingIcon = Res.drawable.ic_lock,
         trailingIcon = {
             OrbitIconButton(
                 icon = if (visible) Res.drawable.ic_visibility_off else Res.drawable.ic_visibility,

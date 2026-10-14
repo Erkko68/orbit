@@ -6,13 +6,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 
 /**
  * A [title] with a line of secondary text under it, heading a card or a section. The title keeps the
- * main text color even on a card. [titleStyle] is a typography role, `titleMedium` unless the heading
- * opens a screen.
+ * main text color even on a card, unless [titleColor] says otherwise (an error). [titleStyle] is a
+ * typography role, `titleMedium` unless the heading opens a screen.
  */
 @Composable
 fun OrbitHeading(
@@ -20,9 +21,10 @@ fun OrbitHeading(
     subtitle: String,
     modifier: Modifier = Modifier,
     titleStyle: TextStyle = MaterialTheme.typography.titleMedium,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs)) {
-        Text(title, style = titleStyle, color = MaterialTheme.colorScheme.onSurface)
+        Text(title, style = titleStyle, color = titleColor)
         Text(
             text = subtitle,
             style = MaterialTheme.typography.bodyMedium,

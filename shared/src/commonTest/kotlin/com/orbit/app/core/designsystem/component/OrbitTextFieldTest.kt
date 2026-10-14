@@ -24,6 +24,8 @@ import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.ic_lock
 
 @OptIn(ExperimentalTestApi::class)
 class OrbitTextFieldTest : ComposeTest() {
@@ -103,7 +105,7 @@ class OrbitTextFieldTest : ComposeTest() {
                     enabled = enabled,
                     isError = isError,
                     supportingText = supportingText,
-                    leadingIcon = { Text("lock") },
+                    leadingIcon = Res.drawable.ic_lock,
                     trailingIcon = { Text("show") },
                     visualTransformation = PasswordVisualTransformation(),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
