@@ -10,18 +10,11 @@ import androidx.compose.ui.Modifier
 
 /** One option of a filter row, such as "Tasks" over a list of items: a borderless pill, primary when selected. */
 @Composable
-fun OrbitFilterChip(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-) {
+fun OrbitFilterChip(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = MaterialTheme.colorScheme
     FilterChip(
         selected = selected,
         onClick = onClick,
-        enabled = enabled,
         label = { Text(label) },
         modifier = modifier,
         shape = CircleShape,

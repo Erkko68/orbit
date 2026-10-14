@@ -20,25 +20,20 @@
     <!-- Account -->
     <string name="account_title">Account</string>
     <string name="account_back">Back to spaces</string>
-    <string name="account_subtitle">Your name and preferences.</string>
-    <string name="account_display_name">Display name</string>
-    <string name="account_language">Language</string>
-    <string name="account_language_es">Español</string>
-    <string name="account_language_ca">Català</string>
-    <string name="account_language_en">English</string>
-    <string name="account_time_zone">Time zone</string>
-    <string name="account_time_zone_select">Choose a time zone</string>
-    <string name="account_time_zone_search">Search time zones</string>
-    <string name="account_time_zone_empty">No time zones found.</string>
-    <string name="account_time_zone_hint">For example, Europe/Rome</string>
-    <string name="account_time_zone_invalid">Enter a valid time zone, such as Europe/Rome.</string>
-    <string name="account_save">Save changes</string>
-    <string name="account_saving">Saving…</string>
-    <string name="account_saved">Profile updated.</string>
-    <string name="account_save_failed">Could not update your profile. Try again.</string>
+    <string name="account_edit_name">Edit name</string>
+    <string name="account_name">Your name</string>
+    <string name="account_save">Save</string>
+    <string name="account_change_password">Change password</string>
+    <string name="account_change_password_body">Use at least 8 characters.</string>
+    <string name="account_current_password">Current password</string>
+    <string name="account_new_password">New password</string>
     <string name="account_sign_out">Sign out</string>
-    <string name="account_signing_out">Signing out…</string>
+    <string name="account_sign_out_body">You can sign back in at any time.</string>
     <string name="account_sign_out_failed">Could not sign out. Try again.</string>
+    <string name="account_delete">Delete account</string>
+    <string name="account_delete_body">Permanently remove your account and your data.</string>
+    <string name="account_delete_title">Delete your account?</string>
+    <string name="account_delete_warning">You will leave all your spaces, and this cannot be undone.</string>
     <!-- Create account -->
     <string name="create_account_title">Create your account</string>
     <string name="create_account_subtitle">Get started and organize your shared spaces together.</string>
@@ -53,6 +48,7 @@
     <string name="error_password_short">Use at least 8 characters.</string>
     <string name="error_passwords_differ">The passwords do not match.</string>
     <string name="error_wrong_credentials">Wrong email or password.</string>
+    <string name="error_current_password_wrong">That is not your current password.</string>
     <string name="error_email_in_use">An account with this email already exists.</string>
     <string name="error_weak_password">Choose a stronger password.</string>
     <string name="error_network">No connection. Check your internet and try again.</string>

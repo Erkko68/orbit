@@ -154,7 +154,8 @@ The rules themselves are #41. The model assumes:
 A sketch of the Kotlin classes this maps to. The real code, with validation and tests, lands in #15, #21 and #29.
 
 ```kotlin
-data class User(val id: String, val displayName: String, val photoUrl: String?, val language: String, val timeZone: TimeZone)
+// email comes from Firebase Auth, not from the users document.
+data class User(val id: String, val displayName: String, val photoUrl: String?, val language: String, val timeZone: TimeZone, val email: String?)
 
 data class Space(val id: String, val name: String, val accent: Int, val memberIds: List<String>)
 

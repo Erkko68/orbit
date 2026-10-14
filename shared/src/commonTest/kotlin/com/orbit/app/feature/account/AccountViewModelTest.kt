@@ -1,9 +1,12 @@
 package com.orbit.app.feature.account
 
 import com.orbit.app.data.repository.InMemoryAuthRepository
+import com.orbit.app.domain.model.AuthError
+import com.orbit.app.domain.model.AuthException
+import com.orbit.app.domain.model.CredentialsError
+import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.testing.FailingAuthRepository
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,6 +18,11 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.TimeZone
+import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.error_current_password_wrong
+import orbit.shared.generated.resources.error_network
+import orbit.shared.generated.resources.error_unknown
+import orbit.shared.generated.resources.error_weak_password
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -25,6 +33,8 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountViewModelTest {
+    private val ana = User("ana", "Ana López", photoUrl = null, "en", TimeZone.UTC, email = "ana@orbit.app")
+
     @BeforeTest
     fun setUp() {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -41,333 +51,206 @@ class AccountViewModelTest {
         return viewModel
     }
 
-    @Test
-    fun loadsTheProfileAndWaitsForAChangeBeforeSaving() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana López")
-        val user = auth.session.first()!!
-        val state = observe(auth).uiState.value
+    private suspend fun signedIn() =
+        InMemoryAuthRepository().apply { register("ana@orbit.app", "secret", "Ana López") }
 
-        assertEquals("Ana López", state.displayName)
-        assertEquals("AL", state.userInitials)
-        assertEquals("en", state.language)
-        assertEquals(user.timeZone.id, state.timeZone)
-        assertTrue(state.canEdit)
-        assertFalse(state.hasChanges)
-        assertFalse(state.canSave)
+    @Test
+    fun showsTheSignedInUser() = runTest {
+        val state = observe(signedIn()).uiState.value
+
+        assertEquals("Ana López", state.name)
+        assertEquals("ana@orbit.app", state.email)
+        assertEquals("AL", state.initials)
+        assertNull(state.dialog)
     }
 
     @Test
-    fun filtersTimeZonesAndChangesOnlyTheDraftAfterSelection() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
-        auth.updateProfile("Ana", "en", TimeZone.UTC)
-        val original = auth.session.first()
+    fun renamesOnceTheNameChanges() = runTest {
+        val auth = signedIn()
         val viewModel = observe(auth)
 
-        viewModel.openTimeZonePicker()
-        assertTrue(viewModel.uiState.value.timeZonePickerOpen)
-        assertEquals(TimeZone.UTC.id, viewModel.uiState.value.timeZoneOptions.first().value)
-        assertTrue(viewModel.uiState.value.timeZoneOptions.first().selected)
-        viewModel.onTimeZoneQueryChange(" rOmE ")
-        assertEquals(listOf("Europe/Rome"), viewModel.uiState.value.timeZoneOptions.map { it.value })
-        viewModel.onTimeZoneChange("Europe/Rome")
+        viewModel.openEditName()
+        assertEquals(AccountDialog.EDIT_NAME, viewModel.uiState.value.dialog)
+        assertEquals("Ana López", viewModel.uiState.value.nameDraft)
+        assertFalse(viewModel.uiState.value.canSaveName)
 
-        assertFalse(viewModel.uiState.value.timeZonePickerOpen)
-        assertEquals("", viewModel.uiState.value.timeZoneQuery)
-        assertEquals("Europe/Rome", viewModel.uiState.value.timeZone)
-        assertTrue(viewModel.uiState.value.canSave)
-        assertEquals(original, auth.session.first())
+        viewModel.onNameChange("  Ana  ")
+        viewModel.saveName()
+
+        assertNull(viewModel.uiState.value.dialog)
+        assertEquals("Ana", auth.session.first()?.displayName)
+        assertEquals("Ana", viewModel.uiState.value.name)
     }
 
     @Test
-    fun dismissingThePickerPreservesTheProfileAndSaveConfirmation() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
-        val viewModel = observe(auth)
-        viewModel.onDisplayNameChange("Ana Maria")
-        viewModel.saveProfile()
-        val saved = auth.session.first()
-        val savedZone = viewModel.uiState.value.timeZone
+    fun aFailedRenameStaysInTheDialogUntilTheNextEdit() = runTest {
+        val viewModel = observe(FailingAuthRepository(user = ana))
+        viewModel.openEditName()
+        viewModel.onNameChange("Ana")
 
-        viewModel.openTimeZonePicker()
-        viewModel.onTimeZoneQueryChange("no-such-zone")
-        assertTrue(viewModel.uiState.value.timeZoneOptions.isEmpty())
-        assertTrue(viewModel.uiState.value.saved)
-        viewModel.closeTimeZonePicker()
+        viewModel.saveName()
 
-        assertFalse(viewModel.uiState.value.timeZonePickerOpen)
-        assertEquals("", viewModel.uiState.value.timeZoneQuery)
-        assertEquals(savedZone, viewModel.uiState.value.timeZone)
-        assertTrue(viewModel.uiState.value.saved)
-        assertFalse(viewModel.uiState.value.canSave)
-        assertEquals(saved, auth.session.first())
+        val failed = viewModel.uiState.value
+        assertEquals(AccountDialog.EDIT_NAME, failed.dialog)
+        assertFalse(failed.submitting)
+        assertEquals(Res.string.error_unknown, failed.dialogError)
+
+        viewModel.onNameChange("Ana L")
+        assertNull(viewModel.uiState.value.dialogError)
     }
 
     @Test
-    fun editsStayInTheDraftUntilTheUserSaves() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
-        val original = auth.session.first()!!
-        val viewModel = observe(auth)
+    fun checksThePasswordsBeforeChangingThem() = runTest {
+        val viewModel = observe(signedIn())
+        viewModel.openChangePassword()
+        viewModel.onNewPasswordChange("short")
+        viewModel.onConfirmationChange("other")
 
-        viewModel.onDisplayNameChange("  Ana López  ")
-        viewModel.selectLanguage("ca")
-        viewModel.onTimeZoneChange("Europe/Madrid")
+        viewModel.changePassword()
 
-        assertEquals(original, auth.session.first())
-        assertTrue(viewModel.uiState.value.canSave)
-        viewModel.saveProfile()
-
+        val state = viewModel.uiState.value
         assertEquals(
-            original.copy(displayName = "Ana López", language = "ca", timeZone = TimeZone.of("Europe/Madrid")),
-            auth.session.first(),
+            listOf(CredentialsError.BlankPassword, CredentialsError.ShortPassword, CredentialsError.PasswordsDiffer),
+            state.passwordErrors,
         )
-        val saved = viewModel.uiState.value
-        assertEquals("Ana López", saved.displayName)
-        assertEquals("AL", saved.userInitials)
-        assertTrue(saved.saved)
-        assertFalse(saved.saving)
-        assertFalse(saved.canSave)
+        assertTrue(state.currentPasswordError != null)
+        assertTrue(state.newPasswordError != null)
+        assertTrue(state.confirmationError != null)
 
-        viewModel.selectLanguage("es")
-        assertFalse(viewModel.uiState.value.saved)
-        assertTrue(viewModel.uiState.value.canSave)
+        viewModel.onCurrentPasswordChange("s")
+        assertEquals(emptyList(), viewModel.uiState.value.passwordErrors)
     }
 
     @Test
-    fun invalidFieldsAndUnchangedValuesCannotBeSaved() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
-        val original = auth.session.first()
-        val viewModel = observe(auth)
+    fun aWrongCurrentPasswordShowsUnderItThenTheRightOneClosesTheDialog() = runTest {
+        val viewModel = observe(signedIn())
+        viewModel.openChangePassword()
+        viewModel.onCurrentPasswordChange("wrong")
+        viewModel.onNewPasswordChange("new-secret")
+        viewModel.onConfirmationChange("new-secret")
 
-        viewModel.saveProfile()
-        viewModel.onDisplayNameChange("   ")
-        assertFalse(viewModel.uiState.value.canSave)
-        viewModel.saveProfile()
+        viewModel.changePassword()
 
-        viewModel.onDisplayNameChange("Ana López")
-        viewModel.onTimeZoneChange("Not/AZone")
-        assertTrue(viewModel.uiState.value.timeZoneInvalid)
-        assertNull(viewModel.uiState.value.parsedTimeZone)
-        assertFalse(viewModel.uiState.value.canSave)
-        viewModel.saveProfile()
+        assertEquals(Res.string.error_current_password_wrong, viewModel.uiState.value.currentPasswordError)
+        assertNull(viewModel.uiState.value.confirmationError)
 
-        viewModel.onTimeZoneChange("")
-        assertFalse(viewModel.uiState.value.timeZoneInvalid)
-        assertFalse(viewModel.uiState.value.canSave)
-        viewModel.selectLanguage("xx")
-        assertEquals("en", viewModel.uiState.value.language)
-        assertEquals(original, auth.session.first())
+        viewModel.onCurrentPasswordChange("secret")
+        viewModel.changePassword()
+
+        assertNull(viewModel.uiState.value.dialog)
+        assertEquals("", viewModel.uiState.value.newPassword)
     }
 
     @Test
-    fun failedSaveKeepsTheDraftAndClearsItsErrorOnAnEdit() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
-        val viewModel = observe(FailingAuthRepository(user = auth.session.first()))
-        viewModel.onDisplayNameChange("Ana López")
-        viewModel.selectLanguage("es")
-        viewModel.onTimeZoneChange("Europe/Madrid")
-
-        viewModel.saveProfile()
-
-        val state = viewModel.uiState.value
-        assertTrue(state.saveFailed)
-        assertFalse(state.saving)
-        assertTrue(state.canSave)
-        assertEquals("Ana López", state.displayName)
-        assertEquals("es", state.language)
-        assertEquals("Europe/Madrid", state.timeZone)
-        assertEquals("Ana", state.user?.displayName)
-        assertFalse(state.saved)
-
-        viewModel.onTimeZoneChange("UTC")
-        assertFalse(viewModel.uiState.value.saveFailed)
-    }
-
-    @Test
-    fun unavailableProfileUpdatesKeepTheDraftAndReportFailure() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
-        val original = auth.session.first()
-        val unsupported = object : AuthRepository by auth {
-            override suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone) {
-                throw UnsupportedOperationException("Profile persistence is pending")
-            }
+    fun aRefusedNewPasswordShowsUnderItAndOtherFailuresUnderTheLastField() = runTest {
+        val weak = observe(FailingAuthRepository(AuthException(AuthError.WEAK_PASSWORD), user = ana))
+        val offline = observe(FailingAuthRepository(AuthException(AuthError.NETWORK), user = ana))
+        for (viewModel in listOf(weak, offline)) {
+            viewModel.openChangePassword()
+            viewModel.onCurrentPasswordChange("secret")
+            viewModel.onNewPasswordChange("new-secret")
+            viewModel.onConfirmationChange("new-secret")
+            viewModel.changePassword()
+            assertEquals(AccountDialog.CHANGE_PASSWORD, viewModel.uiState.value.dialog)
         }
-        val viewModel = observe(unsupported)
-        viewModel.onDisplayNameChange("Ana López")
 
-        viewModel.saveProfile()
-
-        assertTrue(viewModel.uiState.value.saveFailed)
-        assertFalse(viewModel.uiState.value.saved)
-        assertFalse(viewModel.uiState.value.saving)
-        assertEquals("Ana López", viewModel.uiState.value.displayName)
-        assertEquals(original, auth.session.first())
+        assertEquals(Res.string.error_weak_password, weak.uiState.value.newPasswordError)
+        assertNull(weak.uiState.value.confirmationError)
+        assertEquals(Res.string.error_network, offline.uiState.value.confirmationError)
+        assertNull(offline.uiState.value.newPasswordError)
     }
 
     @Test
-    fun signOutEndsTheSessionAndFailedSignOutAllowsRetry() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
-        val failing = observe(FailingAuthRepository(user = auth.session.first()))
+    fun togglesThePasswordsTogether() = runTest {
+        val viewModel = observe(signedIn())
+        viewModel.openChangePassword()
 
-        failing.signOut()
-        assertTrue(failing.uiState.value.signOutFailed)
-        assertFalse(failing.uiState.value.signingOut)
-        assertTrue(failing.uiState.value.canEdit)
-        failing.signOut()
-        assertTrue(failing.uiState.value.signOutFailed)
-        failing.onDisplayNameChange("Ana López")
-        assertFalse(failing.uiState.value.signOutFailed)
+        viewModel.togglePasswordsVisibility()
+        assertTrue(viewModel.uiState.value.passwordsVisible)
 
+        viewModel.togglePasswordsVisibility()
+        assertFalse(viewModel.uiState.value.passwordsVisible)
+    }
+
+    @Test
+    fun deletingTheAccountSignsOut() = runTest {
+        val auth = signedIn()
         val viewModel = observe(auth)
-        viewModel.signOut()
+
+        viewModel.openDeleteAccount()
+        assertEquals(AccountDialog.DELETE_ACCOUNT, viewModel.uiState.value.dialog)
+        viewModel.deleteAccount()
+
         assertNull(auth.session.first())
-        assertFalse(viewModel.uiState.value.canEdit)
-        assertFalse(viewModel.uiState.value.signingOut)
+        assertNull(viewModel.uiState.value.dialog)
     }
 
     @Test
-    fun savingDisablesEditsAndPreventsDuplicateWritesOrLogout() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
+    fun aFailedDeleteStaysInTheDialog() = runTest {
+        val viewModel = observe(FailingAuthRepository(user = ana))
+        viewModel.openDeleteAccount()
+
+        viewModel.deleteAccount()
+
+        assertEquals(AccountDialog.DELETE_ACCOUNT, viewModel.uiState.value.dialog)
+        assertEquals(Res.string.error_unknown, viewModel.uiState.value.dialogError)
+    }
+
+    @Test
+    fun aWriteInProgressRunsOnceAndKeepsItsDialogOpen() = runTest {
+        val auth = signedIn()
         val gate = CompletableDeferred<Unit>()
-        var writes = 0
-        val delayed = object : AuthRepository by auth {
-            override suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone) {
-                writes++
+        var deletes = 0
+        val slow = object : AuthRepository by auth {
+            override suspend fun deleteAccount() {
+                deletes++
                 gate.await()
-                auth.updateProfile(displayName, language, timeZone)
+                auth.deleteAccount()
             }
         }
-        val viewModel = observe(delayed)
-        viewModel.onDisplayNameChange("Ana López")
-        viewModel.saveProfile()
+        val viewModel = observe(slow)
+        viewModel.openDeleteAccount()
 
-        assertTrue(viewModel.uiState.value.saving)
-        assertFalse(viewModel.uiState.value.canEdit)
-        assertFalse(viewModel.uiState.value.canSave)
-        viewModel.onDisplayNameChange("Other name")
-        viewModel.saveProfile()
+        viewModel.deleteAccount()
+        viewModel.deleteAccount()
+        viewModel.dismissDialog()
         viewModel.signOut()
-        assertEquals(1, writes)
-        assertEquals("Ana López", viewModel.uiState.value.displayName)
-        assertEquals("Ana", auth.session.first()?.displayName)
 
+        assertTrue(viewModel.uiState.value.submitting)
+        assertEquals(AccountDialog.DELETE_ACCOUNT, viewModel.uiState.value.dialog)
         gate.complete(Unit)
-        assertEquals("Ana López", auth.session.first()?.displayName)
-        assertTrue(viewModel.uiState.value.saved)
-    }
-
-    @Test
-    fun signingOutPreventsAnotherLogoutAndProfileWrites() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
-        val gate = CompletableDeferred<Unit>()
-        var calls = 0
-        val delayed = object : AuthRepository by auth {
-            override suspend fun signOut() {
-                calls++
-                gate.await()
-                auth.signOut()
-            }
-        }
-        val viewModel = observe(delayed)
-        viewModel.onDisplayNameChange("Ana López")
-        viewModel.signOut()
-
-        assertTrue(viewModel.uiState.value.signingOut)
-        assertFalse(viewModel.uiState.value.canEdit)
-        viewModel.signOut()
-        viewModel.saveProfile()
-        assertEquals(1, calls)
-        assertEquals("Ana", auth.session.first()?.displayName)
-
-        gate.complete(Unit)
+        assertEquals(1, deletes)
         assertNull(auth.session.first())
     }
 
     @Test
-    fun repositoryUpdatesAreObservedWithoutOverwritingEditedFields() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
-        val viewModel = observe(auth)
-        viewModel.onDisplayNameChange("My draft")
+    fun dismissingForgetsWhatWasTyped() = runTest {
+        val viewModel = observe(signedIn())
+        viewModel.openChangePassword()
+        viewModel.onCurrentPasswordChange("secret")
 
-        auth.updateProfile("Another name", "es", TimeZone.UTC)
+        viewModel.dismissDialog()
 
-        val state = viewModel.uiState.value
-        assertEquals("My draft", state.displayName)
-        assertEquals("es", state.language)
-        assertEquals("UTC", state.timeZone)
-        assertEquals("AN", state.userInitials)
+        assertNull(viewModel.uiState.value.dialog)
+        assertEquals("", viewModel.uiState.value.currentPassword)
     }
 
     @Test
-    fun draftsCannotBeSavedIntoAnotherUsersAccount() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
-        val viewModel = observe(auth)
-        viewModel.onDisplayNameChange("Ana's draft")
+    fun signsOut() = runTest {
+        val auth = signedIn()
 
-        auth.register("ben@orbit.app", "secret", "Ben")
+        observe(auth).signOut()
 
-        assertEquals("Ben", viewModel.uiState.value.displayName)
-        assertFalse(viewModel.uiState.value.canSave)
-        viewModel.saveProfile()
-        assertEquals("Ben", auth.session.first()?.displayName)
-        viewModel.onDisplayNameChange("Ben Smith")
-        viewModel.saveProfile()
-        assertEquals("Ben Smith", auth.session.first()?.displayName)
-    }
-
-    @Test
-    fun signedOutActionsDoNothing() = runTest {
-        val state = AccountUiState()
-        assertFalse(state.canEdit)
-        assertFalse(state.canSave)
-        assertFalse(state.hasChanges)
-        assertEquals("", state.userInitials)
-        val auth = InMemoryAuthRepository()
-        val viewModel = observe(auth)
-
-        viewModel.onDisplayNameChange("Ana")
-        viewModel.selectLanguage("es")
-        viewModel.onTimeZoneChange("UTC")
-        viewModel.saveProfile()
-        viewModel.signOut()
-
-        assertEquals(AccountUiState(), viewModel.uiState.value)
         assertNull(auth.session.first())
     }
 
     @Test
-    fun cancelledWritesAreNotReportedAsFailures() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.register("ana@orbit.app", "secret", "Ana")
-        val cancelled = object : AuthRepository by auth {
-            override suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone) {
-                throw CancellationException("Screen closed")
-            }
+    fun aFailedSignOutIsFlaggedUntilTheNextAttempt() = runTest {
+        val viewModel = observe(FailingAuthRepository(user = ana))
 
-            override suspend fun signOut() {
-                throw CancellationException("Screen closed")
-            }
-        }
-        val saving = observe(cancelled)
-        saving.onDisplayNameChange("Ana López")
-        saving.saveProfile()
-        assertFalse(saving.uiState.value.saveFailed)
-        assertFalse(saving.uiState.value.saving)
+        viewModel.signOut()
 
-        val signingOut = observe(cancelled)
-        signingOut.signOut()
-        assertFalse(signingOut.uiState.value.signOutFailed)
-        assertFalse(signingOut.uiState.value.signingOut)
-        assertEquals("Ana", auth.session.first()?.displayName)
+        assertTrue(viewModel.uiState.value.signOutFailed)
+        assertFalse(viewModel.uiState.value.submitting)
     }
 }

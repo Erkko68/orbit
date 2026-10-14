@@ -9,7 +9,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.onNodeWithText
@@ -22,12 +21,6 @@ import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class OrbitFilterChipTest : ComposeTest() {
-    @Test
-    fun canBeDisabledWhileSaving() = runComposeUiTest {
-        setContent { OrbitTheme { OrbitFilterChip("English", true, onClick = {}, enabled = false) } }
-        onNodeWithText("English").assertIsSelected().assertIsNotEnabled()
-    }
-
     @Test
     fun selectsOnClickWithA48dpTouchTarget() = runComposeUiTest {
         var selected by mutableStateOf(false)

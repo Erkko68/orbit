@@ -1,54 +1,54 @@
 package com.orbit.app.feature.account
 
-import com.orbit.app.core.initialsOf
-import com.orbit.app.core.designsystem.component.OrbitSelectionOption
-import com.orbit.app.domain.model.User
-import kotlinx.datetime.TimeZone
+import com.orbit.app.domain.model.AuthError
+import com.orbit.app.domain.model.CredentialsError
+import com.orbit.app.feature.auth.message
+import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.error_current_password_wrong
+import org.jetbrains.compose.resources.StringResource
+
+/** The task over the account screen, one at a time. */
+enum class AccountDialog { EDIT_NAME, CHANGE_PASSWORD, DELETE_ACCOUNT }
 
 data class AccountUiState(
-    val user: User? = null,
-    val displayName: String = "",
-    val language: String = "en",
-    val timeZone: String = "",
-    val timeZonePickerOpen: Boolean = false,
-    val timeZoneQuery: String = "",
-    val saving: Boolean = false,
-    val signingOut: Boolean = false,
-    val saveFailed: Boolean = false,
+    /** The signed-in user, from the session. */
+    val name: String = "",
+    val email: String = "",
+    val initials: String = "",
+    val photoUrl: String? = null,
+    /** The open dialog, if any. */
+    val dialog: AccountDialog? = null,
+    /** What is typed in the edit-name dialog. */
+    val nameDraft: String = "",
+    /** What is typed in the change-password dialog. */
+    val currentPassword: String = "",
+    val newPassword: String = "",
+    val confirmation: String = "",
+    /** Shows the three passwords as text. */
+    val passwordsVisible: Boolean = false,
+    /** What the change-password form got wrong. Cleared by the next edit. */
+    val passwordErrors: List<CredentialsError> = emptyList(),
+    /** A dialog's write is running: its confirm button, and signing out, wait for it. */
+    val submitting: Boolean = false,
+    /** Why the open dialog's last write failed. Cleared by the next edit or attempt. */
+    val authError: AuthError? = null,
     val signOutFailed: Boolean = false,
-    val saved: Boolean = false,
 ) {
-    val userInitials: String get() = initialsOf(user?.displayName.orEmpty())
+    val canSaveName: Boolean get() = nameDraft.isNotBlank() && nameDraft.trim() != name && !submitting
 
-    val timeZoneOptions: List<OrbitSelectionOption>
-        get() {
-            val selectedId = parsedTimeZone?.id
-            return (listOfNotNull(selectedId) + availableTimeZoneIds).distinct()
-                .filter { it.contains(timeZoneQuery.trim(), ignoreCase = true) }
-                .map { OrbitSelectionOption(value = it, selected = it == selectedId) }
-        }
+    /** Under the edit-name field, or in the delete dialog. */
+    val dialogError: StringResource? get() = authError?.message()
 
-    val parsedTimeZone: TimeZone?
-        get() = try {
-            TimeZone.of(timeZone.trim())
-        } catch (_: IllegalArgumentException) {
-            null
-        }
+    val currentPasswordError: StringResource?
+        get() = passwordErrors.firstOrNull { it == CredentialsError.BlankPassword }?.message()
+            ?: Res.string.error_current_password_wrong.takeIf { authError == AuthError.WRONG_CREDENTIALS }
 
-    val timeZoneInvalid: Boolean get() = timeZone.isNotBlank() && parsedTimeZone == null
+    val newPasswordError: StringResource?
+        get() = passwordErrors.firstOrNull { it == CredentialsError.ShortPassword }?.message()
+            ?: authError?.takeIf { it == AuthError.WEAK_PASSWORD }?.message()
 
-    val busy: Boolean get() = saving || signingOut
-
-    val canEdit: Boolean get() = user != null && !busy
-
-    val hasChanges: Boolean
-        get() = user != null && (
-                displayName.trim() != user.displayName || language != user.language || parsedTimeZone != user.timeZone
-                )
-
-    val canSave: Boolean
-        get() = canEdit && hasChanges && displayName.isNotBlank() &&
-                language in listOf("es", "ca", "en") && parsedTimeZone != null
+    /** Under the last field: the passwords differ, or why the change failed if not about one of them. */
+    val confirmationError: StringResource?
+        get() = passwordErrors.firstOrNull { it == CredentialsError.PasswordsDiffer }?.message()
+            ?: authError?.takeIf { it != AuthError.WRONG_CREDENTIALS && it != AuthError.WEAK_PASSWORD }?.message()
 }
-
-private val availableTimeZoneIds: List<String> = TimeZone.availableZoneIds.sorted()

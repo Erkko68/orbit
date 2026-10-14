@@ -27,7 +27,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.datetime.TimeZone
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FirebaseAuthRepository(
@@ -80,9 +79,17 @@ class FirebaseAuthRepository(
             .set(profile, merge = true)
     }
 
-    // Profile persistence is a separate implementation in #172.
-    override suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone) {
-        throw UnsupportedOperationException("Profile updates are not implemented yet (#172)")
+    // Stubs: the account screen calls them, but they change nothing in Firebase yet (#172, #188).
+    override suspend fun updateDisplayName(displayName: String) {
+        Logger.w { "updateDisplayName is a stub (#172)" }
+    }
+
+    override suspend fun changePassword(currentPassword: String, newPassword: String) {
+        Logger.w { "changePassword is a stub (#188)" }
+    }
+
+    override suspend fun deleteAccount() {
+        Logger.w { "deleteAccount is a stub (#188)" }
     }
 
     /** Does nothing when the user closes the account picker. */
@@ -131,6 +138,7 @@ class FirebaseAuthRepository(
         timeZone = profile?.field("timeZone"),
         fallbackDisplayName = displayName ?: email?.substringBefore('@'),
         fallbackPhotoUrl = photoURL,
+        email = email,
     )
 
     private companion object {

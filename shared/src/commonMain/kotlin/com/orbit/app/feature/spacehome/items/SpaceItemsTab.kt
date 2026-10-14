@@ -6,21 +6,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.orbit.app.core.designsystem.component.OrbitCard
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitFilterChip
-import com.orbit.app.core.designsystem.component.OrbitListItem
+import com.orbit.app.core.designsystem.component.OrbitListCard
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.space_items_empty_body
 import orbit.shared.generated.resources.space_items_empty_title
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -54,19 +50,7 @@ internal fun SpaceItemsTab(
             )
         }
         for (item in state.items) {
-            OrbitCard(Modifier.fillMaxWidth()) {
-                OrbitListItem(
-                    title = item.title,
-                    supporting = stringResource(item.type.label),
-                    leading = {
-                        Icon(
-                            painter = painterResource(item.type.icon),
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    },
-                )
-            }
+            OrbitListCard(item.title, stringResource(item.type.label), item.type.icon, Modifier.fillMaxWidth())
         }
     }
 }

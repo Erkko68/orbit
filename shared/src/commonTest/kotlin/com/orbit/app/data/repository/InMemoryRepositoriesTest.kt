@@ -1,6 +1,8 @@
 package com.orbit.app.data.repository
 
 import com.orbit.app.domain.model.Assignment
+import com.orbit.app.domain.model.AuthError
+import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.ItemModules
@@ -10,7 +12,6 @@ import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Role
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -37,28 +38,44 @@ class InMemoryRepositoriesTest {
     }
 
     @Test
-    fun updatingTheProfilePreservesTheAccountAndPublishesItsPreferences() = runTest {
+    fun renamingKeepsTheRestOfTheAccount() = runTest {
         auth.register("ana@orbit.app", "secret", displayName = "Ana")
         val original = auth.session.first()!!
 
-        auth.updateProfile("  Ana López  ", "ca", TimeZone.of("Europe/Madrid"))
+        auth.updateDisplayName("  Ana López  ")
 
-        assertEquals(
-            original.copy(displayName = "Ana López", language = "ca", timeZone = TimeZone.of("Europe/Madrid")),
-            auth.session.first(),
-        )
+        assertEquals(original.copy(displayName = "Ana López"), auth.session.first())
+        assertEquals("ana@orbit.app", auth.session.first()?.email)
     }
 
     @Test
-    fun updatingTheProfileNeedsASessionAndValidFields() = runTest {
-        assertFailsWith<IllegalStateException> { auth.updateProfile("Ana", "en", TimeZone.UTC) }
+    fun renamingNeedsASessionAndAName() = runTest {
+        assertFailsWith<IllegalStateException> { auth.updateDisplayName("Ana") }
         auth.register("ana@orbit.app", "secret", displayName = "Ana")
-        val original = auth.session.first()
 
-        assertFailsWith<IllegalArgumentException> { auth.updateProfile("  ", "en", TimeZone.UTC) }
-        assertFailsWith<IllegalArgumentException> { auth.updateProfile("Ana", "xx", TimeZone.UTC) }
+        assertFailsWith<IllegalArgumentException> { auth.updateDisplayName("  ") }
+        assertEquals("Ana", auth.session.first()?.displayName)
+    }
 
-        assertEquals(original, auth.session.first())
+    @Test
+    fun changingThePasswordChecksTheCurrentOne() = runTest {
+        auth.register("ana@orbit.app", "secret", displayName = "Ana")
+
+        val wrong = assertFailsWith<AuthException> { auth.changePassword("nope", "new-secret") }
+        assertEquals(AuthError.WRONG_CREDENTIALS, wrong.error)
+
+        auth.changePassword("secret", "new-secret")
+        auth.changePassword("new-secret", "newer-secret")
+    }
+
+    @Test
+    fun deletingTheAccountSignsOut() = runTest {
+        assertFailsWith<IllegalStateException> { auth.deleteAccount() }
+        auth.register("ana@orbit.app", "secret", displayName = "Ana")
+
+        auth.deleteAccount()
+
+        assertNull(auth.session.first())
     }
 
     @Test

@@ -2,9 +2,10 @@ package com.orbit.app.feature.account
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import co.touchlab.kermit.Logger
+import com.orbit.app.core.initialsOf
+import com.orbit.app.domain.model.validatePasswordChange
 import com.orbit.app.domain.repository.AuthRepository
-import kotlinx.coroutines.CancellationException
+import com.orbit.app.feature.auth.executeAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,124 +14,81 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/**
+ * The signed-in user's account: rename, change the password, delete the account, sign out. Each one
+ * that ends signed out (delete, sign out) moves the auth gate, so it needs no state here.
+ */
 class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
-    // Null fields follow the repository until edited. Drafts belong to one user only.
-    private val form = MutableStateFlow(AccountForm())
+    /** The dialogs. Its user fields stay empty: [uiState] fills them from the session. */
+    private val form = MutableStateFlow(AccountUiState())
 
-    val uiState: StateFlow<AccountUiState> = combine(auth.session, form) { user, draft ->
-        val current = if (draft.userId == user?.id) draft else AccountForm()
-        AccountUiState(
-            user = user,
-            displayName = current.displayName ?: user?.displayName.orEmpty(),
-            language = current.language ?: user?.language ?: "en",
-            timeZone = current.timeZone ?: user?.timeZone?.id.orEmpty(),
-            timeZonePickerOpen = current.timeZonePickerOpen,
-            timeZoneQuery = current.timeZoneQuery,
-            saving = current.saving,
-            signingOut = current.signingOut,
-            saveFailed = current.saveFailed,
-            signOutFailed = current.signOutFailed,
-            saved = current.saved,
+    val uiState: StateFlow<AccountUiState> = combine(auth.session, form) { user, form ->
+        form.copy(
+            name = user?.displayName.orEmpty(),
+            email = user?.email.orEmpty(),
+            initials = initialsOf(user?.displayName.orEmpty()),
+            photoUrl = user?.photoUrl,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountUiState())
 
-    fun onDisplayNameChange(name: String) = edit { it.copy(displayName = name) }
-
-    fun selectLanguage(language: String) {
-        if (language in listOf("es", "ca", "en")) edit { it.copy(language = language) }
+    fun openEditName() = form.update {
+        AccountUiState(dialog = AccountDialog.EDIT_NAME, nameDraft = uiState.value.name)
     }
 
-    fun onTimeZoneChange(timeZone: String) = edit {
-        it.copy(timeZone = timeZone, timeZonePickerOpen = false, timeZoneQuery = "")
-    }
+    fun onNameChange(name: String) = form.update { it.copy(nameDraft = name, authError = null) }
 
-    fun openTimeZonePicker() = edit(clearResult = false) { it.copy(timeZonePickerOpen = true, timeZoneQuery = "") }
-
-    fun onTimeZoneQueryChange(query: String) = edit(clearResult = false) { it.copy(timeZoneQuery = query) }
-
-    fun closeTimeZonePicker() = edit(clearResult = false) { it.copy(timeZonePickerOpen = false, timeZoneQuery = "") }
-
-    fun saveProfile() {
+    fun saveName() {
         val state = uiState.value
-        if (!state.canSave || form.value.busy) return
-        val timeZone = state.parsedTimeZone ?: return
-        val userId = state.user?.id ?: return
-        form.update {
-            it.copy(
-                userId = userId,
-                saving = true,
-                saveFailed = false,
-                signOutFailed = false,
-                saved = false
-            )
-        }
-        viewModelScope.launch {
-            try {
-                auth.updateProfile(state.displayName.trim(), state.language, timeZone)
-                form.value = AccountForm(userId = userId, saved = true)
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Updating the account profile failed" }
-                form.update { it.copy(saving = false, saveFailed = true) }
-            } finally {
-                form.update { it.copy(saving = false) }
-            }
-        }
+        if (state.canSaveName) submit("Renaming the user") { auth.updateDisplayName(state.nameDraft.trim()) }
     }
+
+    fun openChangePassword() = form.update { AccountUiState(dialog = AccountDialog.CHANGE_PASSWORD) }
+
+    fun onCurrentPasswordChange(password: String) =
+        form.update { it.copy(currentPassword = password, passwordErrors = emptyList(), authError = null) }
+
+    fun onNewPasswordChange(password: String) =
+        form.update { it.copy(newPassword = password, passwordErrors = emptyList(), authError = null) }
+
+    fun onConfirmationChange(confirmation: String) =
+        form.update { it.copy(confirmation = confirmation, passwordErrors = emptyList(), authError = null) }
+
+    fun togglePasswordsVisibility() = form.update { it.copy(passwordsVisible = !it.passwordsVisible) }
+
+    fun changePassword() {
+        val state = form.value
+        if (state.submitting) return
+        val errors = validatePasswordChange(state.currentPassword, state.newPassword, state.confirmation)
+        if (errors.isNotEmpty()) {
+            form.update { it.copy(passwordErrors = errors, authError = null) }
+            return
+        }
+        submit("Changing the password") { auth.changePassword(state.currentPassword, state.newPassword) }
+    }
+
+    fun openDeleteAccount() = form.update { AccountUiState(dialog = AccountDialog.DELETE_ACCOUNT) }
+
+    fun deleteAccount() = submit("Deleting the account") { auth.deleteAccount() }
+
+    /** Closes the open dialog and forgets what was typed in it, unless its write is still running. */
+    fun dismissDialog() = form.update { if (it.submitting) it else AccountUiState() }
 
     fun signOut() {
-        val state = uiState.value
-        if (!state.canEdit || form.value.busy) return
-        val userId = state.user?.id ?: return
-        form.update {
-            it.copy(
-                userId = userId,
-                signingOut = true,
-                saveFailed = false,
-                signOutFailed = false,
-                saved = false
-            )
-        }
+        if (form.value.submitting) return
+        form.update { it.copy(submitting = true, signOutFailed = false) }
         viewModelScope.launch {
-            try {
-                auth.signOut()
-                form.value = AccountForm()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Signing out failed" }
-                form.update { it.copy(signingOut = false, signOutFailed = true) }
-            } finally {
-                form.update { it.copy(signingOut = false) }
-            }
+            val error = executeAuth("Signing out") { auth.signOut() }
+            form.update { it.copy(submitting = false, signOutFailed = error != null) }
         }
     }
 
-    private fun edit(clearResult: Boolean = true, change: (AccountForm) -> AccountForm) {
-        val state = uiState.value
-        if (!state.canEdit || form.value.busy) return
-        val userId = state.user?.id ?: return
-        form.update { draft ->
-            val current = if (draft.userId == userId) draft else AccountForm(userId = userId)
-            val edited = change(current)
-            if (clearResult) edited.copy(saveFailed = false, signOutFailed = false, saved = false) else edited
+    /** Runs a dialog's [write]: success closes the dialog, a failure stays in it as [AccountUiState.authError]. */
+    private fun submit(action: String, write: suspend () -> Unit) {
+        if (form.value.submitting) return
+        form.update { it.copy(submitting = true, authError = null) }
+        viewModelScope.launch {
+            val error = executeAuth(action, write)
+            form.update { if (error == null) AccountUiState() else it.copy(submitting = false, authError = error) }
         }
-    }
-
-    private data class AccountForm(
-        val userId: String? = null,
-        val displayName: String? = null,
-        val language: String? = null,
-        val timeZone: String? = null,
-        val timeZonePickerOpen: Boolean = false,
-        val timeZoneQuery: String = "",
-        val saving: Boolean = false,
-        val signingOut: Boolean = false,
-        val saveFailed: Boolean = false,
-        val signOutFailed: Boolean = false,
-        val saved: Boolean = false,
-    ) {
-        val busy: Boolean get() = saving || signingOut
     }
 }
