@@ -20,7 +20,7 @@ internal class FailingAuthRepository(
     override suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone) =
         error("No connection")
 
-    override suspend fun signInWithGoogle(idToken: String?, accessToken: String?) = throw failure
+    override suspend fun signInWithGoogle() = throw failure
 
     override suspend fun signOut() = error("No connection")
 }

@@ -67,7 +67,7 @@ class InMemoryRepositoriesTest {
 
         auth.signInWithGoogle()
         assertEquals("Google User", auth.session.first()?.displayName)
-        assertEquals("google-user@orbit.app", auth.session.first()?.id)
+        assertEquals("google@orbit.app", auth.session.first()?.id)
 
         auth.signOut()
         assertNull(auth.session.first())

@@ -92,14 +92,6 @@ class FirestoreSpaceRepository(
             if (it == null) Logger.w { "Skipping the malformed space ${document.id}" }
         }
 
-    /** A field of the document, or null when it is missing or not of the type asked for. */
-    private inline fun <reified T> DocumentSnapshot.field(name: String): T? =
-        try {
-            get<T?>(name)
-        } catch (_: Exception) {
-            null
-        }
-
     private fun isRefused(cause: Throwable) =
         cause is FirebaseFirestoreException && cause.code == FirestoreExceptionCode.PERMISSION_DENIED
 
