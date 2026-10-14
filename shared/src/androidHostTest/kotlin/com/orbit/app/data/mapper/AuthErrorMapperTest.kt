@@ -58,4 +58,14 @@ class AuthErrorMapperTest : ComposeTest() {
         assertEquals(AuthError.UNKNOWN, exception.error)
         assertSame(cause, exception.cause)
     }
+
+    @Test
+    fun googleSignInErrorsMapAppropriately() {
+        assertEquals(AuthError.NETWORK, (googleSignInException(network) as AuthException).error)
+        assertEquals(AuthError.EMAIL_IN_USE, (googleSignInException(collision) as AuthException).error)
+        assertEquals(AuthError.UNKNOWN, (googleSignInException(invalidCredentials) as AuthException).error)
+
+        val existing = AuthException(AuthError.UNKNOWN)
+        assertSame(existing, googleSignInException(existing))
+    }
 }

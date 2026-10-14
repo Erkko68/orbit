@@ -23,6 +23,8 @@ import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.feature.auth.SignInViewModel
 import com.orbit.app.testing.FailingAuthRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -47,7 +49,7 @@ class SignInScreenTest : ComposeTest() {
         onNodeWithText("Create account").performScrollTo().assertIsEnabled()
 
         onNodeWithText("Forgot password?").assertIsNotEnabled()
-        onNodeWithText("Continue with Google").performScrollTo().assertIsNotEnabled()
+        onNodeWithText("Continue with Google").performScrollTo().assertIsEnabled()
         onNodeWithText("Continue with Apple").performScrollTo().assertIsNotEnabled()
     }
 
@@ -129,5 +131,24 @@ class SignInScreenTest : ComposeTest() {
         onNodeWithContentDescription("Show password").performClick()
         onNodeWithText("secret").assert(shown)
         onNodeWithContentDescription("Hide password").assertIsDisplayed()
+    }
+
+    @Test
+    fun signsInWithGoogle() = runComposeUiTest {
+        val auth = InMemoryAuthRepository()
+        showSignIn(auth)
+
+        onNodeWithText("Continue with Google").performScrollTo().performClick()
+
+        assertEquals("google-user@orbit.app", runBlocking { auth.session.first() }?.id)
+    }
+
+    @Test
+    fun saysWhyGoogleSignInFailed() = runComposeUiTest {
+        showSignIn(FailingAuthRepository(AuthException(AuthError.NETWORK)))
+
+        onNodeWithText("Continue with Google").performScrollTo().performClick()
+
+        onNodeWithText("No connection. Check your internet and try again.").assertIsDisplayed()
     }
 }

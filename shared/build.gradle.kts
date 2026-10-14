@@ -50,6 +50,9 @@ kotlin {
             implementation(libs.compose.uiTooling)
             implementation(libs.koin.android)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.playServicesAuth)
+            implementation(libs.googleid)
         }
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
@@ -135,7 +138,9 @@ val firebaseTestStubs = tasks.register("firebaseTestStubs") {
                     void *OBJC_CLASS_${'$'}_FIRFilter = 0;
                     void *OBJC_CLASS_${'$'}_FIRFirestore = 0;
                     void *OBJC_CLASS_${'$'}_FIRGeoPoint = 0;
+                    void *OBJC_CLASS_${'$'}_FIRGoogleAuthProvider = 0;
                     void *OBJC_CLASS_${'$'}_FIRMultiFactorResolver = 0;
+                    void *OBJC_CLASS_${'$'}_FIROAuthCredential = 0;
                     void *OBJC_CLASS_${'$'}_FIRQuery = 0;
                     void *OBJC_CLASS_${'$'}_FIRQuerySnapshot = 0;
                     void *OBJC_CLASS_${'$'}_FIRSnapshotMetadata = 0;

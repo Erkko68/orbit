@@ -25,7 +25,7 @@ import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Sign-in on the [AuthLayout]. "Create account" calls [onCreateAccount]. Placeholders until their
- * issues land: forgot password, Google and Apple are disabled.
+ * issues land: forgot password and Apple are disabled.
  */
 @Composable
 fun SignInScreen(onCreateAccount: () -> Unit, viewModel: SignInViewModel = koinViewModel()) {
@@ -39,6 +39,8 @@ fun SignInScreen(onCreateAccount: () -> Unit, viewModel: SignInViewModel = koinV
         switchPrompt = Res.string.sign_in_new,
         switchAction = Res.string.sign_in_create_account,
         onSwitch = onCreateAccount,
+        onGoogleSignIn = viewModel::signInWithGoogle,
+        googleSignInEnabled = !state.submitting,
     ) {
         AuthEmailField(state.email, viewModel::onEmailChange, emailError)
         OrbitPasswordField(

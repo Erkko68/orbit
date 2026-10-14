@@ -51,7 +51,7 @@ class CreateAccountScreenTest : ComposeTest() {
         onNodeWithText("Confirm password").assertIsDisplayed()
         onNodeWithText("Use at least 8 characters.").assertIsDisplayed()
         onNodeWithText("Create account").assertIsEnabled()
-        onNodeWithText("Continue with Google").performScrollTo().assertIsNotEnabled()
+        onNodeWithText("Continue with Google").performScrollTo().assertIsEnabled()
         onNodeWithText("Continue with Apple").performScrollTo().assertIsNotEnabled()
         onNodeWithText("Already have an account?").performScrollTo().assertIsDisplayed()
     }
@@ -130,5 +130,24 @@ class CreateAccountScreenTest : ComposeTest() {
         onNodeWithText("Create account").performScrollTo().performClick()
 
         onNodeWithText("Choose a stronger password.").assertIsDisplayed()
+    }
+
+    @Test
+    fun signsInWithGoogle() = runComposeUiTest {
+        val auth = InMemoryAuthRepository()
+        showCreateAccount(auth)
+
+        onNodeWithText("Continue with Google").performScrollTo().performClick()
+
+        assertEquals("google-user@orbit.app", runBlocking { auth.session.first() }?.id)
+    }
+
+    @Test
+    fun saysWhyGoogleSignInFailed() = runComposeUiTest {
+        showCreateAccount(FailingAuthRepository(AuthException(AuthError.NETWORK)))
+
+        onNodeWithText("Continue with Google").performScrollTo().performClick()
+
+        onNodeWithText("No connection. Check your internet and try again.").assertIsDisplayed()
     }
 }

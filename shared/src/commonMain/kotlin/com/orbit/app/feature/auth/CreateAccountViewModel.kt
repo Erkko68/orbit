@@ -59,4 +59,22 @@ class CreateAccountViewModel(private val auth: AuthRepository) : ViewModel() {
             _uiState.update { it.copy(submitting = false, authError = authError) }
         }
     }
+
+    fun signInWithGoogle() {
+        val form = _uiState.value
+        if (form.submitting) return
+        _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
+        viewModelScope.launch {
+            val authError = try {
+                auth.signInWithGoogle()
+                null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.e(e) { "Google sign-in failed" }
+                (e as? AuthException)?.error ?: AuthError.UNKNOWN
+            }
+            _uiState.update { it.copy(submitting = false, authError = authError) }
+        }
+    }
 }

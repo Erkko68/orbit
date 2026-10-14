@@ -1,6 +1,8 @@
 package com.orbit.app.data.repository
 
 import co.touchlab.kermit.Logger
+import com.orbit.app.data.auth.GoogleAuthClient
+import com.orbit.app.data.mapper.googleSignInException
 import com.orbit.app.data.mapper.mapUser
 import com.orbit.app.data.mapper.registerException
 import com.orbit.app.data.mapper.signInException
@@ -9,6 +11,8 @@ import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.FirebaseAuth
+import dev.gitlive.firebase.auth.FirebaseUser
+import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
@@ -26,6 +30,7 @@ import kotlinx.datetime.TimeZone
 class FirebaseAuthRepository(
     private val auth: FirebaseAuth = Firebase.auth,
     private val firestore: FirebaseFirestore = Firebase.firestore,
+    private val googleAuthClient: GoogleAuthClient? = null,
 ) : AuthRepository {
 
     override val session: Flow<User?> = auth.authStateChanged.flatMapLatest { firebaseUser ->
@@ -123,6 +128,54 @@ class FirebaseAuthRepository(
     // Profile persistence is a separate implementation in #172.
     override suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone) {
         throw UnsupportedOperationException("Profile updates are not implemented yet (#172)")
+    }
+
+    override suspend fun signInWithGoogle(idToken: String?, accessToken: String?) {
+        val credential = if (idToken != null) {
+            GoogleAuthProvider.credential(idToken = idToken, accessToken = accessToken)
+        } else {
+            val client = checkNotNull(googleAuthClient) {
+                "Google sign-in is not supported on this platform"
+            }
+            val googleCred = client.getCredential() ?: return
+            GoogleAuthProvider.credential(idToken = googleCred.idToken, accessToken = googleCred.accessToken)
+        }
+        val result = try {
+            auth.signInWithCredential(credential)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw googleSignInException(e)
+        }
+        val user = checkNotNull(result.user) { "No user returned after Google sign-in" }
+        ensureUserProfile(user)
+    }
+
+    private suspend fun ensureUserProfile(user: FirebaseUser) {
+        val docRef = firestore.collection(USERS_COLLECTION).document(user.uid)
+        val snapshot = try {
+            docRef.get()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.w(e) { "Could not check existing user profile for ${user.uid}" }
+            null
+        }
+        if (snapshot == null || !snapshot.exists) {
+            val fallbackName = user.displayName?.ifBlank { null }
+                ?: user.email?.substringBefore('@').orEmpty()
+            val profile = userProfileDocument(
+                displayName = fallbackName,
+                photoUrl = user.photoURL,
+            ) + mapOf("createdAt" to FieldValue.serverTimestamp)
+            try {
+                docRef.set(profile, merge = true)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Logger.w(e) { "Could not create user profile for ${user.uid}" }
+            }
+        }
     }
 
     override suspend fun signOut() {
