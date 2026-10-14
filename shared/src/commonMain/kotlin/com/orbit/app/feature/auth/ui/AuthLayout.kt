@@ -26,7 +26,7 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * What sign-in and create account share, as one centered column: the Orbit header, the [form], the other
  * ways in, then a line that leads to the other screen: [switchPrompt] and a [switchAction] button that
- * calls [onSwitch]. Google and Apple are disabled placeholders until their issues land.
+ * calls [onSwitch]. Apple is a disabled placeholder until its issue lands (#113).
  */
 @Composable
 internal fun AuthLayout(
@@ -35,6 +35,8 @@ internal fun AuthLayout(
     switchPrompt: StringResource,
     switchAction: StringResource,
     onSwitch: () -> Unit,
+    onGoogleSignIn: () -> Unit = {},
+    googleSignInEnabled: Boolean = false,
     form: @Composable ColumnScope.() -> Unit,
 ) {
     OrbitScreen(
@@ -48,9 +50,9 @@ internal fun AuthLayout(
         Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
             OrbitOutlinedButton(
                 text = stringResource(Res.string.sign_in_google),
-                onClick = {},
+                onClick = onGoogleSignIn,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = false,
+                enabled = googleSignInEnabled,
             )
             OrbitOutlinedButton(
                 text = stringResource(Res.string.sign_in_apple),

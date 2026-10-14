@@ -19,5 +19,7 @@ interface AuthRepository {
     /** Updates the signed-in user's profile. Throws when signed out or when the write fails. */
     suspend fun updateProfile(displayName: String, language: String, timeZone: TimeZone)
 
+    suspend fun signInWithGoogle(idToken: String? = null, accessToken: String? = null)
+
     suspend fun signOut()
 }

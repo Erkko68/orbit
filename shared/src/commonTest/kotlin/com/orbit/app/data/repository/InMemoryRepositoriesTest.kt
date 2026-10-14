@@ -62,6 +62,18 @@ class InMemoryRepositoriesTest {
     }
 
     @Test
+    fun sessionFollowsGoogleSignIn() = runTest {
+        assertNull(auth.session.first())
+
+        auth.signInWithGoogle()
+        assertEquals("Google User", auth.session.first()?.displayName)
+        assertEquals("google-user@orbit.app", auth.session.first()?.id)
+
+        auth.signOut()
+        assertNull(auth.session.first())
+    }
+
+    @Test
     fun aSpaceIsOnlyVisibleToItsMembers() = runTest {
         auth.register("ana@orbit.app", "secret", displayName = "Ana")
         val id = spaces.createSpace("Flat", accent = 2)

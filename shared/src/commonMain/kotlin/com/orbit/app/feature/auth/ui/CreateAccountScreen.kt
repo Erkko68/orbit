@@ -23,8 +23,8 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Create account on the [AuthLayout], laid out like sign-in. "Sign in" calls [onSignIn]. Google and
- * Apple are disabled placeholders until their issues land.
+ * Create account on the [AuthLayout], laid out like sign-in. "Sign in" calls [onSignIn]. Apple is a
+ * disabled placeholder until its issue lands (#113).
  */
 @Composable
 fun CreateAccountScreen(onSignIn: () -> Unit, viewModel: CreateAccountViewModel = koinViewModel()) {
@@ -39,6 +39,8 @@ fun CreateAccountScreen(onSignIn: () -> Unit, viewModel: CreateAccountViewModel 
         switchPrompt = Res.string.create_account_have_account,
         switchAction = Res.string.sign_in,
         onSwitch = onSignIn,
+        onGoogleSignIn = viewModel::signInWithGoogle,
+        googleSignInEnabled = !state.submitting,
     ) {
         AuthEmailField(state.email, viewModel::onEmailChange, emailError)
         OrbitPasswordField(

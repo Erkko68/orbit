@@ -109,4 +109,35 @@ class SignInViewModelTest {
 
         assertEquals(AuthError.UNKNOWN, viewModel.uiState.value.authError)
     }
+
+    @Test
+    fun signsInWithGoogle() = runTest {
+        val viewModel = SignInViewModel(auth)
+
+        viewModel.signInWithGoogle()
+
+        assertEquals("google-user@orbit.app", auth.session.first()?.id)
+        assertFalse(viewModel.uiState.value.submitting)
+        assertNull(viewModel.uiState.value.authError)
+    }
+
+    @Test
+    fun saysWhyGoogleSignInFailed() {
+        val viewModel = SignInViewModel(FailingAuthRepository(AuthException(AuthError.NETWORK)))
+
+        viewModel.signInWithGoogle()
+
+        assertEquals(AuthError.NETWORK, viewModel.uiState.value.authError)
+        assertFalse(viewModel.uiState.value.submitting)
+    }
+
+    @Test
+    fun unexpectedFailureInGoogleSignInIsUnknownError() {
+        val viewModel = SignInViewModel(FailingAuthRepository())
+
+        viewModel.signInWithGoogle()
+
+        assertEquals(AuthError.UNKNOWN, viewModel.uiState.value.authError)
+        assertFalse(viewModel.uiState.value.submitting)
+    }
 }

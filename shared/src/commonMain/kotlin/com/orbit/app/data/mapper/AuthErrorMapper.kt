@@ -14,6 +14,10 @@ internal fun signInException(cause: Throwable) = AuthException(authErrorOf(cause
 /** What went wrong registering. There, Firebase rejects an email it does not accept as invalid credentials. */
 internal fun registerException(cause: Throwable) = AuthException(authErrorOf(cause, AuthError.INVALID_EMAIL), cause)
 
+/** What went wrong signing in with Google, from what Firebase threw. */
+internal fun googleSignInException(cause: Throwable): Exception =
+    (cause as? AuthException) ?: AuthException(authErrorOf(cause, AuthError.UNKNOWN), cause)
+
 private fun authErrorOf(cause: Throwable, invalidCredentials: AuthError): AuthError = when (cause) {
     // Before invalid credentials: a weak password is one of them.
     is FirebaseAuthWeakPasswordException -> AuthError.WEAK_PASSWORD

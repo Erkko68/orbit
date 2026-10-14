@@ -56,7 +56,7 @@ val dataModule = module {
     includes(sharedDataModule)
     single { Firebase.auth }
     single { Firebase.firestore }
-    singleOf(::FirebaseAuthRepository) bind AuthRepository::class
+    single<AuthRepository> { FirebaseAuthRepository(get(), get(), getOrNull()) }
     singleOf(::FirestoreSpaceRepository) bind SpaceRepository::class
 }
 
