@@ -13,6 +13,8 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - A component with its own ViewModel gets a subfolder, `feature/<name>/<component>/`, holding its composable, `<Component>ViewModel.kt` and `<Component>UiState.kt`. E.g. `feature/space/card/`, `feature/spacehome/items/`. See "State and ViewModels".
 - UI talks only to ViewModels; ViewModels talk to repositories/use cases. UI never touches data sources.
 - No placeholder folders: create a folder when its first file exists.
+- No dev-only modes in the app (demo builds, flags that swap in fakes): the app always runs against Firebase. Fakes are for tests.
+- Settings the phone already has (language, time zone, theme) are not app settings: read them from the device, never build a picker for them.
 
 ## State and ViewModels
 - Screens and components hold no state. Every value they show or edit (field text, password visibility, selected tab or filter, loading, error) is a field of a `UiState` and changes only through a ViewModel function.
@@ -22,6 +24,10 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - Values derived from the state are properties of the `UiState` (`canCreate`), not expressions in the composable.
 - Repositories: ViewModels depend on the repository interfaces in `domain/` only, never on an implementation, so the in-memory and Firebase ones swap in Koin without touching a feature.
   - Repository writes throw on failure. The ViewModel launches them in `viewModelScope`, catches the failure (rethrowing `CancellationException`), logs it with Kermit and flags it in the `UiState` (`failed`, `createFailed`), cleared by the next edit or attempt. A failed write never crashes the app.
+  - Firebase repositories: a failed read is not "missing". Create a document only when the read says it does not exist, never after the read failed, or an existing one gets overwritten.
+  - A singleton repository's flow that several ViewModels collect is shared (`shareIn(…, replay = 1)`), so they reuse one Firestore listener instead of opening one each.
+  - A method only takes what its callers pass: no optional parameters for a caller that does not exist yet.
+  - A screen that lands before its backend calls the real repository method; the Firebase implementation is a stub that logs with Kermit, returns, and names the issue that implements it.
   - A write in progress is a flag too (`submitting`, `creating`) and disables its button, so it cannot run twice.
 - Component ViewModels: not one ViewModel per screen. A part of a screen that reads or writes a repository for one entity (a space card, the items tab, the members tab) has its own ViewModel.
   - The screen ViewModel holds screen-level state and the **ids** of what the screen lists (`spaceIds`), never the loaded entities. The component gets the id, and its ViewModel loads and changes that entity.
@@ -80,6 +86,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - Typography by role (`titleMedium`, `bodyLarge`…), used as is. No `.copy(fontSize = …)` at the call site: if a role looks wrong, fix it in `Type.kt`.
   - The same styled element on a second screen becomes a wrapper in `core/designsystem/component/`. A screen that needs a visual tweak changes the wrapper or the theme, not itself.
   - Before writing a private composable in a feature, look in `core/designsystem/component/`. A title over a subtitle is `OrbitHeading`, the opening of a screen without a top bar `OrbitScreenHeader`, a row of a list `OrbitListItem` (in an `OrbitCard` for a card), "nothing here yet" `OrbitEmptyState`, an icon-only action `OrbitIconButton`, a password `OrbitPasswordField`, a group's overlapping avatars `OrbitAvatarStack`, a task over the screen `OrbitDialog`.
+  - A design-system component's icon parameter is a `DrawableResource`, and the component draws the `Icon`. A composable slot only when it can hold something else, such as an avatar.
   - A private composable stays in a feature only for a layout that belongs to that one screen (e.g. the space home summary). Anything generic, such as text + icon + text, goes to the design system, takes plain values (`String`, not `StringResource`) and no ViewModel.
 - No experimental Compose APIs (e.g. the Styles API, Material 3 Expressive `MotionScheme`). Revisit when stable.
   - Only exception: tests opt in to `ExperimentalTestApi`, because `runComposeUiTest` is the only multiplatform Compose test entry point. Never in production code.
@@ -105,6 +112,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   2. Find the current milestone (the open one with the earliest due date) and list its free issues: `gh issue list --milestone "<milestone>" --search "no:assignee"`. Ask the user which one to work on. Skip issues whose "Blocked by" issues are still open.
   3. Assign it to the user with `gh issue edit <issue> --add-assignee @me` when the work starts, not when it is done: the assignment moves it to In progress and starts its bar on the roadmap.
   4. Create the branch for that issue (see below).
+  5. Read the issue critically before building it. If a "Done when" item is wrong, outdated or does not make sense for the product (e.g. #19 asked for language and time zone pickers the phone already provides), or the issue misses something (an ADR rule, a platform), do not build it as written: fix the issue if the user owns it, otherwise comment on it proposing the change, and tell the user. Issues that depend on it get rescoped too.
 - An assigned issue is taken. Never pick, reassign or commit against an issue assigned to someone else unless the user explicitly says they are helping on it. In that case add the user as a second assignee and leave the original one.
 - **Every commit references its issue as `(#<issue>)` at the end of the subject, and every PR closes it with `Closes #<issue>`. No issue, no commit: create the issue first.**
 - Commits: Conventional Commits, imperative, subject ≤ 72 chars.
@@ -119,6 +127,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - Title: Conventional Commits **without** the issue number (GitHub appends the PR number on squash), e.g. `feat(expenses): add balance calculation`. CI-checked.
   - Body: what, `Closes #<issue>`, how to test, reviewer notes (`.github/pull_request_template.md`).
   - `Closes #<issue>` is what closes the issue on merge and moves it to Done. A bare `#<issue>` only links it.
+  - `Closes` only when every "Done when" item is met, including "Verified on Android and iOS". If part is left (a stub, one platform), say so in the PR body and link a follow-up issue for it.
 
 ## Merge rules (`main` ruleset, enforced by GitHub)
 - No direct pushes, force pushes or deletion of `main`. Every change goes through a PR, including docs.
