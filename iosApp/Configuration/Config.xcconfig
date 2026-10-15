@@ -1,13 +1,7 @@
-// Your Apple team id signs device builds. Do not set it here: put `TEAM_ID=XXXXXXXXXX` in
-// Local.xcconfig next to this file, which git ignores (see README, "Run on an iPhone").
-TEAM_ID=
-#include? "Local.xcconfig"
-
 PRODUCT_NAME=orbit
-// The simulator uses the id Firebase and its API key know. Apple will not register that id to our
-// team (someone else owns it), so a device build is signed with the team id appended.
+// Simulator only: Apple will not register this id to our team (someone else owns it), so the app
+// is never signed for a device. See README, "iOS runs on the simulator only".
 PRODUCT_BUNDLE_IDENTIFIER=com.orbit.app
-PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]=com.orbit.app$(TEAM_ID)
 
 CURRENT_PROJECT_VERSION=1
 MARKETING_VERSION=1.0

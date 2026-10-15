@@ -29,4 +29,3 @@ DerivedData/
 *-debug.log
 firebase/functions/venv/
 __pycache__/
-iosApp/Configuration/Local.xcconfig
