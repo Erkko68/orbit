@@ -14,7 +14,6 @@ import dev.gitlive.firebase.firestore.FirebaseFirestore
 import dev.gitlive.firebase.firestore.FirebaseFirestoreException
 import dev.gitlive.firebase.firestore.FirestoreExceptionCode
 import dev.gitlive.firebase.firestore.code
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
@@ -22,7 +21,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withTimeout
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -69,9 +67,7 @@ class FirestoreSpaceRepository(
 
     /**
      * The space and its owner's membership go in one batch, so the member ids and the members
-     * subcollection cannot drift. The id is made on the device, so this works offline: a commit still
-     * waiting for the server after [COMMIT_WAIT] stays queued and Firestore keeps retrying it, while
-     * one the server refuses (the rules said no) fails here.
+     * subcollection cannot drift. The id is made on the device, so this works offline ([writeLocally]).
      */
     override suspend fun createSpace(name: String, accent: Int): String {
         val user = checkNotNull(auth.session.first()) { "Not signed in" }
@@ -79,11 +75,7 @@ class FirestoreSpaceRepository(
         val batch = firestore.batch()
         batch.set(space, spaceDocument(name, accent, user.id))
         batch.set(space.collection(MEMBERS).document(user.id), ownerMemberDocument(user.displayName, user.photoUrl))
-        try {
-            withTimeout(COMMIT_WAIT) { batch.commit() }
-        } catch (_: TimeoutCancellationException) {
-            Logger.i { "Space ${space.id} is saved on this device and waiting for the connection" }
-        }
+        writeLocally("Space ${space.id}") { batch.commit() }
         return space.id
     }
 
@@ -99,7 +91,6 @@ class FirestoreSpaceRepository(
         const val SPACES = "spaces"
         const val MEMBERS = "members"
         const val LISTEN_RETRIES = 5
-        val COMMIT_WAIT = 3.seconds
         val LISTEN_RETRY_WAIT = 1.seconds
     }
 }
