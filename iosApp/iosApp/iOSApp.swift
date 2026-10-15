@@ -1,4 +1,5 @@
 import FirebaseCore
+import GoogleSignIn
 import Shared
 import SwiftUI
 
@@ -6,12 +7,13 @@ import SwiftUI
 struct iOSApp: App {
     init() {
         FirebaseApp.configure()
-        KoinKt.doInitKoin(config: nil)
+        PlatformModule_iosKt.doInitKoin(googleSignIn: SdkGoogleSignInBridge())
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { GIDSignIn.sharedInstance.handle($0) }
         }
     }
 }
