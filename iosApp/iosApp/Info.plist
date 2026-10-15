@@ -4,5 +4,15 @@
     <dict>
         <key>CADisableMinimumFrameDurationOnPhone</key>
         <true/>
+        <!-- REVERSED_CLIENT_ID from GoogleService-Info.plist: Google Sign-In returns to the app through it. -->
+        <key>CFBundleURLTypes</key>
+        <array>
+            <dict>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>com.googleusercontent.apps.854195957903-49ua6d3aq0kjnh75pfq3tanig9tvr99i</string>
+                </array>
+            </dict>
+        </array>
     </dict>
 </plist>
