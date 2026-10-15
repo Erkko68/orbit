@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlin.time.Clock
 
-/** Stand-in until the Firestore repository replaces it (#30). Data lasts while the app runs. */
+/** In-memory [ItemRepository] for tests. Data lasts while the app runs. */
 class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository {
     private val items = MutableStateFlow(emptyList<Item>())
 
