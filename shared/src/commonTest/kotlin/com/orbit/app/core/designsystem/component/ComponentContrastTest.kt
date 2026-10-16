@@ -18,13 +18,16 @@ class ComponentContrastTest {
         "dialog actions" to (primary to surfaceBright),
         "text on a card or a field on the canvas" to (onSurface to surfaceContainer),
         "placeholder, icons and supporting text on a card or a field on the canvas" to
-            (onSurfaceVariant to surfaceContainer),
+                (onSurfaceVariant to surfaceContainer),
         "top bar title, text on the canvas or a field on a card" to (onSurface to surface),
         "top bar subtitle, placeholder, icons and supporting text on the canvas or a field on a card" to
-            (onSurfaceVariant to surface),
+                (onSurfaceVariant to surface),
         "error on a card" to (error to surfaceContainer),
         "error on the canvas" to (error to surface),
         "avatar initials and the arrow of a card" to (onPrimaryContainer to primaryContainer),
+        "text on a highlighted module" to (onSurface to primaryContainer),
+        "supporting text on a highlighted module" to (onSurfaceVariant to primaryContainer),
+        "checkbox checkmark" to (onSecondary to secondary),
         "extended FAB label" to (onTertiary to tertiary),
     )
 

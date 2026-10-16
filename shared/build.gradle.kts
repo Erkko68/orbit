@@ -40,6 +40,7 @@ kotlin {
         withDeviceTestBuilder {
             sourceSetTreeName = "test"
         }.configure {
+            applicationId = "com.orbit.app.shared.test"
             instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         }
     }
@@ -95,6 +96,9 @@ kotlin {
         }
         getByName("androidHostTest").dependencies {
             implementation(libs.robolectric)
+        }
+        getByName("androidDeviceTest").dependencies {
+            implementation(libs.androidx.activity.compose)
         }
     }
 }
@@ -152,7 +156,15 @@ val firebaseTestStubs = tasks.register("firebaseTestStubs") {
             listOf("FirebaseAuth", "FirebaseFirestore").forEach { name ->
                 val objFile = File(stubDir, "$name.o")
                 val binary = File(File(stubDir, "$name.framework"), name)
-                ProcessBuilder("clang", "-target", "arm64-apple-ios-simulator", "-c", stubC.absolutePath, "-o", objFile.absolutePath)
+                ProcessBuilder(
+                    "clang",
+                    "-target",
+                    "arm64-apple-ios-simulator",
+                    "-c",
+                    stubC.absolutePath,
+                    "-o",
+                    objFile.absolutePath
+                )
                     .inheritIO()
                     .start()
                     .waitFor()

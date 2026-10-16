@@ -28,9 +28,11 @@ fun OrbitModuleCard(
     removeDescription: String,
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
+    removeEnabled: Boolean = true,
+    highlighted: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    OrbitCard(modifier) {
+    OrbitCard(modifier, highlighted = highlighted) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
             verticalAlignment = Alignment.CenterVertically,
@@ -48,7 +50,7 @@ fun OrbitModuleCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            OrbitIconButton(Res.drawable.ic_close, removeDescription, onClick = onRemove)
+            OrbitIconButton(Res.drawable.ic_close, removeDescription, onClick = onRemove, enabled = removeEnabled)
         }
         content()
     }
