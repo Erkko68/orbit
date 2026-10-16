@@ -8,6 +8,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
 import androidx.compose.ui.test.assertTouchWidthIsEqualTo
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -26,6 +28,31 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class OrbitModuleCardTest : ComposeTest() {
+    @Test
+    fun disablesRemovalWhileKeepingTheModuleVisible() = runComposeUiTest {
+        var enabled by mutableStateOf(false)
+        var removed = 0
+        setContent {
+            OrbitTheme {
+                OrbitModuleCard(
+                    "Checklist",
+                    Res.drawable.ic_list,
+                    "Remove checklist",
+                    { removed++ },
+                    removeEnabled = enabled
+                ) {
+                    Text("Milk")
+                }
+            }
+        }
+        onNodeWithText("Milk").assertIsDisplayed()
+        onNodeWithContentDescription("Remove checklist").assertIsNotEnabled().performClick()
+        assertEquals(0, removed)
+        enabled = true
+        onNodeWithContentDescription("Remove checklist").assertIsEnabled().performClick()
+        assertEquals(1, removed)
+    }
+
     @Test
     fun showsItsTitleAndContent() = runComposeUiTest {
         setContent {

@@ -8,6 +8,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTouchHeightIsEqualTo
@@ -18,9 +20,24 @@ import androidx.compose.ui.unit.dp
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class OrbitFilterChipTest : ComposeTest() {
+    @Test
+    fun disabledChipDoesNotInvokeItsActionAndCanBeEnabledAgain() = runComposeUiTest {
+        var enabled by mutableStateOf(false)
+        var clicks = 0
+        setContent {
+            OrbitTheme { OrbitFilterChip("Add checklist", false, { clicks++ }, enabled = enabled) }
+        }
+        onNodeWithText("Add checklist").assertIsNotEnabled().performClick()
+        assertEquals(0, clicks)
+        enabled = true
+        onNodeWithText("Add checklist").assertIsEnabled().performClick()
+        assertEquals(1, clicks)
+    }
+
     @Test
     fun selectsOnClickWithA48dpTouchTarget() = runComposeUiTest {
         var selected by mutableStateOf(false)

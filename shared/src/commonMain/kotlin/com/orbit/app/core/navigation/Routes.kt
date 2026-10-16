@@ -17,3 +17,7 @@ data object AccountRoute
 /** Home of one space, with its items, agenda and members tabs. */
 @Serializable
 data class SpaceHomeRoute(val spaceId: String)
+
+/** Detail of one item in a space. */
+@Serializable
+data class ItemRoute(val spaceId: String, val itemId: String)

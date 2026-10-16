@@ -49,7 +49,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val viewModel = SpaceHomeViewModel("space-1", spaces, items)
         setContent {
             OrbitTheme {
-                SpaceHomeScreen("space-1", onSwitchSpace = {}, viewModel = viewModel)
+                SpaceHomeScreen("space-1", onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("Flat 4B").assertIsDisplayed()
@@ -73,7 +73,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val viewModel = SpaceHomeViewModel(id, spaces, items)
         setContent {
             OrbitTheme {
-                SpaceHomeScreen(id, onSwitchSpace = {}, viewModel = viewModel)
+                SpaceHomeScreen(id, onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("Book plumber").performScrollTo().assertIsDisplayed()

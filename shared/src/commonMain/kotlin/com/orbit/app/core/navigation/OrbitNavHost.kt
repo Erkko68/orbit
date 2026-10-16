@@ -11,6 +11,7 @@ import com.orbit.app.feature.account.ui.AccountScreen
 import com.orbit.app.feature.auth.SessionViewModel
 import com.orbit.app.feature.auth.ui.CreateAccountScreen
 import com.orbit.app.feature.auth.ui.SignInScreen
+import com.orbit.app.feature.item.ui.ItemScreen
 import com.orbit.app.feature.space.ui.SpaceScreen
 import com.orbit.app.feature.spacehome.ui.SpaceHomeScreen
 import org.koin.compose.viewmodel.koinViewModel
@@ -37,9 +38,19 @@ fun OrbitNavHost(sessionViewModel: SessionViewModel = koinViewModel()) {
                 AccountScreen(onBack = { navController.popBackStack() })
             }
             composable<SpaceHomeRoute> { entry ->
+                val spaceId = entry.toRoute<SpaceHomeRoute>().spaceId
                 SpaceHomeScreen(
-                    spaceId = entry.toRoute<SpaceHomeRoute>().spaceId,
+                    spaceId = spaceId,
                     onSwitchSpace = { navController.popBackStack() },
+                    onOpenItem = { itemId -> navController.navigate(ItemRoute(spaceId = spaceId, itemId = itemId)) },
+                )
+            }
+            composable<ItemRoute> { entry ->
+                val route = entry.toRoute<ItemRoute>()
+                ItemScreen(
+                    spaceId = route.spaceId,
+                    itemId = route.itemId,
+                    onBack = { navController.popBackStack() },
                 )
             }
         }

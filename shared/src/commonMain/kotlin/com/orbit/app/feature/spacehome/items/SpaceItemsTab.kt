@@ -25,6 +25,7 @@ import org.koin.core.parameter.parametersOf
 @Composable
 internal fun SpaceItemsTab(
     spaceId: String,
+    onOpenItem: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SpaceItemsViewModel = koinViewModel(key = spaceId) { parametersOf(spaceId) },
 ) {
@@ -50,7 +51,13 @@ internal fun SpaceItemsTab(
             )
         }
         for (item in state.items) {
-            OrbitListCard(item.title, stringResource(item.type.label), item.type.icon, Modifier.fillMaxWidth())
+            OrbitListCard(
+                title = item.title,
+                supporting = stringResource(item.type.label),
+                icon = item.type.icon,
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onOpenItem(item.id) },
+            )
         }
     }
 }
