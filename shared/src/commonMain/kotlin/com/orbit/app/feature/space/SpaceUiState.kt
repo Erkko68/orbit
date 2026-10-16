@@ -20,4 +20,5 @@ data class SpaceUiState(
     val createFailed: Boolean = false,
 ) {
     val canCreate: Boolean get() = newSpaceName.isNotBlank() && !creating
+    val spaceCount: Int get() = spaceIds.size
 }

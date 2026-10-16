@@ -60,6 +60,11 @@
     <string name="spaces_create_failed">Could not create the space. Try again.</string>
     <string name="spaces_join_code">Invite code or link</string>
     <string name="spaces_join">Join space</string>
+    <string name="spaces_section">Your spaces</string>
+    <plurals name="spaces_count">
+        <item quantity="one">%1$d space</item>
+        <item quantity="other">%1$d spaces</item>
+    </plurals>
     <plurals name="spaces_members">
         <item quantity="one">%1$d member</item>
         <item quantity="other">%1$d members</item>

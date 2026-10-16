@@ -43,6 +43,7 @@ class SpaceScreenTest : ComposeTest() {
         }
         onNodeWithText("Orbit").assertIsDisplayed()
         onNodeWithText("No spaces yet").assertIsDisplayed()
+        onNodeWithText("Your spaces").assertDoesNotExist()
         onNodeWithText("New space").assertIsDisplayed()
     }
 
@@ -107,6 +108,8 @@ class SpaceScreenTest : ComposeTest() {
                 SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
             }
         }
+        onNodeWithText("Your spaces").assertIsDisplayed()
+        onNodeWithText("1 space").assertIsDisplayed()
         onNodeWithText("Flat 4B").assertIsDisplayed()
         onNodeWithText("5 members").assertIsDisplayed()
         // Three avatars, then the rest as a count.
