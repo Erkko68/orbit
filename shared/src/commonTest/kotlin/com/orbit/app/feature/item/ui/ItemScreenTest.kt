@@ -1,11 +1,9 @@
 package com.orbit.app.feature.item.ui
 
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -39,7 +37,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import kotlinx.datetime.toLocalDateTime
 
 @OptIn(ExperimentalTestApi::class)
 class ItemScreenTest : ComposeTest() {
@@ -137,7 +134,7 @@ class ItemScreenTest : ComposeTest() {
             }
         }
 
-        onNodeWithText("Items").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Checklist").performScrollTo().assertIsDisplayed()
         onNodeWithContentDescription("Remove checklist").performScrollTo().performClick()
         onNodeWithText("+ Checklist").performScrollTo().assertIsDisplayed()
     }
@@ -175,18 +172,7 @@ class ItemScreenTest : ComposeTest() {
     }
 
     @Test
-    fun taskCanBeCompletedAndReopenedFromAnAccessibleCheckbox() = runComposeUiTest {
-        val id = createItem(NewItem("Finish report", preset = Preset.TASK))
-        val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
-        onNodeWithContentDescription("Mark as done").performScrollTo().performClick()
-        onNodeWithText("Done").assertIsDisplayed()
-        onNodeWithContentDescription("Mark as open").performScrollTo().performClick()
-        onNodeWithText("Done").assertDoesNotExist()
-    }
-
-    @Test
-    fun pendingWriteDisablesChipsRemovalAndCompletion() = runComposeUiTest {
+    fun pendingWriteDisablesChipsAndRemoval() = runComposeUiTest {
         val id = createItem(
             NewItem(
                 "Pending task", preset = Preset.TASK, modules = ItemModules(
@@ -201,9 +187,7 @@ class ItemScreenTest : ComposeTest() {
         onNodeWithText("+ Checklist").performScrollTo().performClick()
         onNodeWithText("+ Assignment").performScrollTo().assertIsNotEnabled()
         onNodeWithContentDescription("Remove schedule").performScrollTo().assertIsNotEnabled()
-        onNodeWithContentDescription("Mark as done").performScrollTo().assertIsNotEnabled()
         runOnIdle { gate.complete(Unit) }
-        onNodeWithContentDescription("Mark as done").assertIsEnabled()
         onNodeWithContentDescription("Remove checklist").performScrollTo().assertIsEnabled()
         onNodeWithText("+ Assignment").performScrollTo().assertIsEnabled()
         assertEquals(listOf("set:CHECKLIST"), repository.writes)
@@ -224,7 +208,7 @@ class ItemScreenTest : ComposeTest() {
     }
 
     @Test
-    fun listRendersCheckedEntriesAndQuantitiesWithoutATaskCompletionControl() = runComposeUiTest {
+    fun checklistRendersEntriesAndQuantities() = runComposeUiTest {
         val id = createItem(
             NewItem(
                 "Groceries", preset = Preset.SHOPPING_LIST, modules = ItemModules(
@@ -238,10 +222,8 @@ class ItemScreenTest : ComposeTest() {
         )
         val viewModel = model(id, items)
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
-        onNodeWithText("1 of 2 checked").performScrollTo().assertIsDisplayed()
         onNodeWithText("Milk × 2").performScrollTo().assertIsDisplayed()
         onNodeWithText("Bread").performScrollTo().assertIsDisplayed()
-        onNodeWithContentDescription("Mark as done").assertDoesNotExist()
         onNodeWithText("+ Reminder").assertDoesNotExist()
     }
 
@@ -262,26 +244,15 @@ class ItemScreenTest : ComposeTest() {
         onNodeWithText("Duration: 30m").performScrollTo().assertIsDisplayed()
         onNodeWithText("Anyone").performScrollTo().assertIsDisplayed()
         onNodeWithText("At event time, 10m before").performScrollTo().assertIsDisplayed()
-        onNodeWithContentDescription("Mark as done").assertDoesNotExist()
     }
 
     @Test
-    fun eventTodaySummaryAndSpaceSubtitleAreVisible() = runComposeUiTest {
-        val today =
-            kotlin.time.Clock.System.now().toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault()).date
-        val id = createItem(
-            NewItem(
-                "Dinner",
-                preset = Preset.EVENT,
-                modules = ItemModules(schedule = Schedule(today, LocalTime(20, 0)))
-            )
-        )
+    fun topBarShowsTheTypeAndSpace() = runComposeUiTest {
+        val id = createItem(NewItem("Dinner", preset = Preset.EVENT))
         val viewModel = model(id, items)
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
-        onAllNodesWithText("Flat 4B").assertCountEquals(2)
-        onNodeWithText("When").performScrollTo().assertIsDisplayed()
-        onNodeWithText("Today · 20:00").performScrollTo().assertIsDisplayed()
-        onNodeWithContentDescription("Remove schedule").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Event").assertIsDisplayed()
+        onNodeWithText("Flat 4B").assertIsDisplayed()
     }
 
     @Test

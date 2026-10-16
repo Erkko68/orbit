@@ -161,8 +161,7 @@ class OrbitNavHostTest : ComposeTest() {
         onNodeWithText("Items").assertIsDisplayed()
         onNodeWithText("Groceries").performScrollTo().performClick()
         onNodeWithText("+ Checklist").performScrollTo().performClick()
-        onNodeWithText("Items").performScrollTo().assertIsDisplayed()
-        onNodeWithContentDescription("Mark as done").assertDoesNotExist()
+        onNodeWithText("Checklist").performScrollTo().assertIsDisplayed()
         onNodeWithContentDescription("Back to space").performClick()
         onNodeWithContentDescription("Switch space").assertIsDisplayed()
     }

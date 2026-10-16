@@ -29,10 +29,9 @@ fun OrbitModuleCard(
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
     removeEnabled: Boolean = true,
-    highlighted: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    OrbitCard(modifier, highlighted = highlighted) {
+    OrbitCard(modifier) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
             verticalAlignment = Alignment.CenterVertically,

@@ -62,19 +62,16 @@ class ItemViewModelTest {
     }
 
     @Test
-    fun resolvesSpaceCreatorAndMemberNamesWithoutExposingUserIds() = runTest {
+    fun resolvesSpaceAndMemberNames() = runTest {
         val id = createItem()
         val context = FakeSpaceRepository(
             com.orbit.app.domain.model.Space("space-1", "Flat 4B", 0, listOf("ana@orbit.app")),
             listOf(com.orbit.app.domain.model.Member("ana@orbit.app", "space-1", "Ana", null, Role.OWNER)),
         )
         val model = track(ItemViewModel("space-1", id, items, context))
-        val state = model.uiState.first { !it.loading && it.creatorName != null }
+        val state = model.uiState.first { !it.loading && it.spaceName != null }
         assertEquals("Flat 4B", state.spaceName)
-        assertEquals("Ana", state.creatorName)
         assertEquals("Ana", state.memberNames["ana@orbit.app"])
-        assertTrue(state.createdDate != null)
-        assertFalse(state.detailsFailed)
     }
 
     @Test
@@ -85,11 +82,11 @@ class ItemViewModelTest {
                 kotlinx.coroutines.flow.flow { error("Read denied") }
         }
         val model = track(ItemViewModel("space-1", id, items, failing))
-        val state = model.uiState.first { !it.loading && it.detailsFailed }
+        val state = model.uiState.first { !it.loading }
         assertEquals("Test item", state.title)
         assertTrue(state.canMutate)
         assertFalse(state.loadFailed)
-        assertNull(state.creatorName)
+        assertTrue(state.memberNames.isEmpty())
     }
 
     @Test
@@ -202,23 +199,6 @@ class ItemViewModelTest {
     }
 
     @Test
-    fun toggleStatusCompletesAndReopens() = runTest {
-        auth.signIn("ana@orbit.app", "secret")
-        val spaceId = "space-1"
-        val itemId = items.create(spaceId, NewItem(title = "Toggle me"))
-        val viewModel = track(ItemViewModel(spaceId, itemId, items, spaces))
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-
-        viewModel.toggleStatus()
-        val completed = items.observeItems(spaceId).first().first { it.id == itemId }
-        assertTrue(completed.status is ItemStatus.Done)
-
-        viewModel.toggleStatus()
-        val reopened = items.observeItems(spaceId).first().first { it.id == itemId }
-        assertTrue(reopened.status is ItemStatus.Open)
-    }
-
-    @Test
     fun writeFailureFlagsFailedState() = runTest {
         val failingRepo = FailingItemRepository(
             items = listOf(
@@ -251,7 +231,6 @@ class ItemViewModelTest {
         assertFalse(state.loadFailed)
         viewModel.addModule(ModuleType.CHECKLIST)
         viewModel.removeModule(ModuleType.SCHEDULE)
-        viewModel.toggleStatus()
         assertTrue(controlled.writes.isEmpty())
     }
 
@@ -264,7 +243,6 @@ class ItemViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         assertTrue(viewModel.uiState.value.loading)
         viewModel.addModule(ModuleType.SCHEDULE)
-        viewModel.toggleStatus()
         assertTrue(controlled.writes.isEmpty())
     }
 
@@ -279,7 +257,6 @@ class ItemViewModelTest {
         assertTrue(viewModel.uiState.value.loadFailed)
         assertFalse(viewModel.uiState.value.loading)
         assertFalse(viewModel.uiState.value.notFound)
-        viewModel.toggleStatus()
         assertTrue(controlled.writes.isEmpty())
         controlled.beforeRead = {}
         viewModel.retry()
@@ -344,30 +321,6 @@ class ItemViewModelTest {
     }
 
     @Test
-    fun completeFailureLeavesTheItemOpen() = runTest {
-        val id = createItem()
-        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write denied") } }
-        val viewModel = track(ItemViewModel("space-1", id, controlled, spaces))
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-        viewModel.toggleStatus()
-        assertTrue(viewModel.uiState.value.failed)
-        assertFalse(viewModel.uiState.value.isDone)
-        assertEquals(listOf("complete"), controlled.writes)
-    }
-
-    @Test
-    fun reopenFailureLeavesTheItemCompleted() = runTest {
-        val id = createItem(done = true)
-        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write denied") } }
-        val viewModel = track(ItemViewModel("space-1", id, controlled, spaces))
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-        viewModel.toggleStatus()
-        assertTrue(viewModel.uiState.value.failed)
-        assertTrue(viewModel.uiState.value.isDone)
-        assertEquals(listOf("reopen"), controlled.writes)
-    }
-
-    @Test
     fun nextWriteClearsTheErrorAndCanSucceed() = runTest {
         val id = createItem()
         val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write denied") } }
@@ -393,7 +346,6 @@ class ItemViewModelTest {
         assertFalse(viewModel.uiState.value.canMutate)
         viewModel.addModule(ModuleType.ASSIGNMENT)
         viewModel.removeModule(ModuleType.SCHEDULE)
-        viewModel.toggleStatus()
         assertEquals(listOf("set:CHECKLIST"), controlled.writes)
         gate.complete(Unit)
         assertFalse(viewModel.uiState.value.mutating)
@@ -448,10 +400,8 @@ class ItemViewModelTest {
 
     private fun track(viewModel: ItemViewModel): ItemViewModel = viewModel.also { viewModels.put("item", it) }
 
-    private suspend fun createItem(modules: ItemModules = ItemModules(), done: Boolean = false): String {
+    private suspend fun createItem(modules: ItemModules = ItemModules()): String {
         auth.signIn("ana@orbit.app", "secret")
-        val id = items.create("space-1", NewItem(title = "Test item", modules = modules))
-        if (done) items.complete("space-1", id)
-        return id
+        return items.create("space-1", NewItem(title = "Test item", modules = modules))
     }
 }

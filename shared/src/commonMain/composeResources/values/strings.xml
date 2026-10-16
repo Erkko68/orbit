@@ -100,18 +100,7 @@
     <!-- Item detail and modules -->
     <string name="item_back">Back to space</string>
     <string name="item_add_detail">Add detail</string>
-    <string name="item_checked_count">%1$d of %2$d checked</string>
-    <string name="item_when">When</string>
-    <string name="item_date">Date</string>
-    <string name="item_time">Time</string>
-    <string name="item_entries">Items</string>
-    <string name="item_today">Today</string>
-    <string name="item_details">Details</string>
-    <string name="item_created_by">Created by</string>
-    <string name="item_created">Created</string>
-    <string name="item_space">Space</string>
     <string name="item_unknown_member">Unknown member</string>
-    <string name="item_details_failed">Space details unavailable. Reopen this screen to retry.</string>
     <string name="item_date_format">%1$s %2$d, %3$d</string>
     <string name="item_month_1">Jan</string>
     <string name="item_month_2">Feb</string>
@@ -125,13 +114,6 @@
     <string name="item_month_10">Oct</string>
     <string name="item_month_11">Nov</string>
     <string name="item_month_12">Dec</string>
-    <string name="item_mark_done">Mark as done</string>
-    <string name="item_mark_open">Mark as open</string>
-    <string name="item_tap_to_done">Tap the checkbox to mark as done</string>
-    <string name="item_tap_to_open">Tap the checkbox to mark as open</string>
-    <string name="item_description_label">Description</string>
-    <string name="item_status_done">Done</string>
-    <string name="item_status_open">Open</string>
     <string name="item_load_failed">Could not load item</string>
     <string name="item_loading">Loading item…</string>
     <string name="item_load_failed_body">Try loading the item again.</string>

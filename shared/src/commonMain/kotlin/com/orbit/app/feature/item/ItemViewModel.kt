@@ -6,7 +6,6 @@ import co.touchlab.kermit.Logger
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.Item
-import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.Reminder
@@ -42,7 +41,8 @@ class ItemViewModel(
     private val actionState = MutableStateFlow(ActionState())
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
-    // Context is secondary: a failed space/member read must not hide an otherwise readable item.
+    // Context is secondary: a failed space/member read must not hide an otherwise readable item,
+    // so it falls back to no space name and unknown members.
     private val context = flow {
         emitAll(combine(spaces.observeSpaces(), spaces.observeMembers(spaceId)) { all, members ->
             ItemContext(
@@ -52,7 +52,7 @@ class ItemViewModel(
         })
     }.catch { cause ->
         Logger.e(cause) { "Loading context for item $itemId failed" }
-        emit(ItemContext(failed = true))
+        emit(ItemContext())
     }.onStart { emit(ItemContext()) }
 
     // Wrap the call too, so a failure when opening the stream can be retried.
@@ -74,12 +74,9 @@ class ItemViewModel(
     ) { load, action, details ->
         val loaded = (load as? ItemLoad.Loaded)?.item
         ItemUiState(
-            itemId = itemId,
-            spaceId = spaceId,
             title = loaded?.title.orEmpty(),
             description = loaded?.description,
             preset = loaded?.preset,
-            status = loaded?.status ?: ItemStatus.Open,
             modules = loaded?.modules?.all.orEmpty(),
             loading = load == ItemLoad.Loading,
             loadFailed = load == ItemLoad.Failed,
@@ -87,13 +84,9 @@ class ItemViewModel(
             failed = action.failed,
             mutating = action.mutating,
             spaceName = details.spaceName,
-            creatorName = loaded?.let { details.memberNames[it.createdBy] },
-            createdDate = loaded?.createdAt?.toLocalDateTime(TimeZone.currentSystemDefault())?.date,
             memberNames = details.memberNames,
-            detailsFailed = details.failed,
-            today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ItemUiState(itemId = itemId, spaceId = spaceId))
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ItemUiState())
 
     fun retry() {
         if (uiState.value.loadFailed) retries.trySend(Unit)
@@ -126,17 +119,6 @@ class ItemViewModel(
         }
     }
 
-    fun toggleStatus() {
-        val currentStatus = uiState.value.status
-        mutate {
-            if (currentStatus is ItemStatus.Open) {
-                items.complete(spaceId, itemId)
-            } else {
-                items.reopen(spaceId, itemId)
-            }
-        }
-    }
-
     private fun mutate(action: suspend () -> Unit) {
         if (!uiState.value.canMutate || actionState.value.mutating) return
         actionState.update { it.copy(mutating = true, failed = false) }
@@ -158,7 +140,6 @@ class ItemViewModel(
     private data class ItemContext(
         val spaceName: String? = null,
         val memberNames: Map<String, String> = emptyMap(),
-        val failed: Boolean = false,
     )
 }
 

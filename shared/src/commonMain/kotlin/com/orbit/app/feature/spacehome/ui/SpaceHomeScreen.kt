@@ -57,7 +57,7 @@ import org.koin.core.parameter.parametersOf
 fun SpaceHomeScreen(
     spaceId: String,
     onSwitchSpace: () -> Unit,
-    onOpenItem: (String) -> Unit = {},
+    onOpenItem: (String) -> Unit,
     viewModel: SpaceHomeViewModel = koinViewModel { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -101,7 +101,7 @@ fun SpaceHomeScreen(
             }
         }
         when (state.tab) {
-            SpaceHomeTab.ITEMS -> SpaceItemsTab(spaceId, onOpenItem = onOpenItem)
+            SpaceHomeTab.ITEMS -> SpaceItemsTab(spaceId, onOpenItem)
             SpaceHomeTab.AGENDA -> Agenda()
             SpaceHomeTab.MEMBERS -> SpaceMembersTab(spaceId)
         }

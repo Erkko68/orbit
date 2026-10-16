@@ -25,8 +25,8 @@ import org.koin.core.parameter.parametersOf
 @Composable
 internal fun SpaceItemsTab(
     spaceId: String,
+    onOpenItem: (String) -> Unit,
     modifier: Modifier = Modifier,
-    onOpenItem: (String) -> Unit = {},
     viewModel: SpaceItemsViewModel = koinViewModel(key = spaceId) { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
