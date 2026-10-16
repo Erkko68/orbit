@@ -10,6 +10,7 @@ import com.orbit.app.feature.account.AccountViewModel
 import com.orbit.app.feature.auth.CreateAccountViewModel
 import com.orbit.app.feature.auth.SessionViewModel
 import com.orbit.app.feature.auth.SignInViewModel
+import com.orbit.app.feature.item.ItemViewModel
 import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.feature.space.card.SpaceCardViewModel
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
@@ -56,6 +57,7 @@ val featureModule = module {
     viewModelOf(::SessionViewModel)
     viewModelOf(::SignInViewModel)
     viewModelOf(::CreateAccountViewModel)
+    viewModelOf(::ItemViewModel)
     viewModelOf(::SpaceViewModel)
     // The id of these comes from parametersOf in the composable they belong to.
     viewModelOf(::SpaceCardViewModel)

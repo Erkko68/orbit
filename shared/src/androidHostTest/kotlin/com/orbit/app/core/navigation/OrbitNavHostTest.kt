@@ -16,6 +16,10 @@ import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.data.repository.InMemoryItemRepository
 import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.di.featureModule
+import com.orbit.app.domain.model.Checklist
+import com.orbit.app.domain.model.ItemModules
+import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -34,6 +38,8 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class OrbitNavHostTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
+    private val spaces = InMemorySpaceRepository(auth)
+    private val items = InMemoryItemRepository(auth)
 
     @BeforeTest
     fun startDi() {
@@ -41,8 +47,8 @@ class OrbitNavHostTest : ComposeTest() {
             modules(
                 module {
                     single<AuthRepository> { auth }
-                    single<SpaceRepository> { InMemorySpaceRepository(auth) }
-                    single<ItemRepository> { InMemoryItemRepository(auth) }
+                    single<SpaceRepository> { spaces }
+                    single<ItemRepository> { items }
                 },
                 featureModule,
             )
@@ -130,5 +136,33 @@ class OrbitNavHostTest : ComposeTest() {
 
         onNodeWithText("Welcome back").assertIsDisplayed()
         onNodeWithText("New space").assertDoesNotExist()
+    }
+
+    @Test
+    fun opensAnItemThroughKoinChangesItAndReturnsToTheSpace() = runComposeUiTest {
+        runBlocking {
+            auth.signIn("ana@orbit.app", "secret")
+            val spaceId = spaces.createSpace("Flat 4B", accent = 0)
+            items.create(
+                spaceId, NewItem(
+                    "Book plumber", preset = Preset.TASK,
+                    modules = ItemModules(checklist = Checklist(emptyList()))
+                )
+            )
+            items.create(spaceId, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
+        }
+        setContent { OrbitTheme { OrbitNavHost() } }
+        onNodeWithText("Flat 4B").performScrollTo().performClick()
+        onNodeWithText("Book plumber").performScrollTo().performClick()
+        onNodeWithContentDescription("Remove checklist").performScrollTo().performClick()
+        onNodeWithText("+ Checklist").performScrollTo().assertIsDisplayed()
+        // The top bar is outside the scroll container and always remains visible.
+        onNodeWithContentDescription("Back to space").performClick()
+        onNodeWithText("Items").assertIsDisplayed()
+        onNodeWithText("Groceries").performScrollTo().performClick()
+        onNodeWithText("+ Checklist").performScrollTo().performClick()
+        onNodeWithText("Checklist").performScrollTo().assertIsDisplayed()
+        onNodeWithContentDescription("Back to space").performClick()
+        onNodeWithContentDescription("Switch space").assertIsDisplayed()
     }
 }

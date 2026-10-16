@@ -44,7 +44,7 @@ class SpaceHomeScreenTest : ComposeTest() {
     fun showsTheSummaryAndSwitchesBetweenTabs() = runComposeUiTest {
         setContent {
             OrbitTheme {
-                SpaceHomeScreen("space-1", onSwitchSpace = {}, viewModel = viewModel)
+                SpaceHomeScreen("space-1", onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("open tasks").assertIsDisplayed()
@@ -69,7 +69,7 @@ class SpaceHomeScreenTest : ComposeTest() {
         var switches = 0
         setContent {
             OrbitTheme {
-                SpaceHomeScreen("space-1", onSwitchSpace = { switches++ }, viewModel = viewModel)
+                SpaceHomeScreen("space-1", onSwitchSpace = { switches++ }, onOpenItem = {}, viewModel = viewModel)
             }
         }
         onNodeWithContentDescription("Switch space").performClick()
