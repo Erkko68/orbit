@@ -19,6 +19,7 @@ import com.orbit.app.core.designsystem.component.OrbitLabeledDivider
 import com.orbit.app.core.designsystem.component.OrbitLoadingState
 import com.orbit.app.core.designsystem.component.OrbitOutlinedButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
+import com.orbit.app.core.designsystem.component.OrbitSectionHeader
 import com.orbit.app.core.designsystem.component.OrbitTextField
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
@@ -45,8 +46,11 @@ import orbit.shared.generated.resources.spaces_join_code
 import orbit.shared.generated.resources.spaces_load_failed
 import orbit.shared.generated.resources.spaces_load_failed_body
 import orbit.shared.generated.resources.spaces_loading
+import orbit.shared.generated.resources.spaces_count
 import orbit.shared.generated.resources.spaces_new
+import orbit.shared.generated.resources.spaces_section
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -109,6 +113,14 @@ fun SpaceScreen(
                 title = stringResource(Res.string.spaces_empty),
                 body = stringResource(Res.string.spaces_empty_body),
                 modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (state.spaceCount > 0) {
+            OrbitSectionHeader(
+                title = stringResource(Res.string.spaces_section),
+                icon = Res.drawable.ic_home,
+                modifier = Modifier.fillMaxWidth(),
+                count = pluralStringResource(Res.plurals.spaces_count, state.spaceCount, state.spaceCount),
             )
         }
         for (spaceId in state.spaceIds) {

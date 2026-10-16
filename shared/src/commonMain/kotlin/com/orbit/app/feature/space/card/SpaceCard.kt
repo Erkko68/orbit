@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,12 +17,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitAvatarStack
 import com.orbit.app.core.designsystem.component.OrbitCard
+import com.orbit.app.core.designsystem.component.OrbitIconBadge
+import com.orbit.app.core.designsystem.component.OrbitPill
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_chevron_right
 import orbit.shared.generated.resources.spaces_members
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -31,8 +31,8 @@ import org.koin.core.parameter.parametersOf
 private const val VISIBLE_AVATARS = 3
 
 /**
- * One of the user's spaces, loaded by its own view model: a line about the space (its size, for now)
- * over its name, an arrow to open it, and its members' avatars.
+ * One of the user's spaces, loaded by its own view model: an entity card with a line about the space (its
+ * accent and size, for now) over its name, an arrow to open it, and its members' avatars.
  */
 @Composable
 internal fun SpaceCard(
@@ -52,11 +52,7 @@ internal fun SpaceCard(
                     // The space's accent, as a dot.
                     val accent = OrbitTheme.colors.spaceAccent(state.accent)
                     Box(Modifier.size(OrbitSpacing.sm).background(accent, CircleShape))
-                    Text(
-                        text = pluralStringResource(Res.plurals.spaces_members, state.memberCount, state.memberCount),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    OrbitPill(pluralStringResource(Res.plurals.spaces_members, state.memberCount, state.memberCount))
                 }
                 Text(
                     text = state.name,
@@ -66,16 +62,7 @@ internal fun SpaceCard(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Box(
-                modifier = Modifier.size(OrbitSpacing.xl).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painter = painterResource(Res.drawable.ic_chevron_right),
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                )
-            }
+            OrbitIconBadge(Res.drawable.ic_chevron_right)
         }
         if (state.memberInitials.isNotEmpty()) {
             OrbitAvatarStack(state.memberInitials, max = VISIBLE_AVATARS)

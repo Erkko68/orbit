@@ -62,10 +62,17 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - Material3 components, styled only through the theme. Shared wrappers go in `core/designsystem/component/`.
 - Animations use `OrbitMotion.spatial()` / `OrbitMotion.effects()`.
 - Material 3 Expressive, on stable material3: we follow its look through our own tokens and wrappers, not its alpha APIs.
-  - Depth, not flat: the main content of a screen sits on elevated cards (`OrbitCard(elevated = true)`: bright fill, soft shadow), secondary content and groups on tonal cards (the default), and the screen's create action floats in an `OrbitExtendedFab`. Never elevate everything: one level of emphasis per screen.
-  - Shape: cards use `shapes.large`, text fields `shapes.medium`, buttons, chips and the FAB are full pills, avatars and icon badges circles.
+  - Depth, not flat. A screen has three surface levels, and every element sits one level away from what it is on, so nothing blends into its background:
+    - **Canvas**: `surface`, a faint lavender. Only headers, section headers and cards sit on it.
+    - **Cards**: an *entity card* (`OrbitCard(elevated = true)`: bright fill, soft shadow) is one thing the user opens or acts on, such as a space or an item. A *group card* (`OrbitCard()`, tonal) holds related content, such as a module, a checklist or a settings group. Both kinds can share a screen, but a group card never holds a lone entity and cards never nest.
+    - **Insets**: `OrbitInset` is a row set into a card: the entries of a group card (bright rows on the tonal card) and the strip at the bottom of an entity card (a tonal strip on the bright card). `OrbitIconBadge` and the `OrbitProgress` track work the same way. They take their fill from the card they sit in, so screens never pick a surface color. In dark the insets of a tonal card go darker, recessed instead of raised.
+  - Anatomy of an entity card, top to bottom: the line about it (at most two `OrbitPill`s, or a `labelMedium`) with the card's arrow or options on the right, its name, its content, then the footer strip: who (avatar and name) on the left, when (schedule icon and due date) on the right. Leave out any part that has no data.
+  - A screen with several groups of cards opens each group with an `OrbitSectionHeader`: a primary icon, the title, and a count pill when it helps ("3 active").
+  - Pills (`OrbitPill`) are for short facts, never actions: `Neutral` for plain facts (a type, a size), `Accent` for the one that matters (a count, the current user), `Success` and `Warning` for a state. An action is a chip or a button.
+  - The screen's create action floats in an `OrbitExtendedFab`.
+  - Shape: cards use `shapes.large`, text fields `shapes.medium`, insets `shapes.small`, buttons, chips, pills and the FAB are full pills, avatars and icon badges circles.
   - Rhythm: buttons, text fields and the FAB are all 56dp tall (`ControlHeight`: the M3 text field and the M3 Expressive medium button), and in a form they all take the full width. Gaps are `md` inside a group and `lg` between groups. Never size a control at the call site.
-  - Type: headlines are bold, titles and labels semibold (set once in `Type.kt`). A card's name is a `titleLarge`, the line about it a `labelMedium` above it.
+  - Type: headlines are bold, titles and labels semibold (set once in `Type.kt`). A section header and the name of a card that is the screen's main content (a space on the spaces list) are `titleLarge`. The name of a card inside a section is `titleMedium`. The line about a card sits above its name.
   - One primary action per screen (the FAB or one filled button). Everything else is a tonal or text action.
   - A short task over the screen (adding a space: name a new one, or enter an invite code) is an `OrbitDialog`, not a form in the page. Whether it is open is a field of the `UiState`. Alternatives for the same goal share one dialog, split by an `OrbitLabeledDivider`, instead of one entry point each.
   - Signed-out screens (sign-in, create account) are one centered column on the canvas: `OrbitScreenHeader`, the fields and their one filled button, then the other ways in. No card around the form: every control has the same width and the groups are told apart by spacing and the labeled divider.
@@ -74,7 +81,8 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 - No hardcoded colors: only `core/designsystem/theme/Color.kt` defines colors.
 - Brand palette only: no dynamic (wallpaper) color.
 - Contrast: every text/background pair must pass WCAG AA (4.5:1). Re-check before changing any scheme mapping.
-  - `primary` is a derived violet tone on purpose (`#6860F7` light, `#857EFF` dark). Don't replace it with raw `Violet`, which fails AA.
+  - `primary` is a derived violet tone on purpose (`#6159E7` light, `#857EFF` dark), dark enough for text on the canvas and on tonal cards. Don't replace it with raw `Violet`, which fails AA.
+  - No `primary` text on `surfaceContainerHigh` (pills, tracks): it fails in both themes. A pill that needs the brand color uses the `Accent` tone.
   - Dark `onPrimary` is navy on purpose.
   - Teal, coral and sun are fills, never text on light backgrounds; text on them is navy.
   - `spaceAccents` are decorative (avatars, dots, borders), no body text on them.
@@ -85,7 +93,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - Components have no outer margin: they pad their inside, take a `modifier` parameter, and the parent sets the gaps with `Arrangement.spacedBy(OrbitSpacing.…)`.
   - Typography by role (`titleMedium`, `bodyLarge`…), used as is. No `.copy(fontSize = …)` at the call site: if a role looks wrong, fix it in `Type.kt`.
   - The same styled element on a second screen becomes a wrapper in `core/designsystem/component/`. A screen that needs a visual tweak changes the wrapper or the theme, not itself.
-  - Before writing a private composable in a feature, look in `core/designsystem/component/`. A title over a subtitle is `OrbitHeading`, the opening of a screen without a top bar `OrbitScreenHeader`, a row of a list `OrbitListItem` (an icon row on its own card is `OrbitListCard`), "nothing here yet" `OrbitEmptyState`, an icon-only action `OrbitIconButton`, a password `OrbitPasswordField`, a group's overlapping avatars `OrbitAvatarStack`, a task over the screen `OrbitDialog`.
+  - Before writing a private composable in a feature, look in `core/designsystem/component/`. A title over a subtitle is `OrbitHeading`, the opening of a screen without a top bar `OrbitScreenHeader`, a row of a list `OrbitListItem` (an icon row on its own card is `OrbitListCard`), "nothing here yet" `OrbitEmptyState`, an icon-only action `OrbitIconButton`, a password `OrbitPasswordField`, a group's overlapping avatars `OrbitAvatarStack`, a task over the screen `OrbitDialog`, a short fact `OrbitPill`, the opening of a group of cards `OrbitSectionHeader`, a row set into a card `OrbitInset`, an icon on a circle `OrbitIconBadge`, how far along something is `OrbitProgress`.
   - A design-system component's icon parameter is a `DrawableResource`, and the component draws the `Icon`. A composable slot only when it can hold something else, such as an avatar.
   - A private composable stays in a feature only for a layout that belongs to that one screen (e.g. the space home summary). Anything generic, such as text + icon + text, goes to the design system, takes plain values (`String`, not `StringResource`) and no ViewModel.
 - No experimental Compose APIs (e.g. the Styles API, Material 3 Expressive `MotionScheme`). Revisit when stable.

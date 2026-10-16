@@ -42,7 +42,7 @@ fun OrbitDialog(
         title = { Text(title) },
         text = {
             // Fields stand out from the dialog fill the way they do on a card.
-            CompositionLocalProvider(LocalInsideCard provides true) {
+            CompositionLocalProvider(LocalInsideCard provides true, LocalCardElevated provides true) {
                 Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md), content = content)
             }
         },

@@ -26,18 +26,23 @@ val PhoneShell = Color(0xFF0B0A24)
 
 // Tonal variants derived from the brand hues (no new hues).
 // Pure violet is 4.32:1 with white and 4.13:1 on navy, just under AA for body text.
-private val VioletDeep = Color(0xFF6860F7)   // violet 4% toward navy: 4.56:1 with white
+private val VioletDeep = Color(0xFF6159E7)   // violet 12% toward navy: 5.13:1 with white, 4.63:1 on a tonal card
 private val VioletBright = Color(0xFF857EFF) // violet 17% toward white: 5.45:1 on navy, 4.56:1 on navyElevated
 private val VioletContainerLight = Color(0xFFE2E0FF) // violet 80% toward white
+private val LavenderCanvas = Color(0xFFFAF9FF) // violet 96% toward white: white cards stand out on it
+private val LavenderHigh = Color(0xFFE9E8FF)   // violet 85% toward white: pills and tracks on a card
 private val TealContainerLight = Color(0xFFD5F3F0)
 private val CoralContainerLight = Color(0xFFFFE4DE)
 private val VioletContainerDark = Color(0xFF332E80)  // violet 65% toward navy
 private val TealContainerDark = Color(0xFF1D5066)
 private val CoralContainerDark = Color(0xFF663646)
+private val NavyHigh = Color(0xFF2E2A72) // violet 25% toward navy: pills and tracks on a dark card
 
 // Teal, coral and sun fail with white text (2.2, 2.6, 1.5:1), so their on-color is navy (6.9 to 11.6:1).
 // Error keeps the M3 defaults: coral is for actions, not errors.
 // surfaceBright fills outlined buttons: white in light, navyElevated in dark, on the canvas and on cards.
+// Depth: the canvas is a faint lavender so white (surfaceBright, surfaceContainerLowest) cards and rows
+// stand out from it. In dark, rows inside a card go lower (surfaceContainerLowest, darker) instead.
 internal val LightColors = lightColorScheme(
     primary = VioletDeep,
     onPrimary = White,
@@ -52,16 +57,16 @@ internal val LightColors = lightColorScheme(
     onTertiary = Navy,
     tertiaryContainer = CoralContainerLight,
     onTertiaryContainer = Navy,
-    background = White,
+    background = LavenderCanvas,
     onBackground = Navy,
-    surface = White,
+    surface = LavenderCanvas,
     onSurface = Navy,
     surfaceVariant = LavenderSurface,
     onSurfaceVariant = MutedText,
     surfaceContainerLowest = White,
     surfaceContainerLow = LavenderSurface,
     surfaceContainer = LavenderSurface,
-    surfaceContainerHigh = LavenderSurface,
+    surfaceContainerHigh = LavenderHigh,
     surfaceContainerHighest = LavenderSurface,
     surfaceBright = White,
     inverseSurface = Navy,
@@ -93,7 +98,7 @@ internal val DarkColors = darkColorScheme(
     surfaceContainerLowest = PhoneShell,
     surfaceContainerLow = Navy,
     surfaceContainer = NavyElevated,
-    surfaceContainerHigh = NavyElevated,
+    surfaceContainerHigh = NavyHigh,
     surfaceContainerHighest = NavyElevated,
     surfaceBright = NavyElevated,
     inverseSurface = White,
