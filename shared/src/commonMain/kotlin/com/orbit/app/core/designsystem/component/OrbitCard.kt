@@ -11,11 +11,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 
 /** True inside an [OrbitCard], so components on it can stand out from the card fill (see [OrbitTextField]). */
 internal val LocalInsideCard = staticCompositionLocalOf { false }
+
+/** True inside an elevated [OrbitCard] or a dialog, whose fill is the bright one. */
+internal val LocalCardElevated = staticCompositionLocalOf { false }
+
+/**
+ * The fill of something set into its container, such as a row or a badge: the tonal fill on a bright
+ * card, the brightest fill on a tonal card (darker in dark, so it reads as recessed), the card fill on the canvas.
+ */
+@Composable
+internal fun insetFill(): Color {
+    val scheme = MaterialTheme.colorScheme
+    return when {
+        LocalCardElevated.current -> scheme.surfaceContainerLow
+        LocalInsideCard.current -> scheme.surfaceContainerLowest
+        else -> scheme.surfaceContainer
+    }
+}
 
 private val ElevatedCardElevation = 4.dp
 
@@ -38,7 +56,7 @@ fun OrbitCard(
     val colors = CardDefaults.cardColors(containerColor = if (elevated) scheme.surfaceBright else scheme.surfaceContainer)
     val elevation = CardDefaults.cardElevation(defaultElevation = if (elevated) ElevatedCardElevation else 0.dp)
     val body: @Composable ColumnScope.() -> Unit = {
-        CompositionLocalProvider(LocalInsideCard provides true) {
+        CompositionLocalProvider(LocalInsideCard provides true, LocalCardElevated provides elevated) {
             Column(Modifier.padding(OrbitSpacing.md), verticalArrangement = verticalArrangement, content = content)
         }
     }

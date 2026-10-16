@@ -24,7 +24,16 @@ class ComponentContrastTest {
             (onSurfaceVariant to surface),
         "error on a card" to (error to surfaceContainer),
         "error on the canvas" to (error to surface),
-        "avatar initials and the arrow of a card" to (onPrimaryContainer to primaryContainer),
+        "avatar initials, the arrow of a card and an accent pill" to (onPrimaryContainer to primaryContainer),
+        "text button on the canvas" to (primary to surface),
+        "text button on a tonal card" to (primary to surfaceContainer),
+        "neutral pill" to (onSurfaceVariant to surfaceContainerHigh),
+        "success pill" to (onSecondaryContainer to secondaryContainer),
+        "warning pill" to (onTertiaryContainer to tertiaryContainer),
+        "text on an inset in a tonal card" to (onSurface to surfaceContainerLowest),
+        "secondary text on an inset in a tonal card" to (onSurfaceVariant to surfaceContainerLowest),
+        "text on an inset in an elevated card" to (onSurface to surfaceContainerLow),
+        "secondary text on an inset in an elevated card" to (onSurfaceVariant to surfaceContainerLow),
         "extended FAB label" to (onTertiary to tertiary),
     )
 
