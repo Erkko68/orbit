@@ -2,6 +2,7 @@ package com.orbit.app.feature.spacehome
 
 import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.data.repository.InMemoryItemRepository
+import com.orbit.app.data.repository.InMemoryLastSpaceRepository
 import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
@@ -23,6 +24,7 @@ class SpaceHomeViewModelTest {
     private val auth = InMemoryAuthRepository()
     private val spaces = InMemorySpaceRepository(auth)
     private val items = InMemoryItemRepository(auth)
+    private val lastSpace = InMemoryLastSpaceRepository()
 
     @BeforeTest
     fun setUp() {
@@ -39,7 +41,7 @@ class SpaceHomeViewModelTest {
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
         val id = spaces.createSpace("Flat 4B", accent = 0)
 
-        val state = SpaceHomeViewModel(id, spaces, items).uiState.first { it.memberInitials.isNotEmpty() }
+        val state = SpaceHomeViewModel(id, spaces, items, lastSpace).uiState.first { it.memberInitials.isNotEmpty() }
 
         assertEquals("Flat 4B", state.name)
         assertEquals(listOf("AL"), state.memberInitials)
@@ -55,14 +57,14 @@ class SpaceHomeViewModelTest {
         val done = items.create(id, NewItem("Take out recycling"))
         items.complete(id, done)
 
-        val state = SpaceHomeViewModel(id, spaces, items).uiState.first { it.openTasks > 0 }
+        val state = SpaceHomeViewModel(id, spaces, items, lastSpace).uiState.first { it.openTasks > 0 }
 
         assertEquals(2, state.openTasks)
     }
 
     @Test
     fun opensOnItemsAndSwitchesTab() = runTest {
-        val viewModel = SpaceHomeViewModel("space-1", spaces, items)
+        val viewModel = SpaceHomeViewModel("space-1", spaces, items, lastSpace)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         assertEquals(SpaceHomeTab.ITEMS, viewModel.uiState.value.tab)
 
@@ -73,9 +75,18 @@ class SpaceHomeViewModelTest {
 
     @Test
     fun hasNoNameForASpaceItCannotSee() = runTest {
-        val viewModel = SpaceHomeViewModel("missing", spaces, items)
+        val viewModel = SpaceHomeViewModel("missing", spaces, items, lastSpace)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         assertEquals("", viewModel.uiState.value.name)
+    }
+
+    @Test
+    fun remembersTheSpaceItOpensAsTheLastOne() {
+        SpaceHomeViewModel("space-1", spaces, items, lastSpace)
+        assertEquals("space-1", lastSpace.lastSpaceId())
+
+        SpaceHomeViewModel("space-2", spaces, items, lastSpace)
+        assertEquals("space-2", lastSpace.lastSpaceId())
     }
 }

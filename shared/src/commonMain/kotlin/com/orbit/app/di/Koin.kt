@@ -3,8 +3,10 @@ package com.orbit.app.di
 import com.orbit.app.data.repository.FirebaseAuthRepository
 import com.orbit.app.data.repository.FirestoreItemRepository
 import com.orbit.app.data.repository.FirestoreSpaceRepository
+import com.orbit.app.data.repository.SettingsLastSpaceRepository
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
+import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.account.AccountViewModel
 import com.orbit.app.feature.auth.CreateAccountViewModel
@@ -46,6 +48,7 @@ val dataModule = module {
     singleOf(::FirestoreSpaceRepository) bind SpaceRepository::class
     singleOf(::FirestoreItemRepository) bind ItemRepository::class
     single { Settings() }
+    singleOf(::SettingsLastSpaceRepository) bind LastSpaceRepository::class
 }
 
 val domainModule = module {

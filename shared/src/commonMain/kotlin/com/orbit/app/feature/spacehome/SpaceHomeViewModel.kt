@@ -6,6 +6,7 @@ import com.orbit.app.core.initialsOf
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.repository.ItemRepository
+import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,8 +14,18 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
-class SpaceHomeViewModel(spaceId: String, spaces: SpaceRepository, items: ItemRepository) : ViewModel() {
+class SpaceHomeViewModel(
+    spaceId: String,
+    spaces: SpaceRepository,
+    items: ItemRepository,
+    lastSpace: LastSpaceRepository,
+) : ViewModel() {
     private val tab = MutableStateFlow(SpaceHomeTab.ITEMS)
+
+    init {
+        // The app opens into the space opened last.
+        lastSpace.remember(spaceId)
+    }
 
     val uiState: StateFlow<SpaceHomeUiState> = combine(
         spaces.observeSpaces(),

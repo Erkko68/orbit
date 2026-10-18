@@ -1,9 +1,11 @@
 package com.orbit.app.testing
 
 import com.orbit.app.data.repository.InMemoryItemRepository
+import com.orbit.app.data.repository.InMemoryLastSpaceRepository
 import com.orbit.app.di.featureModule
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
+import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
@@ -16,12 +18,14 @@ internal fun startTestKoin(
     auth: AuthRepository,
     spaces: SpaceRepository,
     items: ItemRepository = InMemoryItemRepository(auth),
+    lastSpace: LastSpaceRepository = InMemoryLastSpaceRepository(),
 ) = startKoin {
     modules(
         module {
             single { auth }
             single { spaces }
             single { items }
+            single { lastSpace }
         },
         featureModule,
     )

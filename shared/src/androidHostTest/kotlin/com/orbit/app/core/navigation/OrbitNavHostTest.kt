@@ -14,6 +14,7 @@ import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.data.repository.InMemoryItemRepository
+import com.orbit.app.data.repository.InMemoryLastSpaceRepository
 import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.di.featureModule
 import com.orbit.app.domain.model.Checklist
@@ -22,6 +23,7 @@ import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
+import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlinx.coroutines.runBlocking
 import org.koin.core.context.startKoin
@@ -30,6 +32,8 @@ import org.koin.dsl.module
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /**
  * The whole shell through Koin, as the app runs it. Android only: it drives a real NavHost, which
@@ -40,6 +44,7 @@ class OrbitNavHostTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
     private val spaces = InMemorySpaceRepository(auth)
     private val items = InMemoryItemRepository(auth)
+    private val lastSpace = InMemoryLastSpaceRepository()
 
     @BeforeTest
     fun startDi() {
@@ -49,6 +54,7 @@ class OrbitNavHostTest : ComposeTest() {
                     single<AuthRepository> { auth }
                     single<SpaceRepository> { spaces }
                     single<ItemRepository> { items }
+                    single<LastSpaceRepository> { lastSpace }
                 },
                 featureModule,
             )
@@ -164,5 +170,48 @@ class OrbitNavHostTest : ComposeTest() {
         onNodeWithText("Checklist").performScrollTo().assertIsDisplayed()
         onNodeWithContentDescription("Back to space").performClick()
         onNodeWithContentDescription("Switch space").assertIsDisplayed()
+    }
+
+    @Test
+    fun opensIntoTheLastSpaceAndSwitchesToTheList() = runComposeUiTest {
+        runBlocking {
+            auth.signIn("ana@orbit.app", "secret")
+            lastSpace.remember(spaces.createSpace("Flat 4B", accent = 0))
+        }
+        setContent { OrbitTheme { OrbitNavHost() } }
+
+        onNodeWithText("No items yet").assertIsDisplayed()
+        onNodeWithContentDescription("Switch space").performClick()
+
+        onNodeWithText("New space").assertIsDisplayed()
+        onNodeWithText("No items yet").assertDoesNotExist()
+    }
+
+    @Test
+    fun opensTheListWhenTheLastSpaceIsNoLongerTheUsers() = runComposeUiTest {
+        runBlocking {
+            auth.signIn("ana@orbit.app", "secret")
+            spaces.createSpace("Flat 4B", accent = 0)
+        }
+        lastSpace.remember("a-space-ana-left")
+        setContent { OrbitTheme { OrbitNavHost() } }
+
+        onNodeWithText("New space").assertIsDisplayed()
+        onNodeWithText("No items yet").assertDoesNotExist()
+        assertNull(lastSpace.lastSpaceId())
+    }
+
+    @Test
+    fun remembersTheSpaceTheUserOpens() = runComposeUiTest {
+        val spaceId = runBlocking {
+            auth.signIn("ana@orbit.app", "secret")
+            spaces.createSpace("Flat 4B", accent = 0)
+        }
+        setContent { OrbitTheme { OrbitNavHost() } }
+
+        onNodeWithText("Flat 4B").performScrollTo().performClick()
+
+        onNodeWithText("No items yet").assertIsDisplayed()
+        assertEquals(spaceId, lastSpace.lastSpaceId())
     }
 }
