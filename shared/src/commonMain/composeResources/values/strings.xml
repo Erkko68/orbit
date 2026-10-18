@@ -147,4 +147,14 @@
     <string name="module_reminder_empty">No reminders set</string>
     <string name="module_reminder_at_time">At event time</string>
     <string name="module_reminder_before">%1$s before</string>
+    <string name="invite_title">Invite people</string>
+    <string name="invite_none">Create a link and a code. Anyone who has them can join this space for a week, or until you revoke them.</string>
+    <string name="invite_create">Create invitation</string>
+    <string name="invite_code_label">Invitation code</string>
+    <string name="invite_valid">Valid for a week, or until you revoke it.</string>
+    <string name="invite_share">Share</string>
+    <string name="invite_revoke">Revoke</string>
+    <string name="invite_share_message">Join “%1$s” on Orbit: open %2$s or enter the code %3$s.</string>
+    <string name="invite_create_failed">Could not create the invitation. Try again.</string>
+    <string name="invite_revoke_failed">Could not revoke the invitation. Try again.</string>
 </resources>

@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-10-06
-- Issue: #20
+- Issue: #20, invitations: #24
 
 ## Context
 
@@ -17,9 +17,10 @@ users/{uid}                          private profile
 spaces/{spaceId}                     the space, with the list of member ids
 spaces/{spaceId}/members/{uid}       one membership: role and public profile copy
 spaces/{spaceId}/items/{itemId}      one item: core fields and its modules
+invitations/{code}                   an invitation to one space, the id is the code
 ```
 
-Everything a space owns is a subcollection of it, so "is this user a member of the space in the path" is the only access question the rules have to answer.
+Everything a space owns is a subcollection of it, so "is this user a member of the space in the path" is the only access question the rules have to answer. Invitations are the one exception, for the reason given under their own heading.
 
 ### Conventions
 
@@ -129,6 +130,33 @@ Entries are a map for the same reason modules are: two members ticking different
 
 Requires `modules.schedule`. Reminders are local notifications: each device schedules its own from this field.
 
+### `invitations/{code}`
+
+An invitation to one space. The document id is the code the people being invited type or follow.
+
+| Field | Type | Notes |
+|---|---|---|
+| `spaceId` | string | The space it invites to |
+| `createdBy` | uid | An `owner` or `admin` of that space |
+| `createdAt` | timestamp | Set by the server |
+| `expiresAt` | timestamp | Seven days after creation. The rules accept up to 30. |
+| `revoked` | boolean | `false` on creation. Revoking sets it to `true` and nothing sets it back. |
+
+**Where it lives.** In a top-level collection, not under the space. The person joining holds a code or a link, not the space id, and is not a member yet, so everything under the space is closed to them. A document read by id answers "what does this code open" with one `get`. A subcollection would need a collection-group query by code, and letting non-members run it would also let them list every invitation.
+
+**The code.** Eight characters from 32 symbols: the capital letters without `I` and `O`, and the digits 2 to 9. Nothing looks like anything else when it is read aloud or typed from a screenshot, and there are 40 bits of it. It is derived from a Firestore auto-id, which the SDK draws from a cryptographically secure generator on the device, so it works offline like the other ids. The rules require exactly this shape. Codes are only ever read by id. Only an `owner` or `admin` can list the invitations of their own space.
+
+**The link.** `orbit://join/<code>`. The share text also writes the code out, so it still works where the message app does not open the link. A link that opens in any browser needs a domain with app links on both platforms, which is a decision for the issue that opens links in the app (#25).
+
+**Revoking.** An `owner` or `admin` sets `revoked` to `true`. The document stays, so someone who opens a revoked link can be told it was revoked and not that it does not exist. An expired or revoked invitation is dead for good: a new one is a new code.
+
+**Joining goes through a security rule, not a Cloud Function.** Joining writes to a space the person cannot write to yet: it adds their uid to `memberIds` and creates their `members/{uid}` document with the role `member`. Two ways to allow that:
+
+- *A rule that checks the invitation* (chosen). The client sends the same batch it would send for any other membership change, and names the code in the member document. The rule reads the invitation with `get()` and accepts the batch only if the invitation exists, is not revoked, has not expired, belongs to this space, and the batch adds exactly the caller and nothing else. It can also keep a space at 8 members. This needs no new service: Sprint 1 has no deployed functions, a function needs the Blaze plan, and the first one (#43) is for the assistant. The rule is tested in the same emulator suite as the others, and the write is a plain Firestore batch like every other. Joining needs a connection either way, because the server has to look at the invitation. The price is rules that are harder to read than code and about three document reads per join.
+- *A callable Cloud Function `joinSpace(code)`.* The checks and the member cap would be ordinary code. It would add a service to deploy, pay for and keep warm for the one write that happens once per person per space, and its tests would sit outside the rules suite. Rejected for now. If the join rule grows past what rules express well (rate limits, abuse handling), this is the way out and only the join write changes.
+
+This issue (#24) adds the part for sharing: the collection, the rules for creating, reading and revoking, and the repository. The join rule and write come with #25, which builds on this decision.
+
 ### Queries and indexes
 
 | Screen | Query | Index |
@@ -136,6 +164,7 @@ Requires `modules.schedule`. Reminders are local notifications: each device sche
 | Spaces home | `spaces` where `memberIds` array-contains uid | automatic |
 | Member list | `spaces/{id}/members` | automatic |
 | Item list | `spaces/{id}/items` ordered by `createdAt` | automatic |
+| Invitations of a space (members tab, owner and admin) | `invitations` where `spaceId == id` | automatic |
 | Agenda (today, this week) | `spaces/{id}/items` where `status == open` and `modules.schedule.date` <= end of week | composite: `status` asc, `modules.schedule.date` asc |
 
 The agenda query has no lower bound on purpose: overdue items and windows that started earlier must still show, and the set of open items with a past date stays small. The app sorts the result into overdue, today and this week. Sorting spaces and members by name happens in the app. The composite index is added to `firebase/firestore.indexes.json` with the agenda query (#37).
@@ -147,6 +176,7 @@ The rules themselves are #41. The model assumes:
 - `users/{uid}`: the owner only.
 - A space and everything under it: members only.
 - Items: any member creates, edits and completes.
+- Invitations: created, listed for their own space and revoked by an `owner` or `admin`; read by id by any signed-in user who has the code.
 - Space fields and other members' roles: `owner` and `admin`. A member can always edit the profile copy in their own member document and delete it to leave.
 
 ### Domain shape
@@ -281,6 +311,10 @@ Why this shape:
 - **Roles as a map on the space document.** One document instead of two, but no place for the profile copy, and every member list change rewrites the space.
 - **Items as a top-level collection with `spaceId`.** Makes cross-space queries natural, but every rule would have to read the item to find its space. Kept the subcollection and the `spaceId` copy, which leaves a collection-group query open.
 - **An `origin` field on the item** (`manual`, `template`, `ai`), as listed in §2.2 of the Sprint 0 document. Nothing reads it: no screen, query or rule depends on how an item was first created, and it says nothing about later edits. Labelling assistant changes (F15.1) and undoing a setup (F8.5) are per change, so they belong to the activity history when it is designed in Sprint 3.
+- **Invitations as a subcollection of the space** (`spaces/{id}/invitations/{code}`). Fits "everything a space owns is under it", but the code carries no space id and the person joining cannot read the space. Finding the invitation would take a collection-group query that non-members may run, which also lets them enumerate every code. Kept a top-level collection read by id.
+- **Joining through a Cloud Function.** See the invitations section. A callable `joinSpace(code)` is the fallback if the join rule becomes too complex.
+- **Deleting an invitation to revoke it.** A revoked link would then look like a mistyped one. A `revoked` flag lets the app say what happened, and keeps the record.
+- **Invitations that never expire.** A link forwarded or left in a chat would open the space for good. Seven days, revocable, bounds it.
 - **One collection or subclass per item type** (task, list, event). Contradicts the modular model in §2.2 of the Sprint 0 document.
 - **Timestamps for due dates.** Needs a time zone to answer "is it due today" and shifts all-day items for members in other zones.
 
@@ -288,7 +322,8 @@ Why this shape:
 
 - The item repository exposes operations (create, rename, set or remove a module, tick an entry, complete, reopen) and no `save(item)`. This is what the per-field merge and the forward compatibility above depend on, and it lines up with the assistant's vocabulary and the later activity history.
 - `memberIds` and the member profile copies are duplicated data. They are only correct while every write that touches them goes through the repository batch that updates both.
-- Joining from an invitation adds a user to a space they cannot yet write to. That write needs either a Cloud Function or a rule that checks the invitation; #24 decides it together with the invitation document.
+- Joining from an invitation adds a user to a space they cannot yet write to. It goes through a rule that checks the invitation, not a Cloud Function (see `invitations/{code}`). #25 adds that rule.
+- An invitation is a bearer capability: anyone who has the code can read it, and can join until it expires or is revoked.
 - A checklist lives inside its item, and a document is limited to 1 MiB. Enough for thousands of entries; not a store for unbounded lists.
 - Later modules (recurrence, cost, effort, guide, notes) add keys under `modules`. Expenses and the activity history become new subcollections of the space. Each extends this ADR in the PR that introduces it.
 - Changing a field that is already in production data needs a migration, so schema changes are reviewed here first.
