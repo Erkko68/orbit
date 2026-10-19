@@ -3,17 +3,12 @@ package com.orbit.app.feature.item
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
-import com.orbit.app.domain.model.Assignment
-import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.Item
-import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
-import com.orbit.app.domain.model.Reminder
-import com.orbit.app.domain.model.Schedule
+import com.orbit.app.domain.model.defaultModule
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlin.time.Clock
-import kotlin.time.Duration
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.catch
@@ -94,17 +89,8 @@ class ItemViewModel(
 
     fun addModule(type: ModuleType) {
         if (type !in uiState.value.availableModules) return
-        val defaultModule: Module = when (type) {
-            ModuleType.SCHEDULE -> {
-                val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-                Schedule(date = today)
-            }
-
-            ModuleType.ASSIGNMENT -> Assignment.Anyone
-            ModuleType.CHECKLIST -> Checklist(entries = emptyList())
-            ModuleType.REMINDER -> Reminder(offsets = listOf(Duration.ZERO))
-        }
-        mutate { items.setModule(spaceId, itemId, defaultModule) }
+        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        mutate { items.setModule(spaceId, itemId, defaultModule(type, today)) }
     }
 
     fun removeModule(type: ModuleType) {
