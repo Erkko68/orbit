@@ -1,5 +1,7 @@
 package com.orbit.app.feature.item
 
+import com.orbit.app.core.initialsOf
+import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.Preset
@@ -23,6 +25,12 @@ data class ItemUiState(
 ) {
     val canMutate: Boolean get() = !loading && !loadFailed && !notFound && !mutating
     val visibleDescription: String? get() = description?.takeIf { it.isNotBlank() }
+
+    /** The current assignee's public name, when the member context is available. */
+    val assigneeName: String?
+        get() = modules.filterIsInstance<Assignment>().firstOrNull()?.assigneeId
+            ?.let { memberNames[it] }?.takeIf { it.isNotBlank() }
+    val assigneeInitials: String? get() = assigneeName?.let(::initialsOf)
 
     /** Reminder needs a schedule; an existing module is never offered twice. */
     val availableModules: List<ModuleType>

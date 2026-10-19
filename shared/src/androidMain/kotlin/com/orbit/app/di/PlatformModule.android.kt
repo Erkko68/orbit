@@ -1,6 +1,8 @@
 package com.orbit.app.di
 
 import android.app.Application
+import com.orbit.app.core.share.AndroidTextSharer
+import com.orbit.app.core.share.TextSharer
 import com.orbit.app.data.auth.ActivityProvider
 import com.orbit.app.data.auth.AndroidGoogleAuthClient
 import com.orbit.app.data.auth.GoogleAuthClient
@@ -21,4 +23,5 @@ actual val platformModule = module {
             activityProvider = { provider.currentActivity },
         )
     }
+    single<TextSharer> { AndroidTextSharer(androidContext()) }
 }

@@ -51,4 +51,34 @@ class ItemUiStateTest {
         assertNull(ItemUiState(description = "  ").visibleDescription)
         assertEquals("Kitchen leak", ItemUiState(description = "Kitchen leak").visibleDescription)
     }
+
+    @Test
+    fun avatarFollowsTheAssignedMemberInBothAssignmentModes() {
+        val state = ItemUiState(
+            modules = listOf(Assignment.ToMember("ana")),
+            memberNames = mapOf("ana" to "Ana López", "mika" to "Mika Rossi"),
+        )
+        assertEquals("Ana López", state.assigneeName)
+        assertEquals("AL", state.assigneeInitials)
+
+        val claimed = state.copy(modules = listOf(Assignment.Claim("mika")))
+        assertEquals("Mika Rossi", claimed.assigneeName)
+        assertEquals("MR", claimed.assigneeInitials)
+    }
+
+    @Test
+    fun absentOrUnresolvedAssigneesHaveNoInventedAvatar() {
+        val members = mapOf("ana" to "Ana López", "blank" to "  ")
+        for (modules in listOf(
+            emptyList(),
+            listOf(Assignment.Anyone),
+            listOf(Assignment.Claim()),
+            listOf(Assignment.ToMember("unknown")),
+            listOf(Assignment.ToMember("blank")),
+        )) {
+            val state = ItemUiState(modules = modules, memberNames = members)
+            assertNull(state.assigneeName)
+            assertNull(state.assigneeInitials)
+        }
+    }
 }
