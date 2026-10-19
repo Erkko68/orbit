@@ -72,6 +72,7 @@ import orbit.shared.generated.resources.module_reminder_empty
 import orbit.shared.generated.resources.module_reminder_remove
 import orbit.shared.generated.resources.module_reminder_title
 import orbit.shared.generated.resources.module_schedule_duration
+import orbit.shared.generated.resources.module_schedule_edit
 import orbit.shared.generated.resources.module_schedule_range
 import orbit.shared.generated.resources.module_schedule_remove
 import orbit.shared.generated.resources.module_schedule_time
@@ -139,6 +140,7 @@ fun ItemScreen(
                         module = module,
                         state = state,
                         onRemove = { viewModel.removeModule(module.type) },
+                        onEdit = viewModel::editSchedule,
                     )
                 }
                 if (state.availableModules.isNotEmpty()) {
@@ -154,6 +156,7 @@ fun ItemScreen(
             }
         }
     }
+    state.scheduleEditor?.let { editor -> ScheduleEditorDialog(editor, state, viewModel) }
 }
 
 @Composable
@@ -175,8 +178,9 @@ private fun ItemHeader(state: ItemUiState, typeLabel: String) {
     }
 }
 
+/** [onEdit] is only offered on modules that can be edited so far: the schedule. */
 @Composable
-private fun RenderModuleCard(module: Module, state: ItemUiState, onRemove: () -> Unit) {
+private fun RenderModuleCard(module: Module, state: ItemUiState, onRemove: () -> Unit, onEdit: () -> Unit) {
     val title = when (module.type) {
         ModuleType.SCHEDULE -> Res.string.module_schedule_title
         ModuleType.ASSIGNMENT -> Res.string.module_assignment_title
@@ -202,6 +206,8 @@ private fun RenderModuleCard(module: Module, state: ItemUiState, onRemove: () ->
         onRemove = onRemove,
         removeEnabled = state.canMutate,
         modifier = Modifier.fillMaxWidth(),
+        editDescription = if (module is Schedule) stringResource(Res.string.module_schedule_edit) else null,
+        onEdit = onEdit,
     ) {
         when (module) {
             is Schedule -> {

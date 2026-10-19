@@ -22,8 +22,11 @@ data class ItemUiState(
     val mutating: Boolean = false,
     val spaceName: String? = null,
     val memberNames: Map<String, String> = emptyMap(),
+    /** The schedule being edited, while its dialog is open. */
+    val scheduleEditor: ScheduleEditor? = null,
 ) {
     val canMutate: Boolean get() = !loading && !loadFailed && !notFound && !mutating
+    val canSaveSchedule: Boolean get() = canMutate && scheduleEditor?.schedule != null
     val visibleDescription: String? get() = description?.takeIf { it.isNotBlank() }
 
     /** The current assignee's public name, when the member context is available. */

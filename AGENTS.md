@@ -97,7 +97,9 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - A design-system component's icon parameter is a `DrawableResource`, and the component draws the `Icon`. A composable slot only when it can hold something else, such as an avatar.
   - A private composable stays in a feature only for a layout that belongs to that one screen (e.g. the space home summary). Anything generic, such as text + icon + text, goes to the design system, takes plain values (`String`, not `StringResource`) and no ViewModel.
 - No experimental Compose APIs (e.g. the Styles API, Material 3 Expressive `MotionScheme`). Revisit when stable.
-  - Only exception: tests opt in to `ExperimentalTestApi`, because `runComposeUiTest` is the only multiplatform Compose test entry point. Never in production code.
+  - Exceptions, each opted in where it is used and nowhere else:
+    - Tests opt in to `ExperimentalTestApi`, because `runComposeUiTest` is the only multiplatform Compose test entry point.
+    - M3's `DatePickerDialog`, which is stable on Android and only marked experimental on iOS. `TimePicker` stays out.
 - No hardcoded strings in composables: use `composeResources/values/strings.xml`.
 - One public composable per file.
 - Immutable UI state (`data class` + `StateFlow`), no mutable collections in state.

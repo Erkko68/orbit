@@ -3,6 +3,8 @@ package com.orbit.app.core.designsystem.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -43,7 +45,12 @@ fun OrbitDialog(
         text = {
             // Fields stand out from the dialog fill the way they do on a card.
             CompositionLocalProvider(LocalInsideCard provides true, LocalCardElevated provides true) {
-                Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md), content = content)
+                // Scrolls when the content outgrows a small screen or the open keyboard.
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
+                    content = content,
+                )
             }
         },
         containerColor = MaterialTheme.colorScheme.surfaceBright,

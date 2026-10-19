@@ -13,13 +13,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_close
+import orbit.shared.generated.resources.ic_edit
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 /**
  * One module of an item (schedule, assignment, checklist…): a header with the module's [icon] and
  * [title] and a button that calls [onRemove], then the module's [content]. [removeDescription] names
- * that button for screen readers, such as "Remove schedule". Tonal, like any card of secondary content.
+ * that button for screen readers, such as "Remove schedule". Give it [editDescription] and [onEdit] for
+ * an edit button before it. Tonal, like any card of secondary content.
  */
 @Composable
 fun OrbitModuleCard(
@@ -29,6 +31,8 @@ fun OrbitModuleCard(
     onRemove: () -> Unit,
     modifier: Modifier = Modifier,
     removeEnabled: Boolean = true,
+    editDescription: String? = null,
+    onEdit: () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     OrbitCard(modifier) {
@@ -49,6 +53,9 @@ fun OrbitModuleCard(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            if (editDescription != null) {
+                OrbitIconButton(Res.drawable.ic_edit, editDescription, onClick = onEdit, enabled = removeEnabled)
+            }
             OrbitIconButton(Res.drawable.ic_close, removeDescription, onClick = onRemove, enabled = removeEnabled)
         }
         content()
