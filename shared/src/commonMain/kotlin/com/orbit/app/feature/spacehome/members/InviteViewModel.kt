@@ -7,7 +7,6 @@ import com.orbit.app.core.attempt
 import com.orbit.app.core.orOnFailure
 import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.Invitation
-import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -43,7 +42,7 @@ class InviteViewModel(
         auth.session,
         spaces.observeMembers(spaceId).orOnFailure("Loading the members of $spaceId", emptyList()),
     ) { user, members ->
-        members.firstOrNull { it.userId == user?.id }?.role in INVITING_ROLES
+        members.firstOrNull { it.userId == user?.id }?.role?.managesSpace == true
     }.distinctUntilChanged()
 
     /**
@@ -94,9 +93,5 @@ class InviteViewModel(
             val failed = attempt("Invitation action $onFailure") { action() }.isFailure
             form.update { it.copy(busy = false, failure = onFailure.takeIf { failed }) }
         }
-    }
-
-    private companion object {
-        val INVITING_ROLES = setOf(Role.OWNER, Role.ADMIN)
     }
 }

@@ -15,6 +15,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PROJECT_ID = 'demo-orbit';
+const serverTime = () => firebase.firestore.FieldValue.serverTimestamp();
 
 describe('Firestore Security Rules', () => {
   let testEnv;
@@ -140,6 +141,7 @@ describe('Firestore Security Rules', () => {
         accent: 2,
         memberIds: ['david'],
         createdBy: 'david',
+        createdAt: serverTime(),
       }));
       assert.ok(!success);
     });
@@ -151,6 +153,7 @@ describe('Firestore Security Rules', () => {
         accent: 1,
         memberIds: ['david'],
         createdBy: 'alice',
+        createdAt: serverTime(),
       }));
       assert.ok(failCreatedBy);
 
@@ -159,8 +162,23 @@ describe('Firestore Security Rules', () => {
         accent: 1,
         memberIds: ['alice'],
         createdBy: 'david',
+        createdAt: serverTime(),
       }));
       assert.ok(failMemberIds);
+    });
+
+    it('denies a new space with other members, without a name or without a server creation time', async () => {
+      const davidDb = testEnv.authenticatedContext('david').firestore();
+      const space = { name: 'David Space', accent: 0, memberIds: ['david'], createdBy: 'david', createdAt: serverTime() };
+
+      await assertFails(davidDb.collection('spaces').doc('s5').set({ ...space, memberIds: ['david', 'alice'] }));
+      await assertFails(davidDb.collection('spaces').doc('s6').set({ ...space, name: '  ' }));
+      await assertFails(davidDb.collection('spaces').doc('s7').set({ ...space, createdAt: new Date(0) }));
+    });
+
+    it('denies changing who created the space, even to the owner', async () => {
+      const aliceDb = testEnv.authenticatedContext('alice').firestore();
+      await assertFails(aliceDb.collection('spaces').doc('s1').update({ createdBy: 'bob' }));
     });
 
     it('allows owner and admin to update space fields, denies regular members and non-members', async () => {
@@ -249,6 +267,7 @@ describe('Firestore Security Rules', () => {
         accent: 0,
         memberIds: ['david'],
         createdBy: 'david',
+        createdAt: serverTime(),
       }));
 
       const memberSuccess = await assertSucceeds(
@@ -447,6 +466,7 @@ describe('Firestore Security Rules', () => {
           title: 'Clean kitchen',
           status: 'open',
           createdBy: 'charlie',
+          createdAt: serverTime(),
         })
       );
       assert.ok(!createSuccess);
@@ -462,6 +482,7 @@ describe('Firestore Security Rules', () => {
           title: 'Hacked item',
           status: 'open',
           createdBy: 'david',
+          createdAt: serverTime(),
         })
       );
       assert.ok(nonMemberCreate);
@@ -472,6 +493,7 @@ describe('Firestore Security Rules', () => {
           title: 'Forged item',
           status: 'open',
           createdBy: 'alice',
+          createdAt: serverTime(),
         })
       );
       assert.ok(fakeCreator);
@@ -482,6 +504,7 @@ describe('Firestore Security Rules', () => {
           title: 'Wrong space item',
           status: 'open',
           createdBy: 'charlie',
+          createdAt: serverTime(),
         })
       );
       assert.ok(wrongSpace);
@@ -507,26 +530,68 @@ describe('Firestore Security Rules', () => {
       assert.ok(nonMemberUpdate);
     });
 
-    it('allows members to delete items, denies non-members', async () => {
+    it('denies an item without a valid title or that starts done', async () => {
       const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+      const items = charlieDb.collection('spaces').doc('s1').collection('items');
+      const item = { spaceId: 's1', title: 'Clean kitchen', status: 'open', createdBy: 'charlie', createdAt: serverTime() };
+
+      await assertFails(items.doc('blank').set({ ...item, title: '   ' }));
+      await assertFails(items.doc('long').set({ ...item, title: 'x'.repeat(121) }));
+      await assertFails(items.doc('done').set({ ...item, status: 'done' }));
+      await assertSucceeds(items.doc('longest').set({ ...item, title: 'x'.repeat(120) }));
+    });
+
+    it('denies an update that rewrites how the item was created or breaks its fields', async () => {
+      const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+      const item = charlieDb.collection('spaces').doc('s1').collection('items').doc('item1');
+
+      await assertFails(item.update({ createdBy: 'charlie' }));
+      await assertFails(item.update({ spaceId: 'other-space' }));
+      await assertFails(item.update({ createdAt: serverTime() }));
+      await assertFails(item.update({ title: '' }));
+      await assertFails(item.update({ status: 'archived' }));
+      await assertFails(item.update({ status: 'done', completedBy: 'alice' }));
+    });
+
+    it('lets any member reopen an item', async () => {
+      const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+      const item = charlieDb.collection('spaces').doc('s1').collection('items').doc('item1');
+      await assertSucceeds(item.update({ status: 'done', completedBy: 'charlie' }));
+
+      const aliceDb = testEnv.authenticatedContext('alice').firestore();
+      await assertSucceeds(
+        aliceDb.collection('spaces').doc('s1').collection('items').doc('item1').update({
+          status: 'open',
+          completedBy: firebase.firestore.FieldValue.delete(),
+        })
+      );
+    });
+
+    it('lets the creator, an admin or the owner delete an item, and no other member', async () => {
+      const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+      const aliceDb = testEnv.authenticatedContext('alice').firestore();
       const davidDb = testEnv.authenticatedContext('david').firestore();
+      const items = (db) => db.collection('spaces').doc('s1').collection('items');
 
-      const nonMemberDel = await assertFails(
-        davidDb.collection('spaces').doc('s1').collection('items').doc('item1').delete()
-      );
-      assert.ok(nonMemberDel);
+      await assertFails(items(davidDb).doc('item1').delete());
+      await assertFails(items(charlieDb).doc('item1').delete());
 
-      const memberDel = await assertSucceeds(
-        charlieDb.collection('spaces').doc('s1').collection('items').doc('item1').delete()
-      );
-      assert.ok(!memberDel);
+      await assertSucceeds(items(charlieDb).doc('mine').set({
+        spaceId: 's1',
+        title: 'Water plants',
+        status: 'open',
+        createdBy: 'charlie',
+        createdAt: serverTime(),
+      }));
+      await assertSucceeds(items(charlieDb).doc('mine').delete());
+
+      await assertSucceeds(items(aliceDb).doc('item1').delete());
     });
   });
 
   describe('Invitations', () => {
     const DAY = 24 * 60 * 60 * 1000;
     const inDays = (days) => new Date(Date.now() + days * DAY);
-    const serverTime = () => firebase.firestore.FieldValue.serverTimestamp();
 
     // A valid invitation to s1 made by alice, with anything in overrides changed.
     const invitation = (overrides = {}) => ({

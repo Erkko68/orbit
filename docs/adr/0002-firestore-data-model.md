@@ -2,11 +2,11 @@
 
 - Status: Accepted
 - Date: 2026-10-06
-- Issue: #20, invitations: #24
+- Issue: #20, invitations: #24, roles and field checks: #215
 
 ## Context
 
-[ADR 0001](0001-local-persistence.md) made Firestore, with its offline cache, the only store. The cache cannot join or aggregate across collections, so the documents have to be shaped around the queries the screens make. This ADR fixes the Sprint 1 shape: users, spaces, memberships and items with the Schedule, Assignment, Checklist and Reminder modules. The Kotlin domain classes (#15, #21, #29), the repositories (#21, #30) and the security rules (#41) follow it.
+[ADR 0001](0001-local-persistence.md) made Firestore, with its offline cache, the only store. The cache cannot join or aggregate across collections, so the documents have to be shaped around the queries the screens make. This ADR fixes the shape of users, spaces, memberships, items with the Schedule, Assignment, Checklist and Reminder modules, and invitations. The domain classes in `shared/…/domain/model`, the Firestore repositories in `shared/…/data/repository` and `firebase/firestore.rules` follow it.
 
 ## Decision
 
@@ -27,19 +27,19 @@ Everything a space owns is a subcollection of it, so "is this user a member of t
 - Field names are camelCase. Enum values are lowercase strings. Optional fields are omitted, never stored as `null`.
 - Ids: `users` and `members` documents use the Firebase Auth uid. Spaces and items use Firestore auto-ids, generated on the device so they work offline.
 - Instants (`createdAt`, `completedAt`) are Firestore timestamps set with the server timestamp. While a write is still pending offline the server value is missing, so mappers read timestamps with the *estimate* behaviour.
-- Calendar dates and times of day are strings (`2026-10-09`, `20:00`), read in the space's time zone. See "Schedule" below.
+- Calendar dates and times of day are wall-clock strings (`2026-10-09`, `20:00`), read in the time zone of the phone showing them. A space has no time zone of its own. See "Schedule" below.
 - A reference to another document is its id in a field ending in `Id` (`createdBy` and `completedBy` hold a uid). No Firestore `DocumentReference` fields.
 
 ### `users/{uid}`
 
-Readable and writable only by its owner.
+Readable and writable only by its owner. `language` and `timeZone` are copied from the phone when the account is made and on every sign-in, for the server (push notices, the assistant). The app never reads them back: it uses the phone's settings, which the user already manages there.
 
 | Field | Type | Notes |
 |---|---|---|
 | `displayName` | string | |
 | `photoUrl` | string, optional | |
-| `language` | string | `es`, `ca` or `en` |
-| `timeZone` | string | IANA id, e.g. `Europe/Madrid` |
+| `language` | string | `es`, `ca` or `en`, from the phone |
+| `timeZone` | string | IANA id, e.g. `Europe/Madrid`, from the phone |
 | `createdAt` | timestamp | |
 
 ### `spaces/{spaceId}`
@@ -169,130 +169,35 @@ This issue (#24) adds the part for sharing: the collection, the rules for creati
 
 The agenda query has no lower bound on purpose: overdue items and windows that started earlier must still show, and the set of open items with a past date stays small. The app sorts the result into overdue, today and this week. Sorting spaces and members by name happens in the app. The composite index is added to `firebase/firestore.indexes.json` with the agenda query (#37).
 
-### Access
+### Roles and access
 
-The rules themselves are #41. The model assumes:
+A space is shared, so its items are too: every member creates, edits and completes any item, as flatmates do with one shopping list. Roles only guard what changes the space itself.
+
+| | Owner | Admin | Member |
+|---|---|---|---|
+| Read the space, its members and items | yes | yes | yes |
+| Create, edit and complete any item | yes | yes | yes |
+| Delete an item | any | any | only one they created |
+| Edit the space (name, colour) | yes | yes | no |
+| Create, list and revoke invitations | yes | yes | no |
+| Add a member, or change a role between member and admin | yes | yes | no |
+| Remove a member | anyone but the owner | plain members only | no |
+| Hand ownership to someone else | yes (#27) | no | no |
+| Edit their own profile copy, leave | yes (leaving needs a new owner first, #27) | yes | yes |
+| Delete the space | yes | no | no |
+
+`Role.managesSpace` in the domain is the owner-or-admin column, so screens hide what the rules would refuse. The child profile (#109) will be a fourth role with less than a member.
+
+The rules also check the shape of what is written:
 
 - `users/{uid}`: the owner only.
-- A space and everything under it: members only.
-- Items: any member creates, edits and completes.
+- A new space has its creator as its only member (`memberIds == [uid]`), a name, an integer accent and the server time as `createdAt`. Others join through an invitation (#25).
+- A new item is `open`, has a title of 1 to 120 characters after trimming, the caller as `createdBy`, the server time as `createdAt` and the path's `spaceId`. No update changes `createdBy`, `createdAt` or `spaceId`, the title stays valid, `status` stays `open` or `done`, and `completedBy` can only be set to the caller.
 - Invitations: created, listed for their own space and revoked by an `owner` or `admin`; read by id by any signed-in user who has the code.
-- Space fields and other members' roles: `owner` and `admin`. A member can always edit the profile copy in their own member document and delete it to leave.
 
 ### Domain shape
 
-A sketch of the Kotlin classes this maps to. The real code, with validation and tests, lands in #15, #21 and #29.
-
-```kotlin
-// email comes from Firebase Auth, not from the users document.
-data class User(val id: String, val displayName: String, val photoUrl: String?, val language: String, val timeZone: TimeZone, val email: String?)
-
-data class Space(val id: String, val name: String, val accent: Int, val memberIds: List<String>)
-
-enum class Role { OWNER, ADMIN, MEMBER }
-data class Member(val userId: String, val spaceId: String, val displayName: String, val photoUrl: String?, val role: Role)
-
-enum class Preset { TASK, SHOPPING_LIST, EVENT }
-
-sealed interface ItemStatus {
-    data object Open : ItemStatus
-    data class Done(val by: String, val at: Instant) : ItemStatus
-}
-
-/** An item as read from Firestore. */
-data class Item(
-    val id: String,
-    val spaceId: String,
-    val title: String,
-    val description: String?,
-    val status: ItemStatus,
-    val preset: Preset?,
-    val createdBy: String,
-    val createdAt: Instant,
-    val modules: ItemModules = ItemModules(),
-)
-
-/** What a person, a preset or the assistant fills in. The repository adds id, creator and timestamps. */
-data class NewItem(
-    val title: String,
-    val description: String? = null,
-    val preset: Preset? = null,
-    val modules: ItemModules = ItemModules(),
-)
-
-enum class ModuleType { SCHEDULE, ASSIGNMENT, CHECKLIST, REMINDER }
-
-sealed interface Module {
-    val type: ModuleType
-}
-
-/** At most one module of each type, mirroring the `modules` map. */
-data class ItemModules(
-    val schedule: Schedule? = null,
-    val assignment: Assignment? = null,
-    val checklist: Checklist? = null,
-    val reminder: Reminder? = null,
-) {
-    operator fun get(type: ModuleType): Module? = when (type) {
-        ModuleType.SCHEDULE -> schedule
-        ModuleType.ASSIGNMENT -> assignment
-        ModuleType.CHECKLIST -> checklist
-        ModuleType.REMINDER -> reminder
-    }
-
-    /** Present modules in card order. */
-    val all: List<Module> get() = ModuleType.entries.mapNotNull(::get)
-
-    fun with(module: Module): ItemModules = when (module) {
-        is Schedule -> copy(schedule = module)
-        is Assignment -> copy(assignment = module)
-        is Checklist -> copy(checklist = module)
-        is Reminder -> copy(reminder = module)
-    }
-
-    fun without(type: ModuleType): ItemModules = when (type) {
-        ModuleType.SCHEDULE -> copy(schedule = null)
-        ModuleType.ASSIGNMENT -> copy(assignment = null)
-        ModuleType.CHECKLIST -> copy(checklist = null)
-        ModuleType.REMINDER -> copy(reminder = null)
-    }
-}
-
-data class Schedule(
-    val date: LocalDate,
-    val time: LocalTime? = null,
-    val endDate: LocalDate? = null,
-    val duration: Duration? = null,
-) : Module {
-    override val type get() = ModuleType.SCHEDULE
-    val deadline: LocalDate get() = endDate ?: date
-}
-
-sealed interface Assignment : Module {
-    override val type get() = ModuleType.ASSIGNMENT
-
-    /** Who is responsible right now, whatever the mode. Backs the "mine" filter. */
-    val assigneeId: String?
-
-    data class ToMember(override val assigneeId: String) : Assignment
-    data object Anyone : Assignment {
-        override val assigneeId: String? get() = null
-    }
-    data class Claim(override val assigneeId: String? = null) : Assignment
-}
-
-data class Checklist(val entries: List<ChecklistEntry>) : Module {
-    override val type get() = ModuleType.CHECKLIST
-}
-data class ChecklistEntry(val id: String, val text: String, val checked: Boolean = false, val quantity: Int? = null)
-
-data class Reminder(val offsets: List<Duration>) : Module {
-    override val type get() = ModuleType.REMINDER
-}
-
-sealed interface ItemError { /* BlankTitle, EndBeforeStart, ReminderWithoutSchedule, AssigneeNotMember, ... */ }
-fun validate(title: String, modules: ItemModules, memberIds: Collection<String>): List<ItemError>
-```
+The Kotlin classes live in `shared/src/commonMain/kotlin/com/orbit/app/domain/model` (`Item.kt`, `ItemModules.kt`, `Space.kt`, `Member.kt`, `User.kt`, `Invitation.kt`) and validation in `ItemValidation.kt` (`validateItem`). The code is the reference; this section only records why it has this shape. The domain classes carry no ids their caller already has: an `Item` or a `Member` is always read within its space, so neither holds the space id.
 
 Why this shape:
 
@@ -302,7 +207,7 @@ Why this shape:
 - **Adding a module is compiler-guided.** A new `ModuleType` entry and `Module` class break every `when` above, plus the mapper and the module card, until each handles it. `all` is derived from `get`, so it cannot fall out of step.
 - **`ItemStatus.Done` carries who and when,** so "done without a completer" cannot be built. It maps to `status`, `completedBy` and `completedAt`.
 - **`Assignment.assigneeId` is on the interface** because lists and filters ask "whose is this now" without caring about the mode. Rotation (Sprint 2) becomes one more subtype that answers it.
-- **Validation returns errors, it does not throw.** The classes can hold invalid values on purpose: a form needs to show what is wrong, and a malformed document or assistant proposal must not crash the app. Rules inside one module, across modules (a reminder needs a schedule) and against the space (assignee is a member) all come out of one `validate`, called before every write and on every proposal.
+- **Validation returns errors, it does not throw.** The classes can hold invalid values on purpose: a form needs to show what is wrong, and a malformed document or assistant proposal must not crash the app. Rules inside one module, across modules (a reminder needs a schedule) and against the space (assignee is a member) all come out of one `validateItem`, called before every write and on every proposal.
 - **`Instant` and `Duration` are `kotlin.time`,** `LocalDate` and `LocalTime` are kotlinx-datetime. Checklist entries are a list in the domain, ordered by the stored `order`.
 
 ## Alternatives considered
