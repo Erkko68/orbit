@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 
@@ -23,6 +24,7 @@ fun OrbitListItem(
     modifier: Modifier = Modifier,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
+    titleDecoration: TextDecoration = TextDecoration.None,
 ) {
     Row(
         modifier = modifier,
@@ -37,6 +39,7 @@ fun OrbitListItem(
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                textDecoration = titleDecoration,
             )
             Text(
                 text = supporting,

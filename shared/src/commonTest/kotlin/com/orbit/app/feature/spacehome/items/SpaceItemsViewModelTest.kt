@@ -101,4 +101,69 @@ class SpaceItemsViewModelTest {
         assertFalse(viewModel.uiState.value.loadFailed)
         assertEquals(listOf("Book plumber"), viewModel.uiState.value.items.map { it.title })
     }
+
+    @Test
+    fun completesAndReopensItem() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val id = spaces.createSpace("Flat 4B", accent = 0)
+        val itemId = items.create(id, NewItem("Book plumber", preset = Preset.TASK))
+        val viewModel = SpaceItemsViewModel(id, items)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        val initial = viewModel.uiState.first { it.items.isNotEmpty() }
+        assertFalse(initial.items.single().done)
+
+        viewModel.complete(itemId)
+        val completed = viewModel.uiState.first { it.items.single().done }
+        assertTrue(completed.items.single().done)
+
+        viewModel.reopen(itemId)
+        val reopened = viewModel.uiState.first { !it.items.single().done }
+        assertFalse(reopened.items.single().done)
+    }
+
+    @Test
+    fun movesDoneItemsUnderOpenItems() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val id = spaces.createSpace("Flat 4B", accent = 0)
+        val firstId = items.create(id, NewItem("First task", preset = Preset.TASK))
+        items.create(id, NewItem("Second task", preset = Preset.TASK))
+        items.create(id, NewItem("Third task", preset = Preset.TASK))
+        val viewModel = SpaceItemsViewModel(id, items)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.complete(firstId)
+        val state = viewModel.uiState.first { it.items.size == 3 && it.items.last().done }
+
+        assertEquals(listOf("Second task", "Third task", "First task"), state.items.map { it.title })
+        assertEquals(listOf(false, false, true), state.items.map { it.done })
+    }
+
+    @Test
+    fun flagsFailureWhenCompleteFails() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val id = spaces.createSpace("Flat 4B", accent = 0)
+        val itemId = items.create(id, NewItem("Book plumber", preset = Preset.TASK))
+        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write failed") } }
+        val viewModel = SpaceItemsViewModel(id, controlled)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.complete(itemId)
+        val state = viewModel.uiState.first { it.failed }
+        assertTrue(state.failed)
+    }
+
+    @Test
+    fun flagsFailureWhenReopenFails() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val id = spaces.createSpace("Flat 4B", accent = 0)
+        val itemId = items.create(id, NewItem("Book plumber", preset = Preset.TASK))
+        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write failed") } }
+        val viewModel = SpaceItemsViewModel(id, controlled)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.reopen(itemId)
+        val state = viewModel.uiState.first { it.failed }
+        assertTrue(state.failed)
+    }
 }

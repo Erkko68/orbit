@@ -128,6 +128,9 @@
     <string name="item_not_found">Item not found</string>
     <string name="item_not_found_body">This item is no longer available in this space.</string>
     <string name="item_action_failed">Action failed. Try again.</string>
+    <string name="item_status_done">Done</string>
+    <string name="item_complete">Complete item</string>
+    <string name="item_reopen">Reopen item</string>
     <string name="module_schedule_title">Schedule</string>
     <string name="module_schedule_remove">Remove schedule</string>
     <string name="module_schedule_edit">Edit schedule</string>

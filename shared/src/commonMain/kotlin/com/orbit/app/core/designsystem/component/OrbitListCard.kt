@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextDecoration
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
@@ -21,12 +22,16 @@ fun OrbitListCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     iconTint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    titleDecoration: TextDecoration = TextDecoration.None,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     OrbitCard(modifier, onClick = onClick) {
         OrbitListItem(
             title = title,
             supporting = supporting,
             leading = { Icon(painterResource(icon), contentDescription = null, tint = iconTint) },
+            trailing = trailing,
+            titleDecoration = titleDecoration,
         )
     }
 }

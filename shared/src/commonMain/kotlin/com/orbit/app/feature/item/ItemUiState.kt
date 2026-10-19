@@ -2,6 +2,7 @@ package com.orbit.app.feature.item
 
 import com.orbit.app.core.initialsOf
 import com.orbit.app.domain.model.Assignment
+import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.Preset
@@ -19,6 +20,7 @@ data class ItemUiState(
     val title: String = "",
     val description: String? = null,
     val preset: Preset? = null,
+    val status: ItemStatus = ItemStatus.Open,
     val modules: List<Module> = emptyList(),
     val loading: Boolean = true,
     val loadFailed: Boolean = false,
@@ -30,6 +32,7 @@ data class ItemUiState(
     /** The schedule being edited, while its dialog is open. */
     val scheduleEditor: ScheduleEditor? = null,
 ) {
+    val isDone: Boolean get() = status is ItemStatus.Done
     val canSubmit: Boolean get() = !loading && !loadFailed && !notFound && !submitting
     val canSaveSchedule: Boolean get() = canSubmit && scheduleEditor?.schedule != null
     val visibleDescription: String? get() = description?.takeIf { it.isNotBlank() }

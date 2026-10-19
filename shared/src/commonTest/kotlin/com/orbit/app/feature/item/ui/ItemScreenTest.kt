@@ -21,6 +21,7 @@ import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.ItemModules
+import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Reminder
@@ -368,6 +369,34 @@ class ItemScreenTest : ComposeTest() {
         val saved = runBlocking { items.observeItems("space-1").first().single { it.id == itemId } }
         assertEquals(Schedule(LocalDate(2026, 10, 26), time = LocalTime(20, 0)), saved.modules.schedule)
         onNodeWithText("Save").assertDoesNotExist()
+    }
+
+    @Test
+    fun completesAndReopensItemFromHeader() = runComposeUiTest {
+        val itemId = createItem(NewItem("Buy milk", preset = Preset.TASK))
+        val viewModel = model(itemId, items)
+        setContent {
+            OrbitTheme {
+                ItemScreen(spaceId = "space-1", itemId = itemId, onBack = {}, viewModel = viewModel)
+            }
+        }
+
+        onNodeWithText("Done").assertDoesNotExist()
+        onNodeWithContentDescription("Complete item").performScrollTo().performClick()
+        waitForIdle()
+
+        onNodeWithText("Done").performScrollTo().assertIsDisplayed()
+        onNodeWithContentDescription("Reopen item").performScrollTo().assertIsDisplayed()
+        val completed = runBlocking { items.observeItems("space-1").first().single { it.id == itemId } }
+        assertTrue(completed.status is ItemStatus.Done)
+
+        onNodeWithContentDescription("Reopen item").performScrollTo().performClick()
+        waitForIdle()
+
+        onNodeWithText("Done").assertDoesNotExist()
+        onNodeWithContentDescription("Complete item").performScrollTo().assertIsDisplayed()
+        val reopened = runBlocking { items.observeItems("space-1").first().single { it.id == itemId } }
+        assertTrue(reopened.status is ItemStatus.Open)
     }
 
     private fun model(id: String, repository: ItemRepository): ItemViewModel =
