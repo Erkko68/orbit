@@ -25,6 +25,7 @@ import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.startTestKoin
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.koin.core.context.stopKoin
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -111,15 +112,15 @@ class SpaceHomeWithDataTest : ComposeTest() {
         onNodeWithContentDescription("Complete item").performScrollTo().performClick()
         waitForIdle()
 
-        val completed = items.observeItems(id).first().single { it.id == itemId }
-        assertTrue(completed.status is ItemStatus.Done)
+        val completed = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
+        assertTrue(completed.status is ItemStatus.Done, "Expected item to be Done but was: ${completed.status}")
         onNodeWithContentDescription("Reopen item").performScrollTo().assertIsDisplayed()
 
         onNodeWithContentDescription("Reopen item").performScrollTo().performClick()
         waitForIdle()
 
-        val reopened = items.observeItems(id).first().single { it.id == itemId }
-        assertTrue(reopened.status is ItemStatus.Open)
+        val reopened = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
+        assertTrue(reopened.status is ItemStatus.Open, "Expected item to be Open but was: ${reopened.status}")
         onNodeWithContentDescription("Complete item").performScrollTo().assertIsDisplayed()
     }
 }
