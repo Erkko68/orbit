@@ -9,6 +9,7 @@ import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import co.touchlab.kermit.Logger
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
 import com.orbit.app.domain.model.AuthError
@@ -34,18 +35,9 @@ class AndroidGoogleAuthClient(
             )
 
         val credentialManager = CredentialManager.create(activity)
-        val googleIdOption = GetGoogleIdOption.Builder()
-            .setServerClientId(serverClientId)
-            .setFilterByAuthorizedAccounts(false)
-            .setAutoSelectEnabled(false)
-            .build()
-
-        val request = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
 
         return try {
-            val result = credentialManager.getCredential(context = activity, request = request)
+            val result = credentialManager.getCredential(context = activity, request = signInRequest(serverClientId))
             val credential = result.credential
             if (credential is CustomCredential && credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
@@ -70,6 +62,14 @@ class AndroidGoogleAuthClient(
             throw AuthException(AuthError.UNKNOWN, e)
         }
     }
+
+    /**
+     * The full Sign in with Google sheet, which the button calls for: unlike the one-tap [GetGoogleIdOption],
+     * it also lets the user add an account, so a phone without one is not a dead end.
+     */
+    internal fun signInRequest(serverClientId: String): GetCredentialRequest = GetCredentialRequest.Builder()
+        .addCredentialOption(GetSignInWithGoogleOption.Builder(serverClientId).build())
+        .build()
 
     private fun resolveServerClientId(context: Context): String? {
         val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
