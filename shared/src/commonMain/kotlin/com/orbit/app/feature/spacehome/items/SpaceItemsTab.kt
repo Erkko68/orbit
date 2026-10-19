@@ -27,7 +27,7 @@ internal fun SpaceItemsTab(
     spaceId: String,
     onOpenItem: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SpaceItemsViewModel = koinViewModel(key = spaceId) { parametersOf(spaceId) },
+    viewModel: SpaceItemsViewModel = koinViewModel(key = "items-$spaceId") { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {

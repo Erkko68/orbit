@@ -36,7 +36,6 @@ import org.koin.core.parameter.parametersOf
 internal fun InviteCard(
     spaceId: String,
     modifier: Modifier = Modifier,
-    // Not keyed by the id alone: the members tab keys its own view model by it, and a clash would clear that one.
     viewModel: InviteViewModel = koinViewModel(key = "invite-$spaceId") { parametersOf(spaceId) },
     sharer: TextSharer = koinInject(),
 ) {

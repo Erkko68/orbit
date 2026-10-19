@@ -19,7 +19,7 @@ import org.koin.core.parameter.parametersOf
 internal fun SpaceMembersTab(
     spaceId: String,
     modifier: Modifier = Modifier,
-    viewModel: SpaceMembersViewModel = koinViewModel(key = spaceId) { parametersOf(spaceId) },
+    viewModel: SpaceMembersViewModel = koinViewModel(key = "members-$spaceId") { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {

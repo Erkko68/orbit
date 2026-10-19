@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
@@ -67,6 +68,21 @@ class SpaceHomeScreenTest : ComposeTest() {
 
         onNodeWithText("Members").performClick().assertIsSelected()
         onNodeWithText("Nothing scheduled for today").assertDoesNotExist()
+    }
+
+    @Test
+    fun theItemsTabKeepsItsFilterAcrossTabs() = runComposeUiTest {
+        setContent {
+            OrbitTheme {
+                SpaceHomeScreen("space-1", onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)
+            }
+        }
+        onNodeWithText("Lists").performScrollTo().performClick().assertIsSelected()
+
+        onNodeWithText("Members").performClick()
+        onNodeWithText("Items").performClick()
+
+        onNodeWithText("Lists").performScrollTo().assertIsSelected()
     }
 
     @Test

@@ -39,7 +39,7 @@ internal fun SpaceCard(
     spaceId: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SpaceCardViewModel = koinViewModel(key = spaceId) { parametersOf(spaceId) },
+    viewModel: SpaceCardViewModel = koinViewModel(key = "space-card-$spaceId") { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     OrbitCard(modifier, onClick = onClick, elevated = true) {
