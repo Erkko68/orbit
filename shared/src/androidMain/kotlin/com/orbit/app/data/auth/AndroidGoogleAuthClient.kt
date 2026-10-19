@@ -1,5 +1,6 @@
 package com.orbit.app.data.auth
 
+import android.app.Activity
 import android.content.Context
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
@@ -16,16 +17,23 @@ import kotlinx.coroutines.CancellationException
 
 class AndroidGoogleAuthClient(
     private val context: Context,
+    private val activityProvider: () -> Activity? = { context as? Activity },
 ) : GoogleAuthClient {
 
     override suspend fun getCredential(): GoogleAuthCredential? {
-        val serverClientId = resolveServerClientId()
+        val activity = activityProvider()
+            ?: throw AuthException(
+                AuthError.UNKNOWN,
+                IllegalStateException("Google Sign-In requires an active Activity context"),
+            )
+
+        val serverClientId = resolveServerClientId(activity)
             ?: throw AuthException(
                 AuthError.UNKNOWN,
                 IllegalStateException("Google Sign-In is not configured: default_web_client_id string resource not found"),
             )
 
-        val credentialManager = CredentialManager.create(context)
+        val credentialManager = CredentialManager.create(activity)
         val googleIdOption = GetGoogleIdOption.Builder()
             .setServerClientId(serverClientId)
             .setFilterByAuthorizedAccounts(false)
@@ -37,7 +45,7 @@ class AndroidGoogleAuthClient(
             .build()
 
         return try {
-            val result = credentialManager.getCredential(context = context, request = request)
+            val result = credentialManager.getCredential(context = activity, request = request)
             val credential = result.credential
             if (credential is CustomCredential && credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 val googleIdTokenCredential = GoogleIdTokenCredential.createFrom(credential.data)
@@ -63,7 +71,7 @@ class AndroidGoogleAuthClient(
         }
     }
 
-    private fun resolveServerClientId(): String? {
+    private fun resolveServerClientId(context: Context): String? {
         val resId = context.resources.getIdentifier("default_web_client_id", "string", context.packageName)
         return if (resId != 0) {
             context.getString(resId).takeIf { it.isNotBlank() }
