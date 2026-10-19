@@ -1,10 +1,12 @@
 package com.orbit.app.di
 
 import com.orbit.app.data.repository.FirebaseAuthRepository
+import com.orbit.app.data.repository.FirestoreInvitationRepository
 import com.orbit.app.data.repository.FirestoreItemRepository
 import com.orbit.app.data.repository.FirestoreSpaceRepository
 import com.orbit.app.data.repository.SettingsLastSpaceRepository
 import com.orbit.app.domain.repository.AuthRepository
+import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -17,6 +19,7 @@ import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.feature.space.card.SpaceCardViewModel
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.feature.spacehome.items.SpaceItemsViewModel
+import com.orbit.app.feature.spacehome.members.InviteViewModel
 import com.orbit.app.feature.spacehome.members.SpaceMembersViewModel
 import com.russhwolf.settings.Settings
 import dev.gitlive.firebase.Firebase
@@ -47,6 +50,7 @@ val dataModule = module {
     singleOf(::FirebaseAuthRepository) bind AuthRepository::class
     singleOf(::FirestoreSpaceRepository) bind SpaceRepository::class
     singleOf(::FirestoreItemRepository) bind ItemRepository::class
+    singleOf(::FirestoreInvitationRepository) bind InvitationRepository::class
     single { Settings() }
     singleOf(::SettingsLastSpaceRepository) bind LastSpaceRepository::class
 }
@@ -67,4 +71,5 @@ val featureModule = module {
     viewModelOf(::SpaceHomeViewModel)
     viewModelOf(::SpaceItemsViewModel)
     viewModelOf(::SpaceMembersViewModel)
+    viewModelOf(::InviteViewModel)
 }

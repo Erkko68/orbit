@@ -87,5 +87,31 @@ service cloud.firestore {
         allow delete: if isMember(spaceId);
       }
     }
+
+    // invitations/{code}: an invitation to one space, the document id being the code (ADR 0002).
+    // A bearer capability: whoever knows the code reads it by id, nobody lists them across spaces.
+    // Joining writes to the space itself and its rules are added with #25.
+    match /invitations/{code} {
+      allow get: if isAuthenticated();
+      allow list: if isAuthenticated() && isAdminOrOwner(resource.data.spaceId);
+      allow create: if isAuthenticated()
+        && code.matches('^[A-HJ-NP-Z2-9]{8}$')
+        && request.resource.data.keys().hasOnly(['spaceId', 'createdBy', 'createdAt', 'expiresAt', 'revoked'])
+        && request.resource.data.keys().hasAll(['spaceId', 'createdBy', 'createdAt', 'expiresAt', 'revoked'])
+        && request.resource.data.spaceId is string
+        && isAdminOrOwner(request.resource.data.spaceId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.expiresAt is timestamp
+        && request.resource.data.expiresAt > request.time
+        && request.resource.data.expiresAt <= request.time + duration.value(30, 'd')
+        && request.resource.data.revoked == false;
+      // Revoking is the only change, and it cannot be undone.
+      allow update: if isAuthenticated()
+        && isAdminOrOwner(resource.data.spaceId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revoked'])
+        && request.resource.data.revoked == true;
+      allow delete: if false;
+    }
   }
 }

@@ -23,6 +23,7 @@ internal fun SpaceMembersTab(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
+        InviteCard(spaceId)
         state.members.forEachIndexed { index, member ->
             OrbitListItem(
                 title = member.name,

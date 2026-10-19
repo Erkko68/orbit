@@ -4,23 +4,25 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitCard
+import com.orbit.app.core.designsystem.component.OrbitAssistChip
+import com.orbit.app.core.designsystem.component.OrbitAvatar
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitErrorState
-import com.orbit.app.core.designsystem.component.OrbitFilterChip
 import com.orbit.app.core.designsystem.component.OrbitIconButton
+import com.orbit.app.core.designsystem.component.OrbitInset
 import com.orbit.app.core.designsystem.component.OrbitLoadingState
 import com.orbit.app.core.designsystem.component.OrbitModuleCard
+import com.orbit.app.core.designsystem.component.OrbitPill
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
@@ -77,6 +79,7 @@ import orbit.shared.generated.resources.module_schedule_title
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.retry
 import org.jetbrains.compose.resources.stringResource
+import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
@@ -130,7 +133,7 @@ fun ItemScreen(
             )
 
             else -> {
-                ItemHeader(state)
+                ItemHeader(state, typeLabel)
                 for (module in state.modules) {
                     RenderModuleCard(
                         module = module,
@@ -154,15 +157,20 @@ fun ItemScreen(
 }
 
 @Composable
-private fun ItemHeader(state: ItemUiState) {
+private fun ItemHeader(state: ItemUiState, typeLabel: String) {
     OrbitCard(
         modifier = Modifier.fillMaxWidth(),
         elevated = true,
         verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
     ) {
+        OrbitPill(typeLabel)
         Text(state.title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
         state.visibleDescription?.let { description ->
-            Text(description, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                description,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
@@ -203,7 +211,14 @@ private fun RenderModuleCard(module: Module, state: ItemUiState, onRemove: () ->
                 val dateAndTime = module.time?.let { time ->
                     stringResource(Res.string.module_schedule_time, date, time.toString())
                 } ?: date
-                Text(dateAndTime, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                OrbitInset(Modifier.fillMaxWidth()) {
+                    Icon(
+                        painterResource(Res.drawable.ic_event),
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(dateAndTime, style = MaterialTheme.typography.bodyLarge)
+                }
                 module.duration?.let { duration ->
                     Text(
                         stringResource(Res.string.module_schedule_duration, duration.toString()),
@@ -217,12 +232,23 @@ private fun RenderModuleCard(module: Module, state: ItemUiState, onRemove: () ->
                 val assignee = when (module) {
                     Assignment.Anyone -> stringResource(Res.string.module_assignment_anyone)
                     is Assignment.Claim -> if (module.assigneeId == null) stringResource(Res.string.module_assignment_unassigned)
-                    else state.memberNames[module.assigneeId] ?: stringResource(Res.string.item_unknown_member)
+                    else state.assigneeName ?: stringResource(Res.string.item_unknown_member)
 
-                    is Assignment.ToMember -> state.memberNames[module.assigneeId]
-                        ?: stringResource(Res.string.item_unknown_member)
+                    is Assignment.ToMember -> state.assigneeName ?: stringResource(Res.string.item_unknown_member)
                 }
-                Text(assignee, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+                OrbitInset(Modifier.fillMaxWidth()) {
+                    val initials = state.assigneeInitials
+                    if (initials != null) {
+                        OrbitAvatar(initials = initials, accent = MaterialTheme.colorScheme.primary)
+                    } else {
+                        Icon(
+                            painterResource(Res.drawable.ic_person),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(assignee, style = MaterialTheme.typography.bodyLarge)
+                }
             }
 
             is Checklist -> {
@@ -233,12 +259,9 @@ private fun RenderModuleCard(module: Module, state: ItemUiState, onRemove: () ->
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    Column {
+                    Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
                         for (entry in module.entries) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
+                            OrbitInset(Modifier.fillMaxWidth()) {
                                 // Rendering the module here; editing its entries belongs to the checklist flow.
                                 Checkbox(checked = entry.checked, onCheckedChange = null)
                                 val label = entry.quantity?.let { quantity ->
@@ -289,9 +312,8 @@ private fun AddDetailSection(available: List<ModuleType>, enabled: Boolean, onAd
                     ModuleType.CHECKLIST -> Res.string.module_add_checklist
                     ModuleType.REMINDER -> Res.string.module_add_reminder
                 }
-                OrbitFilterChip(
+                OrbitAssistChip(
                     label = stringResource(label),
-                    selected = false,
                     enabled = enabled,
                     onClick = { onAdd(type) },
                 )
