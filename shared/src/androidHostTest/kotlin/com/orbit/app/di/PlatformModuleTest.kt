@@ -2,6 +2,7 @@ package com.orbit.app.di
 
 import android.app.Activity
 import com.orbit.app.core.designsystem.ComposeTest
+import com.orbit.app.core.notification.NotificationScheduler
 import com.orbit.app.data.auth.ActivityProvider
 import com.orbit.app.data.auth.GoogleAuthClient
 import org.koin.android.ext.koin.androidContext
@@ -31,6 +32,8 @@ class PlatformModuleTest : ComposeTest() {
 
         val client = koin.get<GoogleAuthClient>()
         assertNotNull(client)
+
+        assertNotNull(koin.get<NotificationScheduler>())
         koinApp.close()
     }
 

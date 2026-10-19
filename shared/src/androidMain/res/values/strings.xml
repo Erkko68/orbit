@@ -1,0 +1,4 @@
+<resources>
+    <!-- Android-only system UI (notification channels), which Compose resources cannot reach outside a composition. -->
+    <string name="notification_channel_reminders">Reminders</string>
+</resources>
