@@ -5,7 +5,7 @@ Not started: the bar is the plan. It starts when the issue's blockers end and a 
 sprint or in the past, and lasts as long as its estimate says.
 Assigned: Status -> In progress, the bar starts the day of the assignment and ends when the estimate says it should.
 PR opened: the bar ends that day, and Deviation (days) says how far that is from the estimate.
-Run with --print to see the changes without touching the project. docs/project-automation/ has the full picture.
+Run with --print to see the changes without touching the project. docs/process/project-automation.md has the full picture.
 """
 import json
 import math

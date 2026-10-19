@@ -31,14 +31,21 @@ iosApp/                     Xcode project, SwiftUI entry point
 shared/src/commonMain/kotlin/com/orbit/app/
   core/designsystem/theme   OrbitTheme: colors, type, shapes, motion
   core/navigation           Type-safe routes and OrbitNavHost
-  domain/model              Plain Kotlin models
+  core/designsystem/component  Orbit… components every screen is built from
+  core                      Load and attempt: how ViewModels read and write
+  domain/model              Plain Kotlin models and validation
   domain/repository         Repository interfaces
-  data/repository           Repository implementations
-  feature/<name>            ui/, ViewModel and UiState per feature
+  data/repository           Firestore implementations
+  feature/<name>            ui/, ViewModel and UiState per feature, a subfolder per component
   di                        Koin modules and initKoin()
 shared/src/androidMain, iosMain   Platform actuals under the same packages
-firebase/                   Firestore rules and Cloud Functions (Python)
+shared/src/commonTest       Unit and UI tests, with the shared fakes in testing/
+firebase/                   Firestore rules and their tests, Cloud Functions (Python)
+docs/                       Architecture, schema, roles, workflow and decisions
 ```
+
+## Documentation
+Start at [docs/](docs/README.md): the [architecture](docs/architecture/overview.md), the [Firestore schema](docs/data/firestore-schema.md), [security rules and roles](docs/data/security-rules.md), the [workflow](docs/process/workflow.md) and the [decision records](docs/adr/README.md).
 
 ## Contributing
 Work is tracked on a GitHub Projects board with one milestone per sprint, and every change starts from an issue. See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [AGENTS.md](AGENTS.md) for the full project rules.

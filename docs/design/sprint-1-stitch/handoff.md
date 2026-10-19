@@ -1,5 +1,7 @@
 # Orbit Stitch Mockups — Sprint 1 Handoff
 
+> **Historical.** This is the Sprint 1 design delivery, kept as it was handed over, with its mockups in [`mockups.zip`](mockups.zip). The app has moved on: the [design system](../../architecture/design-system.md) and the style guide in AGENTS.md ("UI and theme", from #198) are what the screens follow now. Where this page and the code differ, the code wins.
+
 ## 1. Delivery status and scope
 
 This handoff contains the completed **Sprint 1 Orbit mockups** created in Google Stitch.
