@@ -1,5 +1,6 @@
 package com.orbit.app.data.mapper
 
+import com.orbit.app.core.deviceLanguage
 import com.orbit.app.domain.model.User
 import kotlinx.datetime.TimeZone
 
@@ -39,7 +40,7 @@ internal fun mapUser(
 internal fun userProfileDocument(
     displayName: String,
     photoUrl: String? = null,
-    language: String = DEFAULT_LANGUAGE,
+    language: String = deviceLanguage(),
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ): Map<String, Any?> = buildMap {
     put("displayName", displayName)
@@ -48,4 +49,13 @@ internal fun userProfileDocument(
     put("timeZone", timeZone.id)
 }
 
+internal fun devicePreferencesDocument(
+    language: String = deviceLanguage(),
+    timeZone: TimeZone = TimeZone.currentSystemDefault(),
+): Map<String, String> = mapOf(
+    "language" to language,
+    "timeZone" to timeZone.id,
+)
+
 private const val DEFAULT_LANGUAGE = "en"
+

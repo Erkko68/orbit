@@ -1,5 +1,6 @@
 package com.orbit.app.data.mapper
 
+import com.orbit.app.core.deviceLanguage
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -98,7 +99,26 @@ class UserMapperTest {
 
         assertEquals("David", doc["displayName"])
         assertNull(doc["photoUrl"])
-        assertEquals("en", doc["language"])
+        assertEquals(deviceLanguage(), doc["language"])
+        assertEquals(TimeZone.currentSystemDefault().id, doc["timeZone"])
+    }
+
+    @Test
+    fun buildsDevicePreferencesDocument() {
+        val doc = devicePreferencesDocument(
+            language = "ca",
+            timeZone = TimeZone.of("Europe/Madrid"),
+        )
+
+        assertEquals("ca", doc["language"])
+        assertEquals("Europe/Madrid", doc["timeZone"])
+    }
+
+    @Test
+    fun buildsDevicePreferencesDocumentWithDefaults() {
+        val doc = devicePreferencesDocument()
+
+        assertEquals(deviceLanguage(), doc["language"])
         assertEquals(TimeZone.currentSystemDefault().id, doc["timeZone"])
     }
 }

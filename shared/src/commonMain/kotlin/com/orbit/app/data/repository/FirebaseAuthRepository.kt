@@ -2,6 +2,7 @@ package com.orbit.app.data.repository
 
 import co.touchlab.kermit.Logger
 import com.orbit.app.data.auth.GoogleAuthClient
+import com.orbit.app.data.mapper.devicePreferencesDocument
 import com.orbit.app.data.mapper.googleSignInException
 import com.orbit.app.data.mapper.mapUser
 import com.orbit.app.data.mapper.registerException
@@ -15,6 +16,7 @@ import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import dev.gitlive.firebase.firestore.where
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,12 +57,16 @@ class FirebaseAuthRepository(
     }.shareIn(scope, SharingStarted.WhileSubscribed(5_000, replayExpirationMillis = 0), replay = 1)
 
     override suspend fun signIn(email: String, password: String) {
-        try {
+        val result = try {
             auth.signInWithEmailAndPassword(email, password)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             throw signInException(e)
+        }
+        val user = result.user ?: auth.currentUser
+        if (user != null) {
+            updateDevicePreferences(user.uid)
         }
     }
 
@@ -79,9 +85,36 @@ class FirebaseAuthRepository(
             .set(profile, merge = true)
     }
 
-    // Stubs: the account screen calls them, but they change nothing in Firebase yet (#172, #188).
+    /**
+     * Renames the user in their `users/{uid}` profile and in their member document in every space
+     * they belong to in a single batch, so profile copies never drift (ADR 0002).
+     */
     override suspend fun updateDisplayName(displayName: String) {
-        Logger.w { "updateDisplayName is a stub (#172)" }
+        val trimmed = displayName.trim()
+        require(trimmed.isNotBlank()) { "A display name is required" }
+        val user = checkNotNull(auth.currentUser) { "Not signed in" }
+
+        val spacesSnapshot = try {
+            firestore.collection(SPACES_COLLECTION)
+                .where { "memberIds" contains user.uid }
+                .get()
+        } catch (e: CancellationException) {
+            throw e
+        }
+
+        val batch = firestore.batch()
+        val userDoc = firestore.collection(USERS_COLLECTION).document(user.uid)
+        batch.set(userDoc, mapOf("displayName" to trimmed), merge = true)
+
+        spacesSnapshot.documents.forEach { spaceDoc ->
+            val memberDoc = firestore.collection(SPACES_COLLECTION)
+                .document(spaceDoc.id)
+                .collection(MEMBERS_COLLECTION)
+                .document(user.uid)
+            batch.set(memberDoc, mapOf("displayName" to trimmed), merge = true)
+        }
+
+        writeLocally("Rename user ${user.uid}") { batch.commit() }
     }
 
     override suspend fun changePassword(currentPassword: String, newPassword: String) {
@@ -106,13 +139,17 @@ class FirebaseAuthRepository(
     }
 
     /**
-     * Gives a first-time Google user a profile. Only when the read says there is none: a failed read
-     * writes nothing, so an existing profile is never overwritten with the Google one.
+     * Gives a first-time Google user a profile, or updates language and time zone from the device
+     * if the profile already exists. Only when the read says there is none: a failed read writes
+     * nothing, so an existing profile is never overwritten with the Google one.
      */
     private suspend fun ensureUserProfile(user: FirebaseUser) {
         val document = firestore.collection(USERS_COLLECTION).document(user.uid)
         try {
-            if (document.get().exists) return
+            if (document.get().exists) {
+                updateDevicePreferences(user.uid)
+                return
+            }
             val displayName = user.displayName?.ifBlank { null } ?: user.email?.substringBefore('@').orEmpty()
             val profile = userProfileDocument(displayName = displayName, photoUrl = user.photoURL) +
                 mapOf("createdAt" to FieldValue.serverTimestamp)
@@ -121,7 +158,20 @@ class FirebaseAuthRepository(
             throw e
         } catch (e: Exception) {
             // The session shows the Google name and photo meanwhile; the next sign-in tries again.
-            Logger.w(e) { "Could not create the profile of ${user.uid}" }
+            Logger.w(e) { "Could not create or update the profile of ${user.uid}" }
+        }
+    }
+
+    /** Syncs the device's language and time zone to the user's private profile document. */
+    private suspend fun updateDevicePreferences(uid: String) {
+        try {
+            firestore.collection(USERS_COLLECTION)
+                .document(uid)
+                .set(devicePreferencesDocument(), merge = true)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Logger.w(e) { "Could not update device preferences for $uid" }
         }
     }
 
@@ -143,5 +193,7 @@ class FirebaseAuthRepository(
 
     private companion object {
         const val USERS_COLLECTION = "users"
+        const val SPACES_COLLECTION = "spaces"
+        const val MEMBERS_COLLECTION = "members"
     }
 }
