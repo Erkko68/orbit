@@ -4,9 +4,11 @@ import com.orbit.app.data.repository.FirebaseAuthRepository
 import com.orbit.app.data.repository.FirestoreInvitationRepository
 import com.orbit.app.data.repository.FirestoreItemRepository
 import com.orbit.app.data.repository.FirestoreSpaceRepository
+import com.orbit.app.data.repository.SettingsLastSpaceRepository
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.ItemRepository
+import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.account.AccountViewModel
 import com.orbit.app.feature.auth.CreateAccountViewModel
@@ -50,6 +52,7 @@ val dataModule = module {
     singleOf(::FirestoreItemRepository) bind ItemRepository::class
     singleOf(::FirestoreInvitationRepository) bind InvitationRepository::class
     single { Settings() }
+    singleOf(::SettingsLastSpaceRepository) bind LastSpaceRepository::class
 }
 
 val domainModule = module {

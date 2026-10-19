@@ -12,6 +12,7 @@ import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.data.repository.InMemoryItemRepository
+import com.orbit.app.data.repository.InMemoryLastSpaceRepository
 import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
@@ -46,7 +47,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         )
         val items = InMemoryItemRepository(auth)
         startTestKoin(auth, spaces, items)
-        val viewModel = SpaceHomeViewModel("space-1", spaces, items)
+        val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository())
         setContent {
             OrbitTheme {
                 SpaceHomeScreen("space-1", onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)
@@ -70,7 +71,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         items.create(id, NewItem("Book plumber", preset = Preset.TASK))
         items.create(id, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
         startTestKoin(auth, spaces, items)
-        val viewModel = SpaceHomeViewModel(id, spaces, items)
+        val viewModel = SpaceHomeViewModel(id, spaces, items, InMemoryLastSpaceRepository())
         setContent {
             OrbitTheme {
                 SpaceHomeScreen(id, onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)

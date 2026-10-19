@@ -13,6 +13,7 @@ import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.data.repository.InMemoryItemRepository
+import com.orbit.app.data.repository.InMemoryLastSpaceRepository
 import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.testing.startTestKoin
@@ -27,7 +28,7 @@ class SpaceHomeScreenTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
     private val spaces = InMemorySpaceRepository(auth)
     private val items = InMemoryItemRepository(auth)
-    private val viewModel = SpaceHomeViewModel("space-1", spaces, items)
+    private val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository())
 
     // The items and members tabs get their view models from Koin.
     @BeforeTest
