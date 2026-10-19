@@ -12,24 +12,32 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitAvatarStack
+import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitCard
+import com.orbit.app.core.designsystem.component.OrbitDialog
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitExtendedFab
+import com.orbit.app.core.designsystem.component.OrbitFilterChip
 import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
+import com.orbit.app.core.designsystem.component.OrbitTextField
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
+import com.orbit.app.domain.model.Preset
 import com.orbit.app.feature.spacehome.SpaceHomeTab
 import com.orbit.app.feature.spacehome.SpaceHomeUiState
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
+import com.orbit.app.feature.spacehome.label
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
 import com.orbit.app.feature.spacehome.members.SpaceMembersTab
 import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.cancel
 import orbit.shared.generated.resources.ic_add
 import orbit.shared.generated.resources.ic_notifications
 import orbit.shared.generated.resources.ic_swap_horiz
@@ -38,6 +46,9 @@ import orbit.shared.generated.resources.space_agenda_empty_title
 import orbit.shared.generated.resources.space_bills_due
 import orbit.shared.generated.resources.space_events_today
 import orbit.shared.generated.resources.space_new_item
+import orbit.shared.generated.resources.space_new_item_create
+import orbit.shared.generated.resources.space_new_item_failed
+import orbit.shared.generated.resources.space_new_item_name
 import orbit.shared.generated.resources.space_notifications
 import orbit.shared.generated.resources.space_open_tasks
 import orbit.shared.generated.resources.space_switch
@@ -49,8 +60,8 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * Home of a space, laid out as in the Sprint 1 mockups: its members, a summary and the items, agenda
- * and members tabs. The items and members tabs load themselves. Placeholders until their
- * features land: notifications, New item, the bills and events counts, and the agenda.
+ * and members tabs. The items and members tabs load themselves; "New item" creates one from a preset and
+ * opens it. Placeholders until their features land: notifications, the bills and events counts, and the agenda.
  * [onSwitchSpace] goes back to the list of spaces.
  */
 @Composable
@@ -78,11 +89,10 @@ fun SpaceHomeScreen(
             )
         },
         floatingActionButton = {
-            // Placeholder until the create-item flow (#36).
             OrbitExtendedFab(
                 text = stringResource(Res.string.space_new_item),
                 icon = Res.drawable.ic_add,
-                onClick = {},
+                onClick = viewModel::openNewItem,
             )
         },
         scrollable = true,
@@ -105,6 +115,49 @@ fun SpaceHomeScreen(
             SpaceHomeTab.AGENDA -> Agenda()
             SpaceHomeTab.MEMBERS -> SpaceMembersTab(spaceId)
         }
+    }
+    if (state.newItemOpen) {
+        NewItemDialog(state, viewModel)
+    }
+    state.createdItemId?.let { itemId ->
+        LaunchedEffect(itemId) {
+            onOpenItem(itemId)
+            viewModel.onCreatedItemOpened()
+        }
+    }
+}
+
+/** Picks a preset and names the item, which opens once created. */
+@Composable
+private fun NewItemDialog(state: SpaceHomeUiState, viewModel: SpaceHomeViewModel) {
+    OrbitDialog(
+        title = stringResource(Res.string.space_new_item),
+        dismissText = stringResource(Res.string.cancel),
+        onDismiss = viewModel::dismissNewItem,
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
+            for (preset in Preset.entries) {
+                OrbitFilterChip(
+                    label = stringResource(preset.label),
+                    selected = preset == state.newItemPreset,
+                    onClick = { viewModel.selectNewItemPreset(preset) },
+                )
+            }
+        }
+        OrbitTextField(
+            value = state.newItemTitle,
+            onValueChange = viewModel::onNewItemTitleChange,
+            placeholder = stringResource(Res.string.space_new_item_name),
+            modifier = Modifier.fillMaxWidth(),
+            isError = state.createFailed,
+            supportingText = if (state.createFailed) stringResource(Res.string.space_new_item_failed) else null,
+        )
+        OrbitButton(
+            text = stringResource(Res.string.space_new_item_create),
+            onClick = viewModel::createItem,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = state.canCreate,
+        )
     }
 }
 

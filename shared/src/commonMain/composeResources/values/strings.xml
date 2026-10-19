@@ -73,6 +73,9 @@
     <string name="space_switch">Switch space</string>
     <string name="space_notifications">Notifications</string>
     <string name="space_new_item">New item</string>
+    <string name="space_new_item_name">Name it</string>
+    <string name="space_new_item_create">Create item</string>
+    <string name="space_new_item_failed">Could not create the item. Try again.</string>
     <string name="space_today">Today</string>
     <string name="filter_all">All</string>
     <string name="filter_tasks">Tasks</string>
