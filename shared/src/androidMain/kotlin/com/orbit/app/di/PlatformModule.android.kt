@@ -10,7 +10,8 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 actual val platformModule = module {
-    single {
+    // Created with Koin, before any activity, or it misses the first one's lifecycle callbacks.
+    single(createdAtStart = true) {
         val app = androidContext() as? Application
         ActivityProvider().also { provider ->
             app?.registerActivityLifecycleCallbacks(provider)
