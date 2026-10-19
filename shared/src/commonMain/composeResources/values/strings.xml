@@ -173,4 +173,8 @@
     <string name="invite_share_message">Join “%1$s” on Orbit: open %2$s or enter the code %3$s.</string>
     <string name="invite_create_failed">Could not create the invitation. Try again.</string>
     <string name="invite_revoke_failed">Could not revoke the invitation. Try again.</string>
+    <string name="notification_permission_title">Notifications are off</string>
+    <string name="notification_permission_body">Orbit can only remind you if it may send notifications. Turn them on in the settings.</string>
+    <string name="notification_permission_open_settings">Open settings</string>
+    <string name="notification_permission_not_now">Not now</string>
 </resources>

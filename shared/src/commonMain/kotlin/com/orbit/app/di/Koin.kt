@@ -1,5 +1,6 @@
 package com.orbit.app.di
 
+import com.orbit.app.core.notification.permission.NotificationPermissionViewModel
 import com.orbit.app.data.repository.FirebaseAuthRepository
 import com.orbit.app.data.repository.FirestoreInvitationRepository
 import com.orbit.app.data.repository.FirestoreItemRepository
@@ -65,6 +66,7 @@ val featureModule = module {
     viewModelOf(::SignInViewModel)
     viewModelOf(::CreateAccountViewModel)
     viewModelOf(::ItemViewModel)
+    viewModelOf(::NotificationPermissionViewModel)
     viewModelOf(::SpaceViewModel)
     // The id of these comes from parametersOf in the composable they belong to.
     viewModelOf(::SpaceCardViewModel)
