@@ -112,15 +112,15 @@ class SpaceHomeWithDataTest : ComposeTest() {
         onNodeWithContentDescription("Complete item").performScrollTo().performClick()
         waitForIdle()
 
+        onNodeWithContentDescription("Reopen item").performScrollTo().assertIsDisplayed()
         val completed = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
         assertTrue(completed.status is ItemStatus.Done, "Expected item to be Done but was: ${completed.status}")
-        onNodeWithContentDescription("Reopen item").performScrollTo().assertIsDisplayed()
 
         onNodeWithContentDescription("Reopen item").performScrollTo().performClick()
         waitForIdle()
 
+        onNodeWithContentDescription("Complete item").performScrollTo().assertIsDisplayed()
         val reopened = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
         assertTrue(reopened.status is ItemStatus.Open, "Expected item to be Open but was: ${reopened.status}")
-        onNodeWithContentDescription("Complete item").performScrollTo().assertIsDisplayed()
     }
 }

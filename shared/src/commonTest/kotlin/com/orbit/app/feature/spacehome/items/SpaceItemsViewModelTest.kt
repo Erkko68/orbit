@@ -151,6 +151,7 @@ class SpaceItemsViewModelTest {
         viewModel.complete(itemId)
         val state = viewModel.uiState.first { it.failed }
         assertTrue(state.failed)
+        assertFalse(state.submitting)
     }
 
     @Test
@@ -165,5 +166,23 @@ class SpaceItemsViewModelTest {
         viewModel.reopen(itemId)
         val state = viewModel.uiState.first { it.failed }
         assertTrue(state.failed)
+        assertFalse(state.submitting)
+    }
+
+    @Test
+    fun cannotSubmitWhileAlreadySubmitting() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val id = spaces.createSpace("Flat 4B", accent = 0)
+        val itemId = items.create(id, NewItem("Book plumber", preset = Preset.TASK))
+        var writeCalls = 0
+        val controlled = ControlledItemRepository(items).apply {
+            beforeWrite = { writeCalls++ }
+        }
+        val viewModel = SpaceItemsViewModel(id, controlled)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.complete(itemId)
+        assertEquals(1, writeCalls)
+        assertFalse(viewModel.uiState.value.submitting)
     }
 }

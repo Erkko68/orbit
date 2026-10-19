@@ -23,13 +23,15 @@ import kotlinx.coroutines.launch
 class SpaceItemsViewModel(private val spaceId: String, private val items: ItemRepository) : ViewModel() {
     private val filter = MutableStateFlow(ItemFilter.ALL)
     private val actionFailed = MutableStateFlow(false)
+    private val submitting = MutableStateFlow(false)
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
     val uiState: StateFlow<SpaceItemsUiState> = combine(
         items.observeItems(spaceId).asLoad("Loading the items of $spaceId", retries),
         filter,
         actionFailed,
-    ) { load, selected, failed ->
+        submitting,
+    ) { load, selected, failed, isSubmitting ->
         val filtered = load.valueOrNull.orEmpty().filter { selected.matches(it.preset) }
         val (open, done) = filtered.partition { it.status is ItemStatus.Open }
         SpaceItemsUiState(
@@ -38,6 +40,7 @@ class SpaceItemsViewModel(private val spaceId: String, private val items: ItemRe
             loadFailed = load == Load.Failed,
             items = (open + done).map(::toSpaceItem),
             failed = failed,
+            submitting = isSubmitting,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceItemsUiState(loading = true))
 
@@ -45,24 +48,12 @@ class SpaceItemsViewModel(private val spaceId: String, private val items: ItemRe
         this.filter.value = filter
     }
 
-    fun complete(itemId: String) {
-        viewModelScope.launch {
-            actionFailed.value = false
-            val result = attempt("Completing item $itemId in space $spaceId") {
-                items.complete(spaceId, itemId)
-            }
-            actionFailed.value = result.isFailure
-        }
+    fun complete(itemId: String) = submit("Completing item $itemId in space $spaceId") {
+        items.complete(spaceId, itemId)
     }
 
-    fun reopen(itemId: String) {
-        viewModelScope.launch {
-            actionFailed.value = false
-            val result = attempt("Reopening item $itemId in space $spaceId") {
-                items.reopen(spaceId, itemId)
-            }
-            actionFailed.value = result.isFailure
-        }
+    fun reopen(itemId: String) = submit("Reopening item $itemId in space $spaceId") {
+        items.reopen(spaceId, itemId)
     }
 
     fun toggleDone(itemId: String, done: Boolean) {
@@ -71,6 +62,20 @@ class SpaceItemsViewModel(private val spaceId: String, private val items: ItemRe
 
     fun retry() {
         if (uiState.value.loadFailed) retries.trySend(Unit)
+    }
+
+    private fun submit(description: String, write: suspend () -> Unit) {
+        if (submitting.value) return
+        submitting.value = true
+        actionFailed.value = false
+        viewModelScope.launch {
+            try {
+                val result = attempt(description, write)
+                actionFailed.value = result.isFailure
+            } finally {
+                submitting.value = false
+            }
+        }
     }
 }
 

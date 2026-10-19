@@ -19,6 +19,8 @@ data class SpaceItemsUiState(
     val items: List<SpaceItem> = emptyList(),
     /** Completing or reopening an item failed. Cleared by the next attempt. */
     val failed: Boolean = false,
+    /** A complete or reopen write is currently in progress. */
+    val submitting: Boolean = false,
 )
 
 data class SpaceItem(

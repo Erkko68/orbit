@@ -89,6 +89,7 @@ internal fun SpaceItemsTab(
                     Checkbox(
                         checked = item.done,
                         onCheckedChange = { checked -> viewModel.toggleDone(item.id, checked) },
+                        enabled = !state.submitting,
                         modifier = Modifier.semantics { contentDescription = completeDescription },
                     )
                 },
