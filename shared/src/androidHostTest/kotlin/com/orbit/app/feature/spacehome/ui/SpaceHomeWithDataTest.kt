@@ -16,9 +16,11 @@ import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
 import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.domain.model.ItemStatus
+import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Role
+import com.orbit.app.domain.model.Space
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.startTestKoin
@@ -92,9 +94,10 @@ class SpaceHomeWithDataTest : ComposeTest() {
     @Test
     fun completesAndReopensAnItemFromTheList() = runComposeUiTest {
         auth.signIn("ana@orbit.app", "secret")
-        val spaces = InMemorySpaceRepository(auth)
+        val space = Space("space-2", "Flat 4B", accent = 0, memberIds = listOf("ana@orbit.app"))
+        val spaces = FakeSpaceRepository(space, listOf(Member("ana@orbit.app", "Ana", null, Role.OWNER)))
         val items = InMemoryItemRepository(auth)
-        val id = spaces.createSpace("Flat 4B", accent = 0)
+        val id = "space-2"
         val itemId = items.create(id, NewItem("Buy bread", preset = Preset.TASK))
         startTestKoin(auth, spaces, items)
         val viewModel = SpaceHomeViewModel(id, spaces, items, InMemoryLastSpaceRepository())
