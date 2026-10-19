@@ -1,8 +1,8 @@
 package com.orbit.app.feature.spacehome.members
 
-import com.orbit.app.data.repository.InMemoryAuthRepository
-import com.orbit.app.data.repository.InMemoryInvitationRepository
-import com.orbit.app.data.repository.InMemorySpaceRepository
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryInvitationRepository
+import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.domain.model.Invitation
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.repository.InvitationRepository

@@ -1,5 +1,6 @@
-package com.orbit.app.data.repository
+package com.orbit.app.testing
 
+import com.orbit.app.data.repository.requireUser
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
@@ -12,7 +13,7 @@ import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
-/** Stand-in until the Firestore repository replaces it (#21). Data lasts while the app runs. */
+/** Spaces and members in memory. A new space's only member is its owner. */
 class InMemorySpaceRepository(private val auth: AuthRepository) : SpaceRepository {
     private val spaces = MutableStateFlow(emptyList<Space>())
     private val members = MutableStateFlow(emptyList<Member>())

@@ -1,8 +1,8 @@
 package com.orbit.app.feature.auth
 
-import com.orbit.app.data.repository.InMemoryAuthRepository
-import com.orbit.app.data.repository.InMemoryLastSpaceRepository
-import com.orbit.app.data.repository.InMemorySpaceRepository
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryLastSpaceRepository
+import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.SpaceRepository

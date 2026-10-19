@@ -1,9 +1,9 @@
 package com.orbit.app.feature.spacehome
 
-import com.orbit.app.data.repository.InMemoryAuthRepository
-import com.orbit.app.data.repository.InMemoryItemRepository
-import com.orbit.app.data.repository.InMemoryLastSpaceRepository
-import com.orbit.app.data.repository.InMemorySpaceRepository
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryItemRepository
+import com.orbit.app.testing.InMemoryLastSpaceRepository
+import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.defaultModules

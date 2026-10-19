@@ -1,6 +1,6 @@
 package com.orbit.app.feature.account
 
-import com.orbit.app.data.repository.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.CredentialsError

@@ -18,7 +18,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.data.repository.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.feature.account.AccountViewModel

@@ -1,5 +1,6 @@
-package com.orbit.app.data.repository
+package com.orbit.app.testing
 
+import com.orbit.app.data.repository.requireUser
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Module
@@ -14,7 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlin.time.Clock
 
-/** In-memory [ItemRepository] for tests. Data lasts while the app runs. */
+/** Items in memory, with ids in creation order. */
 class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository {
     private val items = MutableStateFlow(emptyList<Item>())
 

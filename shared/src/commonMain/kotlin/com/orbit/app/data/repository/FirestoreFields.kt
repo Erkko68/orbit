@@ -1,11 +1,14 @@
 package com.orbit.app.data.repository
 
+import com.orbit.app.domain.model.User
+import com.orbit.app.domain.repository.AuthRepository
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FirebaseFirestoreException
 import dev.gitlive.firebase.firestore.FirestoreExceptionCode
 import dev.gitlive.firebase.firestore.ServerTimestampBehavior
 import dev.gitlive.firebase.firestore.Timestamp
 import dev.gitlive.firebase.firestore.code
+import kotlinx.coroutines.flow.first
 import kotlin.time.Instant
 
 /**
@@ -32,3 +35,6 @@ internal fun DocumentSnapshot.instant(name: String): Instant? =
 /** The security rules refused the request. */
 internal fun Throwable.isRefusedByTheRules(): Boolean =
     this is FirebaseFirestoreException && code == FirestoreExceptionCode.PERMISSION_DENIED
+
+/** The signed-in user, for a write made as them. Throws when signed out. */
+internal suspend fun AuthRepository.requireUser(): User = checkNotNull(session.first()) { "Not signed in" }
