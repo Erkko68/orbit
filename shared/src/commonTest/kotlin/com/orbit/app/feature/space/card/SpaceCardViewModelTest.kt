@@ -1,5 +1,6 @@
 package com.orbit.app.feature.space.card
 
+import com.orbit.app.testing.FlakySpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemorySpaceRepository
 import kotlinx.coroutines.Dispatchers
@@ -47,5 +48,13 @@ class SpaceCardViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         assertEquals(SpaceCardUiState(), viewModel.uiState.value)
+    }
+
+    @Test
+    fun showsItsSpaceWithoutAvatarsWhenTheMembersFailToLoad() = runTest {
+        val viewModel = SpaceCardViewModel("space-1", FlakySpaceRepository(memberFailures = 1))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        assertEquals(SpaceCardUiState(name = "Flat 4B", accent = 0, memberCount = 1), viewModel.uiState.value)
     }
 }

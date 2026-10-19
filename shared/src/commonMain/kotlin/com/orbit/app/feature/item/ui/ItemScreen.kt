@@ -2,8 +2,8 @@ package com.orbit.app.feature.item.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -13,9 +13,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.orbit.app.core.designsystem.component.OrbitCard
 import com.orbit.app.core.designsystem.component.OrbitAssistChip
 import com.orbit.app.core.designsystem.component.OrbitAvatar
+import com.orbit.app.core.designsystem.component.OrbitCard
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitErrorState
 import com.orbit.app.core.designsystem.component.OrbitIconButton
@@ -35,7 +35,7 @@ import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.feature.item.ItemUiState
 import com.orbit.app.feature.item.ItemViewModel
-import kotlin.time.Duration
+import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.ic_event
 import orbit.shared.generated.resources.ic_list
@@ -77,12 +77,12 @@ import orbit.shared.generated.resources.module_schedule_range
 import orbit.shared.generated.resources.module_schedule_remove
 import orbit.shared.generated.resources.module_schedule_time
 import orbit.shared.generated.resources.module_schedule_title
-import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.retry
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
+import kotlin.time.Duration
 
 /** One item, composed from its modules, with chips for the details that can still be added. */
 @Composable
@@ -144,7 +144,7 @@ fun ItemScreen(
                     )
                 }
                 if (state.availableModules.isNotEmpty()) {
-                    AddDetailSection(state.availableModules, state.canMutate, viewModel::addModule)
+                    AddDetailSection(state.availableModules, state.canSubmit, viewModel::addModule)
                 }
                 if (state.failed) {
                     Text(
@@ -204,7 +204,7 @@ private fun RenderModuleCard(module: Module, state: ItemUiState, onRemove: () ->
         icon = icon,
         removeDescription = stringResource(removeDescription),
         onRemove = onRemove,
-        removeEnabled = state.canMutate,
+        removeEnabled = state.canSubmit,
         modifier = Modifier.fillMaxWidth(),
         editDescription = if (module is Schedule) stringResource(Res.string.module_schedule_edit) else null,
         onEdit = onEdit,

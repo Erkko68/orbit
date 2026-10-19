@@ -1,10 +1,11 @@
 package com.orbit.app.feature.spacehome.items
 
+import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Preset
+import com.orbit.app.testing.ControlledItemRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemorySpaceRepository
-import com.orbit.app.domain.model.NewItem
-import com.orbit.app.domain.model.Preset
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -17,6 +18,8 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SpaceItemsViewModelTest {
@@ -77,5 +80,22 @@ class SpaceItemsViewModelTest {
             ),
             titlesByFilter,
         )
+    }
+
+    @Test
+    fun saysWhenTheItemsFailToLoadAndLoadsThemOnRetry() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val id = spaces.createSpace("Flat 4B", accent = 0)
+        items.create(id, NewItem("Book plumber", preset = Preset.TASK))
+        val controlled = ControlledItemRepository(items).apply { beforeRead = { error("Could not reach the server") } }
+        val viewModel = SpaceItemsViewModel(id, controlled)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        assertTrue(viewModel.uiState.value.loadFailed)
+
+        controlled.beforeRead = {}
+        viewModel.retry()
+
+        assertFalse(viewModel.uiState.value.loadFailed)
+        assertEquals(listOf("Book plumber"), viewModel.uiState.value.items.map { it.title })
     }
 }

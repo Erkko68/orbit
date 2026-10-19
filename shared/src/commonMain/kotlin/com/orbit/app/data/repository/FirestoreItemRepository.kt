@@ -32,7 +32,6 @@ import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FieldsAndValuesUpdateDSL
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
 /**
@@ -44,14 +43,11 @@ class FirestoreItemRepository(
     private val auth: AuthRepository,
     private val firestore: FirebaseFirestore,
 ) : ItemRepository {
-    /** Refused while a space made a moment ago is not on the server yet: asked again, then ended, logged. */
+    /** Refused while a space made a moment ago is not on the server yet, so asked again for a few seconds. */
     override fun observeItems(spaceId: String): Flow<List<Item>> =
         items(spaceId).orderBy(CREATED_AT).snapshots.map { snapshot ->
             snapshot.documents.mapNotNull { toItem(spaceId, it) }
-        }.retryWhileRefused().catch { cause ->
-            if (!cause.isRefusedByTheRules()) throw cause
-            Logger.w(cause) { "The items of space $spaceId are not readable" }
-        }
+        }.retryWhileRefused()
 
     override suspend fun create(spaceId: String, item: NewItem): String {
         val document = items(spaceId).document

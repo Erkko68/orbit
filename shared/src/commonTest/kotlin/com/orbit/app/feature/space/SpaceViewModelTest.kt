@@ -1,9 +1,9 @@
 package com.orbit.app.feature.space
 
-import com.orbit.app.testing.InMemoryAuthRepository
-import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.FlakySpaceRepository
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemorySpaceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -45,7 +45,7 @@ class SpaceViewModelTest {
 
     @Test
     fun flagsAFailedLoadAndRetriesIt() = runTest {
-        val viewModel = SpaceViewModel(FlakySpaceRepository(failures = 1), InMemoryAuthRepository())
+        val viewModel = SpaceViewModel(FlakySpaceRepository(spaceFailures = 1), InMemoryAuthRepository())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         assertTrue(viewModel.uiState.value.loadFailed)
@@ -63,7 +63,7 @@ class SpaceViewModelTest {
     fun aFailedLoadKeepsTheAvatarAndTheOpenDialog() = runTest {
         val auth = InMemoryAuthRepository()
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
-        val viewModel = SpaceViewModel(FlakySpaceRepository(failures = 1), auth)
+        val viewModel = SpaceViewModel(FlakySpaceRepository(spaceFailures = 1), auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.openCreate()

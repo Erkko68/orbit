@@ -20,6 +20,10 @@ import org.jetbrains.compose.resources.StringResource
 
 data class SpaceItemsUiState(
     val filter: ItemFilter = ItemFilter.ALL,
+    /** The items have not arrived yet. */
+    val loading: Boolean = false,
+    /** Loading the items failed. Cleared by a retry. */
+    val loadFailed: Boolean = false,
     /** The space's items that pass [filter]. */
     val items: List<SpaceItem> = emptyList(),
 )

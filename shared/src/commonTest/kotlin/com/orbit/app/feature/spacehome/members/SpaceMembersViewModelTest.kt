@@ -1,12 +1,14 @@
 package com.orbit.app.feature.spacehome.members
 
-import com.orbit.app.testing.InMemoryAuthRepository
-import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.domain.model.Role
 import com.orbit.app.testing.FakeSpaceRepository
+import com.orbit.app.testing.FlakySpaceRepository
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemorySpaceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -19,6 +21,8 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SpaceMembersViewModelTest {
@@ -55,5 +59,17 @@ class SpaceMembersViewModelTest {
             listOf(Res.string.role_owner, Res.string.role_admin, Res.string.role_member),
             state.members.map { it.role },
         )
+    }
+
+    @Test
+    fun saysWhenTheMembersFailToLoadAndLoadsThemOnRetry() = runTest {
+        val viewModel = SpaceMembersViewModel("space-1", FlakySpaceRepository(memberFailures = 1))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        assertTrue(viewModel.uiState.value.loadFailed)
+
+        viewModel.retry()
+
+        assertFalse(viewModel.uiState.value.loadFailed)
+        assertEquals(listOf("ana"), viewModel.uiState.value.members.map { it.name })
     }
 }

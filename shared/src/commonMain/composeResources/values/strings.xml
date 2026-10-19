@@ -6,6 +6,7 @@
     <string name="cancel">Cancel</string>
     <string name="more_count">+%1$d</string>
     <string name="retry">Try again</string>
+    <string name="load_failed_body">Check your connection and try again.</string>
     <!-- Sign in -->
     <string name="sign_in_title">Welcome back</string>
     <string name="sign_in_subtitle">Sign in to continue to your shared spaces.</string>
@@ -93,6 +94,10 @@
     <string name="space_tab_items">Items</string>
     <string name="space_tab_agenda">Agenda</string>
     <string name="space_tab_members">Members</string>
+    <string name="space_items_loading">Loading the items…</string>
+    <string name="space_items_load_failed">Could not load the items</string>
+    <string name="space_members_loading">Loading the members…</string>
+    <string name="space_members_load_failed">Could not load the members</string>
     <string name="space_items_empty_title">No items yet</string>
     <string name="space_items_empty_body">Tasks, chores, bills and lists you add will show up here.</string>
     <string name="space_agenda_empty_title">Nothing scheduled for today</string>
@@ -103,7 +108,6 @@
     <string name="spaces_empty">No spaces yet</string>
     <string name="spaces_loading">Loading your spaces…</string>
     <string name="spaces_load_failed">Could not load your spaces</string>
-    <string name="spaces_load_failed_body">Check your connection and try again.</string>
     <string name="spaces_empty_body">Tap New space to create one for the people you organize with, or to join one with an invite.</string>
     <!-- Item detail and modules -->
     <string name="item_back">Back to space</string>

@@ -5,13 +5,13 @@ import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
+import kotlinx.datetime.LocalDate
+import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.test.Test
 import kotlin.time.Duration
-import kotlinx.datetime.LocalDate
 
 class ItemUiStateTest {
     @Test
@@ -21,12 +21,12 @@ class ItemUiStateTest {
             ItemUiState(loading = false, loadFailed = true),
             ItemUiState(loading = false, notFound = true),
         )) {
-            assertFalse(state.canMutate)
+            assertFalse(state.canSubmit)
             assertTrue(state.availableModules.isEmpty())
         }
         val ready = ItemUiState(loading = false)
-        assertTrue(ready.canMutate)
-        assertFalse(ready.copy(mutating = true).canMutate)
+        assertTrue(ready.canSubmit)
+        assertFalse(ready.copy(submitting = true).canSubmit)
     }
 
     @Test

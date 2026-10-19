@@ -1,13 +1,15 @@
 package com.orbit.app.feature.spacehome
 
+import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Preset
+import com.orbit.app.domain.model.defaultModules
+import com.orbit.app.testing.ControlledItemRepository
+import com.orbit.app.testing.FailingItemRepository
+import com.orbit.app.testing.FlakySpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
 import com.orbit.app.testing.InMemorySpaceRepository
-import com.orbit.app.domain.model.NewItem
-import com.orbit.app.domain.model.Preset
-import com.orbit.app.domain.model.defaultModules
-import com.orbit.app.testing.FailingItemRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -173,5 +175,18 @@ class SpaceHomeViewModelTest {
 
     private fun TestScope.collected(viewModel: SpaceHomeViewModel) = viewModel.also {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { it.uiState.collect {} }
+    }
+
+    @Test
+    fun leavesTheHeaderEmptyWhenItsReadsFail() = runTest {
+        val failingItems = ControlledItemRepository(items).apply { beforeRead = { error("Could not reach the server") } }
+        val spaces = FlakySpaceRepository(spaceFailures = 1, memberFailures = 1)
+        val viewModel = SpaceHomeViewModel("space-1", spaces, failingItems, lastSpace)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        val state = viewModel.uiState.value
+        assertEquals("", state.name)
+        assertEquals(emptyList(), state.memberInitials)
+        assertEquals(0, state.openTasks)
     }
 }

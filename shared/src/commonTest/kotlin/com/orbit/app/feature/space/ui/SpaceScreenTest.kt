@@ -13,12 +13,12 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.testing.InMemoryAuthRepository
-import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.domain.model.Role
 import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.FlakySpaceRepository
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.testing.startTestKoin
 import org.koin.core.context.stopKoin
 import kotlin.test.AfterTest
@@ -49,7 +49,7 @@ class SpaceScreenTest : ComposeTest() {
 
     @Test
     fun saysSoWhenTheSpacesCouldNotLoadAndLoadsThemOnRetry() = runComposeUiTest {
-        val spaces = FlakySpaceRepository(failures = 1)
+        val spaces = FlakySpaceRepository(spaceFailures = 1)
         // The space cards get their view models from Koin.
         startTestKoin(auth, spaces)
         val viewModel = SpaceViewModel(spaces, auth)

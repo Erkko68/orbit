@@ -2,8 +2,9 @@ package com.orbit.app.feature.spacehome
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import co.touchlab.kermit.Logger
+import com.orbit.app.core.attempt
 import com.orbit.app.core.initialsOf
+import com.orbit.app.core.orOnFailure
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
@@ -11,7 +12,6 @@ import com.orbit.app.domain.model.defaultModules
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +20,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
 import kotlin.time.Clock
 
 class SpaceHomeViewModel(
@@ -37,10 +37,11 @@ class SpaceHomeViewModel(
         lastSpace.remember(spaceId)
     }
 
+    /** The header only decorates: the tabs show when their own reads fail, so here a failure reads as empty. */
     val uiState: StateFlow<SpaceHomeUiState> = combine(
-        spaces.observeSpaces(),
-        spaces.observeMembers(spaceId),
-        items.observeItems(spaceId),
+        spaces.observeSpaces().orOnFailure("Loading the spaces", emptyList()),
+        spaces.observeMembers(spaceId).orOnFailure("Loading the members of $spaceId", emptyList()),
+        items.observeItems(spaceId).orOnFailure("Loading the items of $spaceId", emptyList()),
         form,
     ) { allSpaces, members, spaceItems, form ->
         form.copy(
@@ -66,22 +67,15 @@ class SpaceHomeViewModel(
         val current = form.value
         if (!current.canCreate) return
         form.update { it.copy(creating = true, createFailed = false) }
+        val item = NewItem(
+            title = current.newItemTitle.trim(),
+            preset = current.newItemPreset,
+            modules = current.newItemPreset.defaultModules(Clock.System.todayIn(TimeZone.currentSystemDefault())),
+        )
         viewModelScope.launch {
-            try {
-                val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-                val item = NewItem(
-                    title = current.newItemTitle.trim(),
-                    preset = current.newItemPreset,
-                    modules = current.newItemPreset.defaultModules(today),
-                )
-                val id = items.create(spaceId, item)
-                form.update { it.closedNewItem().copy(createdItemId = id) }
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Creating an item in space $spaceId failed" }
-                form.update { it.copy(creating = false, createFailed = true) }
-            }
+            attempt("Creating an item in space $spaceId") { items.create(spaceId, item) }
+                .onSuccess { id -> form.update { it.closedNewItem().copy(createdItemId = id) } }
+                .onFailure { form.update { it.copy(creating = false, createFailed = true) } }
         }
     }
 

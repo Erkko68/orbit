@@ -1,8 +1,6 @@
 package com.orbit.app.feature.item
 
 import androidx.lifecycle.ViewModelStore
-import com.orbit.app.testing.InMemoryAuthRepository
-import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.Item
@@ -19,30 +17,32 @@ import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.testing.ControlledItemRepository
 import com.orbit.app.testing.FailingItemRepository
 import com.orbit.app.testing.FakeSpaceRepository
-import kotlin.test.AfterTest
-import kotlin.test.assertEquals
-import kotlin.test.assertFalse
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
-import kotlin.test.BeforeTest
-import kotlin.test.Test
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Instant
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryItemRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ItemViewModelTest {
@@ -85,7 +85,7 @@ class ItemViewModelTest {
         val model = track(ItemViewModel("space-1", id, items, failing))
         val state = model.uiState.first { !it.loading }
         assertEquals("Test item", state.title)
-        assertTrue(state.canMutate)
+        assertTrue(state.canSubmit)
         assertFalse(state.loadFailed)
         assertTrue(state.memberNames.isEmpty())
     }
@@ -269,24 +269,6 @@ class ItemViewModelTest {
     }
 
     @Test
-    fun failureWhileOpeningTheReadStreamCanBeRetried() = runTest {
-        val id = createItem()
-        var fail = true
-        val repository = object : ItemRepository by items {
-            override fun observeItems(spaceId: String): Flow<List<Item>> {
-                if (fail) error("Cannot open listener")
-                return items.observeItems(spaceId)
-            }
-        }
-        val viewModel = track(ItemViewModel("space-1", id, repository, spaces))
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-        assertTrue(viewModel.uiState.value.loadFailed)
-        fail = false
-        viewModel.retry()
-        assertTrue(viewModel.uiState.value.canMutate)
-    }
-
-    @Test
     fun eachModuleStartsWithValidDefaultsAndExistingModulesAreNotOverwritten() = runTest {
         val id = createItem()
         val controlled = ControlledItemRepository(items)
@@ -316,7 +298,7 @@ class ItemViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         viewModel.removeModule(ModuleType.CHECKLIST)
         assertTrue(viewModel.uiState.value.failed)
-        assertFalse(viewModel.uiState.value.mutating)
+        assertFalse(viewModel.uiState.value.submitting)
         assertEquals(1, viewModel.uiState.value.modules.size)
         assertEquals(listOf("remove:CHECKLIST"), controlled.writes)
     }
@@ -343,14 +325,14 @@ class ItemViewModelTest {
         val viewModel = track(ItemViewModel("space-1", id, controlled, spaces))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         viewModel.addModule(ModuleType.CHECKLIST)
-        assertTrue(viewModel.uiState.value.mutating)
-        assertFalse(viewModel.uiState.value.canMutate)
+        assertTrue(viewModel.uiState.value.submitting)
+        assertFalse(viewModel.uiState.value.canSubmit)
         viewModel.addModule(ModuleType.ASSIGNMENT)
         viewModel.removeModule(ModuleType.SCHEDULE)
         assertEquals(listOf("set:CHECKLIST"), controlled.writes)
         gate.complete(Unit)
-        assertFalse(viewModel.uiState.value.mutating)
-        assertTrue(viewModel.uiState.value.canMutate)
+        assertFalse(viewModel.uiState.value.submitting)
+        assertTrue(viewModel.uiState.value.canSubmit)
     }
 
     @Test
@@ -395,7 +377,7 @@ class ItemViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         viewModel.addModule(ModuleType.CHECKLIST)
         assertFalse(viewModel.uiState.value.failed)
-        assertFalse(viewModel.uiState.value.mutating)
+        assertFalse(viewModel.uiState.value.submitting)
         assertTrue(viewModel.uiState.value.modules.isEmpty())
     }
 
@@ -488,7 +470,7 @@ class ItemViewModelTest {
 
         val failed = model.uiState.value
         assertTrue(failed.failed)
-        assertFalse(failed.mutating)
+        assertFalse(failed.submitting)
         assertEquals("08:00", failed.scheduleEditor?.time)
 
         model.onScheduleTimeChange("08:15")

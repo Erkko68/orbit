@@ -12,7 +12,6 @@ import com.orbit.app.domain.repository.SpaceRepository
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -42,7 +41,7 @@ class FirestoreSpaceRepository(
     /**
      * The members of a space, live. A space made a moment ago is already in the list from the local write,
      * so its card can ask for the members before the server has the space, and the rules refuse that. The
-     * listener asks again for a few seconds. If it is still refused it ends, logged, instead of crashing.
+     * listener asks again for a few seconds before it fails like any other read.
      */
     override fun observeMembers(spaceId: String): Flow<List<Member>> =
         firestore.collection(SPACES).document(spaceId).collection(MEMBERS).snapshots.map { snapshot ->
@@ -55,10 +54,7 @@ class FirestoreSpaceRepository(
                     role = document.field("role"),
                 )
             }
-        }.retryWhileRefused().catch { cause ->
-            if (!cause.isRefusedByTheRules()) throw cause
-            Logger.w(cause) { "The members of space $spaceId are not readable" }
-        }
+        }.retryWhileRefused()
 
     /**
      * The space and its owner's membership go in one batch, so the member ids and the members

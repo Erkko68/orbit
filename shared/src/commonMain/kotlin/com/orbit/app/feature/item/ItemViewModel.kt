@@ -2,88 +2,71 @@ package com.orbit.app.feature.item
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import co.touchlab.kermit.Logger
-import com.orbit.app.domain.model.Item
+import com.orbit.app.core.Load
+import com.orbit.app.core.asLoad
+import com.orbit.app.core.attempt
+import com.orbit.app.core.orOnFailure
+import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.model.defaultModule
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
-import kotlin.time.Clock
-import kotlin.time.Instant
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.retryWhen
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class ItemViewModel(
     private val spaceId: String,
     private val itemId: String,
     private val items: ItemRepository,
-    private val spaces: SpaceRepository,
+    spaces: SpaceRepository,
 ) : ViewModel() {
-    private val actionState = MutableStateFlow(ActionState())
+    private val action = MutableStateFlow(ActionState())
     private val scheduleEditor = MutableStateFlow<ScheduleEditor?>(null)
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
-    // Context is secondary: a failed space/member read must not hide an otherwise readable item,
-    // so it falls back to no space name and unknown members.
-    private val context = flow {
-        emitAll(combine(spaces.observeSpaces(), spaces.observeMembers(spaceId)) { all, members ->
-            ItemContext(
-                spaceName = all.firstOrNull { it.id == spaceId }?.name,
-                memberNames = members.associate { it.userId to it.displayName },
-            )
-        })
-    }.catch { cause ->
-        Logger.e(cause) { "Loading context for item $itemId failed" }
-        emit(ItemContext())
+    private val item = items.observeItems(spaceId)
+        .map { all -> all.firstOrNull { it.id == itemId } }
+        .asLoad("Loading item $itemId in space $spaceId", retries)
+
+    /** Only decorates the item, so a failed read leaves no space name and unknown members. */
+    private val context = combine(
+        spaces.observeSpaces().orOnFailure("Loading the spaces", emptyList()),
+        spaces.observeMembers(spaceId).orOnFailure("Loading the members of $spaceId", emptyList()),
+    ) { all, members ->
+        ItemContext(
+            spaceName = all.firstOrNull { it.id == spaceId }?.name,
+            memberNames = members.associate { it.userId to it.displayName },
+        )
     }.onStart { emit(ItemContext()) }
 
-    // Wrap the call too, so a failure when opening the stream can be retried.
-    private val item = flow { emitAll(items.observeItems(spaceId)) }
-        .map<List<Item>, ItemLoad> { all -> ItemLoad.Loaded(all.firstOrNull { it.id == itemId }) }
-        .retryWhen { cause, _ ->
-            Logger.e(cause) { "Loading item $itemId in space $spaceId failed" }
-            emit(ItemLoad.Failed)
-            retries.receive()
-            emit(ItemLoad.Loading)
-            true
-        }
-        .onStart { emit(ItemLoad.Loading) }
-
-    val uiState: StateFlow<ItemUiState> = combine(
-        item,
-        actionState,
-        context,
-        scheduleEditor,
-    ) { load, action, details, editor ->
-        val loaded = (load as? ItemLoad.Loaded)?.item
+    val uiState: StateFlow<ItemUiState> = combine(item, action, context, scheduleEditor) { load, action, context, editor ->
+        val loaded = load.valueOrNull
         ItemUiState(
             title = loaded?.title.orEmpty(),
             description = loaded?.description,
             preset = loaded?.preset,
             modules = loaded?.modules?.all.orEmpty(),
-            loading = load == ItemLoad.Loading,
-            loadFailed = load == ItemLoad.Failed,
-            notFound = load is ItemLoad.Loaded && loaded == null,
+            loading = load == Load.Loading,
+            loadFailed = load == Load.Failed,
+            notFound = load is Load.Loaded && loaded == null,
             failed = action.failed,
-            mutating = action.mutating,
-            spaceName = details.spaceName,
-            memberNames = details.memberNames,
+            submitting = action.submitting,
+            spaceName = context.spaceName,
+            memberNames = context.memberNames,
             scheduleEditor = editor,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ItemUiState())
@@ -94,15 +77,16 @@ class ItemViewModel(
 
     fun addModule(type: ModuleType) {
         if (type !in uiState.value.availableModules) return
-        val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-        mutate { items.setModule(spaceId, itemId, defaultModule(type, today)) }
+        val module = defaultModule(type, Clock.System.todayIn(TimeZone.currentSystemDefault()))
+        submit { items.setModule(spaceId, itemId, module) }
     }
 
+    /** Removing the schedule removes its reminder too: a reminder needs a schedule. */
     fun removeModule(type: ModuleType) {
         val current = uiState.value
         if (current.modules.none { it.type == type }) return
         val hasReminder = current.modules.any { it.type == ModuleType.REMINDER }
-        mutate {
+        submit {
             if (type == ModuleType.SCHEDULE && hasReminder) {
                 items.removeModule(spaceId, itemId, ModuleType.REMINDER)
             }
@@ -144,41 +128,32 @@ class ItemViewModel(
     fun saveSchedule() {
         if (!uiState.value.canSaveSchedule) return
         val schedule = scheduleEditor.value?.schedule ?: return
-        mutate(onSuccess = { scheduleEditor.value = null }) { items.setModule(spaceId, itemId, schedule) }
+        submit(onSuccess = { scheduleEditor.value = null }) { items.setModule(spaceId, itemId, schedule) }
     }
 
     private fun updateEditor(change: (ScheduleEditor) -> ScheduleEditor) {
         scheduleEditor.update { it?.let(change) }
-        actionState.update { it.copy(failed = false) }
+        action.update { it.copy(failed = false) }
     }
 
-    private fun mutate(onSuccess: () -> Unit = {}, action: suspend () -> Unit) {
-        if (!uiState.value.canMutate || actionState.value.mutating) return
-        actionState.update { it.copy(mutating = true, failed = false) }
+    private fun submit(onSuccess: () -> Unit = {}, write: suspend () -> Unit) {
+        if (!uiState.value.canSubmit || action.value.submitting) return
+        action.value = ActionState(submitting = true)
         viewModelScope.launch {
             try {
-                action()
-                onSuccess()
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                Logger.e(e) { "Item operation failed on item $itemId in space $spaceId" }
-                actionState.update { it.copy(failed = true) }
+                val result = attempt("Changing item $itemId in space $spaceId", write)
+                result.onSuccess { onSuccess() }
+                action.value = ActionState(failed = result.isFailure)
             } finally {
-                actionState.update { it.copy(mutating = false) }
+                action.update { it.copy(submitting = false) }
             }
         }
     }
 
-    private data class ActionState(val mutating: Boolean = false, val failed: Boolean = false)
+    private data class ActionState(val submitting: Boolean = false, val failed: Boolean = false)
+
     private data class ItemContext(
         val spaceName: String? = null,
         val memberNames: Map<String, String> = emptyMap(),
     )
-}
-
-private sealed interface ItemLoad {
-    data object Loading : ItemLoad
-    data object Failed : ItemLoad
-    data class Loaded(val item: Item?) : ItemLoad
 }
