@@ -31,16 +31,9 @@ import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FieldsAndValuesUpdateDSL
 import dev.gitlive.firebase.firestore.FirebaseFirestore
-import dev.gitlive.firebase.firestore.FirebaseFirestoreException
-import dev.gitlive.firebase.firestore.FirestoreExceptionCode
-import dev.gitlive.firebase.firestore.ServerTimestampBehavior
-import dev.gitlive.firebase.firestore.Timestamp
-import dev.gitlive.firebase.firestore.code
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.Instant
 
 /**
  * Items in Firestore (ADR 0002), read through a live listener that Firestore's offline cache answers
@@ -55,8 +48,8 @@ class FirestoreItemRepository(
     override fun observeItems(spaceId: String): Flow<List<Item>> =
         items(spaceId).orderBy(CREATED_AT).snapshots.map { snapshot ->
             snapshot.documents.mapNotNull { toItem(spaceId, it) }
-        }.retryWhileRefused(LISTEN_RETRIES, LISTEN_RETRY_WAIT, ::isRefused).catch { cause ->
-            if (!isRefused(cause)) throw cause
+        }.retryWhileRefused().catch { cause ->
+            if (!cause.isRefusedByTheRules()) throw cause
             Logger.w(cause) { "The items of space $spaceId are not readable" }
         }
 
@@ -142,24 +135,11 @@ class FirestoreItemRepository(
         }
     }
 
-    /** A server timestamp still pending offline reads as the local estimate. */
-    private fun DocumentSnapshot.instant(name: String): Instant? =
-        field<Timestamp>(name, ServerTimestampBehavior.ESTIMATE)?.let {
-            Instant.fromEpochSeconds(it.seconds, it.nanoseconds)
-        }
-
-    private fun isRefused(cause: Throwable) =
-        cause is FirebaseFirestoreException && cause.code == FirestoreExceptionCode.PERMISSION_DENIED
-
     private companion object {
-        const val SPACES = "spaces"
-        const val ITEMS = "items"
         const val MODULES = "modules"
         const val STATUS = "status"
         const val CREATED_AT = "createdAt"
         const val COMPLETED_BY = "completedBy"
         const val COMPLETED_AT = "completedAt"
-        const val LISTEN_RETRIES = 5
-        val LISTEN_RETRY_WAIT = 1.seconds
     }
 }

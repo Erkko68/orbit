@@ -11,17 +11,12 @@ import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FirebaseFirestore
-import dev.gitlive.firebase.firestore.FirebaseFirestoreException
-import dev.gitlive.firebase.firestore.FirestoreExceptionCode
-import dev.gitlive.firebase.firestore.code
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Spaces and their members in Firestore (ADR 0002), read through live listeners. Firestore's offline
@@ -60,8 +55,8 @@ class FirestoreSpaceRepository(
                     role = document.field("role"),
                 )
             }
-        }.retryWhileRefused(LISTEN_RETRIES, LISTEN_RETRY_WAIT, ::isRefused).catch { cause ->
-            if (!isRefused(cause)) throw cause
+        }.retryWhileRefused().catch { cause ->
+            if (!cause.isRefusedByTheRules()) throw cause
             Logger.w(cause) { "The members of space $spaceId are not readable" }
         }
 
@@ -70,7 +65,7 @@ class FirestoreSpaceRepository(
      * subcollection cannot drift. The id is made on the device, so this works offline ([writeLocally]).
      */
     override suspend fun createSpace(name: String, accent: Int): String {
-        val user = checkNotNull(auth.session.first()) { "Not signed in" }
+        val user = auth.requireUser()
         val space = firestore.collection(SPACES).document
         val batch = firestore.batch()
         batch.set(space, spaceDocument(name, accent, user.id))
@@ -83,14 +78,4 @@ class FirestoreSpaceRepository(
         mapSpace(document.id, document.field("name"), document.field("accent"), document.field("memberIds")).also {
             if (it == null) Logger.w { "Skipping the malformed space ${document.id}" }
         }
-
-    private fun isRefused(cause: Throwable) =
-        cause is FirebaseFirestoreException && cause.code == FirestoreExceptionCode.PERMISSION_DENIED
-
-    private companion object {
-        const val SPACES = "spaces"
-        const val MEMBERS = "members"
-        const val LISTEN_RETRIES = 5
-        val LISTEN_RETRY_WAIT = 1.seconds
-    }
 }

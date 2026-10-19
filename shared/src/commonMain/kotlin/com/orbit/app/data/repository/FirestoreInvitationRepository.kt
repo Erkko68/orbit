@@ -13,7 +13,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Invitations in Firestore (ADR 0002): one top-level document per invitation, whose id is its code. The
@@ -31,7 +30,7 @@ class FirestoreInvitationRepository(
     override fun observeInvitations(spaceId: String): Flow<List<Invitation>> =
         firestore.collection(INVITATIONS).where { "spaceId" equalTo spaceId }.snapshots
             .map { snapshot -> snapshot.documents.mapNotNull(::toInvitation).sortedByDescending { it.createdAt } }
-            .retryWhileRefused(LISTEN_RETRIES, LISTEN_RETRY_WAIT, Throwable::isRefusedByTheRules)
+            .retryWhileRefused()
             .catch { cause ->
                 if (!cause.isRefusedByTheRules()) throw cause
                 Logger.w(cause) { "The invitations of space $spaceId are not readable" }
@@ -66,9 +65,6 @@ class FirestoreInvitationRepository(
         }
 
     private companion object {
-        const val INVITATIONS = "invitations"
         const val REVOKED = "revoked"
-        const val LISTEN_RETRIES = 5
-        val LISTEN_RETRY_WAIT = 1.seconds
     }
 }

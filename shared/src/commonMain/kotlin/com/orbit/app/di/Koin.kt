@@ -38,7 +38,7 @@ import org.koin.dsl.module
 fun initKoin(config: KoinAppDeclaration? = null) {
     startKoin {
         config?.invoke(this)
-        modules(platformModule, dataModule, domainModule, featureModule)
+        modules(platformModule, dataModule, featureModule)
     }
 }
 
@@ -54,10 +54,6 @@ val dataModule = module {
     singleOf(::FirestoreInvitationRepository) bind InvitationRepository::class
     single { Settings() }
     singleOf(::SettingsLastSpaceRepository) bind LastSpaceRepository::class
-}
-
-val domainModule = module {
-    // Use cases go here.
 }
 
 val featureModule = module {

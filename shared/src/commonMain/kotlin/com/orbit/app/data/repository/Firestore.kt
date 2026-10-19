@@ -11,6 +11,13 @@ import dev.gitlive.firebase.firestore.code
 import kotlinx.coroutines.flow.first
 import kotlin.time.Instant
 
+/* The collections of ADR 0002. */
+internal const val USERS = "users"
+internal const val SPACES = "spaces"
+internal const val MEMBERS = "members"
+internal const val ITEMS = "items"
+internal const val INVITATIONS = "invitations"
+
 /**
  * A field of the document, or null when it is missing or not of the type asked for. A dotted [name]
  * reads a nested field. Read timestamps with [ServerTimestampBehavior.ESTIMATE]: one still pending

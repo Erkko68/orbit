@@ -47,7 +47,7 @@ class FirebaseAuthRepository(
         if (firebaseUser == null) {
             flowOf(null)
         } else {
-            firestore.collection(USERS_COLLECTION).document(firebaseUser.uid).snapshots
+            firestore.collection(USERS).document(firebaseUser.uid).snapshots
                 .map { firebaseUser.toUser(it) }
                 .catch { e ->
                     Logger.w(e) { "Failed to read user document for ${firebaseUser.uid}" }
@@ -80,7 +80,7 @@ class FirebaseAuthRepository(
         }
         val user = checkNotNull(result.user) { "No user returned after registration" }
         val profile = userProfileDocument(displayName = displayName) + mapOf("createdAt" to FieldValue.serverTimestamp)
-        firestore.collection(USERS_COLLECTION)
+        firestore.collection(USERS)
             .document(user.uid)
             .set(profile, merge = true)
     }
@@ -94,22 +94,16 @@ class FirebaseAuthRepository(
         require(trimmed.isNotBlank()) { "A display name is required" }
         val user = checkNotNull(auth.currentUser) { "Not signed in" }
 
-        val spacesSnapshot = try {
-            firestore.collection(SPACES_COLLECTION)
-                .where { "memberIds" contains user.uid }
-                .get()
-        } catch (e: CancellationException) {
-            throw e
-        }
+        val spacesSnapshot = firestore.collection(SPACES).where { "memberIds" contains user.uid }.get()
 
         val batch = firestore.batch()
-        val userDoc = firestore.collection(USERS_COLLECTION).document(user.uid)
+        val userDoc = firestore.collection(USERS).document(user.uid)
         batch.set(userDoc, mapOf("displayName" to trimmed), merge = true)
 
         spacesSnapshot.documents.forEach { spaceDoc ->
-            val memberDoc = firestore.collection(SPACES_COLLECTION)
+            val memberDoc = firestore.collection(SPACES)
                 .document(spaceDoc.id)
-                .collection(MEMBERS_COLLECTION)
+                .collection(MEMBERS)
                 .document(user.uid)
             batch.set(memberDoc, mapOf("displayName" to trimmed), merge = true)
         }
@@ -144,7 +138,7 @@ class FirebaseAuthRepository(
      * nothing, so an existing profile is never overwritten with the Google one.
      */
     private suspend fun ensureUserProfile(user: FirebaseUser) {
-        val document = firestore.collection(USERS_COLLECTION).document(user.uid)
+        val document = firestore.collection(USERS).document(user.uid)
         try {
             if (document.get().exists) {
                 updateDevicePreferences(user.uid)
@@ -165,7 +159,7 @@ class FirebaseAuthRepository(
     /** Syncs the device's language and time zone to the user's private profile document. */
     private suspend fun updateDevicePreferences(uid: String) {
         try {
-            firestore.collection(USERS_COLLECTION)
+            firestore.collection(USERS)
                 .document(uid)
                 .set(devicePreferencesDocument(), merge = true)
         } catch (e: CancellationException) {
@@ -190,10 +184,4 @@ class FirebaseAuthRepository(
         fallbackPhotoUrl = photoURL,
         email = email,
     )
-
-    private companion object {
-        const val USERS_COLLECTION = "users"
-        const val SPACES_COLLECTION = "spaces"
-        const val MEMBERS_COLLECTION = "members"
-    }
 }
