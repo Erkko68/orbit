@@ -16,20 +16,20 @@ import kotlinx.coroutines.flow.update
 /** Spaces and members in memory. A new space's only member is its owner. */
 class InMemorySpaceRepository(private val auth: AuthRepository) : SpaceRepository {
     private val spaces = MutableStateFlow(emptyList<Space>())
-    private val members = MutableStateFlow(emptyList<Member>())
+    private val members = MutableStateFlow(emptyMap<String, List<Member>>())
 
     override fun observeSpaces(): Flow<List<Space>> = combine(auth.session, spaces) { user, all ->
         all.filter { user != null && user.id in it.memberIds }
     }
 
     override fun observeMembers(spaceId: String): Flow<List<Member>> =
-        members.map { all -> all.filter { it.spaceId == spaceId } }
+        members.map { it[spaceId].orEmpty() }
 
     override suspend fun createSpace(name: String, accent: Int): String {
         val user = auth.requireUser()
         val before = spaces.getAndUpdate { it + Space("space-${it.size + 1}", name, accent, listOf(user.id)) }
         val id = "space-${before.size + 1}"
-        members.update { it + Member(user.id, id, user.displayName, user.photoUrl, Role.OWNER) }
+        members.update { it + (id to listOf(Member(user.id, user.displayName, user.photoUrl, Role.OWNER))) }
         return id
     }
 }

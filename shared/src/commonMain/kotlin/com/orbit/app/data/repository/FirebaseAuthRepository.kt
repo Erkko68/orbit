@@ -178,8 +178,6 @@ class FirebaseAuthRepository(
         id = uid,
         displayName = profile?.field("displayName"),
         photoUrl = profile?.field("photoUrl"),
-        language = profile?.field("language"),
-        timeZone = profile?.field("timeZone"),
         fallbackDisplayName = displayName ?: email?.substringBefore('@'),
         fallbackPhotoUrl = photoURL,
         email = email,

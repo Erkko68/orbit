@@ -48,7 +48,6 @@ class FirestoreSpaceRepository(
             snapshot.documents.map { document ->
                 mapMember(
                     userId = document.id,
-                    spaceId = spaceId,
                     displayName = document.field("displayName"),
                     photoUrl = document.field("photoUrl"),
                     role = document.field("role"),

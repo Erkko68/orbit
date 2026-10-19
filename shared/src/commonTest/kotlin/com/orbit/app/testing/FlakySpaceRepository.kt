@@ -26,7 +26,7 @@ internal class FlakySpaceRepository(private var spaceFailures: Int = 0, private 
             memberFailures--
             error("Could not reach the server")
         }
-        emit(listOf(Member("ana", spaceId, "ana", photoUrl = null, role = Role.OWNER)))
+        emit(listOf(Member("ana", "ana", photoUrl = null, role = Role.OWNER)))
     }
 
     override suspend fun createSpace(name: String, accent: Int): String = error("Not used by these tests")

@@ -15,13 +15,11 @@ internal fun mapSpace(id: String, name: String?, accent: Int?, memberIds: List<S
 /** A member from the fields of its document. The document id is the user's uid. */
 internal fun mapMember(
     userId: String,
-    spaceId: String,
     displayName: String?,
     photoUrl: String?,
     role: String?,
 ) = Member(
     userId = userId,
-    spaceId = spaceId,
     displayName = displayName.orEmpty(),
     photoUrl = photoUrl,
     role = roleOf(role),

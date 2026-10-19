@@ -74,7 +74,7 @@ class ItemMapperTest {
 
     @Test
     fun everyModuleReadsBackAsWritten() {
-        val item = mapItem("item-1", "space-1", storedModules(modules))
+        val item = mapItem("item-1", storedModules(modules))
 
         assertEquals(modules, item?.modules)
     }
@@ -85,7 +85,7 @@ class ItemMapperTest {
             listOf(Assignment.ToMember("ben"), Assignment.Anyone, Assignment.Claim(), Assignment.Claim("ben"))
 
         val read = assignments.map {
-            mapItem("item-1", "space-1", storedModules(ItemModules(assignment = it)))?.modules?.assignment
+            mapItem("item-1", storedModules(ItemModules(assignment = it)))?.modules?.assignment
         }
 
         assertEquals(assignments, read)
@@ -95,15 +95,15 @@ class ItemMapperTest {
     fun aWindowReadsBackWithItsEndDate() {
         val window = ItemModules(schedule = Schedule(LocalDate(2026, 10, 9), endDate = LocalDate(2026, 10, 12)))
 
-        assertEquals(window, mapItem("item-1", "space-1", storedModules(window))?.modules)
+        assertEquals(window, mapItem("item-1", storedModules(window))?.modules)
     }
 
     @Test
     fun mapsTheCoreFields() {
-        val item = mapItem("item-1", "space-1", stored.copy(description = "Semi-skimmed", preset = "event"))
+        val item = mapItem("item-1", stored.copy(description = "Semi-skimmed", preset = "event"))
 
         assertEquals(
-            Item("item-1", "space-1", "Buy milk", "Semi-skimmed", ItemStatus.Open, Preset.EVENT, "ana", createdAt),
+            Item("item-1", "Buy milk", "Semi-skimmed", ItemStatus.Open, Preset.EVENT, "ana", createdAt),
             item,
         )
     }
@@ -112,7 +112,7 @@ class ItemMapperTest {
     fun aDoneItemCarriesWhoCompletedItAndWhen() {
         val doneAt = Instant.fromEpochSeconds(1_760_000_600)
 
-        val item = mapItem("item-1", "space-1", stored.copy(status = "done", completedBy = "ben", completedAt = doneAt))
+        val item = mapItem("item-1", stored.copy(status = "done", completedBy = "ben", completedAt = doneAt))
 
         assertEquals(ItemStatus.Done("ben", doneAt), item?.status)
     }
@@ -122,14 +122,14 @@ class ItemMapperTest {
         val statuses =
             listOf(stored.copy(status = "done"), stored.copy(status = "archived"), stored.copy(status = null))
 
-        assertEquals(List(3) { ItemStatus.Open }, statuses.map { mapItem("item-1", "space-1", it)?.status })
+        assertEquals(List(3) { ItemStatus.Open }, statuses.map { mapItem("item-1", it)?.status })
     }
 
     @Test
     fun skipsAnItemWithoutATitleCreatorOrCreationTime() {
         val malformed = listOf(stored.copy(title = null), stored.copy(createdBy = null), stored.copy(createdAt = null))
 
-        assertEquals(listOf(null, null, null), malformed.map { mapItem("item-1", "space-1", it) })
+        assertEquals(listOf(null, null, null), malformed.map { mapItem("item-1", it) })
     }
 
     @Test
@@ -143,7 +143,7 @@ class ItemMapperTest {
             ),
         )
 
-        val item = mapItem("item-1", "space-1", newer)
+        val item = mapItem("item-1", newer)
 
         assertNull(item?.preset)
         assertEquals(ItemModules(schedule = Schedule(LocalDate(2026, 10, 9))), item?.modules)
@@ -159,7 +159,7 @@ class ItemMapperTest {
             ),
         )
 
-        assertEquals(ItemModules(), mapItem("item-1", "space-1", broken)?.modules)
+        assertEquals(ItemModules(), mapItem("item-1", broken)?.modules)
     }
 
     @Test
@@ -172,7 +172,7 @@ class ItemMapperTest {
             ),
         )
 
-        val item = mapItem("item-1", "space-1", stored.copy(modules = ModulesDocument(checklist = checklist)))
+        val item = mapItem("item-1", stored.copy(modules = ModulesDocument(checklist = checklist)))
 
         assertEquals(
             Checklist(listOf(ChecklistEntry("first", "Milk", checked = true), ChecklistEntry("late", "Bread"))),

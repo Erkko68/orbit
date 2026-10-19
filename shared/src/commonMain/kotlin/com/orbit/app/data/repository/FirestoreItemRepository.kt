@@ -46,7 +46,7 @@ class FirestoreItemRepository(
     /** Refused while a space made a moment ago is not on the server yet, so asked again for a few seconds. */
     override fun observeItems(spaceId: String): Flow<List<Item>> =
         items(spaceId).orderBy(CREATED_AT).snapshots.map { snapshot ->
-            snapshot.documents.mapNotNull { toItem(spaceId, it) }
+            snapshot.documents.mapNotNull(::toItem)
         }.retryWhileRefused()
 
     override suspend fun create(spaceId: String, item: NewItem): String {
@@ -106,7 +106,7 @@ class FirestoreItemRepository(
         }
     }
 
-    private fun toItem(spaceId: String, document: DocumentSnapshot): Item? {
+    private fun toItem(document: DocumentSnapshot): Item? {
         val modules = ModulesDocument(
             schedule = document.field("$MODULES.${moduleKey(ModuleType.SCHEDULE)}"),
             assignment = document.field("$MODULES.${moduleKey(ModuleType.ASSIGNMENT)}"),
@@ -126,7 +126,7 @@ class FirestoreItemRepository(
             moduleKeys = document.field<Map<String, Unit>>(MODULES)?.keys.orEmpty(),
             modules = modules,
         )
-        return mapItem(document.id, spaceId, stored).also {
+        return mapItem(document.id, stored).also {
             if (it == null) Logger.w { "Skipping the malformed item ${document.id}" }
         }
     }

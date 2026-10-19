@@ -1,12 +1,12 @@
 package com.orbit.app.feature.account
 
-import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.CredentialsError
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.testing.FailingAuthRepository
+import com.orbit.app.testing.InMemoryAuthRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -17,7 +17,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import kotlinx.datetime.TimeZone
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.error_current_password_wrong
 import orbit.shared.generated.resources.error_network
@@ -33,7 +32,7 @@ import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AccountViewModelTest {
-    private val ana = User("ana", "Ana López", photoUrl = null, "en", TimeZone.UTC, email = "ana@orbit.app")
+    private val ana = User("ana", "Ana López", photoUrl = null, email = "ana@orbit.app")
 
     @BeforeTest
     fun setUp() {

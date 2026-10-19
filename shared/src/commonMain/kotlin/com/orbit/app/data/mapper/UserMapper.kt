@@ -4,38 +4,20 @@ import com.orbit.app.core.deviceLanguage
 import com.orbit.app.domain.model.User
 import kotlinx.datetime.TimeZone
 
+/** The user from their profile, with the sign-in account's name and photo where the profile has none. */
 internal fun mapUser(
     id: String,
     displayName: String?,
     photoUrl: String?,
-    language: String?,
-    timeZone: String?,
     fallbackDisplayName: String? = null,
     fallbackPhotoUrl: String? = null,
     email: String? = null,
-): User {
-    val resolvedDisplayName = displayName?.takeIf { it.isNotBlank() }
-        ?: fallbackDisplayName?.takeIf { it.isNotBlank() }
-        ?: ""
-    val resolvedPhotoUrl = photoUrl ?: fallbackPhotoUrl
-    val resolvedLanguage = language?.takeIf { it.isNotBlank() } ?: DEFAULT_LANGUAGE
-    val resolvedTimeZone = timeZone?.let {
-        try {
-            TimeZone.of(it)
-        } catch (_: Exception) {
-            null
-        }
-    } ?: TimeZone.currentSystemDefault()
-
-    return User(
-        id = id,
-        displayName = resolvedDisplayName,
-        photoUrl = resolvedPhotoUrl,
-        language = resolvedLanguage,
-        timeZone = resolvedTimeZone,
-        email = email,
-    )
-}
+) = User(
+    id = id,
+    displayName = displayName?.ifBlank { null } ?: fallbackDisplayName?.ifBlank { null }.orEmpty(),
+    photoUrl = photoUrl ?: fallbackPhotoUrl,
+    email = email,
+)
 
 internal fun userProfileDocument(
     displayName: String,
@@ -56,6 +38,4 @@ internal fun devicePreferencesDocument(
     "language" to language,
     "timeZone" to timeZone.id,
 )
-
-private const val DEFAULT_LANGUAGE = "en"
 

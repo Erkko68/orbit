@@ -67,7 +67,7 @@ class ItemViewModelTest {
         val id = createItem()
         val context = FakeSpaceRepository(
             com.orbit.app.domain.model.Space("space-1", "Flat 4B", 0, listOf("ana@orbit.app")),
-            listOf(com.orbit.app.domain.model.Member("ana@orbit.app", "space-1", "Ana", null, Role.OWNER)),
+            listOf(com.orbit.app.domain.model.Member("ana@orbit.app", "Ana", null, Role.OWNER)),
         )
         val model = track(ItemViewModel("space-1", id, items, context))
         val state = model.uiState.first { !it.loading && it.spaceName != null }
@@ -205,7 +205,6 @@ class ItemViewModelTest {
             items = listOf(
                 Item(
                     id = "item-1",
-                    spaceId = "space-1",
                     title = "Test Item",
                     description = null,
                     status = ItemStatus.Open,
@@ -447,7 +446,6 @@ class ItemViewModelTest {
                     items = listOf(
                         Item(
                             id = "item-1",
-                            spaceId = "space-1",
                             title = "Test Item",
                             description = null,
                             status = ItemStatus.Open,
