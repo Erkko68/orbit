@@ -25,13 +25,25 @@ fun OrbitListCard(
     titleDecoration: TextDecoration = TextDecoration.None,
     trailing: (@Composable () -> Unit)? = null,
 ) {
-    OrbitCard(modifier, onClick = onClick) {
-        OrbitListItem(
-            title = title,
-            supporting = supporting,
-            leading = { Icon(painterResource(icon), contentDescription = null, tint = iconTint) },
-            trailing = trailing,
-            titleDecoration = titleDecoration,
-        )
+    if (trailing == null) {
+        OrbitCard(modifier, onClick = onClick) {
+            OrbitListItem(
+                title = title,
+                supporting = supporting,
+                leading = { Icon(painterResource(icon), contentDescription = null, tint = iconTint) },
+                titleDecoration = titleDecoration,
+            )
+        }
+    } else {
+        OrbitCard(modifier) {
+            OrbitListItem(
+                title = title,
+                supporting = supporting,
+                leading = { Icon(painterResource(icon), contentDescription = null, tint = iconTint) },
+                trailing = trailing,
+                titleDecoration = titleDecoration,
+                onClick = onClick,
+            )
+        }
     }
 }
