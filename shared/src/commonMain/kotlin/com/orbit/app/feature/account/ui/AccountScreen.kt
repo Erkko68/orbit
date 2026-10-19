@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitAvatar
 import com.orbit.app.core.designsystem.component.OrbitCard
 import com.orbit.app.core.designsystem.component.OrbitDialog
+import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitListCard
 import com.orbit.app.core.designsystem.component.OrbitListItem
@@ -100,11 +101,7 @@ fun AccountScreen(onBack: () -> Unit, viewModel: AccountViewModel = koinViewMode
                 onClick = viewModel::signOut,
             )
             if (state.signOutFailed) {
-                Text(
-                    text = stringResource(Res.string.account_sign_out_failed),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
+                OrbitErrorText(stringResource(Res.string.account_sign_out_failed))
             }
             OrbitListCard(
                 title = stringResource(Res.string.account_delete),
@@ -207,11 +204,7 @@ private fun DeleteAccountDialog(state: AccountUiState, viewModel: AccountViewMod
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         state.dialogError?.let {
-            Text(
-                text = stringResource(it),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-            )
+            OrbitErrorText(stringResource(it))
         }
     }
 }

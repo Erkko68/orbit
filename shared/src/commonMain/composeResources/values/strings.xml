@@ -78,8 +78,6 @@
     <string name="space_today">Today</string>
     <string name="filter_all">All</string>
     <string name="filter_tasks">Tasks</string>
-    <string name="filter_chores">Chores</string>
-    <string name="filter_bills">Bills</string>
     <string name="filter_lists">Lists</string>
     <string name="filter_events">Events</string>
     <string name="item_type_task">Task</string>
@@ -97,7 +95,7 @@
     <string name="space_members_loading">Loading the members…</string>
     <string name="space_members_load_failed">Could not load the members</string>
     <string name="space_items_empty_title">No items yet</string>
-    <string name="space_items_empty_body">Tasks, chores, bills and lists you add will show up here.</string>
+    <string name="space_items_empty_body">Tasks, lists and events you add will show up here.</string>
     <string name="space_agenda_empty_title">Nothing scheduled for today</string>
     <string name="space_agenda_empty_body">Items due today will show up here.</string>
     <string name="role_owner">Owner</string>
@@ -161,6 +159,9 @@
     <string name="module_checklist_quantity">%1$s × %2$d</string>
     <string name="module_schedule_range">%1$s – %2$s</string>
     <string name="module_schedule_time">%1$s · %2$s</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="duration_hours">%1$d h</string>
+    <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <string name="module_schedule_duration">Duration: %1$s</string>
     <string name="module_reminder_empty">No reminders set</string>
     <string name="module_reminder_at_time">At event time</string>

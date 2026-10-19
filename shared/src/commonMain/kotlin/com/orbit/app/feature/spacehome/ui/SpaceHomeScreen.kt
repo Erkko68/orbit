@@ -30,10 +30,10 @@ import com.orbit.app.core.designsystem.component.OrbitTextField
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.domain.model.Preset
+import com.orbit.app.feature.item.label
 import com.orbit.app.feature.spacehome.SpaceHomeTab
 import com.orbit.app.feature.spacehome.SpaceHomeUiState
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
-import com.orbit.app.feature.spacehome.label
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
 import com.orbit.app.feature.spacehome.members.SpaceMembersTab
 import orbit.shared.generated.resources.Res

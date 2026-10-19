@@ -3,9 +3,16 @@ package com.orbit.app.feature.item
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ModuleType
+import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import kotlinx.datetime.LocalDate
+import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.item_type_list
+import orbit.shared.generated.resources.item_type_other
+import orbit.shared.generated.resources.item_unknown_member
+import orbit.shared.generated.resources.module_assignment_anyone
+import orbit.shared.generated.resources.module_assignment_unassigned
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -80,5 +87,25 @@ class ItemUiStateTest {
             assertNull(state.assigneeName)
             assertNull(state.assigneeInitials)
         }
+    }
+
+    @Test
+    fun theAssignmentSaysWhoOrWhyNobody() {
+        val members = mapOf("ana" to "Ana López")
+        fun note(assignment: Assignment) = ItemUiState(modules = listOf(assignment), memberNames = members).assignmentNote
+
+        assertNull(note(Assignment.ToMember("ana")))
+        assertNull(note(Assignment.Claim("ana")))
+        assertEquals(Res.string.module_assignment_anyone, note(Assignment.Anyone))
+        assertEquals(Res.string.module_assignment_unassigned, note(Assignment.Claim()))
+        assertEquals(Res.string.item_unknown_member, note(Assignment.ToMember("gone")))
+        assertEquals(Res.string.item_unknown_member, note(Assignment.Claim("gone")))
+        assertNull(ItemUiState().assignmentNote)
+    }
+
+    @Test
+    fun namesTheItemByItsPreset() {
+        assertEquals(Res.string.item_type_list, ItemUiState(preset = Preset.SHOPPING_LIST).typeLabel)
+        assertEquals(Res.string.item_type_other, ItemUiState().typeLabel)
     }
 }

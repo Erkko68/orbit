@@ -4,9 +4,6 @@ import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.validateItem
 import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.item_type_event
-import orbit.shared.generated.resources.item_type_list
-import orbit.shared.generated.resources.item_type_task
 import orbit.shared.generated.resources.space_tab_agenda
 import orbit.shared.generated.resources.space_tab_items
 import orbit.shared.generated.resources.space_tab_members
@@ -42,10 +39,3 @@ enum class SpaceHomeTab(val label: StringResource) {
     MEMBERS(Res.string.space_tab_members),
 }
 
-/** How the "New item" dialog names a preset. */
-val Preset.label: StringResource
-    get() = when (this) {
-        Preset.TASK -> Res.string.item_type_task
-        Preset.SHOPPING_LIST -> Res.string.item_type_list
-        Preset.EVENT -> Res.string.item_type_event
-    }

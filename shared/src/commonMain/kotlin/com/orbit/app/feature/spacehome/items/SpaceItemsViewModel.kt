@@ -6,8 +6,9 @@ import com.orbit.app.core.Load
 import com.orbit.app.core.asLoad
 import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.Item
-import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.repository.ItemRepository
+import com.orbit.app.feature.item.icon
+import com.orbit.app.feature.item.label
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -41,13 +42,4 @@ class SpaceItemsViewModel(spaceId: String, items: ItemRepository) : ViewModel() 
     }
 }
 
-private fun toSpaceItem(item: Item) = SpaceItem(
-    id = item.id,
-    title = item.title,
-    type = when (item.preset) {
-        Preset.TASK -> ItemType.TASK
-        Preset.SHOPPING_LIST -> ItemType.LIST
-        Preset.EVENT -> ItemType.EVENT
-        null -> ItemType.OTHER
-    },
-)
+private fun toSpaceItem(item: Item) = SpaceItem(item.id, item.title, item.preset.label, item.preset.icon)

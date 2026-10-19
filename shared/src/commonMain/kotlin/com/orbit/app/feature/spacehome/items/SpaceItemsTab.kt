@@ -68,8 +68,8 @@ internal fun SpaceItemsTab(
         for (item in state.items) {
             OrbitListCard(
                 title = item.title,
-                supporting = stringResource(item.type.label),
-                icon = item.type.icon,
+                supporting = stringResource(item.label),
+                icon = item.icon,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onOpenItem(item.id) },
             )

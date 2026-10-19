@@ -251,9 +251,9 @@ class ItemScreenTest : ComposeTest() {
         val viewModel = model(id, items)
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
         onNodeWithText("Oct 26, 2026 · 20:00").performScrollTo().assertIsDisplayed()
-        onNodeWithText("Duration: 30m").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Duration: 30 min").performScrollTo().assertIsDisplayed()
         onNodeWithText("Anyone").performScrollTo().assertIsDisplayed()
-        onNodeWithText("At event time, 10m before").performScrollTo().assertIsDisplayed()
+        onNodeWithText("At event time, 10 min before").performScrollTo().assertIsDisplayed()
     }
 
     @Test

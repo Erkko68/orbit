@@ -14,6 +14,11 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.item_type_event
+import orbit.shared.generated.resources.item_type_list
+import orbit.shared.generated.resources.item_type_other
+import orbit.shared.generated.resources.item_type_task
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -49,8 +54,8 @@ class SpaceItemsViewModelTest {
         val state = SpaceItemsViewModel(id, items).uiState.first { it.items.size == 4 }
 
         assertEquals(
-            listOf(ItemType.TASK, ItemType.LIST, ItemType.EVENT, ItemType.OTHER),
-            state.items.map { it.type },
+            listOf(Res.string.item_type_task, Res.string.item_type_list, Res.string.item_type_event, Res.string.item_type_other),
+            state.items.map { it.label },
         )
     }
 
@@ -73,8 +78,6 @@ class SpaceItemsViewModelTest {
             mapOf(
                 ItemFilter.ALL to listOf("Book plumber", "Groceries", "Dinner at 20:00"),
                 ItemFilter.TASKS to listOf("Book plumber"),
-                ItemFilter.CHORES to emptyList(),
-                ItemFilter.BILLS to emptyList(),
                 ItemFilter.LISTS to listOf("Groceries"),
                 ItemFilter.EVENTS to listOf("Dinner at 20:00"),
             ),
