@@ -44,7 +44,7 @@ The board moves the cards and computes the dates itself ([project automation](pr
    ./gradlew :shared:testAndroidHostTest :shared:iosSimulatorArm64Test
    ```
    For a rules change, also run the rules tests ([testing](testing.md#firestore-rules)).
-7. **Open one PR per complete feature.** Title in Conventional Commits without the issue number; the body follows the template and says `Closes #42`. Close only when every "Done when" item is met, including both platforms; otherwise link a follow-up issue for what is left.
+7. **Open one PR per complete feature.** Title in Conventional Commits without the issue number, its subject lowercase and at most about 60 characters (CI checks it); the body follows the template and says `Closes #42`. Close only when every "Done when" item is met, including both platforms; otherwise link a follow-up issue for what is left.
 
 ## Checks on every pull request
 
