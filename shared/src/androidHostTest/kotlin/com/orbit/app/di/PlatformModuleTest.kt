@@ -2,6 +2,7 @@ package com.orbit.app.di
 
 import android.app.Activity
 import com.orbit.app.core.designsystem.ComposeTest
+import com.orbit.app.core.notification.NotificationAccess
 import com.orbit.app.core.notification.NotificationScheduler
 import com.orbit.app.data.auth.ActivityProvider
 import com.orbit.app.data.auth.GoogleAuthClient
@@ -34,6 +35,7 @@ class PlatformModuleTest : ComposeTest() {
         assertNotNull(client)
 
         assertNotNull(koin.get<NotificationScheduler>())
+        assertNotNull(koin.get<NotificationAccess>())
         koinApp.close()
     }
 
