@@ -4,12 +4,19 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
-    <application>
+    <!--
+    No backup: the data lives in Firestore, and a restored session or reminder store would be stale.
+    No cleartext: Orbit only talks HTTPS, which Android 7 and 8 do not enforce by default.
+    -->
+    <application
+            android:allowBackup="false"
+            android:usesCleartextTraffic="false">
         <receiver
                 android:exported="false"
                 android:name="com.orbit.app.core.notification.NotificationReceiver"/>
+        <!-- Not exported: only the system sends BOOT_COMPLETED, and it reaches unexported receivers. -->
         <receiver
-                android:exported="true"
+                android:exported="false"
                 android:name="com.orbit.app.core.notification.BootReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED"/>
