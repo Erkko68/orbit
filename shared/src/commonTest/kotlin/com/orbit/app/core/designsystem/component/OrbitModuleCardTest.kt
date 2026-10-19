@@ -1,5 +1,6 @@
 package com.orbit.app.core.designsystem.component
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +52,29 @@ class OrbitModuleCardTest : ComposeTest() {
         enabled = true
         onNodeWithContentDescription("Remove checklist").assertIsEnabled().performClick()
         assertEquals(1, removed)
+    }
+
+    @Test
+    fun hasAnEditButtonOnlyWhenGivenOne() = runComposeUiTest {
+        var edits = 0
+        setContent {
+            OrbitTheme {
+                Column {
+                    OrbitModuleCard(
+                        "Schedule",
+                        Res.drawable.ic_event,
+                        "Remove schedule",
+                        onRemove = {},
+                        editDescription = "Edit schedule",
+                        onEdit = { edits++ },
+                    ) {}
+                    OrbitModuleCard("Checklist", Res.drawable.ic_list, "Remove checklist", onRemove = {}) {}
+                }
+            }
+        }
+        onNodeWithContentDescription("Edit schedule").performClick()
+        assertEquals(1, edits)
+        onNodeWithContentDescription("Edit checklist").assertDoesNotExist()
     }
 
     @Test
