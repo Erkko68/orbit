@@ -21,10 +21,7 @@ import orbit.shared.generated.resources.sign_in_password
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/**
- * Create account on the [AuthLayout], laid out like sign-in. "Sign in" calls [onSignIn]. Apple is a
- * disabled placeholder until its issue lands (#113).
- */
+/** Create account on the [AuthLayout], laid out like sign-in. "Sign in" calls [onSignIn]. */
 @Composable
 fun CreateAccountScreen(onSignIn: () -> Unit, viewModel: CreateAccountViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()

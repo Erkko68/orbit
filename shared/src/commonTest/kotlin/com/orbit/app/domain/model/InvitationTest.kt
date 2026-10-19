@@ -1,6 +1,5 @@
 package com.orbit.app.domain.model
 
-import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -39,16 +38,6 @@ class InvitationTest {
     fun hasALinkThatCarriesTheCode() {
         assertEquals("orbit://join/ABCD2345", invitation().link)
         assertEquals("orbit://join/ABCD2345", invitationLink("ABCD2345"))
-    }
-
-    @Test
-    fun aCodeUsesOnlyUnambiguousCharacters() {
-        val random = Random(7)
-        repeat(200) {
-            val code = newInvitationCode(random)
-            assertEquals(INVITATION_CODE_LENGTH, code.length)
-            assertTrue(code.all { it in alphabet }, code)
-        }
     }
 
     @Test

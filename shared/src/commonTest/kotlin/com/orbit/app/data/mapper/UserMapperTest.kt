@@ -4,7 +4,6 @@ import com.orbit.app.core.deviceLanguage
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class UserMapperTest {
@@ -15,15 +14,11 @@ class UserMapperTest {
             id = "user-123",
             displayName = "Alice Wonderland",
             photoUrl = "https://example.com/alice.png",
-            language = "es",
-            timeZone = "Europe/Madrid",
         )
 
         assertEquals("user-123", user.id)
         assertEquals("Alice Wonderland", user.displayName)
         assertEquals("https://example.com/alice.png", user.photoUrl)
-        assertEquals("es", user.language)
-        assertEquals(TimeZone.of("Europe/Madrid"), user.timeZone)
     }
 
     @Test
@@ -32,8 +27,6 @@ class UserMapperTest {
             id = "user-456",
             displayName = null,
             photoUrl = null,
-            language = null,
-            timeZone = null,
             fallbackDisplayName = "Fallback Name",
             fallbackPhotoUrl = "https://example.com/fallback.png",
         )
@@ -41,23 +34,6 @@ class UserMapperTest {
         assertEquals("user-456", user.id)
         assertEquals("Fallback Name", user.displayName)
         assertEquals("https://example.com/fallback.png", user.photoUrl)
-        assertEquals("en", user.language)
-        assertEquals(TimeZone.currentSystemDefault(), user.timeZone)
-    }
-
-    @Test
-    fun mapsUserWithInvalidTimeZoneFallingBackToDefault() {
-        val user = mapUser(
-            id = "user-789",
-            displayName = "Bob",
-            photoUrl = null,
-            language = "ca",
-            timeZone = "Invalid/Zone",
-        )
-
-        assertEquals("Bob", user.displayName)
-        assertEquals("ca", user.language)
-        assertEquals(TimeZone.currentSystemDefault(), user.timeZone)
     }
 
     @Test
@@ -66,13 +42,10 @@ class UserMapperTest {
             id = "user-abc",
             displayName = "   ",
             photoUrl = null,
-            language = "",
-            timeZone = null,
             fallbackDisplayName = "bob@orbit.app",
         )
 
         assertEquals("bob@orbit.app", user.displayName)
-        assertEquals("en", user.language)
     }
 
     @Test

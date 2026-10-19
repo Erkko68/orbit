@@ -12,7 +12,6 @@ sealed interface ItemStatus {
 /** An item as read from Firestore. */
 data class Item(
     val id: String,
-    val spaceId: String,
     val title: String,
     val description: String?,
     val status: ItemStatus,

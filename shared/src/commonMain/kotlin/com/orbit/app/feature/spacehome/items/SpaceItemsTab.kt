@@ -11,12 +11,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
+import com.orbit.app.core.designsystem.component.OrbitErrorState
 import com.orbit.app.core.designsystem.component.OrbitFilterChip
 import com.orbit.app.core.designsystem.component.OrbitListCard
+import com.orbit.app.core.designsystem.component.OrbitLoadingState
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.load_failed_body
+import orbit.shared.generated.resources.retry
 import orbit.shared.generated.resources.space_items_empty_body
 import orbit.shared.generated.resources.space_items_empty_title
+import orbit.shared.generated.resources.space_items_load_failed
+import orbit.shared.generated.resources.space_items_loading
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -27,7 +33,7 @@ internal fun SpaceItemsTab(
     spaceId: String,
     onOpenItem: (String) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: SpaceItemsViewModel = koinViewModel(key = spaceId) { parametersOf(spaceId) },
+    viewModel: SpaceItemsViewModel = koinViewModel(key = "items-$spaceId") { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
@@ -43,8 +49,17 @@ internal fun SpaceItemsTab(
                 )
             }
         }
-        if (state.items.isEmpty()) {
-            OrbitEmptyState(
+        when {
+            state.loading -> OrbitLoadingState(stringResource(Res.string.space_items_loading), Modifier.fillMaxWidth())
+            state.loadFailed -> OrbitErrorState(
+                title = stringResource(Res.string.space_items_load_failed),
+                body = stringResource(Res.string.load_failed_body),
+                retryText = stringResource(Res.string.retry),
+                onRetry = viewModel::retry,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            state.items.isEmpty() -> OrbitEmptyState(
                 title = stringResource(Res.string.space_items_empty_title),
                 body = stringResource(Res.string.space_items_empty_body),
                 modifier = Modifier.fillMaxWidth(),
@@ -53,8 +68,8 @@ internal fun SpaceItemsTab(
         for (item in state.items) {
             OrbitListCard(
                 title = item.title,
-                supporting = stringResource(item.type.label),
-                icon = item.type.icon,
+                supporting = stringResource(item.label),
+                icon = item.icon,
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onOpenItem(item.id) },
             )

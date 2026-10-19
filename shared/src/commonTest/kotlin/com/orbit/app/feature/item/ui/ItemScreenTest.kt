@@ -1,14 +1,14 @@
 package com.orbit.app.feature.item.ui
 
-import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
@@ -17,13 +17,10 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.lifecycle.ViewModelStore
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.data.repository.InMemoryAuthRepository
-import com.orbit.app.data.repository.InMemoryItemRepository
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.ItemModules
-import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Reminder
@@ -33,17 +30,19 @@ import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.feature.item.ItemViewModel
 import com.orbit.app.testing.ControlledItemRepository
 import com.orbit.app.testing.FakeSpaceRepository
-import kotlin.test.AfterTest
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
-import kotlin.test.Test
-import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryItemRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlin.test.AfterTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 
 @OptIn(ExperimentalTestApi::class)
 class ItemScreenTest : ComposeTest() {
@@ -54,8 +53,8 @@ class ItemScreenTest : ComposeTest() {
     private val spaces = FakeSpaceRepository(
         com.orbit.app.domain.model.Space("space-1", "Flat 4B", 0, listOf("ana", "mika")),
         listOf(
-            com.orbit.app.domain.model.Member("ana", "space-1", "Ana", null, Role.OWNER),
-            com.orbit.app.domain.model.Member("mika", "space-1", "Mika", null, Role.MEMBER),
+            com.orbit.app.domain.model.Member("ana", "Ana", null, Role.OWNER),
+            com.orbit.app.domain.model.Member("mika", "Mika", null, Role.MEMBER),
         ),
     )
     private val viewModels = ViewModelStore()
@@ -252,9 +251,9 @@ class ItemScreenTest : ComposeTest() {
         val viewModel = model(id, items)
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
         onNodeWithText("Oct 26, 2026 · 20:00").performScrollTo().assertIsDisplayed()
-        onNodeWithText("Duration: 30m").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Duration: 30 min").performScrollTo().assertIsDisplayed()
         onNodeWithText("Anyone").performScrollTo().assertIsDisplayed()
-        onNodeWithText("At event time, 10m before").performScrollTo().assertIsDisplayed()
+        onNodeWithText("At event time, 10 min before").performScrollTo().assertIsDisplayed()
     }
 
     @Test

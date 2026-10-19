@@ -5,7 +5,6 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -14,12 +13,12 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.feature.auth.CreateAccountViewModel
 import com.orbit.app.testing.FailingAuthRepository
+import com.orbit.app.testing.InMemoryAuthRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -52,7 +51,6 @@ class CreateAccountScreenTest : ComposeTest() {
         onNodeWithText("Use at least 8 characters.").assertIsDisplayed()
         onNodeWithText("Create account").assertIsEnabled()
         onNodeWithText("Continue with Google").performScrollTo().assertIsEnabled()
-        onNodeWithText("Continue with Apple").performScrollTo().assertIsNotEnabled()
         onNodeWithText("Already have an account?").performScrollTo().assertIsDisplayed()
     }
 

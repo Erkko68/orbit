@@ -1,10 +1,10 @@
 package com.orbit.app.feature.auth
 
-import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.CredentialsError
 import com.orbit.app.testing.FailingAuthRepository
+import com.orbit.app.testing.InMemoryAuthRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first

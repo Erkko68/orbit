@@ -3,17 +3,14 @@ package com.orbit.app.feature.auth.ui
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitPasswordField
-import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.feature.auth.SignInViewModel
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.sign_in
 import orbit.shared.generated.resources.sign_in_create_account
-import orbit.shared.generated.resources.sign_in_forgot_password
 import orbit.shared.generated.resources.sign_in_new
 import orbit.shared.generated.resources.sign_in_password
 import orbit.shared.generated.resources.sign_in_subtitle
@@ -21,10 +18,7 @@ import orbit.shared.generated.resources.sign_in_title
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
-/**
- * Sign-in on the [AuthLayout]. "Create account" calls [onCreateAccount]. Placeholders until their
- * issues land: forgot password and Apple are disabled.
- */
+/** Sign-in on the [AuthLayout]. "Create account" calls [onCreateAccount]. */
 @Composable
 fun SignInScreen(onCreateAccount: () -> Unit, viewModel: SignInViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -53,12 +47,6 @@ fun SignInScreen(onCreateAccount: () -> Unit, viewModel: SignInViewModel = koinV
             onClick = viewModel::signIn,
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.submitting,
-        )
-        OrbitTextButton(
-            text = stringResource(Res.string.sign_in_forgot_password),
-            onClick = {},
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            enabled = false,
         )
     }
 }

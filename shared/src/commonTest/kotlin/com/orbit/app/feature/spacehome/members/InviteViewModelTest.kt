@@ -1,14 +1,15 @@
 package com.orbit.app.feature.spacehome.members
 
-import com.orbit.app.data.repository.InMemoryAuthRepository
-import com.orbit.app.data.repository.InMemoryInvitationRepository
-import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.domain.model.Invitation
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.FailingInvitationRepository
 import com.orbit.app.testing.FakeSpaceRepository
+import com.orbit.app.testing.FlakySpaceRepository
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryInvitationRepository
+import com.orbit.app.testing.InMemorySpaceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -208,17 +209,6 @@ class InviteViewModelTest {
     }
 
     @Test
-    fun offersToCreateWhenTheInvitationsEndWithoutLoading() = runTest {
-        val spaces = ownedSpace()
-
-        val state = inviteViewModel(spaces, FailingInvitationRepository(endWithoutLoading = true)).uiState.value
-
-        assertTrue(state.canInvite)
-        assertFalse(state.loading)
-        assertNull(state.invitation)
-    }
-
-    @Test
     fun revokingWithNothingToRevokeDoesNothing() = runTest {
         val spaces = ownedSpace()
         val viewModel = inviteViewModel(spaces, FailingInvitationRepository())
@@ -226,5 +216,14 @@ class InviteViewModelTest {
         viewModel.revokeInvitation()
 
         assertNull(viewModel.uiState.value.failure)
+    }
+
+    @Test
+    fun nobodyCanInviteWhileTheMembersFailToLoad() = runTest {
+        auth.signIn("ana", "secret")
+
+        val state = inviteViewModel(FlakySpaceRepository(memberFailures = 1), InMemoryInvitationRepository(auth)).uiState.value
+
+        assertFalse(state.canInvite)
     }
 }

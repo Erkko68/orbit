@@ -27,15 +27,17 @@ import com.orbit.app.feature.space.SpaceUiState
 import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.feature.space.card.SpaceCard
 import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.app_name
 import orbit.shared.generated.resources.account_title
+import orbit.shared.generated.resources.app_name
 import orbit.shared.generated.resources.cancel
 import orbit.shared.generated.resources.ic_add
 import orbit.shared.generated.resources.ic_home
 import orbit.shared.generated.resources.ic_link
 import orbit.shared.generated.resources.ic_orbit
+import orbit.shared.generated.resources.load_failed_body
 import orbit.shared.generated.resources.or
 import orbit.shared.generated.resources.retry
+import orbit.shared.generated.resources.spaces_count
 import orbit.shared.generated.resources.spaces_create
 import orbit.shared.generated.resources.spaces_create_failed
 import orbit.shared.generated.resources.spaces_create_name
@@ -44,9 +46,7 @@ import orbit.shared.generated.resources.spaces_empty_body
 import orbit.shared.generated.resources.spaces_join
 import orbit.shared.generated.resources.spaces_join_code
 import orbit.shared.generated.resources.spaces_load_failed
-import orbit.shared.generated.resources.spaces_load_failed_body
 import orbit.shared.generated.resources.spaces_loading
-import orbit.shared.generated.resources.spaces_count
 import orbit.shared.generated.resources.spaces_new
 import orbit.shared.generated.resources.spaces_section
 import org.jetbrains.compose.resources.painterResource
@@ -103,7 +103,7 @@ fun SpaceScreen(
         } else if (state.loadFailed) {
             OrbitErrorState(
                 title = stringResource(Res.string.spaces_load_failed),
-                body = stringResource(Res.string.spaces_load_failed_body),
+                body = stringResource(Res.string.load_failed_body),
                 retryText = stringResource(Res.string.retry),
                 onRetry = viewModel::retry,
                 modifier = Modifier.fillMaxWidth(),

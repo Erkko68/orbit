@@ -10,10 +10,8 @@ import com.orbit.app.domain.repository.InvitationRepository
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Invitations in Firestore (ADR 0002): one top-level document per invitation, whose id is its code. The
@@ -26,16 +24,12 @@ class FirestoreInvitationRepository(
     /**
      * The invitations of the space, live. The rules answer this query for the owner and admins, and
      * their membership of a space made a moment ago may not be on the server yet, so a refusal is tried
-     * again for a few seconds. If it stays refused the flow ends, logged, instead of crashing.
+     * again for a few seconds before it fails like any other read.
      */
     override fun observeInvitations(spaceId: String): Flow<List<Invitation>> =
         firestore.collection(INVITATIONS).where { "spaceId" equalTo spaceId }.snapshots
             .map { snapshot -> snapshot.documents.mapNotNull(::toInvitation).sortedByDescending { it.createdAt } }
-            .retryWhileRefused(LISTEN_RETRIES, LISTEN_RETRY_WAIT, Throwable::isRefusedByTheRules)
-            .catch { cause ->
-                if (!cause.isRefusedByTheRules()) throw cause
-                Logger.w(cause) { "The invitations of space $spaceId are not readable" }
-            }
+            .retryWhileRefused()
 
     override suspend fun createInvitation(spaceId: String): String {
         val userId = auth.requireUser().id
@@ -66,9 +60,6 @@ class FirestoreInvitationRepository(
         }
 
     private companion object {
-        const val INVITATIONS = "invitations"
         const val REVOKED = "revoked"
-        const val LISTEN_RETRIES = 5
-        val LISTEN_RETRY_WAIT = 1.seconds
     }
 }

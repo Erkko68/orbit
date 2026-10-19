@@ -1,12 +1,12 @@
 package com.orbit.app.feature.auth
 
-import com.orbit.app.data.repository.InMemoryAuthRepository
-import com.orbit.app.data.repository.InMemoryLastSpaceRepository
-import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.FlakySpaceRepository
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryLastSpaceRepository
+import com.orbit.app.testing.InMemorySpaceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
@@ -101,7 +101,7 @@ class SessionViewModelTest {
         auth.signIn("ana@orbit.app", "secret")
         lastSpace.remember("space-1")
 
-        assertEquals(SessionStart.Spaces, sessionViewModel(FlakySpaceRepository(failures = 1)).started())
+        assertEquals(SessionStart.Spaces, sessionViewModel(FlakySpaceRepository(spaceFailures = 1)).started())
         assertEquals("space-1", lastSpace.lastSpaceId())
     }
 

@@ -6,20 +6,28 @@ import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 
-/** Fails to load its spaces the first [failures] times they are observed, then has one space. */
-internal class FlakySpaceRepository(private var failures: Int) : SpaceRepository {
+/**
+ * One space, Flat 4B, owned by ana. Its spaces fail to load the first [spaceFailures] times they are
+ * observed, and its members the first [memberFailures] times.
+ */
+internal class FlakySpaceRepository(private var spaceFailures: Int = 0, private var memberFailures: Int = 0) :
+    SpaceRepository {
     override fun observeSpaces(): Flow<List<Space>> = flow {
-        if (failures > 0) {
-            failures--
+        if (spaceFailures > 0) {
+            spaceFailures--
             error("Could not reach the server")
         }
         emit(listOf(Space("space-1", "Flat 4B", accent = 0, memberIds = listOf("ana"))))
     }
 
-    override fun observeMembers(spaceId: String): Flow<List<Member>> =
-        flowOf(listOf(Member("ana", spaceId, "ana", photoUrl = null, role = Role.OWNER)))
+    override fun observeMembers(spaceId: String): Flow<List<Member>> = flow {
+        if (memberFailures > 0) {
+            memberFailures--
+            error("Could not reach the server")
+        }
+        emit(listOf(Member("ana", "ana", photoUrl = null, role = Role.OWNER)))
+    }
 
     override suspend fun createSpace(name: String, accent: Int): String = error("Not used by these tests")
 }

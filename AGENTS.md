@@ -2,13 +2,15 @@
 
 Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer for groups that share responsibilities. A group is a *space* whose members share *items* (tasks, chores, bills, lists, events) and expenses, synced in real time through Firebase. A cloud AI assistant interviews the user and proposes a plan for the space. **Nothing is saved without user confirmation.**
 
+This file holds the rules. The background to them (architecture, schema, roles, workflow, testing) is in [docs/](docs/README.md), and why a choice was made is in an [ADR](docs/adr/README.md).
+
 ## Architecture
 - Modules: `shared/` (all app code), `androidApp/` (Android entry), `iosApp/` (Xcode entry), `firebase/` (backend).
 - `firebase/`: everything deployed to Firebase. `firestore.rules`, `firebase.json` and `functions/` (Cloud Functions in Python, `firebase-functions`). Run the Firebase CLI from this folder.
 - Package root: `com.orbit.app`. Code lives in `shared/src/commonMain` by default.
 - `expect`/`actual` only where platforms really differ (camera, notifications, text recognition, file paths). Actuals go in `androidMain`/`iosMain` under the same package path.
-- `domain/`: models, repository **interfaces**, use cases. Pure Kotlin only (kotlinx coroutines/datetime allowed). No Compose, Room, Firebase or Koin.
-- `data/`: repository **implementations** and Firestore document mappers.
+- `domain/`: models, validation, repository **interfaces**, use cases. Pure Kotlin only (kotlinx coroutines/datetime allowed). No Compose, Room, Firebase or Koin. A computation that is a pure function of stored data (balances, the agenda's sorting) is a domain use case on the device, not a Cloud Function ([ADR 0003](docs/adr/0003-balances-on-device.md)).
+- `data/`: repository **implementations** and Firestore document mappers. Collection names, field readers and `requireUser` live once, in `data/repository/Firestore.kt`.
 - `feature/<name>/`: `ui/` (screen + components), `<Name>ViewModel.kt`, `<Name>UiState.kt`. `feature/space` is the reference.
   - A component with its own ViewModel gets a subfolder, `feature/<name>/<component>/`, holding its composable, `<Component>ViewModel.kt` and `<Component>UiState.kt`. E.g. `feature/space/card/`, `feature/spacehome/items/`. See "State and ViewModels".
 - UI talks only to ViewModels; ViewModels talk to repositories/use cases. UI never touches data sources.
@@ -22,30 +24,34 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
   - A ViewModel exposes one `uiState: StateFlow<<Name>UiState>`. Repository flows are combined into it with `stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), …)`; what the user types or selects lives in a private `MutableStateFlow` combined with them.
   - The UI calls one ViewModel function per user action (`onEmailChange`, `selectTab`, `createSpace`) and passes no state back: the ViewModel reads what it needs from its own state.
   - Values derived from the state are properties of the `UiState` (`canCreate`), not expressions in the composable.
-- Repositories: ViewModels depend on the repository interfaces in `domain/` only, never on an implementation, so the in-memory and Firebase ones swap in Koin without touching a feature.
-  - Repository writes throw on failure. The ViewModel launches them in `viewModelScope`, catches the failure (rethrowing `CancellationException`), logs it with Kermit and flags it in the `UiState` (`failed`, `createFailed`), cleared by the next edit or attempt. A failed write never crashes the app.
+- Repositories: ViewModels depend on the repository interfaces in `domain/` only, never on an implementation, so the Firebase ones and the test fakes swap in Koin without touching a feature.
+  - Repository reads and writes throw on failure: a repository never swallows one. Turning failures into state is the ViewModel's job, with the helpers in `core/` ([State and ViewModels](docs/architecture/state-and-viewmodels.md)).
+  - Every read has a failure path and never crashes the app. A read the screen is about (a list, an item) goes through `asLoad`: it shows loading, then a failure with a retry (`loadFailed`, `retry()`). A read that only decorates (a name in a header, avatars) goes through `orOnFailure` and falls back to empty.
+  - Every write goes through `attempt` in `viewModelScope` (auth calls through `executeAuth`), which logs the failure with Kermit. The failure is flagged in the `UiState` (`failed`, `createFailed`), cleared by the next edit or attempt.
   - Firebase repositories: a failed read is not "missing". Create a document only when the read says it does not exist, never after the read failed, or an existing one gets overwritten.
-  - A singleton repository's flow that several ViewModels collect is shared (`shareIn(…, replay = 1)`), so they reuse one Firestore listener instead of opening one each.
+  - Firestore already shares one server listener between identical queries, so a repository flow needs no sharing of its own. Use `shareIn(…, replay = 1)` only when the flow does real work per collector, as `session` does (auth state plus the profile document).
   - A method only takes what its callers pass: no optional parameters for a caller that does not exist yet.
   - A screen that lands before its backend calls the real repository method; the Firebase implementation is a stub that logs with Kermit, returns, and names the issue that implements it.
   - A write in progress is a flag too (`submitting`, `creating`) and disables its button, so it cannot run twice.
 - Component ViewModels: not one ViewModel per screen. A part of a screen that reads or writes a repository for one entity (a space card, the items tab, the members tab) has its own ViewModel.
   - The screen ViewModel holds screen-level state and the **ids** of what the screen lists (`spaceIds`), never the loaded entities. The component gets the id, and its ViewModel loads and changes that entity.
-  - The component is an `internal` composable in its own file that takes the id, a `modifier` and its ViewModel: `viewModel: XViewModel = koinViewModel(key = id) { parametersOf(id) }`, registered with `viewModelOf(::XViewModel)`. In a list, wrap it in `key(id) { … }`.
+  - The component is an `internal` composable in its own file that takes the id, a `modifier` and its ViewModel: `viewModel: XViewModel = koinViewModel(key = "<component>-$id") { parametersOf(id) }`, registered with `viewModelOf(::XViewModel)`. In a list, wrap it in `key(id) { … }`.
+  - The key names the component as well as the id (`"items-$spaceId"`, `"members-$spaceId"`). Koin uses it as is, and the components of a screen share one ViewModel store: two keyed by the same id take one slot and keep replacing each other.
   - Keyed `koinViewModel`, not `rememberViewModelStoreOwner`: the ViewModel then lives as long as the screen's navigation entry, so a tab keeps its filter when the user switches tabs and comes back.
   - It follows every rule above: one `uiState`, repository interfaces only, failures become state.
   - Add one when the component does its own repository work. A part that only shows fields its parent already has stays a plain composable, and purely visual components (avatar, chip, button, list row) never get one: they take values and callbacks.
-- Tests: every ViewModel has its own unit test, including the failure path of each write.
+- Tests: every ViewModel has its own unit test, including the failure path of each read and each write. See [Testing](docs/process/testing.md).
   - A screen test whose components resolve their ViewModels calls `startTestKoin(…)`, and `stopKoin()` after.
-  - Test doubles shared by several tests (`FakeSpaceRepository`, `FailingAuthRepository`, `startTestKoin`) live in `commonTest/…/testing/`, not next to the first test that needed them.
+  - Test doubles (the `InMemory…Repository` fakes, `FakeSpaceRepository`, `FlakySpaceRepository`, `FailingAuthRepository`, `startTestKoin`) live in `commonTest/…/testing/`, not next to the first test that needed them, and never in `commonMain`.
   - In a UI test, `performScrollTo()` before `performClick()`: the host test window is small and a click on something off screen does nothing.
 
 ## Libraries (use these, don't add alternatives)
-- DI: Koin. Register in `di/Koin.kt` (`dataModule`, `domainModule`, `featureModule`) or the `platformModule` actuals. ViewModels: `viewModelOf(::X)` + `koinViewModel()` in the screen, or `koinViewModel(key = id) { parametersOf(id) }` in a component with its own ViewModel.
+- DI: Koin. Register in `di/Koin.kt` (`dataModule`, `featureModule`) or the `platformModule` actuals. Add a `domainModule` with the first use case that needs injecting. ViewModels: `viewModelOf(::X)` + `koinViewModel()` in the screen, or `koinViewModel(key = id) { parametersOf(id) }` in a component with its own ViewModel.
 - Navigation: Navigation Compose with `@Serializable` routes in `core/navigation/Routes.kt`, wired in `OrbitNavHost`.
 - Backend: Firebase only (Authentication, Firestore, Cloud Functions). No other servers or REST APIs. The app calls Cloud Functions, never an AI provider directly.
 - Local persistence: Firestore's offline cache only, no local database (Room, SQLDelight). Repositories read and write Firestore and work offline through its cache. See [ADR 0001](docs/adr/0001-local-persistence.md).
-- Firestore schema: [ADR 0002](docs/adr/0002-firestore-data-model.md) is the source of truth for collections, fields and indexes. A schema change updates the ADR in the same PR.
+- Firestore schema: [docs/data/firestore-schema.md](docs/data/firestore-schema.md) is the source of truth for collections, fields, queries, writes and indexes, and [docs/data/security-rules.md](docs/data/security-rules.md) for roles and access. A schema or rules change updates those pages (and the rules tests) in the same PR; a new decision about the model gets an ADR. [ADR 0002](docs/adr/0002-firestore-data-model.md) records why the model has its shape.
+- Roles: every member creates, edits and completes any item; owner and admin manage the space, its members and invitations, and delete any item; a member deletes only their own; only the owner deletes the space. The UI checks `Role.managesSpace`, never a list of roles, and `firestore.rules` enforces the same table.
 - Key-value preferences: Multiplatform Settings (`Settings` from Koin).
 - Images: Coil 3. Logging: Kermit (no `println`). Dates: kotlinx-datetime. Serialization: kotlinx-serialization.
 - UI tests: Compose `ui-test` in `commonTest`, so they run on Android (host, through Robolectric) and iOS. The test class extends `ComposeTest` and uses `runComposeUiTest` from `androidx.compose.ui.test.v2`. New screens and design-system components ship with one.
@@ -113,7 +119,7 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 
 ## Git workflow
 - 4 members, GitHub Projects kanban with columns Backlog, Planned, In progress, Done.
-- The board and its roadmap keep themselves up to date (`project-sync.yml`). How it works: [docs/project-automation](docs/project-automation/README.md).
+- The board and its roadmap keep themselves up to date (`project-sync.yml`). How it works: [docs/process/project-automation.md](docs/process/project-automation.md). The walk-through of the whole workflow: [docs/process/workflow.md](docs/process/workflow.md).
   - Never edit Status, `Start date`, `Target date` or `Deviation (days)` by hand: the next run overwrites them.
   - What people maintain: the milestone, the "Blocked by" links, `Priority`, and `Estimate` in hours (or at least a `size:` label). The plan is computed from those.
   - Assign yourself the day you start, not when you finish: the assignment starts the issue's bar and the clock for its deviation.
@@ -155,6 +161,8 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 ## Before committing
 - `./gradlew :androidApp:assembleDebug :shared:compileKotlinIosSimulatorArm64` passes.
 - Tests: `./gradlew :shared:testAndroidHostTest :shared:iosSimulatorArm64Test`.
+- A change to `firebase/firestore.rules`: the rules tests pass (`npx firebase emulators:exec --only firestore "npm test"` from `firebase/`).
+- A change to what a page in `docs/` describes updates that page.
 - Changed files formatted with the IDE formatter (Kotlin official style).
 
 ## Do not

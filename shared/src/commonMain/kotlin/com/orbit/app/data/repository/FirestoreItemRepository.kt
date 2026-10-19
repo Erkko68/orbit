@@ -31,16 +31,8 @@ import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FieldsAndValuesUpdateDSL
 import dev.gitlive.firebase.firestore.FirebaseFirestore
-import dev.gitlive.firebase.firestore.FirebaseFirestoreException
-import dev.gitlive.firebase.firestore.FirestoreExceptionCode
-import dev.gitlive.firebase.firestore.ServerTimestampBehavior
-import dev.gitlive.firebase.firestore.Timestamp
-import dev.gitlive.firebase.firestore.code
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
-import kotlin.time.Duration.Companion.seconds
-import kotlin.time.Instant
 
 /**
  * Items in Firestore (ADR 0002), read through a live listener that Firestore's offline cache answers
@@ -51,14 +43,11 @@ class FirestoreItemRepository(
     private val auth: AuthRepository,
     private val firestore: FirebaseFirestore,
 ) : ItemRepository {
-    /** Refused while a space made a moment ago is not on the server yet: asked again, then ended, logged. */
+    /** Refused while a space made a moment ago is not on the server yet, so asked again for a few seconds. */
     override fun observeItems(spaceId: String): Flow<List<Item>> =
         items(spaceId).orderBy(CREATED_AT).snapshots.map { snapshot ->
-            snapshot.documents.mapNotNull { toItem(spaceId, it) }
-        }.retryWhileRefused(LISTEN_RETRIES, LISTEN_RETRY_WAIT, ::isRefused).catch { cause ->
-            if (!isRefused(cause)) throw cause
-            Logger.w(cause) { "The items of space $spaceId are not readable" }
-        }
+            snapshot.documents.mapNotNull(::toItem)
+        }.retryWhileRefused()
 
     override suspend fun create(spaceId: String, item: NewItem): String {
         val document = items(spaceId).document
@@ -117,7 +106,7 @@ class FirestoreItemRepository(
         }
     }
 
-    private fun toItem(spaceId: String, document: DocumentSnapshot): Item? {
+    private fun toItem(document: DocumentSnapshot): Item? {
         val modules = ModulesDocument(
             schedule = document.field("$MODULES.${moduleKey(ModuleType.SCHEDULE)}"),
             assignment = document.field("$MODULES.${moduleKey(ModuleType.ASSIGNMENT)}"),
@@ -137,29 +126,16 @@ class FirestoreItemRepository(
             moduleKeys = document.field<Map<String, Unit>>(MODULES)?.keys.orEmpty(),
             modules = modules,
         )
-        return mapItem(document.id, spaceId, stored).also {
+        return mapItem(document.id, stored).also {
             if (it == null) Logger.w { "Skipping the malformed item ${document.id}" }
         }
     }
 
-    /** A server timestamp still pending offline reads as the local estimate. */
-    private fun DocumentSnapshot.instant(name: String): Instant? =
-        field<Timestamp>(name, ServerTimestampBehavior.ESTIMATE)?.let {
-            Instant.fromEpochSeconds(it.seconds, it.nanoseconds)
-        }
-
-    private fun isRefused(cause: Throwable) =
-        cause is FirebaseFirestoreException && cause.code == FirestoreExceptionCode.PERMISSION_DENIED
-
     private companion object {
-        const val SPACES = "spaces"
-        const val ITEMS = "items"
         const val MODULES = "modules"
         const val STATUS = "status"
         const val CREATED_AT = "createdAt"
         const val COMPLETED_BY = "completedBy"
         const val COMPLETED_AT = "completedAt"
-        const val LISTEN_RETRIES = 5
-        val LISTEN_RETRY_WAIT = 1.seconds
     }
 }

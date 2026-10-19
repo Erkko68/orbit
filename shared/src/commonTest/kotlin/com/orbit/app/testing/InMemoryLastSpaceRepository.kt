@@ -1,8 +1,8 @@
-package com.orbit.app.data.repository
+package com.orbit.app.testing
 
 import com.orbit.app.domain.repository.LastSpaceRepository
 
-/** Keeps the last opened space in memory, for tests and previews. */
+/** The last opened space in memory. */
 class InMemoryLastSpaceRepository(private var spaceId: String? = null) : LastSpaceRepository {
     override fun lastSpaceId(): String? = spaceId
 

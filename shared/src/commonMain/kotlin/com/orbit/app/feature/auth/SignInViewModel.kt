@@ -31,19 +31,17 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
             _uiState.update { it.copy(errors = errors, authError = null) }
             return
         }
-        _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
-        viewModelScope.launch {
-            val authError = executeAuth("Sign-in") { auth.signIn(form.email.trim(), form.password) }
-            _uiState.update { it.copy(submitting = false, authError = authError) }
-        }
+        submit("Sign-in") { auth.signIn(form.email.trim(), form.password) }
     }
 
-    fun signInWithGoogle() {
-        val form = _uiState.value
-        if (form.submitting) return
+    fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
+
+    /** Runs [call] unless one is running. A failure stays in the form as [SignInUiState.authError]. */
+    private fun submit(what: String, call: suspend () -> Unit) {
+        if (_uiState.value.submitting) return
         _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
         viewModelScope.launch {
-            val authError = executeAuth("Google sign-in") { auth.signInWithGoogle() }
+            val authError = executeAuth(what, call)
             _uiState.update { it.copy(submitting = false, authError = authError) }
         }
     }

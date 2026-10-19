@@ -31,23 +31,23 @@ class SpaceMapperTest {
     @Test
     fun mapsAMemberFromItsFields() {
         val photo = "https://orbit.app/ana.png"
-        val member = mapMember("ana", "space-1", displayName = "Ana López", photoUrl = photo, role = "admin")
+        val member = mapMember("ana", displayName = "Ana López", photoUrl = photo, role = "admin")
 
-        assertEquals(Member("ana", "space-1", "Ana López", photo, Role.ADMIN), member)
+        assertEquals(Member("ana", "Ana López", photo, Role.ADMIN), member)
     }
 
     @Test
     fun mapsEveryRoleAndGivesAnUnknownOneTheLeastPrivilege() {
         val stored = listOf("owner", "admin", "member", "moderator", null)
 
-        val roles = stored.map { mapMember("ana", "space-1", "Ana", photoUrl = null, role = it).role }
+        val roles = stored.map { mapMember("ana", "Ana", photoUrl = null, role = it).role }
 
         assertEquals(listOf(Role.OWNER, Role.ADMIN, Role.MEMBER, Role.MEMBER, Role.MEMBER), roles)
     }
 
     @Test
     fun aMemberWithoutAProfileCopyHasNoNameAndNoPhoto() {
-        val member = mapMember("ana", "space-1", displayName = null, photoUrl = null, role = "member")
+        val member = mapMember("ana", displayName = null, photoUrl = null, role = "member")
 
         assertEquals("", member.displayName)
         assertNull(member.photoUrl)

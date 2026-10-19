@@ -2,7 +2,6 @@ package com.orbit.app.feature.account
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orbit.app.core.initialsOf
 import com.orbit.app.domain.model.validatePasswordChange
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.feature.auth.executeAuth
@@ -26,7 +25,6 @@ class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
         form.copy(
             name = user?.displayName.orEmpty(),
             email = user?.email.orEmpty(),
-            initials = initialsOf(user?.displayName.orEmpty()),
             photoUrl = user?.photoUrl,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountUiState())

@@ -7,7 +7,6 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -17,12 +16,12 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.text.AnnotatedString
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.feature.auth.SignInViewModel
 import com.orbit.app.testing.FailingAuthRepository
+import com.orbit.app.testing.InMemoryAuthRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -40,17 +39,14 @@ class SignInScreenTest : ComposeTest() {
     }
 
     @Test
-    fun showsTheFormWithItsPlaceholdersDisabled() = runComposeUiTest {
+    fun showsTheForm() = runComposeUiTest {
         showSignIn()
         onNodeWithText("Welcome back").assertIsDisplayed()
         onNodeWithText("Email address").assertIsDisplayed()
         onNodeWithText("Password").assertIsDisplayed()
         onNodeWithText("Sign in").assertIsEnabled()
         onNodeWithText("Create account").performScrollTo().assertIsEnabled()
-
-        onNodeWithText("Forgot password?").assertIsNotEnabled()
         onNodeWithText("Continue with Google").performScrollTo().assertIsEnabled()
-        onNodeWithText("Continue with Apple").performScrollTo().assertIsNotEnabled()
     }
 
     @Test

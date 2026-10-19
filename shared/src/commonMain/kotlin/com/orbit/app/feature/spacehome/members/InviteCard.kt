@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitCard
+import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitOutlinedButton
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.share.TextSharer
@@ -36,7 +37,6 @@ import org.koin.core.parameter.parametersOf
 internal fun InviteCard(
     spaceId: String,
     modifier: Modifier = Modifier,
-    // Not keyed by the id alone: the members tab keys its own view model by it, and a clash would clear that one.
     viewModel: InviteViewModel = koinViewModel(key = "invite-$spaceId") { parametersOf(spaceId) },
     sharer: TextSharer = koinInject(),
 ) {
@@ -96,11 +96,7 @@ internal fun InviteCard(
                 )
             }
             state.failure?.let {
-                Text(
-                    text = stringResource(it.message),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                )
+                OrbitErrorText(stringResource(it.message))
             }
         }
     }

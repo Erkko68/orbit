@@ -1,15 +1,14 @@
-package com.orbit.app.data.repository
+package com.orbit.app.testing
 
+import com.orbit.app.data.repository.requireUser
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.datetime.TimeZone
 
-/** Stand-in for tests. Signing in accepts any credentials; the password is only checked when changing it. */
+/** Accounts in memory. Signing in accepts any credentials; the password is only checked when changing it. */
 class InMemoryAuthRepository : AuthRepository {
     private val user = MutableStateFlow<User?>(null)
     private var password = ""
@@ -25,8 +24,6 @@ class InMemoryAuthRepository : AuthRepository {
             id = email,
             displayName = displayName,
             photoUrl = null,
-            language = "en",
-            timeZone = TimeZone.currentSystemDefault(),
             email = email,
         )
     }
@@ -54,5 +51,3 @@ class InMemoryAuthRepository : AuthRepository {
         user.value = null
     }
 }
-
-internal suspend fun AuthRepository.requireUser(): User = checkNotNull(session.first()) { "Not signed in" }

@@ -14,18 +14,16 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
-
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.feature.account.AccountViewModel
 import com.orbit.app.testing.FailingAuthRepository
+import com.orbit.app.testing.InMemoryAuthRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -93,7 +91,7 @@ class AccountScreenTest : ComposeTest() {
 
     @Test
     fun aFailedSignOutSaysSo() = runComposeUiTest {
-        show(FailingAuthRepository(user = User("ana", "Ana López", null, "en", TimeZone.UTC)))
+        show(FailingAuthRepository(user = User("ana", "Ana López", null)))
 
         onNodeWithText("Sign out").performScrollTo().performClick()
 

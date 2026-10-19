@@ -76,13 +76,12 @@ internal fun reminderDocument(reminder: Reminder) =
  * document is skipped by the caller. What a newer build may have written (an unknown preset, module or
  * assignment mode) is skipped and logged, so the rest of the item still shows.
  */
-internal fun mapItem(id: String, spaceId: String, stored: StoredItem): Item? {
+internal fun mapItem(id: String, stored: StoredItem): Item? {
     val title = stored.title ?: return null
     val createdBy = stored.createdBy ?: return null
     val createdAt = stored.createdAt ?: return null
     return Item(
         id = id,
-        spaceId = spaceId,
         title = title,
         description = stored.description,
         status = statusOf(stored),

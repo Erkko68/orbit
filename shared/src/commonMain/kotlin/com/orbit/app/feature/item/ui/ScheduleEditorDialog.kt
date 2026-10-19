@@ -7,14 +7,13 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitDialog
+import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitFilterChip
 import com.orbit.app.core.designsystem.component.OrbitOutlinedButton
 import com.orbit.app.core.designsystem.component.OrbitTextButton
@@ -81,7 +80,7 @@ internal fun ScheduleEditorDialog(editor: ScheduleEditor, state: ItemUiState, vi
                 modifier = Modifier.fillMaxWidth(),
             )
             if (ItemError.EndNotAfterStart in editor.errors) {
-                ErrorText(stringResource(Res.string.schedule_end_not_after_start))
+                OrbitErrorText(stringResource(Res.string.schedule_end_not_after_start))
             }
         } else {
             OrbitTextField(
@@ -104,7 +103,7 @@ internal fun ScheduleEditorDialog(editor: ScheduleEditor, state: ItemUiState, vi
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         )
         if (state.failed) {
-            ErrorText(stringResource(Res.string.item_action_failed))
+            OrbitErrorText(stringResource(Res.string.item_action_failed))
         }
         OrbitButton(
             text = stringResource(Res.string.schedule_save),
@@ -132,9 +131,4 @@ internal fun ScheduleEditorDialog(editor: ScheduleEditor, state: ItemUiState, vi
             DatePicker(pickerState)
         }
     }
-}
-
-@Composable
-private fun ErrorText(text: String) {
-    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
 }
