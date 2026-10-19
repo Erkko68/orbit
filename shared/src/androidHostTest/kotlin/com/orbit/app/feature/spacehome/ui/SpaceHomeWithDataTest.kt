@@ -22,6 +22,7 @@ import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
+import com.orbit.app.feature.spacehome.items.SpaceItemsTab
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.startTestKoin
 import kotlinx.coroutines.flow.first
@@ -102,27 +103,26 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val id = "space-2"
         val itemId = items.create(id, NewItem("Buy bread", preset = Preset.TASK))
         startTestKoin(auth, spaces, items)
-        val viewModel = SpaceHomeViewModel(id, spaces, items, InMemoryLastSpaceRepository())
         setContent {
             OrbitTheme {
-                SpaceHomeScreen(id, onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)
+                SpaceItemsTab(id, onOpenItem = {})
             }
         }
 
-        onNodeWithText("Buy bread").performScrollTo().assertIsDisplayed()
-        onNodeWithContentDescription("Complete item").performScrollTo().performClick()
+        onNodeWithText("Buy bread").assertIsDisplayed()
+        onNodeWithContentDescription("Complete item").performClick()
         ShadowLooper.idleMainLooper()
         waitForIdle()
 
-        onNodeWithContentDescription("Reopen item").performScrollTo().assertIsDisplayed()
+        onNodeWithContentDescription("Reopen item").assertIsDisplayed()
         val completed = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
         assertTrue(completed.status is ItemStatus.Done, "Expected item to be Done but was: ${completed.status}")
 
-        onNodeWithContentDescription("Reopen item").performScrollTo().performClick()
+        onNodeWithContentDescription("Reopen item").performClick()
         ShadowLooper.idleMainLooper()
         waitForIdle()
 
-        onNodeWithContentDescription("Complete item").performScrollTo().assertIsDisplayed()
+        onNodeWithContentDescription("Complete item").assertIsDisplayed()
         val reopened = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
         assertTrue(reopened.status is ItemStatus.Open, "Expected item to be Open but was: ${reopened.status}")
     }
