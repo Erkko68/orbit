@@ -11,6 +11,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.lifecycle.ViewModelStore
 import com.orbit.app.core.designsystem.ComposeTest
@@ -38,6 +40,7 @@ import kotlin.test.Test
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -340,6 +343,33 @@ class ItemScreenTest : ComposeTest() {
     }
 
     private fun createItem(item: NewItem): String = runBlocking { items.create("space-1", item) }
+
+    @Test
+    fun editsTheScheduleFromItsCard() = runComposeUiTest {
+        val itemId = runBlocking {
+            items.create("space-1", NewItem("Dinner", modules = ItemModules(schedule = Schedule(LocalDate(2026, 10, 26)))))
+        }
+        val viewModel = model(itemId, items)
+        setContent {
+            OrbitTheme {
+                ItemScreen(spaceId = "space-1", itemId = itemId, onBack = {}, viewModel = viewModel)
+            }
+        }
+
+        onNodeWithContentDescription("Edit schedule").performScrollTo().performClick()
+        onNodeWithText("On Oct 26, 2026").assertIsDisplayed()
+        onNodeWithText("Time (HH:MM), optional").performTextInput("25:00")
+        onNodeWithText("Use a time like 09:30.").assertIsDisplayed()
+        onNodeWithText("Save").performScrollTo().assertIsNotEnabled()
+
+        onNodeWithText("25:00").performTextReplacement("20:00")
+        onNodeWithText("Save").performScrollTo().assertIsEnabled().performClick()
+        waitForIdle()
+
+        val saved = runBlocking { items.observeItems("space-1").first().single { it.id == itemId } }
+        assertEquals(Schedule(LocalDate(2026, 10, 26), time = LocalTime(20, 0)), saved.modules.schedule)
+        onNodeWithText("Save").assertDoesNotExist()
+    }
 
     private fun model(id: String, repository: ItemRepository): ItemViewModel =
         ItemViewModel("space-1", id, repository, spaces).also { viewModels.put("item", it) }

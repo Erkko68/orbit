@@ -42,6 +42,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ItemViewModelTest {
@@ -396,6 +397,118 @@ class ItemViewModelTest {
         assertFalse(viewModel.uiState.value.failed)
         assertFalse(viewModel.uiState.value.mutating)
         assertTrue(viewModel.uiState.value.modules.isEmpty())
+    }
+
+    @Test
+    fun editsTheScheduleAndClosesTheEditor() = runTest {
+        val id = createItem(ItemModules(schedule = Schedule(LocalDate(2026, 10, 26))))
+        val model = track(ItemViewModel("space-1", id, items, spaces))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        model.editSchedule()
+        assertEquals(ScheduleEditor(date = LocalDate(2026, 10, 26)), model.uiState.value.scheduleEditor)
+        model.pickScheduleDate(ScheduleDate.START)
+        model.onScheduleDatePicked(1_793_059_200_000) // 2026-10-27, UTC midnight
+        model.onScheduleTimeChange("18:30")
+        model.onScheduleDurationChange("45")
+        model.saveSchedule()
+
+        val saved = items.observeItems("space-1").first().single { it.id == id }.modules.schedule
+        assertEquals(Schedule(LocalDate(2026, 10, 27), time = LocalTime(18, 30), duration = 45.minutes), saved)
+        assertNull(model.uiState.value.scheduleEditor)
+    }
+
+    @Test
+    fun savesAWindowWithItsPickedEnd() = runTest {
+        val id = createItem(ItemModules(schedule = Schedule(LocalDate(2026, 10, 26))))
+        val model = track(ItemViewModel("space-1", id, items, spaces))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        model.editSchedule()
+        model.setScheduleWindow(true)
+        model.pickScheduleDate(ScheduleDate.END)
+        model.onScheduleDatePicked(1_793_318_400_000) // 2026-10-30
+        model.saveSchedule()
+
+        val saved = items.observeItems("space-1").first().single { it.id == id }.modules.schedule
+        assertEquals(Schedule(LocalDate(2026, 10, 26), endDate = LocalDate(2026, 10, 30)), saved)
+    }
+
+    @Test
+    fun anInvalidScheduleIsNeverWritten() = runTest {
+        val schedule = Schedule(LocalDate(2026, 10, 26))
+        val id = createItem(ItemModules(schedule = schedule))
+        val controlled = ControlledItemRepository(items)
+        val model = track(ItemViewModel("space-1", id, controlled, spaces))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        model.editSchedule()
+        model.onScheduleTimeChange("25:00")
+        assertFalse(model.uiState.value.canSaveSchedule)
+        model.saveSchedule()
+
+        assertTrue(controlled.writes.isEmpty())
+        assertTrue(model.uiState.value.scheduleEditor!!.timeInvalid)
+    }
+
+    @Test
+    fun aFailedSaveKeepsTheEditorUntilTheNextEdit() = runTest {
+        val schedule = Schedule(LocalDate(2026, 10, 26))
+        val model = track(
+            ItemViewModel(
+                "space-1",
+                "item-1",
+                FailingItemRepository(
+                    items = listOf(
+                        Item(
+                            id = "item-1",
+                            spaceId = "space-1",
+                            title = "Test Item",
+                            description = null,
+                            status = ItemStatus.Open,
+                            preset = null,
+                            createdBy = "user-1",
+                            createdAt = Instant.fromEpochMilliseconds(0),
+                            modules = ItemModules(schedule = schedule),
+                        ),
+                    ),
+                ),
+                spaces,
+            ),
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        model.editSchedule()
+        model.onScheduleTimeChange("08:00")
+        model.saveSchedule()
+
+        val failed = model.uiState.value
+        assertTrue(failed.failed)
+        assertFalse(failed.mutating)
+        assertEquals("08:00", failed.scheduleEditor?.time)
+
+        model.onScheduleTimeChange("08:15")
+        assertFalse(model.uiState.value.failed)
+    }
+
+    @Test
+    fun dismissingTheEditorWritesNothing() = runTest {
+        val id = createItem(ItemModules(schedule = Schedule(LocalDate(2026, 10, 26))))
+        val controlled = ControlledItemRepository(items)
+        val model = track(ItemViewModel("space-1", id, controlled, spaces))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        model.editSchedule()
+        model.onScheduleTimeChange("08:00")
+        model.dismissScheduleEditor()
+
+        assertNull(model.uiState.value.scheduleEditor)
+        assertTrue(controlled.writes.isEmpty())
     }
 
     private fun track(viewModel: ItemViewModel): ItemViewModel = viewModel.also { viewModels.put("item", it) }

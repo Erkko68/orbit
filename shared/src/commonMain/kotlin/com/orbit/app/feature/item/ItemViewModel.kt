@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import co.touchlab.kermit.Logger
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ModuleType
+import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.model.defaultModule
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.catch
@@ -34,6 +36,7 @@ class ItemViewModel(
     private val spaces: SpaceRepository,
 ) : ViewModel() {
     private val actionState = MutableStateFlow(ActionState())
+    private val scheduleEditor = MutableStateFlow<ScheduleEditor?>(null)
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
     // Context is secondary: a failed space/member read must not hide an otherwise readable item,
@@ -66,7 +69,8 @@ class ItemViewModel(
         item,
         actionState,
         context,
-    ) { load, action, details ->
+        scheduleEditor,
+    ) { load, action, details, editor ->
         val loaded = (load as? ItemLoad.Loaded)?.item
         ItemUiState(
             title = loaded?.title.orEmpty(),
@@ -80,6 +84,7 @@ class ItemViewModel(
             mutating = action.mutating,
             spaceName = details.spaceName,
             memberNames = details.memberNames,
+            scheduleEditor = editor,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ItemUiState())
 
@@ -105,12 +110,55 @@ class ItemViewModel(
         }
     }
 
-    private fun mutate(action: suspend () -> Unit) {
+    /** Opens the schedule's editor on what it holds now. */
+    fun editSchedule() {
+        val schedule = uiState.value.modules.filterIsInstance<Schedule>().firstOrNull() ?: return
+        scheduleEditor.value = ScheduleEditor.of(schedule)
+    }
+
+    fun dismissScheduleEditor() {
+        scheduleEditor.value = null
+    }
+
+    fun setScheduleWindow(window: Boolean) = updateEditor { it.copy(window = window) }
+
+    fun onScheduleTimeChange(time: String) = updateEditor { it.copy(time = time) }
+
+    fun onScheduleDurationChange(duration: String) = updateEditor { it.copy(duration = duration) }
+
+    fun pickScheduleDate(which: ScheduleDate) = updateEditor { it.copy(picking = which) }
+
+    fun dismissScheduleDatePicker() = updateEditor { it.copy(picking = null) }
+
+    /** [utcMillis] is the UTC midnight M3's date picker returns. */
+    fun onScheduleDatePicked(utcMillis: Long) = updateEditor { editor ->
+        val date = Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date
+        when (editor.picking) {
+            ScheduleDate.START -> editor.copy(date = date, picking = null)
+            ScheduleDate.END -> editor.copy(endDate = date, picking = null)
+            null -> editor
+        }
+    }
+
+    /** Writes the edited schedule and closes the editor; a failure keeps it open with what was typed. */
+    fun saveSchedule() {
+        if (!uiState.value.canSaveSchedule) return
+        val schedule = scheduleEditor.value?.schedule ?: return
+        mutate(onSuccess = { scheduleEditor.value = null }) { items.setModule(spaceId, itemId, schedule) }
+    }
+
+    private fun updateEditor(change: (ScheduleEditor) -> ScheduleEditor) {
+        scheduleEditor.update { it?.let(change) }
+        actionState.update { it.copy(failed = false) }
+    }
+
+    private fun mutate(onSuccess: () -> Unit = {}, action: suspend () -> Unit) {
         if (!uiState.value.canMutate || actionState.value.mutating) return
         actionState.update { it.copy(mutating = true, failed = false) }
         viewModelScope.launch {
             try {
                 action()
+                onSuccess()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

@@ -39,7 +39,8 @@ private fun titleErrors(title: String): List<ItemError> {
     )
 }
 
-private fun scheduleErrors(schedule: Schedule?): List<ItemError> {
+/** The rules of a schedule on its own, for an editor that checks it before the rest of the item. */
+fun scheduleErrors(schedule: Schedule?): List<ItemError> {
     if (schedule == null) return emptyList()
     val endDate = schedule.endDate
     val duration = schedule.duration
