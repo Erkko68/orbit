@@ -27,6 +27,7 @@ import com.orbit.app.testing.startTestKoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.koin.core.context.stopKoin
+import org.robolectric.shadows.ShadowLooper
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertTrue
@@ -110,6 +111,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
 
         onNodeWithText("Buy bread").performScrollTo().assertIsDisplayed()
         onNodeWithContentDescription("Complete item").performScrollTo().performClick()
+        ShadowLooper.idleMainLooper()
         waitForIdle()
 
         onNodeWithContentDescription("Reopen item").performScrollTo().assertIsDisplayed()
@@ -117,6 +119,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         assertTrue(completed.status is ItemStatus.Done, "Expected item to be Done but was: ${completed.status}")
 
         onNodeWithContentDescription("Reopen item").performScrollTo().performClick()
+        ShadowLooper.idleMainLooper()
         waitForIdle()
 
         onNodeWithContentDescription("Complete item").performScrollTo().assertIsDisplayed()
