@@ -12,7 +12,9 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.core.share.TextSharer
 import com.orbit.app.data.repository.InMemoryAuthRepository
+import com.orbit.app.data.repository.InMemoryInvitationRepository
 import com.orbit.app.data.repository.InMemoryItemRepository
 import com.orbit.app.data.repository.InMemorySpaceRepository
 import com.orbit.app.di.featureModule
@@ -21,6 +23,7 @@ import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.repository.AuthRepository
+import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlinx.coroutines.runBlocking
@@ -49,6 +52,8 @@ class OrbitNavHostTest : ComposeTest() {
                     single<AuthRepository> { auth }
                     single<SpaceRepository> { spaces }
                     single<ItemRepository> { items }
+                    single<InvitationRepository> { InMemoryInvitationRepository(auth) }
+                    single<TextSharer> { TextSharer {} }
                 },
                 featureModule,
             )
