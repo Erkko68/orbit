@@ -12,7 +12,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Holds the create-account form. Registering signs the new user in, which moves the auth gate, so
- * success needs no state here. The mockup asks for no name, so the profile starts with the part of the
+ * success needs no state here. The form asks for no name, so the profile starts with the part of the
  * email before the `@`, which the account screen can edit later.
  */
 class CreateAccountViewModel(private val auth: AuthRepository) : ViewModel() {
@@ -40,22 +40,18 @@ class CreateAccountViewModel(private val auth: AuthRepository) : ViewModel() {
             _uiState.update { it.copy(errors = errors, authError = null) }
             return
         }
-        _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
-        viewModelScope.launch {
-            val email = form.email.trim()
-            val authError = executeAuth("Registration") {
-                auth.register(email, form.password, displayName = email.substringBefore('@'))
-            }
-            _uiState.update { it.copy(submitting = false, authError = authError) }
-        }
+        val email = form.email.trim()
+        submit("Registration") { auth.register(email, form.password, displayName = email.substringBefore('@')) }
     }
 
-    fun signInWithGoogle() {
-        val form = _uiState.value
-        if (form.submitting) return
+    fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
+
+    /** Runs [call] unless one is running. A failure stays in the form as [CreateAccountUiState.authError]. */
+    private fun submit(what: String, call: suspend () -> Unit) {
+        if (_uiState.value.submitting) return
         _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
         viewModelScope.launch {
-            val authError = executeAuth("Google sign-in") { auth.signInWithGoogle() }
+            val authError = executeAuth(what, call)
             _uiState.update { it.copy(submitting = false, authError = authError) }
         }
     }

@@ -2,11 +2,10 @@ package com.orbit.app.feature.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import co.touchlab.kermit.Logger
+import com.orbit.app.core.attempt
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -43,14 +42,9 @@ class SessionViewModel(
 
     private suspend fun startOfSignedInUser(): SessionStart {
         val spaceId = lastSpace.lastSpaceId() ?: return SessionStart.Spaces
-        val belongs = try {
+        val belongs = attempt("Checking that the last space still belongs to the user") {
             withTimeoutOrNull(SPACES_WAIT) { spaces.observeSpaces().first().any { it.id == spaceId } }
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Logger.w(e) { "Could not tell whether the last space still belongs to the user" }
-            null
-        }
+        }.getOrNull()
         return when (belongs) {
             true -> SessionStart.Space(spaceId)
             false -> {

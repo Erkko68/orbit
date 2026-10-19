@@ -1,5 +1,6 @@
 package com.orbit.app.feature.account
 
+import com.orbit.app.core.initialsOf
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.CredentialsError
 import com.orbit.app.feature.auth.message
@@ -14,7 +15,6 @@ data class AccountUiState(
     /** The signed-in user, from the session. */
     val name: String = "",
     val email: String = "",
-    val initials: String = "",
     val photoUrl: String? = null,
     /** The open dialog, if any. */
     val dialog: AccountDialog? = null,
@@ -34,6 +34,8 @@ data class AccountUiState(
     val authError: AuthError? = null,
     val signOutFailed: Boolean = false,
 ) {
+    val initials: String get() = initialsOf(name)
+
     val canSaveName: Boolean get() = nameDraft.isNotBlank() && nameDraft.trim() != name && !submitting
 
     /** Under the edit-name field, or in the delete dialog. */

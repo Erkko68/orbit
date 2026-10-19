@@ -18,7 +18,6 @@ import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.or
-import orbit.shared.generated.resources.sign_in_apple
 import orbit.shared.generated.resources.sign_in_google
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -26,7 +25,7 @@ import org.jetbrains.compose.resources.stringResource
 /**
  * What sign-in and create account share, as one centered column: the Orbit header, the [form], the other
  * ways in, then a line that leads to the other screen: [switchPrompt] and a [switchAction] button that
- * calls [onSwitch]. Apple is a disabled placeholder until its issue lands (#113).
+ * calls [onSwitch].
  */
 @Composable
 internal fun AuthLayout(
@@ -47,20 +46,12 @@ internal fun AuthLayout(
         OrbitScreenHeader(stringResource(title), stringResource(subtitle))
         Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md), content = form)
         OrbitLabeledDivider(stringResource(Res.string.or))
-        Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
-            OrbitOutlinedButton(
-                text = stringResource(Res.string.sign_in_google),
-                onClick = onGoogleSignIn,
-                modifier = Modifier.fillMaxWidth(),
-                enabled = googleSignInEnabled,
-            )
-            OrbitOutlinedButton(
-                text = stringResource(Res.string.sign_in_apple),
-                onClick = {},
-                modifier = Modifier.fillMaxWidth(),
-                enabled = false,
-            )
-        }
+        OrbitOutlinedButton(
+            text = stringResource(Res.string.sign_in_google),
+            onClick = onGoogleSignIn,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = googleSignInEnabled,
+        )
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = stringResource(switchPrompt),
