@@ -7,6 +7,7 @@ import com.orbit.app.core.asLoad
 import com.orbit.app.core.attempt
 import com.orbit.app.core.orOnFailure
 import com.orbit.app.core.valueOrNull
+import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.model.defaultModule
@@ -59,6 +60,7 @@ class ItemViewModel(
             title = loaded?.title.orEmpty(),
             description = loaded?.description,
             preset = loaded?.preset,
+            status = loaded?.status ?: ItemStatus.Open,
             modules = loaded?.modules?.all.orEmpty(),
             loading = load == Load.Loading,
             loadFailed = load == Load.Failed,
@@ -74,6 +76,12 @@ class ItemViewModel(
     fun retry() {
         if (uiState.value.loadFailed) retries.trySend(Unit)
     }
+
+    fun complete() = submit { items.complete(spaceId, itemId) }
+
+    fun reopen() = submit { items.reopen(spaceId, itemId) }
+
+    fun toggleDone(done: Boolean) = if (done) complete() else reopen()
 
     fun addModule(type: ModuleType) {
         if (type !in uiState.value.availableModules) return

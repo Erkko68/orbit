@@ -491,6 +491,52 @@ class ItemViewModelTest {
         assertTrue(controlled.writes.isEmpty())
     }
 
+    @Test
+    fun completesAndReopensTheItem() = runTest {
+        val id = createItem()
+        val model = track(ItemViewModel("space-1", id, items, spaces))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        assertFalse(model.uiState.value.isDone)
+
+        model.complete()
+        val completed = model.uiState.first { it.isDone }
+        assertTrue(completed.isDone)
+
+        model.reopen()
+        val reopened = model.uiState.first { !it.isDone }
+        assertFalse(reopened.isDone)
+    }
+
+    @Test
+    fun completeFailureFlagsState() = runTest {
+        val id = createItem()
+        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write failed") } }
+        val model = track(ItemViewModel("space-1", id, controlled, spaces))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        model.complete()
+        val state = model.uiState.first { it.failed }
+        assertTrue(state.failed)
+        assertFalse(state.submitting)
+    }
+
+    @Test
+    fun reopenFailureFlagsState() = runTest {
+        val id = createItem()
+        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write failed") } }
+        val model = track(ItemViewModel("space-1", id, controlled, spaces))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        model.reopen()
+        val state = model.uiState.first { it.failed }
+        assertTrue(state.failed)
+        assertFalse(state.submitting)
+    }
+
     private fun track(viewModel: ItemViewModel): ItemViewModel = viewModel.also { viewModels.put("item", it) }
 
     private suspend fun createItem(modules: ItemModules = ItemModules()): String {

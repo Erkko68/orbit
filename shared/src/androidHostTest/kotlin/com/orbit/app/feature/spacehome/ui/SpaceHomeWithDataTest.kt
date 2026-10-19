@@ -4,6 +4,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -14,15 +15,23 @@ import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
 import com.orbit.app.testing.InMemorySpaceRepository
+import com.orbit.app.domain.model.ItemStatus
+import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Role
+import com.orbit.app.domain.model.Space
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
+import com.orbit.app.feature.spacehome.items.SpaceItemsTab
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.startTestKoin
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.koin.core.context.stopKoin
+import org.robolectric.shadows.ShadowLooper
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertTrue
 
 /** Android only: the data arrives through the view model's flows, which these host tests run on the main looper. */
 @OptIn(ExperimentalTestApi::class)
@@ -83,5 +92,38 @@ class SpaceHomeWithDataTest : ComposeTest() {
         onNodeWithText("Lists").performScrollTo().performClick()
         onNodeWithText("Groceries").performScrollTo().assertIsDisplayed()
         onNodeWithText("Book plumber").assertDoesNotExist()
+    }
+
+    @Test
+    fun completesAndReopensAnItemFromTheList() = runComposeUiTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val space = Space("space-2", "Flat 4B", accent = 0, memberIds = listOf("ana@orbit.app"))
+        val spaces = FakeSpaceRepository(space, listOf(Member("ana@orbit.app", "Ana", null, Role.OWNER)))
+        val items = InMemoryItemRepository(auth)
+        val id = "space-2"
+        val itemId = items.create(id, NewItem("Buy bread", preset = Preset.TASK))
+        startTestKoin(auth, spaces, items)
+        setContent {
+            OrbitTheme {
+                SpaceItemsTab(id, onOpenItem = {})
+            }
+        }
+
+        onNodeWithText("Buy bread").assertIsDisplayed()
+        onNodeWithContentDescription("Complete item").performClick()
+        ShadowLooper.idleMainLooper()
+        waitForIdle()
+
+        onNodeWithContentDescription("Reopen item").assertIsDisplayed()
+        val completed = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
+        assertTrue(completed.status is ItemStatus.Done, "Expected item to be Done but was: ${completed.status}")
+
+        onNodeWithContentDescription("Reopen item").performClick()
+        ShadowLooper.idleMainLooper()
+        waitForIdle()
+
+        onNodeWithContentDescription("Complete item").assertIsDisplayed()
+        val reopened = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
+        assertTrue(reopened.status is ItemStatus.Open, "Expected item to be Open but was: ${reopened.status}")
     }
 }

@@ -3,12 +3,18 @@ package com.orbit.app.feature.item.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitAssistChip
 import com.orbit.app.core.designsystem.component.OrbitCard
@@ -18,6 +24,7 @@ import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitLoadingState
 import com.orbit.app.core.designsystem.component.OrbitPill
+import com.orbit.app.core.designsystem.component.OrbitPillTone
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
@@ -29,11 +36,14 @@ import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.item_action_failed
 import orbit.shared.generated.resources.item_add_detail
 import orbit.shared.generated.resources.item_back
+import orbit.shared.generated.resources.item_complete
 import orbit.shared.generated.resources.item_load_failed
 import orbit.shared.generated.resources.item_load_failed_body
 import orbit.shared.generated.resources.item_loading
 import orbit.shared.generated.resources.item_not_found
 import orbit.shared.generated.resources.item_not_found_body
+import orbit.shared.generated.resources.item_reopen
+import orbit.shared.generated.resources.item_status_done
 import orbit.shared.generated.resources.retry
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -82,7 +92,7 @@ fun ItemScreen(
             )
 
             else -> {
-                ItemHeader(state, typeLabel)
+                ItemHeader(state, typeLabel, viewModel::toggleDone)
                 for (module in state.modules) {
                     ItemModuleCard(
                         module = module,
@@ -104,14 +114,43 @@ fun ItemScreen(
 }
 
 @Composable
-private fun ItemHeader(state: ItemUiState, typeLabel: String) {
+private fun ItemHeader(state: ItemUiState, typeLabel: String, onToggleDone: (Boolean) -> Unit) {
     OrbitCard(
         modifier = Modifier.fillMaxWidth(),
         elevated = true,
         verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
     ) {
-        OrbitPill(typeLabel)
-        Text(state.title, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OrbitPill(typeLabel)
+            if (state.isDone) {
+                OrbitPill(
+                    label = stringResource(Res.string.item_status_done),
+                    tone = OrbitPillTone.Success,
+                )
+            }
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
+        ) {
+            val completeDescription = stringResource(if (state.isDone) Res.string.item_reopen else Res.string.item_complete)
+            Checkbox(
+                checked = state.isDone,
+                onCheckedChange = onToggleDone,
+                enabled = state.canSubmit,
+                modifier = Modifier.semantics { contentDescription = completeDescription },
+            )
+            Text(
+                text = state.title,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                textDecoration = if (state.isDone) TextDecoration.LineThrough else TextDecoration.None,
+            )
+        }
         state.visibleDescription?.let { description ->
             Text(
                 description,

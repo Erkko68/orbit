@@ -40,4 +40,32 @@ class OrbitListCardTest : ComposeTest() {
         setContent { OrbitTheme { OrbitListCard("Groceries", "List", Res.drawable.ic_lock) } }
         onNodeWithText("Groceries").assertIsDisplayed().assertHasNoClickAction()
     }
+
+    @Test
+    fun clicksWithTrailingContent() = runComposeUiTest {
+        var cardClicks = 0
+        var trailingClicks = 0
+        setContent {
+            OrbitTheme {
+                OrbitListCard(
+                    title = "Buy milk",
+                    supporting = "Task",
+                    icon = Res.drawable.ic_lock,
+                    onClick = { cardClicks++ },
+                    trailing = {
+                        androidx.compose.material3.TextButton(onClick = { trailingClicks++ }) {
+                            androidx.compose.material3.Text("Action")
+                        }
+                    },
+                )
+            }
+        }
+        onNodeWithText("Buy milk").assertHasClickAction().performClick()
+        assertEquals(1, cardClicks)
+        assertEquals(0, trailingClicks)
+
+        onNodeWithText("Action").performClick()
+        assertEquals(1, cardClicks)
+        assertEquals(1, trailingClicks)
+    }
 }

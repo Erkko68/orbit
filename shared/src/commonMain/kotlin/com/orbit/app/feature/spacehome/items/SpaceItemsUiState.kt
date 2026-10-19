@@ -17,9 +17,19 @@ data class SpaceItemsUiState(
     val loadFailed: Boolean = false,
     /** The space's items that pass [filter]. */
     val items: List<SpaceItem> = emptyList(),
+    /** Completing or reopening an item failed. Cleared by the next attempt. */
+    val failed: Boolean = false,
+    /** A complete or reopen write is currently in progress. */
+    val submitting: Boolean = false,
 )
 
-data class SpaceItem(val id: String, val title: String, val label: StringResource, val icon: DrawableResource)
+data class SpaceItem(
+    val id: String,
+    val title: String,
+    val label: StringResource,
+    val icon: DrawableResource,
+    val done: Boolean = false,
+)
 
 /** The chips over the items tab, one per preset. Chores and bills join when their presets do (#52, #59). */
 enum class ItemFilter(val label: StringResource, val matches: (Preset?) -> Boolean) {

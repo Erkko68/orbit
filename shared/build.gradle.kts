@@ -108,6 +108,13 @@ dependencies {
 // Robolectric reaches into JDK internals that Java 17+ no longer exports by default.
 tasks.withType<Test>().configureEach {
     jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
 }
 
 // The Firebase KMP klibs ask the linker for the Firebase iOS frameworks, which only the Xcode app
