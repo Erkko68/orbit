@@ -17,8 +17,6 @@ import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
 import com.orbit.app.testing.InMemorySpaceRepository
-import com.orbit.app.domain.model.ItemStatus
-import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.testing.startTestKoin
@@ -29,7 +27,6 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class SpaceHomeScreenTest : ComposeTest() {
@@ -123,35 +120,5 @@ class SpaceHomeScreenTest : ComposeTest() {
         waitForIdle()
         assertEquals(listOf(created.id), opened)
         onNodeWithText("Create item").assertDoesNotExist()
-    }
-
-    @Test
-    fun completesAndReopensAnItemFromTheList() = runComposeUiTest {
-        runBlocking { auth.signIn("ana@orbit.app", "secret") }
-        val spaceId = "space-items"
-        val spaceViewModel = SpaceHomeViewModel(spaceId, spaces, items, InMemoryLastSpaceRepository())
-        val itemId = runBlocking {
-            items.create(spaceId, NewItem(title = "Buy bread", preset = Preset.TASK))
-        }
-        setContent {
-            OrbitTheme {
-                SpaceHomeScreen(spaceId, onSwitchSpace = {}, onOpenItem = {}, viewModel = spaceViewModel)
-            }
-        }
-
-        onNodeWithText("Buy bread").performScrollTo().assertIsDisplayed()
-        onNodeWithContentDescription("Complete item").performScrollTo().performClick()
-        waitForIdle()
-
-        val completed = runBlocking { items.observeItems(spaceId).first().single { it.id == itemId } }
-        assertTrue(completed.status is ItemStatus.Done)
-        onNodeWithContentDescription("Reopen item").performScrollTo().assertIsDisplayed()
-
-        onNodeWithContentDescription("Reopen item").performScrollTo().performClick()
-        waitForIdle()
-
-        val reopened = runBlocking { items.observeItems(spaceId).first().single { it.id == itemId } }
-        assertTrue(reopened.status is ItemStatus.Open)
-        onNodeWithContentDescription("Complete item").performScrollTo().assertIsDisplayed()
     }
 }

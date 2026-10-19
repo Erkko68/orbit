@@ -512,9 +512,10 @@ class ItemViewModelTest {
     @Test
     fun completeFailureFlagsState() = runTest {
         val id = createItem()
-        val failing = FailingItemRepository()
-        val model = track(ItemViewModel("space-1", id, failing, spaces))
+        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write failed") } }
+        val model = track(ItemViewModel("space-1", id, controlled, spaces))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
 
         model.complete()
         val state = model.uiState.first { it.failed }
@@ -525,9 +526,10 @@ class ItemViewModelTest {
     @Test
     fun reopenFailureFlagsState() = runTest {
         val id = createItem()
-        val failing = FailingItemRepository()
-        val model = track(ItemViewModel("space-1", id, failing, spaces))
+        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write failed") } }
+        val model = track(ItemViewModel("space-1", id, controlled, spaces))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
 
         model.reopen()
         val state = model.uiState.first { it.failed }

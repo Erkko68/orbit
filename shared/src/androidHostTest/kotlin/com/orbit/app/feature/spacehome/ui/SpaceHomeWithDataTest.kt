@@ -4,6 +4,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -14,15 +15,18 @@ import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
 import com.orbit.app.testing.InMemorySpaceRepository
+import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Role
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.startTestKoin
+import kotlinx.coroutines.flow.first
 import org.koin.core.context.stopKoin
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertTrue
 
 /** Android only: the data arrives through the view model's flows, which these host tests run on the main looper. */
 @OptIn(ExperimentalTestApi::class)
@@ -83,5 +87,34 @@ class SpaceHomeWithDataTest : ComposeTest() {
         onNodeWithText("Lists").performScrollTo().performClick()
         onNodeWithText("Groceries").performScrollTo().assertIsDisplayed()
         onNodeWithText("Book plumber").assertDoesNotExist()
+    }
+
+    @Test
+    fun completesAndReopensAnItemFromTheList() = runComposeUiTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val spaces = InMemorySpaceRepository(auth)
+        val items = InMemoryItemRepository(auth)
+        val id = spaces.createSpace("Flat 4B", accent = 0)
+        val itemId = items.create(id, NewItem("Buy bread", preset = Preset.TASK))
+        startTestKoin(auth, spaces, items)
+        val viewModel = SpaceHomeViewModel(id, spaces, items, InMemoryLastSpaceRepository())
+        setContent {
+            OrbitTheme {
+                SpaceHomeScreen(id, onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)
+            }
+        }
+
+        onNodeWithText("Buy bread").performScrollTo().assertIsDisplayed()
+        onNodeWithContentDescription("Complete item").performScrollTo().performClick()
+
+        val completed = items.observeItems(id).first { it.any { item -> item.id == itemId && item.status is ItemStatus.Done } }
+        assertTrue(completed.single { it.id == itemId }.status is ItemStatus.Done)
+        onNodeWithContentDescription("Reopen item").performScrollTo().assertIsDisplayed()
+
+        onNodeWithContentDescription("Reopen item").performScrollTo().performClick()
+
+        val reopened = items.observeItems(id).first { it.any { item -> item.id == itemId && item.status is ItemStatus.Open } }
+        assertTrue(reopened.single { it.id == itemId }.status is ItemStatus.Open)
+        onNodeWithContentDescription("Complete item").performScrollTo().assertIsDisplayed()
     }
 }
