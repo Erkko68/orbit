@@ -1,11 +1,14 @@
 package com.orbit.app.feature.item.ui
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -30,6 +33,7 @@ import com.orbit.app.testing.ControlledItemRepository
 import com.orbit.app.testing.FakeSpaceRepository
 import kotlin.test.AfterTest
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.test.Test
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
@@ -84,6 +88,10 @@ class ItemScreenTest : ComposeTest() {
 
         onNodeWithText("Book plumber").assertIsDisplayed()
         onNodeWithText("Kitchen leak").assertIsDisplayed()
+        onAllNodesWithText("Task").assertCountEquals(2)
+        val presetPill = onAllNodesWithText("Task").fetchSemanticsNodes().maxBy { it.boundsInRoot.top }
+        val title = onNodeWithText("Book plumber").fetchSemanticsNode()
+        assertTrue(presetPill.boundsInRoot.bottom <= title.boundsInRoot.top)
         onNodeWithText("Schedule").performScrollTo().assertIsDisplayed()
         onNodeWithText("Checklist").performScrollTo().assertIsDisplayed()
         onNodeWithText("Add detail").performScrollTo().assertIsDisplayed()
@@ -222,8 +230,8 @@ class ItemScreenTest : ComposeTest() {
         )
         val viewModel = model(id, items)
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
-        onNodeWithText("Milk × 2").performScrollTo().assertIsDisplayed()
-        onNodeWithText("Bread").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Milk × 2").performScrollTo().assertIsDisplayed().assertHasNoClickAction()
+        onNodeWithText("Bread").performScrollTo().assertIsDisplayed().assertHasNoClickAction()
         onNodeWithText("+ Reminder").assertDoesNotExist()
     }
 
@@ -251,7 +259,7 @@ class ItemScreenTest : ComposeTest() {
         val id = createItem(NewItem("Dinner", preset = Preset.EVENT))
         val viewModel = model(id, items)
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
-        onNodeWithText("Event").assertIsDisplayed()
+        onAllNodesWithText("Event").assertCountEquals(2)
         onNodeWithText("Flat 4B").assertIsDisplayed()
     }
 
@@ -279,8 +287,30 @@ class ItemScreenTest : ComposeTest() {
         val viewModel = model(id, items)
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
         onNodeWithText("Ana").performScrollTo().assertIsDisplayed()
+        onNodeWithText("A").performScrollTo().assertIsDisplayed()
         runOnIdle { runBlocking { items.setModule("space-1", id, Assignment.Claim("mika")) } }
         onNodeWithText("Mika").performScrollTo().assertIsDisplayed()
+        onNodeWithText("M").performScrollTo().assertIsDisplayed()
+        onNodeWithText("A").assertDoesNotExist()
+    }
+
+    @Test
+    fun darkThemeKeepsMissingMemberAndScheduleReadable() = runComposeUiTest {
+        val id = createItem(
+            NewItem(
+                "Shared task",
+                modules = ItemModules(
+                    assignment = Assignment.ToMember("missing"),
+                    schedule = Schedule(LocalDate(2026, 10, 26), time = LocalTime(20, 0)),
+                ),
+            ),
+        )
+        val viewModel = model(id, items)
+        setContent { OrbitTheme(darkTheme = true) { ItemScreen("space-1", id, {}, viewModel) } }
+
+        onNodeWithText("Oct 26, 2026 · 20:00").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Unknown member").performScrollTo().assertIsDisplayed()
+        onNodeWithContentDescription("Remove assignment").performScrollTo().assertIsEnabled()
     }
 
     @Test
