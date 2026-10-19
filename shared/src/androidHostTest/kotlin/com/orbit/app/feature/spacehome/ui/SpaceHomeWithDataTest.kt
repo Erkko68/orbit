@@ -106,15 +106,17 @@ class SpaceHomeWithDataTest : ComposeTest() {
 
         onNodeWithText("Buy bread").performScrollTo().assertIsDisplayed()
         onNodeWithContentDescription("Complete item").performScrollTo().performClick()
+        waitForIdle()
 
-        val completed = items.observeItems(id).first { it.any { item -> item.id == itemId && item.status is ItemStatus.Done } }
-        assertTrue(completed.single { it.id == itemId }.status is ItemStatus.Done)
+        val completed = items.observeItems(id).first().single { it.id == itemId }
+        assertTrue(completed.status is ItemStatus.Done)
         onNodeWithContentDescription("Reopen item").performScrollTo().assertIsDisplayed()
 
         onNodeWithContentDescription("Reopen item").performScrollTo().performClick()
+        waitForIdle()
 
-        val reopened = items.observeItems(id).first { it.any { item -> item.id == itemId && item.status is ItemStatus.Open } }
-        assertTrue(reopened.single { it.id == itemId }.status is ItemStatus.Open)
+        val reopened = items.observeItems(id).first().single { it.id == itemId }
+        assertTrue(reopened.status is ItemStatus.Open)
         onNodeWithContentDescription("Complete item").performScrollTo().assertIsDisplayed()
     }
 }
