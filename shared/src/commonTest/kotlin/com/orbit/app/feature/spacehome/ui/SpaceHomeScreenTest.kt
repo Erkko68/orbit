@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
@@ -15,8 +16,11 @@ import com.orbit.app.data.repository.InMemoryAuthRepository
 import com.orbit.app.data.repository.InMemoryItemRepository
 import com.orbit.app.data.repository.InMemoryLastSpaceRepository
 import com.orbit.app.data.repository.InMemorySpaceRepository
+import com.orbit.app.domain.model.Preset
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.testing.startTestKoin
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import org.koin.core.context.stopKoin
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
@@ -66,7 +70,7 @@ class SpaceHomeScreenTest : ComposeTest() {
     }
 
     @Test
-    fun hasTheTopBarActionsAndTheNewItemPlaceholder() = runComposeUiTest {
+    fun hasTheTopBarActions() = runComposeUiTest {
         var switches = 0
         setContent {
             OrbitTheme {
@@ -77,6 +81,28 @@ class SpaceHomeScreenTest : ComposeTest() {
         assertEquals(1, switches)
 
         onNodeWithContentDescription("Notifications").assertIsNotEnabled()
-        onNodeWithText("New item").assertIsDisplayed()
+    }
+
+    @Test
+    fun createsAnItemFromAPresetAndOpensIt() = runComposeUiTest {
+        runBlocking { auth.register("ana@orbit.app", "secret", displayName = "Ana López") }
+        val opened = mutableListOf<String>()
+        setContent {
+            OrbitTheme {
+                SpaceHomeScreen("space-1", onSwitchSpace = {}, onOpenItem = { opened += it }, viewModel = viewModel)
+            }
+        }
+        onNodeWithText("New item").performClick()
+        onNodeWithText("Create item").assertIsNotEnabled()
+
+        onNodeWithText("List").performClick().assertIsSelected()
+        onNodeWithText("Name it").performTextInput("Groceries")
+        onNodeWithText("Create item").performClick()
+
+        val created = runBlocking { items.observeItems("space-1").first().single() }
+        assertEquals(Preset.SHOPPING_LIST, created.preset)
+        waitForIdle()
+        assertEquals(listOf(created.id), opened)
+        onNodeWithText("Create item").assertDoesNotExist()
     }
 }
