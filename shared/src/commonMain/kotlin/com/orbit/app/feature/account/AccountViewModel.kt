@@ -71,14 +71,9 @@ class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
     /** Closes the open dialog and forgets what was typed in it, unless its write is still running. */
     fun dismissDialog() = form.update { if (it.submitting) it else AccountUiState() }
 
-    fun signOut() {
-        if (form.value.submitting) return
-        form.update { it.copy(submitting = true, signOutFailed = false) }
-        viewModelScope.launch {
-            val error = executeAuth("Signing out") { auth.signOut() }
-            form.update { it.copy(submitting = false, signOutFailed = error != null) }
-        }
-    }
+    fun openSignOut() = form.update { AccountUiState(dialog = AccountDialog.SIGN_OUT) }
+
+    fun signOut() = submit("Signing out") { auth.signOut() }
 
     /** Runs a dialog's [write]: success closes the dialog, a failure stays in it as [AccountUiState.authError]. */
     private fun submit(action: String, write: suspend () -> Unit) {

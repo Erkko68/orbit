@@ -28,7 +28,8 @@
     <string name="account_new_password">New password</string>
     <string name="account_sign_out">Sign out</string>
     <string name="account_sign_out_body">You can sign back in at any time.</string>
-    <string name="account_sign_out_failed">Could not sign out. Try again.</string>
+    <string name="account_sign_out_title">Sign out?</string>
+    <string name="account_sign_out_warning">You will need to sign in again to see your spaces.</string>
     <string name="account_delete">Delete account</string>
     <string name="account_delete_body">Permanently remove your account and your data.</string>
     <string name="account_delete_title">Delete your account?</string>

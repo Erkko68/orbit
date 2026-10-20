@@ -40,7 +40,8 @@ import orbit.shared.generated.resources.account_new_password
 import orbit.shared.generated.resources.account_save
 import orbit.shared.generated.resources.account_sign_out
 import orbit.shared.generated.resources.account_sign_out_body
-import orbit.shared.generated.resources.account_sign_out_failed
+import orbit.shared.generated.resources.account_sign_out_title
+import orbit.shared.generated.resources.account_sign_out_warning
 import orbit.shared.generated.resources.account_title
 import orbit.shared.generated.resources.cancel
 import orbit.shared.generated.resources.create_account_confirm
@@ -98,11 +99,8 @@ fun AccountScreen(onBack: () -> Unit, viewModel: AccountViewModel = koinViewMode
                 supporting = stringResource(Res.string.account_sign_out_body),
                 icon = Res.drawable.ic_logout,
                 modifier = Modifier.fillMaxWidth(),
-                onClick = viewModel::signOut,
+                onClick = viewModel::openSignOut,
             )
-            if (state.signOutFailed) {
-                OrbitErrorText(stringResource(Res.string.account_sign_out_failed))
-            }
             OrbitListCard(
                 title = stringResource(Res.string.account_delete),
                 supporting = stringResource(Res.string.account_delete_body),
@@ -116,7 +114,22 @@ fun AccountScreen(onBack: () -> Unit, viewModel: AccountViewModel = koinViewMode
     when (state.dialog) {
         AccountDialog.EDIT_NAME -> EditNameDialog(state, viewModel)
         AccountDialog.CHANGE_PASSWORD -> ChangePasswordDialog(state, viewModel)
-        AccountDialog.DELETE_ACCOUNT -> DeleteAccountDialog(state, viewModel)
+        AccountDialog.SIGN_OUT -> ConfirmDialog(
+            state = state,
+            title = stringResource(Res.string.account_sign_out_title),
+            warning = stringResource(Res.string.account_sign_out_warning),
+            confirmText = stringResource(Res.string.account_sign_out),
+            onConfirm = viewModel::signOut,
+            onDismiss = viewModel::dismissDialog,
+        )
+        AccountDialog.DELETE_ACCOUNT -> ConfirmDialog(
+            state = state,
+            title = stringResource(Res.string.account_delete_title),
+            warning = stringResource(Res.string.account_delete_warning),
+            confirmText = stringResource(Res.string.account_delete),
+            onConfirm = viewModel::deleteAccount,
+            onDismiss = viewModel::dismissDialog,
+        )
         null -> Unit
     }
 }
@@ -188,18 +201,26 @@ private fun ChangePasswordDialog(state: AccountUiState, viewModel: AccountViewMo
     }
 }
 
+/** Asks before an action that signs the user out: what happens, and why it failed if it did. */
 @Composable
-private fun DeleteAccountDialog(state: AccountUiState, viewModel: AccountViewModel) {
+private fun ConfirmDialog(
+    state: AccountUiState,
+    title: String,
+    warning: String,
+    confirmText: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     OrbitDialog(
-        title = stringResource(Res.string.account_delete_title),
+        title = title,
         dismissText = stringResource(Res.string.cancel),
-        onDismiss = viewModel::dismissDialog,
-        confirmText = stringResource(Res.string.account_delete),
-        onConfirm = viewModel::deleteAccount,
+        onDismiss = onDismiss,
+        confirmText = confirmText,
+        onConfirm = onConfirm,
         confirmEnabled = !state.submitting,
     ) {
         Text(
-            text = stringResource(Res.string.account_delete_warning),
+            text = warning,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
