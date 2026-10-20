@@ -96,6 +96,7 @@
     <string name="space_members_load_failed">Could not load the members</string>
     <string name="space_items_empty_title">No items yet</string>
     <string name="space_items_empty_body">Tasks, lists and events you add will show up here.</string>
+    <string name="space_item_checklist_progress">%1$d of %2$d done</string>
     <string name="space_agenda_empty_title">Nothing scheduled for today</string>
     <string name="space_agenda_empty_body">Items due today will show up here.</string>
     <string name="role_owner">Owner</string>
