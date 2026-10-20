@@ -1,6 +1,8 @@
 package com.orbit.app.feature.spacehome.items
 
+import com.orbit.app.core.initialsOf
 import com.orbit.app.domain.model.Preset
+import kotlinx.datetime.LocalDate
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.filter_all
 import orbit.shared.generated.resources.filter_events
@@ -29,7 +31,18 @@ data class SpaceItem(
     val label: StringResource,
     val icon: DrawableResource,
     val done: Boolean = false,
-)
+    val assignmentLabel: StringResource? = null,
+    val assigneeName: String? = null,
+    val dueDate: LocalDate? = null,
+    val checklist: SpaceItemChecklist? = null,
+) {
+    val assigneeInitials: String? get() = assigneeName?.let(::initialsOf)
+    val hasFooter: Boolean get() = assignmentLabel != null || dueDate != null
+}
+
+data class SpaceItemChecklist(val done: Int, val total: Int) {
+    val progress: Float get() = if (total == 0) 0f else done.toFloat() / total
+}
 
 /** The chips over the items tab, one per preset. Chores and bills join when their presets do (#52, #59). */
 enum class ItemFilter(val label: StringResource, val matches: (Preset?) -> Boolean) {

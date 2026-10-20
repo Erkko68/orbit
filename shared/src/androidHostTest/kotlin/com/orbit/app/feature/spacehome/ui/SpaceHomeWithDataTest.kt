@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
+import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
@@ -32,6 +33,7 @@ import org.robolectric.shadows.ShadowLooper
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertTrue
+import kotlin.test.assertEquals
 
 /** Android only: the data arrives through the view model's flows, which these host tests run on the main looper. */
 @OptIn(ExperimentalTestApi::class)
@@ -78,12 +80,13 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val items = InMemoryItemRepository(auth)
         val id = spaces.createSpace("Flat 4B", accent = 0)
         items.create(id, NewItem("Book plumber", preset = Preset.TASK))
-        items.create(id, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
+        val groceriesId = items.create(id, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
+        val opened = mutableListOf<String>()
         startTestKoin(auth, spaces, items)
         val viewModel = SpaceHomeViewModel(id, spaces, items, InMemoryLastSpaceRepository())
         setContent {
             OrbitTheme {
-                SpaceHomeScreen(id, onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)
+                SpaceHomeScreen(id, onSwitchSpace = {}, onOpenItem = { opened += it }, viewModel = viewModel)
             }
         }
         onNodeWithText("Book plumber").performScrollTo().assertIsDisplayed()
@@ -92,6 +95,8 @@ class SpaceHomeWithDataTest : ComposeTest() {
         onNodeWithText("Lists").performScrollTo().performClick()
         onNodeWithText("Groceries").performScrollTo().assertIsDisplayed()
         onNodeWithText("Book plumber").assertDoesNotExist()
+        onNodeWithText("Groceries").performScrollTo().performClick()
+        assertEquals(listOf(groceriesId), opened)
     }
 
     @Test
@@ -103,14 +108,17 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val id = "space-2"
         val itemId = items.create(id, NewItem("Buy bread", preset = Preset.TASK))
         startTestKoin(auth, spaces, items)
+        val opened = mutableListOf<String>()
         setContent {
             OrbitTheme {
-                SpaceItemsTab(id, onOpenItem = {})
+                OrbitScreen(scrollable = true) {
+                    SpaceItemsTab(id, onOpenItem = { opened += it })
+                }
             }
         }
 
         onNodeWithText("Buy bread").assertIsDisplayed()
-        onNodeWithContentDescription("Complete item").performClick()
+        onNodeWithContentDescription("Complete item").performScrollTo().performClick()
         ShadowLooper.idleMainLooper()
         waitForIdle()
 
@@ -118,11 +126,12 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val completed = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
         assertTrue(completed.status is ItemStatus.Done, "Expected item to be Done but was: ${completed.status}")
 
-        onNodeWithContentDescription("Reopen item").performClick()
+        onNodeWithContentDescription("Reopen item").performScrollTo().performClick()
         ShadowLooper.idleMainLooper()
         waitForIdle()
 
         onNodeWithContentDescription("Complete item").assertIsDisplayed()
+        assertTrue(opened.isEmpty(), "Toggling completion must not open the detail")
         val reopened = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
         assertTrue(reopened.status is ItemStatus.Open, "Expected item to be Open but was: ${reopened.status}")
     }
