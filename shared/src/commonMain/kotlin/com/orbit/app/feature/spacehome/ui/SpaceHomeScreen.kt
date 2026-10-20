@@ -29,6 +29,7 @@ import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitTextField
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
+import com.orbit.app.core.notification.permission.RequireNotificationPermission
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.feature.item.label
 import com.orbit.app.feature.spacehome.SpaceHomeTab
@@ -119,7 +120,10 @@ fun SpaceHomeScreen(
     if (state.newItemOpen) {
         NewItemDialog(state, viewModel)
     }
-    state.createdItemId?.let { itemId ->
+    if (state.askNotifications) {
+        RequireNotificationPermission(onResult = { viewModel.onNotificationsAnswered() })
+    }
+    state.itemToOpen?.let { itemId ->
         LaunchedEffect(itemId) {
             onOpenItem(itemId)
             viewModel.onCreatedItemOpened()

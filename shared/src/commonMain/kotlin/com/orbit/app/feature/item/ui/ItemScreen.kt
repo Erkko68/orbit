@@ -28,6 +28,7 @@ import com.orbit.app.core.designsystem.component.OrbitPillTone
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
+import com.orbit.app.core.notification.permission.RequireNotificationPermission
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.feature.item.ItemUiState
 import com.orbit.app.feature.item.ItemViewModel
@@ -111,6 +112,9 @@ fun ItemScreen(
         }
     }
     state.scheduleEditor?.let { editor -> ScheduleEditorDialog(editor, state, viewModel) }
+    if (state.askNotifications) {
+        RequireNotificationPermission(onResult = { viewModel.onNotificationsAnswered() })
+    }
 }
 
 @Composable

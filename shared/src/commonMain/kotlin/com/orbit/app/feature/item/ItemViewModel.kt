@@ -37,6 +37,7 @@ class ItemViewModel(
 ) : ViewModel() {
     private val action = MutableStateFlow(ActionState())
     private val scheduleEditor = MutableStateFlow<ScheduleEditor?>(null)
+    private val askNotifications = MutableStateFlow(false)
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
     private val item = items.observeItems(spaceId)
@@ -54,7 +55,13 @@ class ItemViewModel(
         )
     }.onStart { emit(ItemContext()) }
 
-    val uiState: StateFlow<ItemUiState> = combine(item, action, context, scheduleEditor) { load, action, context, editor ->
+    val uiState: StateFlow<ItemUiState> = combine(
+        item,
+        action,
+        context,
+        scheduleEditor,
+        askNotifications,
+    ) { load, action, context, editor, ask ->
         val loaded = load.valueOrNull
         ItemUiState(
             title = loaded?.title.orEmpty(),
@@ -70,6 +77,7 @@ class ItemViewModel(
             spaceName = context.spaceName,
             memberNames = context.memberNames,
             scheduleEditor = editor,
+            askNotifications = ask,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ItemUiState())
 
@@ -86,7 +94,13 @@ class ItemViewModel(
     fun addModule(type: ModuleType) {
         if (type !in uiState.value.availableModules) return
         val module = defaultModule(type, Clock.System.todayIn(TimeZone.currentSystemDefault()))
-        submit { items.setModule(spaceId, itemId, module) }
+        val reminds = type == ModuleType.REMINDER
+        submit(onSuccess = { askNotifications.value = reminds }) { items.setModule(spaceId, itemId, module) }
+    }
+
+    /** The user allowed notifications, or not: the reminder stays either way. */
+    fun onNotificationsAnswered() {
+        askNotifications.value = false
     }
 
     /** Removing the schedule removes its reminder too: a reminder needs a schedule. */
