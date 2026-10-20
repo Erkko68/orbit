@@ -1,12 +1,26 @@
 package com.orbit.app.core.notification
 
-import co.touchlab.kermit.Logger
+import platform.Foundation.NSURL
+import platform.UIKit.UIApplication
+import platform.UIKit.UIApplicationOpenNotificationSettingsURLString
+import platform.UserNotifications.UNAuthorizationStatusDenied
+import platform.UserNotifications.UNAuthorizationStatusNotDetermined
+import platform.UserNotifications.UNUserNotificationCenter
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
-/** Stub until #204 reads UNUserNotificationCenter: notifications count as off on iOS. */
+/** Reads the notification settings of [UNUserNotificationCenter]: provisional and ephemeral count as allowed. */
 class IosNotificationAccess : NotificationAccess {
-    override suspend fun isAllowed(): Boolean = false
+    override suspend fun isAllowed(): Boolean = suspendCoroutine { continuation ->
+        UNUserNotificationCenter.currentNotificationCenter().getNotificationSettingsWithCompletionHandler { settings ->
+            val status = settings?.authorizationStatus
+            continuation.resume(status != UNAuthorizationStatusDenied && status != UNAuthorizationStatusNotDetermined)
+        }
+    }
 
+    /** Opens the app's own notification page in the Settings app. */
     override fun openSettings() {
-        Logger.w { "Notification settings not opened: iOS notifications land in #204" }
+        val url = NSURL.URLWithString(UIApplicationOpenNotificationSettingsURLString) ?: return
+        UIApplication.sharedApplication.openURL(url, options = emptyMap<Any?, Any>(), completionHandler = null)
     }
 }
