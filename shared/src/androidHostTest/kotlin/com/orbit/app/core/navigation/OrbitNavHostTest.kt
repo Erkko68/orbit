@@ -12,12 +12,14 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.core.notification.ReminderSync
 import com.orbit.app.core.share.TextSharer
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryInvitationRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
 import com.orbit.app.testing.InMemorySpaceRepository
+import com.orbit.app.testing.RecordingNotificationScheduler
 import com.orbit.app.di.featureModule
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ItemModules
@@ -28,6 +30,7 @@ import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import com.russhwolf.settings.MapSettings
 import kotlinx.coroutines.runBlocking
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
@@ -60,6 +63,7 @@ class OrbitNavHostTest : ComposeTest() {
                     single<LastSpaceRepository> { lastSpace }
                     single<InvitationRepository> { InMemoryInvitationRepository(auth) }
                     single<TextSharer> { TextSharer {} }
+                    single { ReminderSync(auth, spaces, items, RecordingNotificationScheduler(), MapSettings()) }
                 },
                 featureModule,
             )

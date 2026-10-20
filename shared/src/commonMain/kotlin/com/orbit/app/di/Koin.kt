@@ -1,5 +1,6 @@
 package com.orbit.app.di
 
+import com.orbit.app.core.notification.ReminderSync
 import com.orbit.app.core.notification.permission.NotificationPermissionViewModel
 import com.orbit.app.data.repository.FirebaseAuthRepository
 import com.orbit.app.data.repository.FirestoreInvitationRepository
@@ -54,6 +55,7 @@ val dataModule = module {
     singleOf(::FirestoreInvitationRepository) bind InvitationRepository::class
     single { Settings() }
     singleOf(::SettingsLastSpaceRepository) bind LastSpaceRepository::class
+    singleOf(::ReminderSync)
 }
 
 val featureModule = module {
