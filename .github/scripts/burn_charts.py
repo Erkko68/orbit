@@ -5,14 +5,14 @@ estimated hours against the time the issues really took.
 Run with --print to see the markdown without touching GitHub.
 """
 import json
-import math
 import os
 import subprocess
 import sys
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, time, timedelta
 
 TITLE = "Burn charts"
 PROJECT = 3  # the repo owner's "orbit" project, where the Estimate field (hours) lives
+HOURS_PER_DAY = 2  # the most a day counts for, as project_sync.py plans it
 QUERY = """query($owner: String!, $name: String!, $endCursor: String) {
   repository(owner: $owner, name: $name) {
     issues(first: 100, after: $endCursor) {
@@ -63,13 +63,22 @@ def estimates():
 
 
 def worked(node):
-    """Hours from the first assignment to the closing PR being opened, or None when either is missing."""
+    """Hours from the first assignment to the closing PR being opened, at most HOURS_PER_DAY per day, or None when
+    either is missing. An issue left assigned for days counts as the days' budget, not as 24 h each."""
     assigned = [e["createdAt"] for e in node["timelineItems"]["nodes"]]
     opened = [p["createdAt"] for p in node["closedByPullRequestsReferences"]["nodes"]]
     if not assigned or not opened:
         return None
     start, end = (datetime.fromisoformat(s.replace("Z", "+00:00")) for s in (assigned[0], min(opened)))
-    return round((end - start).total_seconds() / 3600, 1) if end >= start else None
+    if end < start:
+        return None
+    total = 0
+    # ponytail: days split at UTC midnight. Use the team's time zone if late-evening work starts to skew it.
+    while start < end:
+        midnight = datetime.combine(start.date() + timedelta(1), time(), start.tzinfo)
+        total += min((min(midnight, end) - start).total_seconds() / 3600, HOURS_PER_DAY)
+        start = midnight
+    return round(total, 1)
 
 
 def deviation(estimate, actual):
@@ -98,7 +107,8 @@ def time_report(issues, today, start=None, due=None, table=True):
                        f" {deviation(i['estimate'], i['hours'])} |\n" for i in rows)
     out += f"| **Total** | | {estimate:g} | {actual:g} | {deviation(estimate, actual)} |\n\n"
     # ponytail: actual is elapsed time, not logged hours. Add an "Actual" number field to the project if the team logs them.
-    return out + "Actual is the time from the first assignment to the closing PR being opened.\n\n"
+    return out + (f"Actual is the time from the first assignment to the closing PR being opened,"
+                  f" counting at most {HOURS_PER_DAY} h a day.\n\n")
 
 
 def series(issues, today, due=None):
@@ -173,7 +183,11 @@ def check():
         raise RuntimeError("series() self-check failed")
     node = {"timelineItems": {"nodes": [{"createdAt": "2026-10-01T08:00:00Z"}]},
             "closedByPullRequestsReferences": {"nodes": [{"createdAt": "2026-10-01T11:30:00Z"}]}}
-    if not math.isclose(worked(node), 3.5):
+    idle = {"timelineItems": {"nodes": [{"createdAt": "2026-10-05T10:00:00Z"}]},
+            "closedByPullRequestsReferences": {"nodes": [{"createdAt": "2026-10-08T10:00:00Z"}]}}
+    late = {"timelineItems": {"nodes": [{"createdAt": "2026-10-05T23:00:00Z"}]},
+            "closedByPullRequestsReferences": {"nodes": [{"createdAt": "2026-10-06T00:30:00Z"}]}}
+    if worked(node) != 2 or worked(idle) != 8 or worked(late) != 1.5:
         raise RuntimeError("worked() self-check failed")
     timed = [{"number": 1, "created": d, "closed": d, "estimate": 2, "hours": 3.5, "who": "a"},
              {"number": 2, "created": d, "closed": None, "estimate": 6, "hours": None, "who": ""}]
