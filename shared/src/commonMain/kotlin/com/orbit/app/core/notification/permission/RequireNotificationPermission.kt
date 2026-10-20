@@ -22,15 +22,16 @@ import org.koin.compose.viewmodel.koinViewModel
  * Makes sure the user allows notifications, then reports whether they do. Show it when the user turns on
  * something that notifies, never at launch, and remove it once [onResult] is called. If the user refuses
  * the system prompt, a dialog offers the system settings; coming back with notifications on counts as allowed.
+ * [prompt] is the system one; tests, which have no system to ask, replace it.
  */
 @Composable
 fun RequireNotificationPermission(
     onResult: (allowed: Boolean) -> Unit,
     viewModel: NotificationPermissionViewModel = koinViewModel(),
+    prompt: () -> Unit = rememberNotificationPermissionPrompt(viewModel::onAnswer),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnResult by rememberUpdatedState(onResult)
-    val prompt = rememberNotificationPermissionPrompt(viewModel::onAnswer)
 
     LifecycleResumeEffect(viewModel) {
         viewModel.onResume()

@@ -20,7 +20,7 @@ class RequireNotificationPermissionTest : ComposeTest() {
 
     private fun ComposeUiTest.show() = setContent {
         OrbitTheme {
-            RequireNotificationPermission(onResult = { results += it }, viewModel = viewModel)
+            RequireNotificationPermission(onResult = { results += it }, viewModel = viewModel, prompt = {})
         }
     }
 

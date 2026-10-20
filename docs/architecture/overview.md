@@ -139,8 +139,8 @@ The write shows on Ana's screen at once from the cache, works offline, and reach
 | What | Android | iOS |
 |---|---|---|
 | Google sign-in | Credential Manager (`AndroidGoogleAuthClient`) | The Google Sign-In SDK in Swift (`GoogleSignInBridge.swift`), called through `IosGoogleAuthClient` |
-| Local notifications | `AlarmManager`, with receivers that show them and restore them after a reboot | Stub that logs, until #204 |
-| Notification permission | The runtime permission prompt | Stub that answers no, until #204 |
+| Local notifications | `AlarmManager`, with receivers that show them and restore them after a reboot | `UNUserNotificationCenter`, which keeps them across reboots, and a delegate that shows them with the app open |
+| Notification permission | The runtime permission prompt | `requestAuthorization`, asked once per install |
 | Share sheet | `ACTION_SEND` chooser | `UIActivityViewController` |
 | Device language | `Locale.getDefault()` | `NSLocale.currentLocale` |
 
