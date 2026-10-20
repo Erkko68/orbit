@@ -235,21 +235,27 @@ class AccountViewModelTest {
     }
 
     @Test
-    fun signsOut() = runTest {
+    fun signsOutOnceConfirmed() = runTest {
         val auth = signedIn()
+        val viewModel = observe(auth)
 
-        observe(auth).signOut()
+        viewModel.openSignOut()
+        assertEquals(AccountDialog.SIGN_OUT, viewModel.uiState.value.dialog)
+        viewModel.signOut()
 
         assertNull(auth.session.first())
+        assertNull(viewModel.uiState.value.dialog)
     }
 
     @Test
-    fun aFailedSignOutIsFlaggedUntilTheNextAttempt() = runTest {
+    fun aFailedSignOutStaysInTheDialog() = runTest {
         val viewModel = observe(FailingAuthRepository(user = ana))
+        viewModel.openSignOut()
 
         viewModel.signOut()
 
-        assertTrue(viewModel.uiState.value.signOutFailed)
+        assertEquals(AccountDialog.SIGN_OUT, viewModel.uiState.value.dialog)
+        assertEquals(Res.string.error_unknown, viewModel.uiState.value.dialogError)
         assertFalse(viewModel.uiState.value.submitting)
     }
 }

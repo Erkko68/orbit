@@ -90,11 +90,34 @@ class AccountScreenTest : ComposeTest() {
     }
 
     @Test
-    fun aFailedSignOutSaysSo() = runComposeUiTest {
+    fun signsOutOnceConfirmed() = runComposeUiTest {
+        show()
+
+        onNodeWithText("Sign out").performScrollTo().performClick()
+        onNodeWithText("Sign out?").assertIsDisplayed()
+        dialogButton("Sign out").performClick()
+
+        assertNull(runBlocking { auth.session.first() })
+    }
+
+    @Test
+    fun cancellingKeepsTheUserSignedIn() = runComposeUiTest {
+        show()
+
+        onNodeWithText("Sign out").performScrollTo().performClick()
+        dialogButton("Cancel").performClick()
+
+        onNode(isDialog()).assertDoesNotExist()
+        assertEquals("Ana López", runBlocking { auth.session.first() }?.displayName)
+    }
+
+    @Test
+    fun aFailedSignOutSaysSoInTheDialog() = runComposeUiTest {
         show(FailingAuthRepository(user = User("ana", "Ana López", null)))
 
         onNodeWithText("Sign out").performScrollTo().performClick()
+        dialogButton("Sign out").performClick()
 
-        onNodeWithText("Could not sign out. Try again.").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Something went wrong. Try again.").assertIsDisplayed()
     }
 }

@@ -9,7 +9,7 @@ import orbit.shared.generated.resources.error_current_password_wrong
 import org.jetbrains.compose.resources.StringResource
 
 /** The task over the account screen, one at a time. */
-enum class AccountDialog { EDIT_NAME, CHANGE_PASSWORD, DELETE_ACCOUNT }
+enum class AccountDialog { EDIT_NAME, CHANGE_PASSWORD, SIGN_OUT, DELETE_ACCOUNT }
 
 data class AccountUiState(
     /** The signed-in user, from the session. */
@@ -28,17 +28,16 @@ data class AccountUiState(
     val passwordsVisible: Boolean = false,
     /** What the change-password form got wrong. Cleared by the next edit. */
     val passwordErrors: List<CredentialsError> = emptyList(),
-    /** A dialog's write is running: its confirm button, and signing out, wait for it. */
+    /** A dialog's write is running: its confirm button waits for it. */
     val submitting: Boolean = false,
     /** Why the open dialog's last write failed. Cleared by the next edit or attempt. */
     val authError: AuthError? = null,
-    val signOutFailed: Boolean = false,
 ) {
     val initials: String get() = initialsOf(name)
 
     val canSaveName: Boolean get() = nameDraft.isNotBlank() && nameDraft.trim() != name && !submitting
 
-    /** Under the edit-name field, or in the delete dialog. */
+    /** Under the edit-name field, or in the sign-out and delete dialogs. */
     val dialogError: StringResource? get() = authError?.message()
 
     val currentPasswordError: StringResource?
