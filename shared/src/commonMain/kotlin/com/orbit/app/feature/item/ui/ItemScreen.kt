@@ -100,6 +100,11 @@ fun ItemScreen(
                         state = state,
                         onRemove = { viewModel.removeModule(module.type) },
                         onEdit = viewModel::editSchedule,
+                        onAssignToAnyone = viewModel::assignToAnyone,
+                        onAssignToClaim = viewModel::assignToClaim,
+                        onOpenMemberPicker = viewModel::openMemberPicker,
+                        onClaim = viewModel::claim,
+                        onUnclaim = viewModel::unclaim,
                     )
                 }
                 if (state.availableModules.isNotEmpty()) {
@@ -114,6 +119,9 @@ fun ItemScreen(
     state.scheduleEditor?.let { editor -> ScheduleEditorDialog(editor, state, viewModel) }
     if (state.askNotifications) {
         RequireNotificationPermission(onResult = { viewModel.onNotificationsAnswered() })
+    }
+    if (state.pickingMember) {
+        MemberPickerDialog(state, viewModel)
     }
 }
 

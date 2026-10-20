@@ -48,7 +48,7 @@ import kotlin.time.Duration.Companion.minutes
 @OptIn(ExperimentalTestApi::class)
 class ItemScreenTest : ComposeTest() {
     private val auth = InMemoryAuthRepository().apply {
-        runBlocking { signIn("ana@orbit.app", "secret") }
+        runBlocking { signIn("ana", "secret") }
     }
     private val items = InMemoryItemRepository(auth)
     private val spaces = FakeSpaceRepository(
@@ -399,6 +399,59 @@ class ItemScreenTest : ComposeTest() {
         assertTrue(reopened.status is ItemStatus.Open)
     }
 
+    @Test
+    fun claimingAndUnclaimingFirstToClaimUpdatesModule() = runComposeUiTest {
+        val id = createItem(NewItem("Task", modules = ItemModules(assignment = Assignment.Claim(null))))
+        val viewModel = model(id, items)
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+
+        onNodeWithText("First to claim").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Unassigned").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Claim").performScrollTo().performClick()
+        waitForIdle()
+
+        onNodeWithText("Ana").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Unclaim").performScrollTo().performClick()
+        waitForIdle()
+
+        onNodeWithText("Unassigned").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Claim").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun pickingOneMemberOpensDialogAndAssignsMember() = runComposeUiTest {
+        val id = createItem(NewItem("Task", modules = ItemModules(assignment = Assignment.Anyone)))
+        val viewModel = model(id, items)
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+
+        onNodeWithText("One member").performScrollTo().performClick()
+        waitForIdle()
+
+        onNodeWithText("Assign to member").assertIsDisplayed()
+        onNodeWithText("Mika").performClick()
+        waitForIdle()
+
+        onNodeWithText("Assign to member").assertDoesNotExist()
+        onNodeWithText("Mika").performScrollTo().assertIsDisplayed()
+        val updated = runBlocking { items.observeItems("space-1").first().single { it.id == id } }
+        assertEquals(Assignment.ToMember("mika"), updated.modules.assignment)
+    }
+
+    @Test
+    fun switchingModeToAnyoneUpdatesModule() = runComposeUiTest {
+        val id = createItem(NewItem("Task", modules = ItemModules(assignment = Assignment.ToMember("ana"))))
+        val viewModel = model(id, items)
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+
+        onNodeWithText("Ana").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Anyone").performScrollTo().performClick()
+        waitForIdle()
+
+        onNodeWithText("Anyone").performScrollTo().assertIsDisplayed()
+        val updated = runBlocking { items.observeItems("space-1").first().single { it.id == id } }
+        assertEquals(Assignment.Anyone, updated.modules.assignment)
+    }
+
     private fun model(id: String, repository: ItemRepository): ItemViewModel =
-        ItemViewModel("space-1", id, repository, spaces).also { viewModels.put("item", it) }
+        ItemViewModel("space-1", id, repository, spaces, auth).also { viewModels.put("item", it) }
 }

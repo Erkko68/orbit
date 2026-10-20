@@ -7,10 +7,14 @@ import com.orbit.app.core.asLoad
 import com.orbit.app.core.attempt
 import com.orbit.app.core.orOnFailure
 import com.orbit.app.core.valueOrNull
+import com.orbit.app.data.repository.requireUser
+import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.ItemStatus
+import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.model.defaultModule
+import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlinx.coroutines.channels.Channel
@@ -34,10 +38,12 @@ class ItemViewModel(
     private val itemId: String,
     private val items: ItemRepository,
     spaces: SpaceRepository,
+    private val auth: AuthRepository,
 ) : ViewModel() {
     private val action = MutableStateFlow(ActionState())
     private val scheduleEditor = MutableStateFlow<ScheduleEditor?>(null)
     private val askNotifications = MutableStateFlow(false)
+    private val pickingMember = MutableStateFlow(false)
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
     private val item = items.observeItems(spaceId)
@@ -48,10 +54,13 @@ class ItemViewModel(
     private val context = combine(
         spaces.observeSpaces().orOnFailure("Loading the spaces", emptyList()),
         spaces.observeMembers(spaceId).orOnFailure("Loading the members of $spaceId", emptyList()),
-    ) { all, members ->
+        auth.session,
+    ) { all, members, user ->
         ItemContext(
             spaceName = all.firstOrNull { it.id == spaceId }?.name,
             memberNames = members.associate { it.userId to it.displayName },
+            members = members,
+            currentUserId = user?.id,
         )
     }.onStart { emit(ItemContext()) }
 
@@ -59,9 +68,10 @@ class ItemViewModel(
         item,
         action,
         context,
-        scheduleEditor,
-        askNotifications,
-    ) { load, action, context, editor, ask ->
+        combine(scheduleEditor, askNotifications, pickingMember) { editor, ask, picking ->
+            Triple(editor, ask, picking)
+        },
+    ) { load, action, context, (editor, ask, picking) ->
         val loaded = load.valueOrNull
         ItemUiState(
             title = loaded?.title.orEmpty(),
@@ -76,8 +86,11 @@ class ItemViewModel(
             submitting = action.submitting,
             spaceName = context.spaceName,
             memberNames = context.memberNames,
+            members = context.members,
+            currentUserId = context.currentUserId,
             scheduleEditor = editor,
             askNotifications = ask,
+            pickingMember = picking,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ItemUiState())
 
@@ -113,6 +126,54 @@ class ItemViewModel(
                 items.removeModule(spaceId, itemId, ModuleType.REMINDER)
             }
             items.removeModule(spaceId, itemId, type)
+        }
+    }
+
+    /** Sets the assignment mode to anyone. */
+    fun assignToAnyone() {
+        if (!uiState.value.canSubmit) return
+        submit { items.setModule(spaceId, itemId, Assignment.Anyone) }
+    }
+
+    /** Sets the assignment mode to first to claim, unassigned initially. */
+    fun assignToClaim() {
+        if (!uiState.value.canSubmit) return
+        submit { items.setModule(spaceId, itemId, Assignment.Claim(null)) }
+    }
+
+    fun openMemberPicker() {
+        pickingMember.value = true
+        action.update { it.copy(failed = false) }
+    }
+
+    fun dismissMemberPicker() {
+        pickingMember.value = false
+        action.update { it.copy(failed = false) }
+    }
+
+    /** Assigns the item to a specific space member. Only space members can be picked. */
+    fun assignToMember(memberId: String) {
+        if (!uiState.value.canSubmit) return
+        if (memberId !in uiState.value.memberNames) return
+        submit(onSuccess = { pickingMember.value = false }) {
+            items.setModule(spaceId, itemId, Assignment.ToMember(memberId))
+        }
+    }
+
+    /** The signed-in user claims an unclaimed item. */
+    fun claim() {
+        if (!uiState.value.canClaim) return
+        submit {
+            val userId = auth.requireUser().id
+            items.setModule(spaceId, itemId, Assignment.Claim(userId))
+        }
+    }
+
+    /** The claimer unclaims the item so someone else can take it. */
+    fun unclaim() {
+        if (!uiState.value.canUnclaim) return
+        submit {
+            items.setModule(spaceId, itemId, Assignment.Claim(null))
         }
     }
 
@@ -177,5 +238,7 @@ class ItemViewModel(
     private data class ItemContext(
         val spaceName: String? = null,
         val memberNames: Map<String, String> = emptyMap(),
+        val members: List<Member> = emptyList(),
+        val currentUserId: String? = null,
     )
 }
