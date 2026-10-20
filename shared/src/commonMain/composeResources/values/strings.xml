@@ -160,6 +160,14 @@
     <string name="module_add_reminder">+ Reminder</string>
     <string name="module_assignment_anyone">Anyone</string>
     <string name="module_assignment_unassigned">Unassigned</string>
+    <string name="assignment_mode_one_member">One member</string>
+    <string name="assignment_mode_anyone">Anyone</string>
+    <string name="assignment_mode_claim">First to claim</string>
+    <string name="assignment_claim">Claim</string>
+    <string name="assignment_unclaim">Unclaim</string>
+    <string name="assignment_pick_member">Assign to member</string>
+    <string name="assignment_change_member">Change member</string>
+    <string name="assignment_assigned">Assigned</string>
     <string name="module_checklist_empty">No checklist entries</string>
     <string name="module_checklist_quantity">%1$s × %2$d</string>
     <string name="module_schedule_range">%1$s – %2$s</string>

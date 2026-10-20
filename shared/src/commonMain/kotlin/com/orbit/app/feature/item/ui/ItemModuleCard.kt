@@ -2,17 +2,23 @@ package com.orbit.app.feature.item.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import com.orbit.app.core.designsystem.component.OrbitAvatar
+import com.orbit.app.core.designsystem.component.OrbitButton
+import com.orbit.app.core.designsystem.component.OrbitFilterChip
 import com.orbit.app.core.designsystem.component.OrbitInset
 import com.orbit.app.core.designsystem.component.OrbitModuleCard
+import com.orbit.app.core.designsystem.component.OrbitOutlinedButton
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
@@ -20,8 +26,17 @@ import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
+import com.orbit.app.feature.item.AssignmentMode
 import com.orbit.app.feature.item.ItemUiState
 import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.assignment_change_member
+import orbit.shared.generated.resources.assignment_claim
+import orbit.shared.generated.resources.assignment_mode_anyone
+import orbit.shared.generated.resources.assignment_mode_claim
+import orbit.shared.generated.resources.assignment_mode_one_member
+import orbit.shared.generated.resources.assignment_pick_member
+import orbit.shared.generated.resources.assignment_unclaim
+import orbit.shared.generated.resources.ic_chevron_right
 import orbit.shared.generated.resources.ic_event
 import orbit.shared.generated.resources.ic_list
 import orbit.shared.generated.resources.ic_notifications
@@ -32,6 +47,7 @@ import orbit.shared.generated.resources.module_add_reminder
 import orbit.shared.generated.resources.module_add_schedule
 import orbit.shared.generated.resources.module_assignment_remove
 import orbit.shared.generated.resources.module_assignment_title
+import orbit.shared.generated.resources.module_assignment_unassigned
 import orbit.shared.generated.resources.module_checklist_empty
 import orbit.shared.generated.resources.module_checklist_quantity
 import orbit.shared.generated.resources.module_checklist_remove
@@ -53,9 +69,19 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration
 
-/** One module of the item on its card. Only the schedule can be edited so far, so only it offers [onEdit]. */
+/** One module of the item on its card. Offers actions for editing or interacting with the module. */
 @Composable
-internal fun ItemModuleCard(module: Module, state: ItemUiState, onRemove: () -> Unit, onEdit: () -> Unit) {
+internal fun ItemModuleCard(
+    module: Module,
+    state: ItemUiState,
+    onRemove: () -> Unit,
+    onEdit: () -> Unit = {},
+    onAssignToAnyone: () -> Unit = {},
+    onAssignToClaim: () -> Unit = {},
+    onOpenMemberPicker: () -> Unit = {},
+    onClaim: () -> Unit = {},
+    onUnclaim: () -> Unit = {},
+) {
     OrbitModuleCard(
         title = stringResource(module.type.title),
         icon = module.type.icon,
@@ -68,7 +94,14 @@ internal fun ItemModuleCard(module: Module, state: ItemUiState, onRemove: () -> 
     ) {
         when (module) {
             is Schedule -> ScheduleContent(module)
-            is Assignment -> AssignmentContent(state)
+            is Assignment -> AssignmentContent(
+                state = state,
+                onAssignToAnyone = onAssignToAnyone,
+                onAssignToClaim = onAssignToClaim,
+                onOpenMemberPicker = onOpenMemberPicker,
+                onClaim = onClaim,
+                onUnclaim = onUnclaim,
+            )
             is Checklist -> ChecklistContent(module)
             is Reminder -> ReminderContent(module)
         }
@@ -134,22 +167,104 @@ private fun ScheduleContent(schedule: Schedule) {
 }
 
 @Composable
-private fun AssignmentContent(state: ItemUiState) {
-    OrbitInset(Modifier.fillMaxWidth()) {
-        val initials = state.assigneeInitials
-        if (initials != null) {
-            OrbitAvatar(initials = initials, accent = MaterialTheme.colorScheme.primary)
-        } else {
-            Icon(
-                painterResource(Res.drawable.ic_person),
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+private fun AssignmentContent(
+    state: ItemUiState,
+    onAssignToAnyone: () -> Unit,
+    onAssignToClaim: () -> Unit,
+    onOpenMemberPicker: () -> Unit,
+    onClaim: () -> Unit,
+    onUnclaim: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
+        ) {
+            OrbitFilterChip(
+                label = stringResource(Res.string.assignment_mode_anyone),
+                selected = state.assignmentMode == AssignmentMode.ANYONE,
+                enabled = state.canSubmit,
+                onClick = { if (state.assignmentMode != AssignmentMode.ANYONE) onAssignToAnyone() },
+            )
+            OrbitFilterChip(
+                label = stringResource(Res.string.assignment_mode_claim),
+                selected = state.assignmentMode == AssignmentMode.CLAIM,
+                enabled = state.canSubmit,
+                onClick = { if (state.assignmentMode != AssignmentMode.CLAIM) onAssignToClaim() },
+            )
+            OrbitFilterChip(
+                label = stringResource(Res.string.assignment_mode_one_member),
+                selected = state.assignmentMode == AssignmentMode.MEMBER,
+                enabled = state.canSubmit,
+                onClick = onOpenMemberPicker,
             )
         }
-        Text(
-            text = state.assignmentNote?.let { stringResource(it) } ?: state.assigneeName.orEmpty(),
-            style = MaterialTheme.typography.bodyLarge,
-        )
+        when (state.assignmentMode) {
+            AssignmentMode.ANYONE, null -> Unit
+            AssignmentMode.CLAIM -> {
+                OrbitInset(Modifier.fillMaxWidth()) {
+                    val initials = state.assigneeInitials
+                    if (initials != null) {
+                        OrbitAvatar(initials = initials, accent = MaterialTheme.colorScheme.primary)
+                    } else {
+                        Icon(
+                            painterResource(Res.drawable.ic_person),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(
+                        text = state.assigneeName ?: stringResource(Res.string.module_assignment_unassigned),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+                if (state.canClaim) {
+                    OrbitButton(
+                        text = stringResource(Res.string.assignment_claim),
+                        onClick = onClaim,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = state.canSubmit,
+                    )
+                } else if (state.canUnclaim) {
+                    OrbitOutlinedButton(
+                        text = stringResource(Res.string.assignment_unclaim),
+                        onClick = onUnclaim,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = state.canSubmit,
+                    )
+                }
+            }
+            AssignmentMode.MEMBER -> {
+                OrbitInset(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = if (state.canSubmit) onOpenMemberPicker else null,
+                ) {
+                    val initials = state.assigneeInitials
+                    if (initials != null) {
+                        OrbitAvatar(initials = initials, accent = MaterialTheme.colorScheme.primary)
+                    } else {
+                        Icon(
+                            painterResource(Res.drawable.ic_person),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    val label = state.assigneeName
+                        ?: state.assignmentNote?.let { stringResource(it) }
+                        ?: stringResource(Res.string.assignment_pick_member)
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        painterResource(Res.drawable.ic_chevron_right),
+                        contentDescription = stringResource(Res.string.assignment_change_member),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
     }
 }
 
