@@ -2,7 +2,11 @@ package com.orbit.app.domain.model
 
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atTime
+import kotlinx.datetime.toInstant
 import kotlin.time.Duration
+import kotlin.time.Instant
 
 enum class ModuleType { SCHEDULE, ASSIGNMENT, CHECKLIST, REMINDER }
 
@@ -53,6 +57,9 @@ data class Schedule(
 
     /** An open item is overdue once this is before today. */
     val deadline: LocalDate get() = endDate ?: date
+
+    /** What reminders count back from: the deadline at [time], or at 09:00 without one, in the phone's [zone]. */
+    fun dueMoment(zone: TimeZone): Instant = deadline.atTime(time ?: LocalTime(9, 0)).toInstant(zone)
 }
 
 sealed interface Assignment : Module {

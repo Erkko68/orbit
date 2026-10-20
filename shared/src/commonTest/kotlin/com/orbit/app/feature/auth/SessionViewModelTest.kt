@@ -1,12 +1,16 @@
 package com.orbit.app.feature.auth
 
+import com.orbit.app.core.notification.ReminderSync
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.FlakySpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
 import com.orbit.app.testing.InMemorySpaceRepository
+import com.orbit.app.testing.RecordingNotificationScheduler
+import com.russhwolf.settings.MapSettings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
@@ -38,7 +42,12 @@ class SessionViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun sessionViewModel(spaces: SpaceRepository = this.spaces) = SessionViewModel(auth, spaces, lastSpace)
+    private fun sessionViewModel(spaces: SpaceRepository = this.spaces) = SessionViewModel(
+        auth,
+        spaces,
+        lastSpace,
+        ReminderSync(auth, this.spaces, InMemoryItemRepository(auth), RecordingNotificationScheduler(), MapSettings()),
+    )
 
     private suspend fun SessionViewModel.started() = start.first { it != null }
 

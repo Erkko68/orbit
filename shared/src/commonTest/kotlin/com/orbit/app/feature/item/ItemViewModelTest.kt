@@ -157,6 +157,24 @@ class ItemViewModelTest {
     }
 
     @Test
+    fun addingAReminderAsksForNotificationsUntilAnswered() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val scheduled = ItemModules(schedule = Schedule(LocalDate(2026, 10, 26)))
+        val itemId = items.create("space-1", NewItem(title = "Dinner", modules = scheduled))
+        val viewModel = track(ItemViewModel("space-1", itemId, items, spaces))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.addModule(ModuleType.CHECKLIST)
+        assertFalse(viewModel.uiState.value.askNotifications)
+
+        viewModel.addModule(ModuleType.REMINDER)
+        assertTrue(viewModel.uiState.value.askNotifications)
+
+        viewModel.onNotificationsAnswered()
+        assertFalse(viewModel.uiState.value.askNotifications)
+    }
+
+    @Test
     fun removeModuleRemovesModuleFromRepository() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val spaceId = "space-1"

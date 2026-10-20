@@ -3,6 +3,7 @@ package com.orbit.app.feature.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orbit.app.core.attempt
+import com.orbit.app.core.notification.ReminderSync
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -13,15 +14,21 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.transformLatest
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
-/** Backs the auth gate and decides where the app starts. */
+/** Backs the auth gate, decides where the app starts, and keeps the phone's reminders in step while the app runs. */
 class SessionViewModel(
     auth: AuthRepository,
     private val spaces: SpaceRepository,
     private val lastSpace: LastSpaceRepository,
+    reminders: ReminderSync,
 ) : ViewModel() {
+    init {
+        viewModelScope.launch { reminders.run() }
+    }
+
     /**
      * Null until it is known, so neither side of the gate shows too early. Signed in, it is the space the
      * user opened last if they still belong to it, otherwise the list. It is worked out once per sign-in:

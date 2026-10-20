@@ -74,10 +74,16 @@ class SpaceHomeViewModel(
         )
         viewModelScope.launch {
             attempt("Creating an item in space $spaceId") { items.create(spaceId, item) }
-                .onSuccess { id -> form.update { it.closedNewItem().copy(createdItemId = id) } }
+                .onSuccess { id ->
+                    val reminds = item.modules.reminder != null
+                    form.update { it.closedNewItem().copy(createdItemId = id, askNotifications = reminds) }
+                }
                 .onFailure { form.update { it.copy(creating = false, createFailed = true) } }
         }
     }
+
+    /** The user allowed notifications, or not: the new item opens either way. */
+    fun onNotificationsAnswered() = form.update { it.copy(askNotifications = false) }
 
     /** The screen opened [SpaceHomeUiState.createdItemId]. */
     fun onCreatedItemOpened() = form.update { it.copy(createdItemId = null) }

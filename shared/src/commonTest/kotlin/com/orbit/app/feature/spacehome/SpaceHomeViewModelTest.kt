@@ -127,6 +127,24 @@ class SpaceHomeViewModelTest {
     }
 
     @Test
+    fun anItemThatRemindsOpensOnceNotificationsAreAnswered() = runTest {
+        auth.register("ana@orbit.app", "secret", displayName = "Ana López")
+        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace))
+
+        viewModel.openNewItem()
+        viewModel.selectNewItemPreset(Preset.EVENT)
+        viewModel.onNewItemTitleChange("Dinner")
+        viewModel.createItem()
+
+        val created = items.observeItems("space-1").first().single()
+        assertTrue(viewModel.uiState.value.askNotifications)
+        assertNull(viewModel.uiState.value.itemToOpen)
+
+        viewModel.onNotificationsAnswered()
+        assertEquals(created.id, viewModel.uiState.value.itemToOpen)
+    }
+
+    @Test
     fun aFailedCreateKeepsTheDialogAndIsClearedByTheNextEdit() = runTest {
         val viewModel = collected(SpaceHomeViewModel("space-1", spaces, FailingItemRepository(), lastSpace))
         viewModel.openNewItem()

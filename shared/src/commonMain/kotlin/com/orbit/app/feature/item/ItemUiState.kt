@@ -31,6 +31,8 @@ data class ItemUiState(
     val memberNames: Map<String, String> = emptyMap(),
     /** The schedule being edited, while its dialog is open. */
     val scheduleEditor: ScheduleEditor? = null,
+    /** A reminder was just added, so notifications get allowed. */
+    val askNotifications: Boolean = false,
 ) {
     val isDone: Boolean get() = status is ItemStatus.Done
     val canSubmit: Boolean get() = !loading && !loadFailed && !notFound && !submitting

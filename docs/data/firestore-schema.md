@@ -164,7 +164,7 @@ The *deadline* is `endDate`, or `date` without one: an open item is overdue once
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `offsetsMinutes` | array of integer | yes | Minutes before the due moment, each 0 or more. Needs `modules.schedule`. Each phone schedules its own local notifications from it. |
+| `offsetsMinutes` | array of integer | yes | Minutes before the due moment, each 0 or more. Needs `modules.schedule`. Each phone schedules its own local notifications from it while the item is open and not assigned to another member. |
 
 ### `invitations/{code}`
 

@@ -29,7 +29,11 @@ data class SpaceHomeUiState(
     val createFailed: Boolean = false,
     /** The item just created, for the screen to open once. */
     val createdItemId: String? = null,
+    /** The item just created reminds, so notifications get allowed before it opens. */
+    val askNotifications: Boolean = false,
 ) {
+    /** The item to open now: the one just created, once notifications are settled. */
+    val itemToOpen: String? get() = createdItemId.takeIf { !askNotifications }
     val canCreate: Boolean get() = !creating && validateItem(newItemTitle, ItemModules(), emptyList()).isEmpty()
 }
 
