@@ -90,7 +90,8 @@ One section per sprint and one for the whole project, in the pinned "Burn charts
 
 - Burn-up (scope and done) and burn-down (remaining and the ideal line to the due date), counted in issues.
 - A time line: planned hours, hours done, and how far ahead or behind the sprint is against its due date.
-- A table per finished issue: estimate, the time from first assignment to the PR being opened, and the deviation.
+- A table per finished issue: estimate, the time from first assignment to the PR being opened (at most 2 h a
+  day, so an issue left assigned for days counts as their budget, not 24 h each), and the deviation.
 
 ## Setup
 
