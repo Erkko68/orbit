@@ -27,7 +27,7 @@ QUERY = """query($owner: String!, $name: String!, $endCursor: String) {
         milestone { title dueOn }
         labels(first: 20) { nodes { name } }
         assignees(first: 5) { nodes { login } }
-        timelineItems(itemTypes: ASSIGNED_EVENT, first: 1) { nodes { ... on AssignedEvent { createdAt } } }
+        timelineItems(itemTypes: ASSIGNED_EVENT, last: 1) { nodes { ... on AssignedEvent { createdAt } } }
         closedByPullRequestsReferences(first: 10) { nodes { createdAt } }
       }
     }
@@ -72,7 +72,7 @@ def fields():
 
 
 def worked(node, until=None):
-    """Hours from the first assignment to the closing PR being opened (or `until`, for work in progress), at most
+    """Hours from the last assignment to the closing PR being opened (or `until`, for work in progress), at most
     HOURS_PER_DAY per day, or None when either end is missing. An issue left assigned for days counts as the days'
     budget, not as 24 h each."""
     assigned = [e["createdAt"] for e in node["timelineItems"]["nodes"]]
@@ -145,7 +145,7 @@ def issue_table(rows, with_rows=True):
     if known:
         estimate, actual = sum(i["estimate"] for i, _ in known), sum(hours for _, hours in known)
         out += f"| **Total** ({len(known)} of {len(rows)}) | | {estimate:g} | {actual:g} | | {deviation(estimate, actual)} |\n"
-    return out + (f"\nActual is the `Actual` field on the project. Without it, the time from the first assignment to"
+    return out + (f"\nActual is the `Actual` field on the project. Without it, the time from the last assignment to"
                   f" the closing PR being opened, at most {HOURS_PER_DAY} h a day. ⚠️ rows have neither a log nor a"
                   f" believable measure and are left out of the total.\n\n")
 
@@ -258,7 +258,7 @@ def check():
                 "work": work(estimate, None), "measured": measured, "started": started, "who": "a"}
 
     if (spent(timed(1, 2, actual=5, measured=0.1)) != (5, "logged") or spent(timed(2, 2, measured=18)) != (2, "left running")
-            or spent(timed(3, None, measured=0.2)) != (3, "assigned at PR") or spent(timed(4, 4, measured=3)) != (3, "measured")
+            or spent(timed(3, None, measured=0.2)) != (0.5, "assigned at PR") or spent(timed(4, 4, measured=3)) != (3, "measured")
             or spent(timed(5, 4, closed=None, started=False)) != (0, "not started")
             or spent(timed(6, 4, measured=0.2, closed=None)) != (0.2, "measured")):
         raise RuntimeError("spent() self-check failed")

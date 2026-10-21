@@ -17,7 +17,7 @@ from datetime import date, timedelta
 PROJECT = 3  # the repo owner's "orbit" project
 HOURS_PER_DAY = 2  # what one member is expected to put into the project per day, weekends included
 TEAM = 4  # members, so at most this many issues run at once
-SIZE_HOURS = {"XS": 1, "S": 3, "M": 6, "L": 12, "XL": 20}  # for issues without an Estimate
+SIZE_HOURS = {"XS": 0.25, "S": 0.5, "M": 1, "L": 2, "XL": 4}  # for issues without an Estimate
 QUERY = """query($owner: String!, $name: String!, $project: Int!, $cursor: String) {
   repository(owner: $owner, name: $name) {
     milestones(first: 50) { nodes { title createdAt dueOn } }
@@ -50,7 +50,7 @@ QUERY = """query($owner: String!, $name: String!, $project: Int!, $cursor: Strin
               labels(first: 20) { nodes { name } }
               assignees(first: 5) { totalCount nodes { login } }
               blockedBy(first: 50) { nodes { number } }
-              timelineItems(itemTypes: ASSIGNED_EVENT, first: 1) { nodes { ... on AssignedEvent { createdAt } } }
+              timelineItems(itemTypes: ASSIGNED_EVENT, last: 1) { nodes { ... on AssignedEvent { createdAt } } }
               closedByPullRequestsReferences(first: 10) { nodes { createdAt } }
             }
           }
@@ -231,10 +231,10 @@ def check():
                             "closedByPullRequestsReferences": {"nodes": [{"createdAt": opened}] if opened else []}}}
 
     today = "2026-10-07"
-    # 8 h is four days, the L label is six, and #2 waits for #1 even though it outranks it.
+    # 8 h is four days, the L label is one, and #2 waits for #1 even though it outranks it.
     first, second, third = issue(1, estimate=8), issue(2, blockers=[1, 2], priority="P0", estimate=3), issue(3)
     plan = schedule([second, first, third], sprints, today)
-    if plan != {1: (today, "2026-10-10"), 2: ("2026-10-11", "2026-10-12"), 3: (today, "2026-10-12")}:
+    if plan != {1: (today, "2026-10-10"), 2: ("2026-10-11", "2026-10-12"), 3: (today, today)}:
         raise RuntimeError("schedule() self-check failed")
     taken = issue(1, assigned="2026-10-07T09:00:00Z", estimate=8, status="Planned")
     late = issue(1, assigned="2026-10-07T09:00:00Z", opened="2026-10-12T09:00:00Z", estimate=8)
