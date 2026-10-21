@@ -4,8 +4,10 @@ import co.touchlab.kermit.Logger
 import com.orbit.app.data.mapper.mapMember
 import com.orbit.app.data.mapper.mapSpace
 import com.orbit.app.data.mapper.ownerMemberDocument
+import com.orbit.app.data.mapper.roleValue
 import com.orbit.app.data.mapper.spaceDocument
 import com.orbit.app.domain.model.Member
+import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -67,6 +69,13 @@ class FirestoreSpaceRepository(
         batch.set(space.collection(MEMBERS).document(user.id), ownerMemberDocument(user.displayName, user.photoUrl))
         writeLocally("Space ${space.id}") { batch.commit() }
         return space.id
+    }
+
+    /** Writes only the role, so a change never overwrites the profile copy next to it. The rules decide who may. */
+    override suspend fun changeRole(spaceId: String, userId: String, role: Role) {
+        require(role != Role.OWNER) { "Ownership moves only through a transfer" }
+        val member = firestore.collection(SPACES).document(spaceId).collection(MEMBERS).document(userId)
+        writeLocally("Role of $userId in space $spaceId") { member.update("role" to roleValue(role)) }
     }
 
     private fun toSpace(document: DocumentSnapshot): Space? =
