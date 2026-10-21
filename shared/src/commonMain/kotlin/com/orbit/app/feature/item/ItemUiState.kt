@@ -41,6 +41,7 @@ data class ItemUiState(
     val currentUserId: String? = null,
     /** The schedule being edited, while its dialog is open. */
     val scheduleEditor: ScheduleEditor? = null,
+    val checklistEditor: ChecklistEditor? = null,
     /** A reminder was just added, so notifications get allowed. */
     val askNotifications: Boolean = false,
     /** Whether the member picker dialog is open. */
@@ -49,6 +50,7 @@ data class ItemUiState(
     val isDone: Boolean get() = status is ItemStatus.Done
     val canSubmit: Boolean get() = !loading && !loadFailed && !notFound && !submitting
     val canSaveSchedule: Boolean get() = canSubmit && scheduleEditor?.schedule != null
+    val canSaveChecklist: Boolean get() = canSubmit && checklistEditor?.canSave == true
     val visibleDescription: String? get() = description?.takeIf { it.isNotBlank() }
 
     val assignment: Assignment? get() = modules.filterIsInstance<Assignment>().firstOrNull()

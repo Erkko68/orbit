@@ -87,6 +87,7 @@ data class ChecklistEntry(
     val text: String,
     val checked: Boolean = false,
     val quantity: Int? = null,
+    val order: Int? = null,
 )
 
 /** Offsets before the schedule's due moment. */

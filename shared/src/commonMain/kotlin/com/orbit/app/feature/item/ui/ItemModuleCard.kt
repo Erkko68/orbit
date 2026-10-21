@@ -12,13 +12,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextDecoration
 import com.orbit.app.core.designsystem.component.OrbitAvatar
 import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitFilterChip
+import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitInset
 import com.orbit.app.core.designsystem.component.OrbitModuleCard
 import com.orbit.app.core.designsystem.component.OrbitOutlinedButton
+import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
@@ -36,8 +40,13 @@ import orbit.shared.generated.resources.assignment_mode_claim
 import orbit.shared.generated.resources.assignment_mode_one_member
 import orbit.shared.generated.resources.assignment_pick_member
 import orbit.shared.generated.resources.assignment_unclaim
+import orbit.shared.generated.resources.checklist_add_entry
+import orbit.shared.generated.resources.checklist_check_entry
+import orbit.shared.generated.resources.checklist_edit_entry
+import orbit.shared.generated.resources.checklist_uncheck_entry
 import orbit.shared.generated.resources.ic_chevron_right
 import orbit.shared.generated.resources.ic_event
+import orbit.shared.generated.resources.ic_edit
 import orbit.shared.generated.resources.ic_list
 import orbit.shared.generated.resources.ic_notifications
 import orbit.shared.generated.resources.ic_person
@@ -81,6 +90,9 @@ internal fun ItemModuleCard(
     onOpenMemberPicker: () -> Unit = {},
     onClaim: () -> Unit = {},
     onUnclaim: () -> Unit = {},
+    onAddEntry: () -> Unit = {},
+    onEditEntry: (String) -> Unit = {},
+    onToggleEntry: (String) -> Unit = {},
 ) {
     OrbitModuleCard(
         title = stringResource(module.type.title),
@@ -102,7 +114,7 @@ internal fun ItemModuleCard(
                 onClaim = onClaim,
                 onUnclaim = onUnclaim,
             )
-            is Checklist -> ChecklistContent(module)
+            is Checklist -> ChecklistContent(module, state.canSubmit, onAddEntry, onEditEntry, onToggleEntry)
             is Reminder -> ReminderContent(module)
         }
     }
@@ -269,32 +281,54 @@ private fun AssignmentContent(
 }
 
 @Composable
-private fun ChecklistContent(checklist: Checklist) {
+private fun ChecklistContent(
+    checklist: Checklist,
+    enabled: Boolean,
+    onAdd: () -> Unit,
+    onEdit: (String) -> Unit,
+    onToggle: (String) -> Unit,
+) {
     if (checklist.entries.isEmpty()) {
         Text(
             stringResource(Res.string.module_checklist_empty),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        return
-    }
-    Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
-        for (entry in checklist.entries) {
-            OrbitInset(Modifier.fillMaxWidth()) {
-                // Read-only until the checklist can be edited (#35).
-                Checkbox(checked = entry.checked, onCheckedChange = null)
-                val label = entry.quantity?.let { quantity ->
-                    stringResource(Res.string.module_checklist_quantity, entry.text, quantity)
-                } ?: entry.text
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    textDecoration = if (entry.checked) TextDecoration.LineThrough else TextDecoration.None,
-                )
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
+            for (entry in checklist.entries) {
+                OrbitInset(Modifier.fillMaxWidth()) {
+                    val toggleDescription = stringResource(
+                        if (entry.checked) Res.string.checklist_uncheck_entry else Res.string.checklist_check_entry,
+                        entry.text,
+                    )
+                    Checkbox(
+                        checked = entry.checked,
+                        onCheckedChange = { onToggle(entry.id) },
+                        enabled = enabled,
+                        modifier = Modifier.semantics { contentDescription = toggleDescription },
+                    )
+                    val label = entry.quantity?.let { quantity ->
+                        stringResource(Res.string.module_checklist_quantity, entry.text, quantity)
+                    } ?: entry.text
+                    Text(
+                        text = label,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textDecoration = if (entry.checked) TextDecoration.LineThrough else TextDecoration.None,
+                    )
+                    OrbitIconButton(
+                        icon = Res.drawable.ic_edit,
+                        contentDescription = stringResource(Res.string.checklist_edit_entry, entry.text),
+                        onClick = { onEdit(entry.id) },
+                        enabled = enabled,
+                    )
+                }
             }
         }
     }
+    OrbitTextButton(stringResource(Res.string.checklist_add_entry), onAdd, enabled = enabled)
 }
 
 @Composable

@@ -105,6 +105,9 @@ fun ItemScreen(
                         onOpenMemberPicker = viewModel::openMemberPicker,
                         onClaim = viewModel::claim,
                         onUnclaim = viewModel::unclaim,
+                        onAddEntry = viewModel::addChecklistEntry,
+                        onEditEntry = viewModel::editChecklistEntry,
+                        onToggleEntry = viewModel::toggleChecklistEntry,
                     )
                 }
                 if (state.availableModules.isNotEmpty()) {
@@ -117,6 +120,7 @@ fun ItemScreen(
         }
     }
     state.scheduleEditor?.let { editor -> ScheduleEditorDialog(editor, state, viewModel) }
+    state.checklistEditor?.let { editor -> ChecklistEditorDialog(editor, state, viewModel) }
     if (state.askNotifications) {
         RequireNotificationPermission(onResult = { viewModel.onNotificationsAnswered() })
     }

@@ -3,6 +3,7 @@ package com.orbit.app.feature.item
 import androidx.lifecycle.ViewModelStore
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
+import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
@@ -754,6 +755,90 @@ class ItemViewModelTest {
         val state = model.uiState.first { it.failed }
         assertTrue(state.failed)
         assertFalse(state.submitting)
+    }
+
+    @Test
+    fun checklistEntriesCanBeAddedEditedCheckedAndRemovedWithoutChangingOtherEntries() = runTest {
+        val id = createItem(ItemModules(checklist = Checklist(listOf(ChecklistEntry("first", "Milk")))))
+        val model = track(ItemViewModel("space-1", id, items, spaces, auth))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        model.addChecklistEntry()
+        model.onChecklistTextChange(" Bread ")
+        model.onChecklistQuantityChange("2")
+        model.saveChecklistEntry()
+        val added = model.uiState.value.modules.filterIsInstance<Checklist>().single().entries.last()
+        assertEquals("Bread", added.text)
+        assertEquals(2, added.quantity)
+        assertNull(model.uiState.value.checklistEditor)
+
+        model.editChecklistEntry(added.id)
+        model.onChecklistTextChange("Rolls")
+        model.onChecklistQuantityChange("")
+        model.saveChecklistEntry()
+        model.toggleChecklistEntry(added.id)
+        val changed = model.uiState.value.modules.filterIsInstance<Checklist>().single().entries
+        assertEquals(ChecklistEntry(added.id, "Rolls", checked = true, order = 1), changed.last())
+        assertEquals(ChecklistEntry("first", "Milk"), changed.first())
+
+        model.editChecklistEntry(added.id)
+        model.removeChecklistEntry()
+        assertEquals(listOf(ChecklistEntry("first", "Milk")), model.uiState.value.modules.filterIsInstance<Checklist>().single().entries)
+    }
+
+    @Test
+    fun checklistEditorRejectsBlankNamesAndInvalidQuantities() = runTest {
+        val id = createItem(ItemModules(checklist = Checklist(emptyList())))
+        val controlled = ControlledItemRepository(items)
+        val model = track(ItemViewModel("space-1", id, controlled, spaces, auth))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        model.addChecklistEntry()
+        model.onChecklistTextChange("  ")
+        model.saveChecklistEntry()
+        model.onChecklistTextChange("Milk")
+        for (quantity in listOf("0", "-2", "abc", "999999999999")) {
+            model.onChecklistQuantityChange(quantity)
+            assertTrue(model.uiState.value.checklistEditor?.quantityInvalid == true)
+            model.saveChecklistEntry()
+        }
+        assertTrue(controlled.writes.isEmpty())
+        model.onChecklistQuantityChange("")
+        assertTrue(model.uiState.value.canSaveChecklist)
+    }
+
+    @Test
+    fun checklistWriteFailuresKeepEntriesAndEditorAvailableForRetry() = runTest {
+        val id = createItem(ItemModules(checklist = Checklist(listOf(ChecklistEntry("first", "Milk")))))
+        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write denied") } }
+        val model = track(ItemViewModel("space-1", id, controlled, spaces, auth))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        model.addChecklistEntry()
+        model.onChecklistTextChange("Bread")
+        model.saveChecklistEntry()
+        assertTrue(model.uiState.value.failed)
+        assertEquals("Bread", model.uiState.value.checklistEditor?.text)
+        assertEquals(listOf("addEntry"), controlled.writes)
+
+        model.editChecklistEntry("first")
+        model.onChecklistTextChange("Oat milk")
+        model.saveChecklistEntry()
+        assertTrue(model.uiState.value.failed)
+        assertEquals("Oat milk", model.uiState.value.checklistEditor?.text)
+
+        model.removeChecklistEntry()
+        assertTrue(model.uiState.value.failed)
+        assertEquals("first", model.uiState.value.checklistEditor?.entryId)
+
+        model.dismissChecklistEditor()
+        model.toggleChecklistEntry("first")
+        assertTrue(model.uiState.value.failed)
+        assertEquals(listOf("addEntry", "updateEntry", "removeEntry", "checkEntry"), controlled.writes)
+        assertEquals(listOf(ChecklistEntry("first", "Milk")), model.uiState.value.modules.filterIsInstance<Checklist>().single().entries)
     }
 
     private fun track(viewModel: ItemViewModel): ItemViewModel = viewModel.also { viewModels.put("item", it) }

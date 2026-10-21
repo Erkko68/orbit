@@ -64,7 +64,7 @@ internal fun assignmentDocument(assignment: Assignment) = when (assignment) {
 /** Entries keyed by id, their list position kept in `order`. */
 internal fun checklistDocument(checklist: Checklist) = ChecklistDocument(
     checklist.entries.withIndex().associate { (order, entry) ->
-        entry.id to EntryDocument(entry.text, entry.checked, entry.quantity, order)
+        entry.id to EntryDocument(entry.text, entry.checked, entry.quantity, entry.order ?: order)
     },
 )
 
@@ -142,9 +142,9 @@ private fun assignmentOf(document: AssignmentDocument): Assignment? = when (docu
 /** Entries without text are left by a tick on a removed entry, and skipped. */
 private fun checklistOf(document: ChecklistDocument) = Checklist(
     document.entries.entries
-        .sortedBy { it.value.order ?: Int.MAX_VALUE }
+        .sortedWith(compareBy({ it.value.order ?: Int.MAX_VALUE }, { it.key }))
         .mapNotNull { (id, entry) ->
-            entry.text?.let { ChecklistEntry(id, it, entry.checked ?: false, entry.quantity) }
+            entry.text?.let { ChecklistEntry(id, it, entry.checked ?: false, entry.quantity, entry.order) }
         },
 )
 

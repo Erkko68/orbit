@@ -28,6 +28,12 @@ interface ItemRepository {
 
     suspend fun setEntryChecked(spaceId: String, itemId: String, entryId: String, checked: Boolean)
 
+    suspend fun addEntry(spaceId: String, itemId: String, text: String, quantity: Int?, order: Int)
+
+    suspend fun updateEntry(spaceId: String, itemId: String, entryId: String, text: String, quantity: Int?)
+
+    suspend fun removeEntry(spaceId: String, itemId: String, entryId: String)
+
     suspend fun complete(spaceId: String, itemId: String)
 
     suspend fun reopen(spaceId: String, itemId: String)
