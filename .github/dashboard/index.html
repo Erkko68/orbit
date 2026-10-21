@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbit Project Dashboard</title>
+<meta name="description" content="Earned value, burn charts, roadmap and time tracking for the Orbit project, rebuilt from the GitHub issues.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='6' fill='none' stroke='%236159E7' stroke-width='2'/%3E%3Ccircle cx='13' cy='4' r='2' fill='%236159E7'/%3E%3C/svg%3E">
+<style>
+/* Generated data lives in data.json; this page only draws it. See docs/process/project-automation.md. */
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --raised: #ffffff;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6e69;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11, 11, 11, 0.10);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+  --good-text: #006300; --critical-text: #b42f2f; --planned: #c3c2b7;
+  --accent: #6159e7;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --raised: #222220;
+    --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --good-text: #0ca30c; --critical-text: #e66767; --planned: #4a4a46;
+    --accent: #857eff;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --raised: #222220;
+  --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a9890;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255, 255, 255, 0.10);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+  --good-text: #0ca30c; --critical-text: #e66767; --planned: #4a4a46;
+  --accent: #857eff;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--page); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 1200px; margin: 0 auto; padding: 24px 16px 64px; }
+header { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: end; justify-content: space-between; margin-bottom: 20px; }
+h1 { font-size: 24px; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 16px; margin: 0 0 4px; }
+.sub, .note { color: var(--ink-2); margin: 0; }
+.note { font-size: 13px; }
+header { position: relative; }
+.title { display: flex; gap: 12px; align-items: center; }
+.links { display: flex; gap: 16px; flex-wrap: wrap; }
+.view-name { color: var(--ink-2); font-weight: 400; }
+.view-name:not(:empty)::before { content: "· "; }
+.burger { width: 40px; height: 40px; flex: none; display: grid; place-content: center; gap: 4px; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.burger span { display: block; width: 18px; height: 2px; border-radius: 1px; background: var(--ink); transition: transform .15s, opacity .15s; }
+.burger[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+.burger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+.burger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+.menu { position: absolute; top: 48px; left: 0; z-index: 20; width: min(340px, 100%); padding: 6px; display: grid; gap: 2px;
+  background: var(--raised); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2); }
+.menu[hidden] { display: none; }
+.menu a { display: grid; padding: 8px 12px; border-radius: 8px; color: var(--ink); text-decoration: none; }
+.menu a span { color: var(--ink-2); font-size: 13px; }
+.menu a:hover, .menu a:focus-visible { background: var(--grid); outline: none; }
+.menu a[aria-current="page"] { background: var(--grid); box-shadow: inset 3px 0 0 var(--accent); }
+.view { display: grid; gap: 16px; }
+.view[hidden] { display: none; }
+a { color: var(--accent); }
+.scope { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 999px; width: fit-content; max-width: 100%; margin-bottom: 16px; }
+.scope button { border: 0; background: none; color: var(--ink-2); font: inherit; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
+.scope button[aria-pressed="true"] { background: var(--raised); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px var(--border); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.tile .label { color: var(--ink-2); font-size: 13px; }
+.tile .value { font-size: 22px; font-weight: 600; margin-top: 2px; }
+.tile .hint { color: var(--muted); font-size: 12px; }
+.status { display: inline-flex; gap: 4px; align-items: center; font-size: 12px; font-weight: 600; margin-top: 4px; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--dot); }
+.status.good { --dot: var(--good); color: var(--good-text); }
+.status.warning { --dot: var(--warning); color: var(--ink-2); }
+.status.critical { --dot: var(--critical); color: var(--critical-text); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+.card-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: start; margin-bottom: 12px; }
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; color: var(--ink-2); font-size: 13px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; background: var(--c); }
+.legend i.box { width: 10px; height: 10px; border-radius: 3px; }
+.legend i.ref { height: 0; border-top: 2px dashed var(--c); background: none; }
+svg { display: block; width: 100%; overflow: visible; }
+svg text { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.tooltip { position: fixed; pointer-events: none; z-index: 10; background: var(--raised); color: var(--ink); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18); min-width: 140px; max-width: 320px; display: none; }
+.tooltip .row { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+.tooltip .row span:first-child { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); }
+.tooltip .row i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); display: inline-block; }
+.tooltip b { display: block; margin-bottom: 4px; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 600; font-size: 13px; }
+td.num, th.num { text-align: right; }
+tr.total td { font-weight: 600; border-bottom: 0; }
+.table-wrap { overflow-x: auto; }
+.pill { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--grid); color: var(--ink-2); white-space: nowrap; }
+.empty { color: var(--muted); padding: 16px 0; }
+.quality { display: flex; height: 14px; border-radius: 4px; overflow: hidden; gap: 2px; margin: 8px 0; }
+.quality div { background: var(--c); min-width: 2px; }
+/* Roadmap */
+.road-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.road-controls button, .road-controls input { font: inherit; color: var(--ink); background: var(--raised); border: 1px solid var(--border);
+  border-radius: 8px; padding: 5px 10px; cursor: pointer; }
+.gantt { overflow: auto; position: relative; border-top: 1px solid var(--grid); margin-top: 12px; overscroll-behavior: contain; }
+.gantt-inner { position: relative; }
+.g-row { display: grid; grid-template-columns: 260px auto; align-items: center; min-height: 26px; }
+.g-label { position: sticky; left: 0; z-index: 2; background: var(--surface); padding: 2px 8px 2px 0; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; font-size: 13px; color: var(--ink-2); }
+.g-label a { color: var(--ink); text-decoration: none; font-variant-numeric: tabular-nums; }
+.g-track { position: relative; height: 26px; }
+.g-bar { position: absolute; top: 7px; height: 12px; border-radius: 4px; background: var(--c); cursor: default; }
+.g-bar:hover { outline: 2px solid var(--ink); outline-offset: 1px; }
+.g-head { position: sticky; top: 0; z-index: 4; background: var(--surface); border-bottom: 1px solid var(--grid); }
+.g-head .g-track { height: 30px; }
+.g-tick { position: absolute; top: 8px; font-size: 11px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
+.g-group summary { cursor: pointer; padding: 8px 0 4px; font-weight: 600; position: sticky; left: 0; width: fit-content; }
+.g-group summary .note { font-weight: 400; display: inline; margin-left: 8px; }
+.g-line { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px solid var(--axis); pointer-events: none; z-index: 1; }
+.g-line.today { border-left: 2px solid var(--accent); }
+.g-line span { position: absolute; top: 50px; left: 4px; font-size: 11px; color: var(--muted); white-space: nowrap; background: var(--surface); padding: 0 2px; }
+.g-line.today span { color: var(--accent); font-weight: 600; top: 34px; }
+footer { color: var(--muted); font-size: 13px; margin-top: 24px; }
+footer code { font-size: 12px; }
+@media (max-width: 640px) { .g-row { grid-template-columns: 150px auto; } .tile .value { font-size: 18px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="title">
+      <button class="burger" id="burger" aria-expanded="false" aria-controls="menu" aria-label="Choose a view">
+        <span></span><span></span><span></span>
+      </button>
+      <div>
+        <h1>Orbit project dashboard <span class="view-name" id="view-name"></span></h1>
+        <p class="sub" id="updated">Loading…</p>
+      </div>
+    </div>
+    <nav class="links">
+      <a href="https://github.com/Erkko68/orbit/issues/3">Burn charts issue</a>
+      <a href="https://github.com/users/Erkko68/projects/3">Project board</a>
+      <a href="https://github.com/Erkko68/orbit/blob/main/docs/process/project-automation.md">How it is computed</a>
+    </nav>
+    <nav class="menu" id="menu" hidden>
+      <a href="#overview"><b>Overview</b><span>Indicators and the earned value curve</span></a>
+      <a href="#burn"><b>Burn charts</b><span>Burn-up and burn-down in hours</span></a>
+      <a href="#roadmap"><b>Roadmap</b><span>The board on any day, from the calendar</span></a>
+      <a href="#cost"><b>Cost</b><span>Planned against actual, by resource</span></a>
+      <a href="#time"><b>Time tracking</b><span>Hours by member, estimates and issues to check</span></a>
+    </nav>
+  </header>
+
+  <div class="scope" id="scope" role="group" aria-label="Scope"></div>
+
+  <div class="view" data-view="overview">
+    <div class="tiles" id="tiles"></div>
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Earned value</h2><p class="note">Cumulative planned value, earned value and actual cost against the Sprint 0 budget.</p></div>
+        <div class="legend" id="ev-legend"></div>
+      </div>
+      <div id="ev-chart"></div>
+    </section>
+  </div>
+
+  <div class="view" data-view="burn">
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Burn-up</h2><p class="note">Hours of work: the Estimate, else the size.</p></div>
+        <div class="legend" id="burnup-legend"></div>
+      </div>
+      <div id="burnup-chart"></div>
+    </section>
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Burn-down</h2><p class="note">Hours of work left, against a straight line to the due date.</p></div>
+        <div class="legend" id="burndown-legend"></div>
+      </div>
+      <div id="burndown-chart"></div>
+    </section>
+  </div>
+
+  <div class="view" data-view="roadmap">
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Roadmap</h2><p class="note">The board as it stood at the end of the chosen day: bars that had started are real, the rest is the plan of that day.</p></div>
+        <div class="road-controls">
+          <button id="road-prev" aria-label="Previous day">◀</button>
+          <input type="date" id="road-day" aria-label="Roadmap day">
+          <button id="road-next" aria-label="Next day">▶</button>
+          <button id="road-today">Today</button>
+        </div>
+      </div>
+      <div class="legend" id="road-legend"></div>
+      <p class="note" id="road-summary"></p>
+      <div class="gantt" id="gantt"></div>
+    </section>
+  </div>
+
+  <div class="view" data-view="cost">
+    <div class="tiles" id="cost-tiles"></div>
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Cost breakdown</h2><p class="note" id="cost-note"></p></div>
+      </div>
+      <div class="table-wrap"><table id="cost"></table></div>
+    </section>
+  </div>
+
+  <div class="view" data-view="time">
+    <div class="grid2">
+      <section class="card">
+        <div class="card-head">
+          <div><h2>Hours by member</h2><p class="note">Planned issues have an Estimate; unplanned ones were added without one.</p></div>
+          <div class="legend" id="member-legend"></div>
+        </div>
+        <div id="member-chart"></div>
+      </section>
+      <section class="card">
+        <div class="card-head">
+          <div><h2>Where the hours come from</h2><p class="note">Logged in Actual, measured from assignment to PR, or the estimate standing in.</p></div>
+        </div>
+        <div id="quality"></div>
+      </section>
+    </div>
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Estimate against actual</h2><p class="note">Closed issues with an Estimate and a logged or measured time. Right of the axis took longer than estimated.</p></div>
+        <div class="legend" id="dev-legend"></div>
+      </div>
+      <div id="dev-chart"></div>
+    </section>
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Issues to check</h2><p class="note">Their time is a fallback, so the estimate is counted instead. Log the real hours in the issue's <code>Actual</code> field to clear them.</p></div>
+      </div>
+      <div class="table-wrap"><table id="flags"></table></div>
+    </section>
+  </div>
+
+  <footer>
+    <p><b>PV</b> planned labour and depreciation spread over each sprint, plus the cash planned at its start.
+      <b>EV</b> share of the sprint's planned hours earned by closed issues (their Estimate) × the sprint budget.
+      <b>AC</b> hours spent × €<span id="rate"></span>/h + depreciation so far + cash spent.
+      <b>CPI</b> EV / AC. <b>SPI</b> EV / PV. <b>EAC</b> BAC / CPI. <b>ETC</b> EAC − AC. <b>VAC</b> BAC − EAC.</p>
+    <p>Rebuilt by <code>.github/workflows/dashboard.yml</code> from <code>.github/scripts/dashboard.py</code>.</p>
+  </footer>
+</main>
+<div class="tooltip" id="tip" role="status"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const eur = (v, digits = 2) => v == null ? "–" : (v < 0 ? "−€" : "€") + Math.abs(v).toLocaleString("en-GB", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+const eurShort = (v) => Math.abs(v) >= 1000 ? "€" + (v / 1000).toFixed(v % 1000 ? 1 : 0) + "K" : "€" + Math.round(v);
+const hours = (v) => v == null ? "–" : (Math.round(v * 10) / 10).toLocaleString("en-GB") + " h";
+const ratio = (v) => v == null ? "–" : v.toFixed(2);
+const parse = (s) => new Date(s + "T00:00:00Z");
+const fmtDay = (s, opts = { day: "numeric", month: "short" }) => parse(s).toLocaleDateString("en-GB", { ...opts, timeZone: "UTC" });
+const addDays = (s, n) => new Date(parse(s).getTime() + n * 864e5).toISOString().slice(0, 10);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const TRUSTED = ["logged", "measured"];
+const REASONS = {
+  "left running": "Assigned long before the work: the clock ran idle",
+  "assigned at PR": "Assigned when the PR opened: the clock never ran",
+  "no measure": "No assignment or closing PR to measure from",
+};
+const STATE = {
+  done: ["Done on time", "--good"], late: ["Done late", "--serious"], progress: ["In progress", "--s1"],
+  overdue: ["In progress, past its end", "--critical"], planned: ["Planned", "--planned"],
+};
+let data, scope = "all";
+
+/* ---------- tooltip ---------- */
+const tip = $("tip");
+function showTip(html, x, y) {
+  tip.innerHTML = html;
+  tip.style.display = "block";
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(x + 14, innerWidth - w - 8) + "px";
+  tip.style.top = (y + h + 20 > innerHeight ? y - h - 14 : y + 14) + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+const tipRow = (label, value, color) =>
+  `<div class="row"><span>${color ? `<i style="--c:${color}"></i>` : ""}${esc(label)}</span><span>${value}</span></div>`;
+
+/* ---------- small helpers ---------- */
+function legend(host, items) {
+  host.innerHTML = items.map(([label, color, kind = ""]) => `<span><i class="${kind}" style="--c:${color}"></i>${esc(label)}</span>`).join("");
+}
+function niceMax(v) {
+  if (v <= 0) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v))), n = v / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p;
+}
+const el = (tag, attrs = {}) => {
+  const node = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [k, v] of Object.entries(attrs)) node.setAttribute(k, v);
+  return node;
+};
+
+/* ---------- line chart with crosshair ---------- */
+function lineChart(host, { days, series, yFmt, axisFmt, markers = [], refs = [], height = 280 }) {
+  host.innerHTML = "";
+  const W = Math.max(host.clientWidth, 300), H = height, m = { l: 52, r: 16, t: 14, b: 26 };
+  const values = series.flatMap((s) => s.values.filter((v) => v != null)).concat(refs.map((r) => r.y));
+  const top = niceMax(Math.max(...values, 0) * 1.05);
+  const x = (i) => m.l + (i / Math.max(days.length - 1, 1)) * (W - m.l - m.r);
+  const y = (v) => m.t + (1 - v / top) * (H - m.t - m.b);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img" });
+  for (let t = 0; t <= 4; t++) {
+    const v = (top / 4) * t;
+    svg.append(el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: css(t ? "--grid" : "--axis") }));
+    const label = el("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end" });
+    label.textContent = axisFmt(v);
+    svg.append(label);
+  }
+  const step = Math.max(1, Math.ceil(days.length / Math.max(2, Math.floor((W - m.l) / 70))));
+  days.forEach((d, i) => {
+    if (i % step) return;
+    const label = el("text", { x: x(i), y: H - 6, "text-anchor": "middle" });
+    label.textContent = fmtDay(d);
+    svg.append(label);
+  });
+  const placed = [];  // marker label x positions: a label too close to one already drawn is left to the tooltip
+  for (const mk of [...markers].sort((a, b) => !!b.today - !!a.today)) {
+    const i = days.indexOf(mk.day);
+    if (i < 0) continue;
+    svg.append(el("line", { x1: x(i), x2: x(i), y1: m.t, y2: H - m.b, stroke: css(mk.today ? "--accent" : "--axis"), "stroke-width": mk.today ? 1.5 : 1 }));
+    if (placed.some((p) => Math.abs(p - x(i)) < 56)) continue;
+    placed.push(x(i));
+    const flip = x(i) > W - m.r - 60;
+    const label = el("text", { x: x(i) + (flip ? -4 : 4), y: m.t + 10, "text-anchor": flip ? "end" : "start" });
+    label.textContent = mk.label;
+    if (mk.today) label.style.fill = css("--accent");
+    svg.append(label);
+  }
+  for (const r of refs) {
+    svg.append(el("line", { x1: m.l, x2: W - m.r, y1: y(r.y), y2: y(r.y), stroke: css("--muted"), "stroke-dasharray": "4 4" }));
+    const label = el("text", { x: W - m.r - 6, y: y(r.y) + 14, "text-anchor": "end" });
+    label.textContent = r.label;
+    svg.append(label);
+  }
+  for (const s of series) {
+    const pts = s.values.map((v, i) => (v == null ? null : [x(i), y(v)]));
+    const run = pts.filter(Boolean);
+    if (!run.length) continue;
+    const d = "M" + run.map((p) => p.join(",")).join("L");
+    if (s.area) svg.append(el("path", { d: `${d}L${run.at(-1)[0]},${y(0)}L${run[0][0]},${y(0)}Z`, fill: s.color, opacity: 0.1 }));
+    svg.append(el("path", { d, fill: "none", stroke: s.color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round", "stroke-dasharray": s.dash ? "5 5" : "none" }));
+    const end = run.at(-1);
+    if (!s.dash) svg.append(el("circle", { cx: end[0], cy: end[1], r: 4, fill: s.color, stroke: css("--surface"), "stroke-width": 2 }));
+  }
+  const cross = el("line", { y1: m.t, y2: H - m.b, stroke: css("--ink-2"), "stroke-width": 1, visibility: "hidden" });
+  const dots = series.map((s) => el("circle", { r: 4, fill: s.color, stroke: css("--surface"), "stroke-width": 2, visibility: "hidden" }));
+  svg.append(cross, ...dots);
+  const hit = el("rect", { x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, fill: "transparent" });
+  hit.addEventListener("pointermove", (e) => {
+    const box = svg.getBoundingClientRect(), px = ((e.clientX - box.left) / box.width) * W;
+    const i = Math.round(((px - m.l) / (W - m.l - m.r)) * (days.length - 1));
+    if (i < 0 || i >= days.length) return;
+    cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible");
+    series.forEach((s, k) => {
+      const v = s.values[i];
+      dots[k].setAttribute("visibility", v == null ? "hidden" : "visible");
+      if (v != null) { dots[k].setAttribute("cx", x(i)); dots[k].setAttribute("cy", y(v)); }
+    });
+    showTip(`<b>${fmtDay(days[i], { weekday: "short", day: "numeric", month: "short" })}</b>` +
+      series.map((s) => tipRow(s.name, yFmt(s.values[i]), s.color)).join(""), e.clientX, e.clientY);
+  });
+  hit.addEventListener("pointerleave", () => { cross.setAttribute("visibility", "hidden"); dots.forEach((d) => d.setAttribute("visibility", "hidden")); hideTip(); });
+  svg.append(hit);
+  host.append(svg);
+}
+
+/* ---------- horizontal bars ---------- */
+function stackedBars(host, rows, parts, fmt) {
+  host.innerHTML = "";
+  if (!rows.length) { host.innerHTML = `<p class="empty">Nothing yet.</p>`; return; }
+  const W = Math.max(host.clientWidth, 300), row = 30, m = { l: 100, r: 56 }, H = rows.length * row + 4;
+  const max = niceMax(Math.max(...rows.map((r) => parts.reduce((a, p) => a + r[p.key], 0))));
+  const scale = (v) => (v / max) * (W - m.l - m.r);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H });
+  rows.forEach((r, i) => {
+    const cy = i * row + row / 2, label = el("text", { x: m.l - 8, y: cy + 4, "text-anchor": "end" });
+    label.textContent = r.label;
+    label.style.fill = css("--ink-2");
+    svg.append(label);
+    let left = m.l, total = 0;
+    parts.forEach((p, k) => {
+      const w = scale(r[p.key]);
+      total += r[p.key];
+      if (w <= 0) return;
+      const last = parts.slice(k + 1).every((q) => !r[q.key]);
+      const gap = left > m.l ? 2 : 0, width = Math.max(w - gap, 1);
+      const bar = el("path", { d: roundedBar(left + gap, cy - 10, width, 20, last ? 4 : 0), fill: p.color });
+      bar.addEventListener("pointermove", (e) => showTip(`<b>${esc(r.label)}</b>` + parts.map((q) => tipRow(q.name, fmt(r[q.key]), q.color)).join(""), e.clientX, e.clientY));
+      bar.addEventListener("pointerleave", hideTip);
+      svg.append(bar);
+      left += w;
+    });
+    const value = el("text", { x: left + 6, y: cy + 4 });
+    value.textContent = fmt(total);
+    value.style.fill = css("--ink");
+    svg.append(value);
+  });
+  host.append(svg);
+}
+function roundedBar(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  return `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}H${x}Z`;
+}
+
+/* ---------- diverging bars: actual minus estimate ---------- */
+function deviationChart(host, issues) {
+  host.innerHTML = "";
+  if (!issues.length) { host.innerHTML = `<p class="empty">No closed issue has a logged or measured time yet.</p>`; return; }
+  const rows = issues.map((i) => ({ ...i, diff: i.spent - i.estimate })).sort((a, b) => b.diff - a.diff);
+  const W = Math.max(host.clientWidth, 300), row = 22, m = { l: 64, r: 64 }, H = rows.length * row + 24;
+  const max = niceMax(Math.max(...rows.map((r) => Math.abs(r.diff)), 1));
+  const mid = m.l + (W - m.l - m.r) / 2, scale = (v) => (v / max) * ((W - m.l - m.r) / 2 - 40);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H });
+  svg.append(el("line", { x1: mid, x2: mid, y1: 0, y2: H - 20, stroke: css("--axis") }));
+  [-max, 0, max].forEach((v) => {
+    const t = el("text", { x: mid + scale(v), y: H - 4, "text-anchor": v < 0 ? "start" : v > 0 ? "end" : "middle" });
+    t.textContent = (v > 0 ? "+" : "") + v + " h";
+    svg.append(t);
+  });
+  rows.forEach((r, i) => {
+    const cy = i * row + row / 2, w = Math.max(Math.abs(scale(r.diff)), 1), over = r.diff > 0;
+    const label = el("text", { x: m.l - 8, y: cy + 4, "text-anchor": "end" });
+    label.textContent = "#" + r.number;
+    label.style.fill = css("--ink-2");
+    svg.append(label);
+    const color = over ? css("--critical") : css("--s1");
+    const bar = el("rect", { x: over ? mid : mid - w, y: cy - 7, width: w, height: 14, rx: 3, fill: color });
+    bar.addEventListener("pointermove", (e) => showTip(`<b>#${r.number} ${esc(r.title)}</b>` + tipRow("Estimate", hours(r.estimate)) +
+      tipRow("Actual (" + r.source + ")", hours(r.spent)) + tipRow("Deviation", (over ? "+" : "") + hours(r.diff), color), e.clientX, e.clientY));
+    bar.addEventListener("pointerleave", hideTip);
+    svg.append(bar);
+    const value = el("text", { x: over ? mid + w + 4 : mid - w - 4, y: cy + 4, "text-anchor": over ? "start" : "end" });
+    value.textContent = (over ? "+" : "") + Math.round(r.diff * 10) / 10;
+    svg.append(value);
+  });
+  host.append(svg);
+}
+
+/* ---------- sections ---------- */
+const scoped = () => scope === "all" ? data.issues : data.issues.filter((i) => i.sprint === scope);
+const sprint = () => data.sprints.find((s) => s.title === scope);
+
+function renderScope() {
+  const options = [["all", "Whole project"], ...data.sprints.map((s) => [s.title, s.title])];
+  $("scope").innerHTML = options.map(([v, l]) => `<button aria-pressed="${v === scope}" data-v="${esc(v)}">${esc(l)}</button>`).join("");
+  $("scope").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { scope = b.dataset.v; render(); }));
+}
+
+function status(value, goodLabel, badLabel) {
+  if (value == null) return "";
+  const kind = value >= 1 ? "good" : value >= 0.9 ? "warning" : "critical";
+  return `<div class="status ${kind}">${value >= 1 ? goodLabel : value >= 0.9 ? "Slightly " + badLabel.toLowerCase() : badLabel}</div>`;
+}
+
+function tile([label, value, hint]) {
+  return `<div class="tile"><div class="label">${label}</div><div class="value">${value}</div><div class="hint">${hint}</div></div>`;
+}
+
+function renderTiles() {
+  const s = sprint(), t = s || data.total;
+  const tiles = [
+    ["Planned value (PV)", eur(t.PV), s ? `${Math.round(s.passed * 100)}% of the sprint passed` : "Planned to date"],
+    ["Earned value (EV)", eur(t.EV), s ? `${hours(s.earned_h)} earned of ${s.plan_h} h` : "Work done, at budget cost"],
+    ["Actual cost (AC)", eur(t.AC), "Hours, equipment and cash"],
+    ["Cost index (CPI)", ratio(t.CPI), status(t.CPI, "On budget", "Over budget")],
+    ["Schedule index (SPI)", ratio(t.SPI), status(t.SPI, "On schedule", "Behind")],
+    ["Cost variance (CV)", eur(t.CV), "EV − AC"],
+    ["Schedule variance (SV)", eur(t.SV), "EV − PV"],
+  ];
+  if (s) tiles.push(["Sprint budget", eur(s.budget), `${fmtDay(s.start)} – ${fmtDay(s.due)}`]);
+  else tiles.push(
+    ["Budget at completion (BAC)", eur(t.BAC), "Sprint 0 total"],
+    ["Estimate at completion (EAC)", eur(t.EAC), `${eur(t.EAC_atypical)} if the overrun was one-off`],
+    ["Estimate to complete (ETC)", eur(t.ETC), "EAC − AC"],
+    ["Variance at completion (VAC)", eur(t.VAC), "BAC − EAC"]);
+  $("tiles").innerHTML = tiles.map(tile).join("");
+}
+
+function renderEarnedValue() {
+  const c = data.curve, colors = { PV: css("--s1"), AC: css("--s2"), EV: css("--s3") };
+  legend($("ev-legend"), [["Planned value (PV)", colors.PV], ["Earned value (EV)", colors.EV], ["Actual cost (AC)", colors.AC], ["Budget (BAC)", css("--muted"), "ref"]]);
+  lineChart($("ev-chart"), {
+    days: c.days, yFmt: (v) => eur(v), axisFmt: eurShort,
+    series: [{ name: "PV", values: c.PV, color: colors.PV }, { name: "EV", values: c.EV, color: colors.EV }, { name: "AC", values: c.AC, color: colors.AC }],
+    refs: [{ y: data.total.BAC, label: "BAC " + eur(data.total.BAC, 0) }],
+    markers: [...data.sprints.map((s) => ({ day: s.due, label: s.title.replace("Sprint ", "S").replace(" (final)", "") + " due" })), { day: data.today, label: "Today", today: true }],
+  });
+}
+
+function renderBurn() {
+  const s = sprint(), b = s ? s.burn : data.burn;
+  const colors = { scope: css("--s1"), done: css("--s3"), ideal: css("--muted") };
+  legend($("burnup-legend"), [["Scope", colors.scope], ["Done", colors.done]]);
+  legend($("burndown-legend"), [["Remaining", colors.scope], ...(b && b.ideal ? [["Ideal", colors.ideal, "ref"]] : [])]);
+  if (!b) { $("burnup-chart").innerHTML = $("burndown-chart").innerHTML = `<p class="empty">No issues in this sprint yet.</p>`; return; }
+  const markers = [{ day: data.today, label: "Today", today: true }];
+  lineChart($("burnup-chart"), { days: b.days, yFmt: hours, axisFmt: (v) => v + " h", height: 240, markers,
+    series: [{ name: "Scope", values: b.scope, color: colors.scope }, { name: "Done", values: b.done, color: colors.done, area: true }] });
+  lineChart($("burndown-chart"), { days: b.days, yFmt: hours, axisFmt: (v) => v + " h", height: 240, markers,
+    series: [{ name: "Remaining", values: b.scope.map((v, i) => v == null ? null : v - b.done[i]), color: colors.scope, area: true },
+      ...(b.ideal ? [{ name: "Ideal", values: b.ideal, color: colors.ideal, dash: true }] : [])] });
+}
+
+function renderCost() {
+  const s = sprint(), rows = {};
+  for (const sp of s ? [s] : data.sprints) {
+    for (const r of sp.cost) {
+      const row = rows[r.item] ||= { item: r.item, planned: 0, actual: 0, planned_h: null, actual_h: null };
+      row.planned += r.planned; row.actual += r.actual;
+      if (r.planned_h != null) row.planned_h = (row.planned_h || 0) + r.planned_h;
+      if (r.actual_h != null) row.actual_h = (row.actual_h || 0) + r.actual_h;
+    }
+  }
+  const list = Object.values(rows), sum = (k) => list.reduce((a, r) => a + r[k], 0);
+  const diff = (r) => { const d = r.actual - r.planned; return `<span style="color:var(${d > 0.005 ? "--critical-text" : d < -0.005 ? "--good-text" : "--ink-2"})">${d > 0 ? "+" : ""}${eur(d)}</span>`; };
+  $("cost-note").textContent = s
+    ? `${s.title}, as of ${fmtDay(data.today)}. Planned is the full sprint; actual is to date.`
+    : `All sprints, as of ${fmtDay(data.today)}. Planned is the full plan; actual is to date.`;
+  const spent = scoped().reduce((a, i) => a + i.spent, 0);
+  $("cost-tiles").innerHTML = [
+    ["Planned cost", eur(sum("planned")), s ? "The full sprint" : "The full Sprint 0 plan"],
+    ["Actual cost to date", eur(sum("actual")), `${hours(spent)} of team effort`],
+    ["Unplanned effort", eur(rows["Team effort, unplanned issues"]?.actual || 0), "Issues added without an Estimate"],
+    ["Cash spent", eur(list.filter((r) => !/Team effort|depreciation/.test(r.item)).reduce((a, r) => a + r.actual, 0)), "Accounts, services and tools"],
+  ].map(tile).join("");
+  $("cost").innerHTML = `<thead><tr><th>Resource</th><th class="num">Planned h</th><th class="num">Planned</th><th class="num">Actual h</th><th class="num">Actual</th><th class="num">Difference</th></tr></thead><tbody>` +
+    list.map((r) => `<tr><td>${esc(r.item)}</td><td class="num">${r.planned_h == null ? "" : hours(r.planned_h)}</td><td class="num">${eur(r.planned)}</td><td class="num">${r.actual_h == null ? "" : hours(r.actual_h)}</td><td class="num">${eur(r.actual)}</td><td class="num">${diff(r)}</td></tr>`).join("") +
+    `<tr class="total"><td>Total</td><td></td><td class="num">${eur(sum("planned"))}</td><td></td><td class="num">${eur(sum("actual"))}</td><td class="num">${diff({ planned: sum("planned"), actual: sum("actual") })}</td></tr></tbody>`;
+}
+
+function renderMembers() {
+  const by = {};
+  for (const i of scoped()) {
+    if (!i.spent) continue;
+    const who = i.who ? i.who.split(", ") : ["unassigned"];
+    for (const w of who) {
+      const r = by[w] ||= { label: w, planned: 0, unplanned: 0 };
+      r[i.estimate ? "planned" : "unplanned"] += i.spent / who.length;
+    }
+  }
+  const parts = [{ key: "planned", name: "Planned issues", color: css("--s1") }, { key: "unplanned", name: "Unplanned issues", color: css("--s2") }];
+  legend($("member-legend"), parts.map((p) => [p.name, p.color, "box"]));
+  stackedBars($("member-chart"), Object.values(by).sort((a, b) => b.planned + b.unplanned - a.planned - a.unplanned), parts, hours);
+}
+
+function renderQuality() {
+  const groups = [["Logged", "logged", css("--s3")], ["Measured", "measured", css("--s1")], ["Estimate standing in", "fallback", css("--s2")]];
+  const total = { logged: 0, measured: 0, fallback: 0 };
+  for (const i of scoped()) if (i.spent) total[TRUSTED.includes(i.source) ? i.source : "fallback"] += i.spent;
+  const all = total.logged + total.measured + total.fallback;
+  if (!all) { $("quality").innerHTML = `<p class="empty">No hours yet.</p>`; return; }
+  $("quality").innerHTML =
+    `<div class="tile" style="border:0;padding:0;background:none"><div class="value">${Math.round((total.logged / all) * 100)}% logged</div><div class="hint">${hours(all)} counted in actual cost</div></div>` +
+    `<div class="quality">${groups.map(([n, k, c]) => total[k] ? `<div style="--c:${c};flex:${total[k]}" title="${n}: ${hours(total[k])}"></div>` : "").join("")}</div>` +
+    `<div class="legend">${groups.map(([n, k, c]) => `<span><i class="box" style="--c:${c}"></i>${n} ${hours(total[k])}</span>`).join("")}</div>`;
+}
+
+function renderDeviation() {
+  legend($("dev-legend"), [["Under the estimate", css("--s1"), "box"], ["Over the estimate", css("--critical"), "box"]]);
+  deviationChart($("dev-chart"), scoped().filter((i) => i.closed && i.estimate && TRUSTED.includes(i.source)));
+}
+
+function renderFlags() {
+  const rows = scoped().filter((i) => REASONS[i.source]).sort((a, b) => a.number - b.number);
+  $("flags").innerHTML = rows.length
+    ? `<thead><tr><th>Issue</th><th>Assignee</th><th>Sprint</th><th class="num">Estimate</th><th class="num">Measured</th><th class="num">Counted</th><th>Why</th></tr></thead><tbody>` +
+      rows.map((i) => `<tr><td><a href="${esc(i.url)}">#${i.number}</a> ${esc(i.title)}</td><td>${esc(i.who || "–")}</td><td style="white-space:nowrap">${esc(i.sprint || "–")}</td><td class="num">${hours(i.estimate)}</td><td class="num">${hours(i.measured)}</td><td class="num">${hours(i.spent)}</td><td><span class="pill">${esc(i.source)}</span> ${esc(REASONS[i.source])}</td></tr>`).join("") + "</tbody>"
+    : `<tbody><tr><td class="empty">Every issue has logged or measured hours.</td></tr></tbody>`;
+}
+
+/* ---------- roadmap ---------- */
+function renderRoadmap() {
+  const r = data.roadmap, days = Object.keys(r.days), input = $("road-day");
+  input.min = days[0]; input.max = days.at(-1);
+  if (!input.value || !r.days[input.value]) input.value = days.at(-1);
+  const when = input.value, start = r.start, s = sprint();
+  const byNumber = Object.fromEntries(data.issues.map((i) => [i.number, i]));
+  // A chosen sprint zooms the roadmap to its own issues; the whole project shows every sprint.
+  const bars = r.days[when].filter((b) => byNumber[b[0]] && (!s || byNumber[b[0]].sprint === s.title));
+  const offset = (day) => (parse(day) - parse(start)) / 864e5;
+  const counts = {};
+  bars.forEach((b) => { counts[r.states[b[3]]] = (counts[r.states[b[3]]] || 0) + 1; });
+  legend($("road-legend"), Object.entries(STATE).map(([k, [label, color]]) => [`${label} (${counts[k] || 0})`, css(color), "box"]));
+  $("road-summary").textContent = `${fmtDay(when, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}: ${bars.length} issues on the board.`;
+
+  const last = Math.max(...(s ? [offset(s.due)] : data.sprints.map((x) => offset(x.due))), ...bars.map((b) => b[2])) + 2;
+  const first = Math.min(s ? offset(s.start) : 0, ...bars.map((b) => b[1])) - 1;
+  const px = Math.max(8, Math.min(40, ($("gantt").clientWidth - 260) / (last - first + 1)));
+  const left = (d) => (d - first) * px, width = (last - first + 1) * px;
+  const ticks = [];
+  for (let d = first; d <= last; d++) {
+    const day = addDays(start, d);
+    if (parse(day).getUTCDay() === 1 && left(d) > 24) ticks.push(`<span class="g-tick" style="left:${left(d)}px">${fmtDay(day)}</span>`);
+  }
+  const lines = [...data.sprints.filter((x) => offset(x.due) >= first && offset(x.due) <= last).map((x) => [offset(x.due), x.title + " due", ""]),
+    [offset(when), fmtDay(when), "today"]]
+    .map(([d, label, cls]) => `<div class="g-line ${cls}" style="left:${260 + left(d) + (cls ? px / 2 : 0)}px"><span>${esc(label)}</span></div>`).join("");
+  const groups = {};
+  for (const b of bars) {
+    const issue = byNumber[b[0]];
+    if (!issue) continue;
+    (groups[issue.sprint || "No sprint"] ||= []).push([b, issue]);
+  }
+  const order = [...data.sprints.map((s) => s.title), "No sprint"].filter((t) => groups[t]);
+  const current = data.sprints.find((s) => when >= s.start && when < s.due)?.title;
+  const html = order.map((title) => {
+    const rows = groups[title].sort((a, b) => a[0][1] - b[0][1] || a[0][0] - b[0][0]);
+    const done = rows.filter(([b]) => b[3] <= 1).length;
+    return `<details class="g-group" ${title === current || title === scope ? "open" : ""}><summary>${esc(title)}<span class="note">${done} of ${rows.length} done</span></summary>` +
+      rows.map(([b, i]) => {
+        const state = r.states[b[3]], [label, color] = STATE[state];
+        return `<div class="g-row"><div class="g-label"><a href="${esc(i.url)}">#${i.number}</a> ${esc(i.title)}</div><div class="g-track" style="width:${width}px">` +
+          `<div class="g-bar" style="--c:var(${color});left:${left(b[1])}px;width:${(b[2] - b[1] + 1) * px - 2}px" data-n="${i.number}" data-s="${state}" data-a="${b[1]}" data-b="${b[2]}"></div></div></div>`;
+      }).join("") + `</details>`;
+  }).join("");
+  $("gantt").innerHTML = `<div class="gantt-inner" style="width:${260 + width}px"><div class="g-row g-head"><div class="g-label"></div><div class="g-track" style="width:${width}px">${ticks.join("")}</div></div>${html}${lines}</div>`;
+  $("gantt").querySelectorAll(".g-bar").forEach((bar) => {
+    bar.addEventListener("pointermove", (e) => {
+      const i = byNumber[bar.dataset.n], [label, color] = STATE[bar.dataset.s];
+      showTip(`<b>#${i.number} ${esc(i.title)}</b>` + tipRow(label, "", css(color)) +
+        tipRow("From", fmtDay(addDays(start, +bar.dataset.a))) + tipRow("To", fmtDay(addDays(start, +bar.dataset.b))) +
+        tipRow("Assignee", esc(i.who || "–")) + tipRow("Estimate", hours(i.estimate)), e.clientX, e.clientY);
+    });
+    bar.addEventListener("pointerleave", hideTip);
+  });
+  // The chart fills the screen below its controls and scrolls inside, so the page does not grow with the issues.
+  const top = $("gantt").getBoundingClientRect().top + scrollY;
+  $("gantt").style.height = Math.max(320, innerHeight - top - 32) + "px";
+  $("road-prev").disabled = when <= days[0];
+  $("road-next").disabled = when >= days.at(-1);
+}
+function moveDay(n) {
+  const input = $("road-day"), next = addDays(input.value, n);
+  if (data.roadmap.days[next]) { input.value = next; renderRoadmap(); }
+}
+
+const VIEWS = {
+  overview: ["Overview", [renderTiles, renderEarnedValue]],
+  burn: ["Burn charts", [renderBurn]],
+  roadmap: ["Roadmap", [renderRoadmap]],
+  cost: ["Cost", [renderCost]],
+  time: ["Time tracking", [renderMembers, renderQuality, renderDeviation, renderFlags]],
+};
+const view = () => VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "overview";
+
+// Only the visible view is drawn: charts size themselves to their container, which is empty while hidden.
+function render() {
+  const current = view();
+  renderScope();
+  document.querySelectorAll(".view").forEach((v) => { v.hidden = v.dataset.view !== current; });
+  document.querySelectorAll(".menu a").forEach((a) => a.hash === "#" + current ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
+  $("view-name").textContent = VIEWS[current][0];
+  VIEWS[current][1].forEach((draw) => draw());
+}
+
+function toggleMenu(open = $("menu").hidden) {
+  $("menu").hidden = !open;
+  $("burger").setAttribute("aria-expanded", open);
+  if (open) $("menu").querySelector("a[aria-current]")?.focus();
+}
+
+fetch("data.json").then((r) => r.json()).then((d) => {
+  data = d;
+  const now = data.sprints.find((s) => data.today >= s.start && data.today < s.due);
+  scope = now ? now.title : "all";
+  $("updated").textContent = `Updated ${new Date(data.generated).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} from the GitHub issues and the Sprint 0 cost plan.`;
+  $("rate").textContent = data.rate.toFixed(2);
+  $("road-day").addEventListener("change", renderRoadmap);
+  $("road-prev").addEventListener("click", () => moveDay(-1));
+  $("road-next").addEventListener("click", () => moveDay(1));
+  $("road-today").addEventListener("click", () => { $("road-day").value = data.today; renderRoadmap(); });
+  render();
+  addEventListener("hashchange", () => { toggleMenu(false); render(); });
+  $("burger").addEventListener("click", () => toggleMenu());
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("menu").hidden) { toggleMenu(false); $("burger").focus(); } });
+  addEventListener("click", (e) => { if (!$("menu").hidden && !e.target.closest("#menu, #burger")) toggleMenu(false); });
+  let timer;
+  addEventListener("resize", () => { clearTimeout(timer); timer = setTimeout(render, 150); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+}).catch((e) => { $("updated").textContent = "Could not load data.json: " + e.message; });
+</script>
+</body>
+</html>

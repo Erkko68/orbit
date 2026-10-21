@@ -39,15 +39,16 @@ QUERY = """query($owner: String!, $name: String!, $project: Int!, $cursor: Strin
           priority: fieldValueByName(name: "Priority") { ... on ProjectV2ItemFieldSingleSelectValue { name } }
           size: fieldValueByName(name: "Size") { ... on ProjectV2ItemFieldSingleSelectValue { name } }
           estimate: fieldValueByName(name: "Estimate") { ... on ProjectV2ItemFieldNumberValue { number } }
+          actual: fieldValueByName(name: "Actual") { ... on ProjectV2ItemFieldNumberValue { number } }
           start: fieldValueByName(name: "Start date") { ... on ProjectV2ItemFieldDateValue { date } }
           target: fieldValueByName(name: "Target date") { ... on ProjectV2ItemFieldDateValue { date } }
           deviation: fieldValueByName(name: "Deviation (days)") { ... on ProjectV2ItemFieldNumberValue { number } }
           content {
             ... on Issue {
-              number state
+              number state title url createdAt closedAt
               milestone { title }
               labels(first: 20) { nodes { name } }
-              assignees { totalCount }
+              assignees(first: 5) { totalCount nodes { login } }
               blockedBy(first: 50) { nodes { number } }
               timelineItems(itemTypes: ASSIGNED_EVENT, first: 1) { nodes { ... on AssignedEvent { createdAt } } }
               closedByPullRequestsReferences(first: 10) { nodes { createdAt } }
