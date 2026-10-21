@@ -1,13 +1,18 @@
 """The "Actual hours" PR check, and a helper to log them.
 
-Check: fails while an issue the PR closes has no Actual (hours really spent) on the project. Reads PR_NUMBER.
+Check: fails while an issue the PR closes has no Actual (hours really spent) on the project, and keeps one comment on
+the PR that says how to log them, deleted once they are. Reads PR_NUMBER, and COMMENT_TOKEN for the comment.
 Log:   python3 .github/scripts/actual_hours.py --set <issue> <hours>
 """
+import json
 import os
 import subprocess
 import sys
 
 from project_sync import PROJECT, graphql
+
+MARKER = "<!-- actual-hours -->"  # finds the check's own comment among the PR's
+BOARD = "https://github.com/users/Erkko68/projects/3"
 CLOSING = """query($owner: String!, $name: String!, $pr: Int!) {
   repository(owner: $owner, name: $name) {
     pullRequest(number: $pr) {
@@ -52,12 +57,52 @@ def missing(issues):
     return [i for i in issues if not item(i) or (item(i)["actual"] or {}).get("number") is None]
 
 
+def message(gaps):
+    """The PR comment for the issues that still have no Actual."""
+    rows = "".join(f"| #{i['number']} {i['title']} | `python3 .github/scripts/actual_hours.py --set {i['number']} <hours>` |\n"
+                   for i in gaps)
+    return (f"{MARKER}\n### ⏱️ Log your hours before review\n\n"
+            f"The **Actual hours** check fails until every issue this PR closes has the hours really spent on it.\n\n"
+            f"| Issue | From the repo, in a terminal |\n|---|---|\n{rows}\n"
+            f"**Or on the board:** open the issue's card on the [project]({BOARD}) and fill **Actual** with your hours"
+            f" (decimals allowed, review fixes included).\n\n"
+            f"**Then re-run the check:** a board field triggers nothing. Checks tab → *Actual hours* → *Re-run*, or push,"
+            f" or edit this PR's description.\n\nThis comment goes away once the hours are logged.\n")
+
+
+def comment(pr, body):
+    """Posts or updates the check's one comment on the PR, or deletes it when `body` is None. Only in Actions, as
+    the workflow's own token, so it comes from github-actions. A failure only warns: the check still decides."""
+    token = os.environ.get("COMMENT_TOKEN")
+    if not token:
+        return
+    env = {**os.environ, "GH_TOKEN": token}
+
+    def gh(*args, payload=None):
+        return subprocess.run(["gh", "api", *args] + (["--input", "-"] if payload else []), check=True, text=True,
+                              capture_output=True, env=env, input=json.dumps(payload) if payload else None).stdout
+
+    try:
+        pages = json.loads(gh(f"repos/{{owner}}/{{repo}}/issues/{pr}/comments", "--paginate", "--slurp"))
+        mine = next((c for page in pages for c in page if MARKER in (c["body"] or "")), None)
+        if body is None and mine:
+            gh("-X", "DELETE", f"repos/{{owner}}/{{repo}}/issues/comments/{mine['id']}")
+        elif body and mine and mine["body"] != body:
+            gh("-X", "PATCH", f"repos/{{owner}}/{{repo}}/issues/comments/{mine['id']}", payload={"body": body})
+        elif body and not mine:
+            gh("-X", "POST", f"repos/{{owner}}/{{repo}}/issues/{pr}/comments", payload={"body": body})
+    except subprocess.CalledProcessError as error:
+        print(f"::warning::Could not update the PR comment: {error.stderr.strip()}")
+
+
 def check_pr(number):
     issues = graphql(CLOSING + ACTUAL, **repo(), pr=int(number))["repository"]["pullRequest"]["closingIssuesReferences"]["nodes"]
     if not issues:
         print("This PR closes no issue, so there are no hours to check.")
+        comment(number, None)
         return
     gaps = missing(issues)
+    comment(number, message(gaps) if gaps else None)
     for i in issues:
         if i not in gaps:
             print(f"#{i['number']}: {item(i)['actual']['number']:g} h logged.")
@@ -86,6 +131,9 @@ def check():
     logged, zero, empty, elsewhere = issue(1, 2.5), issue(2, 0), issue(3, None), issue(4, 3, project=9)
     if missing([logged, zero, empty, elsewhere]) != [empty, elsewhere]:
         raise RuntimeError("missing() self-check failed")
+    text = message([{**empty, "title": "Some issue"}])
+    if not text.startswith(MARKER) or "| #3 Some issue | `python3 .github/scripts/actual_hours.py --set 3 <hours>` |" not in text:
+        raise RuntimeError("message() self-check failed")
 
 
 if __name__ == "__main__":

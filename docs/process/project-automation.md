@@ -25,7 +25,7 @@ Everything else is derived from these, so they are the only things worth keeping
 | `project-sync.yml` | `.github/scripts/project_sync.py` | Project fields: Status, `Start date`, `Target date`, `Deviation (days)` | Issue and PR events, every hour, by hand |
 | `burn-charts.yml` | `.github/scripts/burn_charts.py` | The pinned "Burn charts" issue | Issue events, every night, by hand |
 | `dashboard.yml` | `.github/scripts/dashboard.py` | The dashboard on GitHub Pages, <https://erkko68.github.io/orbit/> | Issue events, pushes to the scripts or the page, every hour, by hand |
-| `pr-conventions.yml` (`Actual hours` job) | `.github/scripts/actual_hours.py` | Nothing: fails the PR while an issue it closes has no `Actual` | PR opened, edited, pushed to |
+| `pr-conventions.yml` (`Actual hours` job) | `.github/scripts/actual_hours.py` | Fails the PR while an issue it closes has no `Actual`, with a comment on the PR saying how to log it (deleted once it is) | PR opened, edited, pushed to |
 
 All are plain Python with no dependencies. The first three take `--print` to show what they would write without
 writing it:
