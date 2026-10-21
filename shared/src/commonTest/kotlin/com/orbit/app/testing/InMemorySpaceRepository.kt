@@ -32,4 +32,26 @@ class InMemorySpaceRepository(private val auth: AuthRepository) : SpaceRepositor
         members.update { it + (id to listOf(Member(user.id, user.displayName, user.photoUrl, Role.OWNER))) }
         return id
     }
+
+    override suspend fun changeRole(spaceId: String, userId: String, role: Role) {
+        require(role != Role.OWNER) { "Ownership moves only through a transfer" }
+        val actorId = auth.requireUser().id
+        val team = members.value[spaceId].orEmpty()
+        check(team.firstOrNull { it.userId == actorId }?.role?.managesSpace == true) {
+            "Only an owner or admin can change a role"
+        }
+        val target = checkNotNull(team.firstOrNull { it.userId == userId }) { "Not a member of the space" }
+        check(target.role != Role.OWNER) { "The role of the owner cannot change" }
+        members.update { all ->
+            all + (spaceId to team.map { if (it.userId == userId) it.copy(role = role) else it })
+        }
+    }
+
+    /** Stands in for joining, which comes with #25, so tests can have more than the owner in a space. */
+    fun addMember(spaceId: String, member: Member) {
+        spaces.update { all ->
+            all.map { if (it.id == spaceId) it.copy(memberIds = it.memberIds + member.userId) else it }
+        }
+        members.update { all -> all + (spaceId to all[spaceId].orEmpty() + member) }
+    }
 }

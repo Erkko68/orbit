@@ -2,6 +2,7 @@ package com.orbit.app.feature.auth
 
 import com.orbit.app.core.notification.ReminderSync
 import com.orbit.app.domain.model.Member
+import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.FlakySpaceRepository
@@ -121,5 +122,7 @@ class SessionViewModelTest {
         override fun observeMembers(spaceId: String): Flow<List<Member>> = flow { awaitCancellation() }
 
         override suspend fun createSpace(name: String, accent: Int): String = error("Not used by these tests")
+
+        override suspend fun changeRole(spaceId: String, userId: String, role: Role) = error("Not used by these tests")
     }
 }

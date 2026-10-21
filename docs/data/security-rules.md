@@ -13,7 +13,7 @@ A space is shared, so its items are too: every member creates, edits and complet
 | Delete an item | any | any | only their own |
 | Edit the space (name, colour) | ✓ | ✓ | |
 | Create, list and revoke invitations | ✓ | ✓ | |
-| Add a member, or change a role between member and admin | ✓ | ✓ | |
+| Add a member, or change a role between member and admin (never the owner's, never to owner) | ✓ | ✓ | |
 | Remove a member | anyone but the owner | plain members only | |
 | Hand ownership to someone else (#27) | ✓ | | |
 | Delete the space | ✓ | | |
@@ -65,7 +65,7 @@ Read and written by its owner only.
 
 - **Read:** a member.
 - **Create:** the space's creator making their own `owner` membership (in the batch that creates the space), or an owner or admin adding an `admin` or `member`.
-- **Update:** a member changing their own document without changing their role; the owner changing anyone; an admin changing a non-owner between `admin` and `member`.
+- **Update:** a member changing their own document without changing their role; an owner or admin changing a non-owner between `admin` and `member`. Nobody sets `owner` with an update, and the role of the owner never changes, not even by the owner: ownership moves only through the transfer in #27, which gets its own rule.
 - **Delete:** a member leaving (not the owner); the owner removing anyone else; an admin removing a plain member.
 
 ### `spaces/{spaceId}/items/{itemId}`

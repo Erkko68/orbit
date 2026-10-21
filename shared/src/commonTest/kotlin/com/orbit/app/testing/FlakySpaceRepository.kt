@@ -30,4 +30,6 @@ internal class FlakySpaceRepository(private var spaceFailures: Int = 0, private 
     }
 
     override suspend fun createSpace(name: String, accent: Int): String = error("Not used by these tests")
+
+    override suspend fun changeRole(spaceId: String, userId: String, role: Role) = error("Not used by these tests")
 }

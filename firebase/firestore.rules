@@ -86,9 +86,11 @@ service cloud.firestore {
           (isSpaceCreator(spaceId) && request.auth.uid == memberId && request.resource.data.role == 'owner') ||
           (isAdminOrOwner(spaceId) && request.resource.data.role in ['admin', 'member'])
         );
+        // A member edits their own profile copy and the role stays. An owner or admin sets the role of
+        // anyone but the owner to admin or member: nobody becomes owner with an update, ownership moves
+        // only through the transfer in #27.
         allow update: if (
           (isMember(spaceId) && request.auth.uid == memberId && request.resource.data.role == resource.data.role) ||
-          isOwner(spaceId) ||
           (isAdminOrOwner(spaceId) && resource.data.role != 'owner' && request.resource.data.role in ['admin', 'member'])
         );
         allow delete: if (

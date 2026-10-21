@@ -25,6 +25,13 @@ internal fun mapMember(
     role = roleOf(role),
 )
 
+/** The role as stored in a member document (ADR 0002). */
+internal fun roleValue(role: Role): String = when (role) {
+    Role.OWNER -> "owner"
+    Role.ADMIN -> "admin"
+    Role.MEMBER -> "member"
+}
+
 /** An unknown role, such as one written by a newer build, gets the least privilege. */
 private fun roleOf(role: String?): Role = when (role) {
     "owner" -> Role.OWNER

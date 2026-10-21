@@ -76,4 +76,11 @@ class SpaceMapperTest {
         assertNull(withoutPhoto.photoUrl)
         assertEquals("owner", withoutPhoto.role)
     }
+
+    @Test
+    fun writesEveryRoleAsTheLowercaseNameTheRulesExpect() {
+        assertEquals("owner", roleValue(Role.OWNER))
+        assertEquals("admin", roleValue(Role.ADMIN))
+        assertEquals("member", roleValue(Role.MEMBER))
+    }
 }

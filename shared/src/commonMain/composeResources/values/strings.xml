@@ -203,4 +203,9 @@
     <string name="notification_permission_body">Orbit can only remind you if it may send notifications. Turn them on in the settings.</string>
     <string name="notification_permission_open_settings">Open settings</string>
     <string name="notification_permission_not_now">Not now</string>
+    <string name="member_change_role">Change role</string>
+    <string name="member_role_title">Role of %1$s</string>
+    <string name="member_role_make_admin">Make admin</string>
+    <string name="member_role_make_member">Make member</string>
+    <string name="member_role_failed">Could not change the role. Try again.</string>
 </resources>

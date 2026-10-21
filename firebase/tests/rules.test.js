@@ -367,15 +367,52 @@ describe('Firestore Security Rules', () => {
       assert.ok(changeOwner);
     });
 
-    it('allows owner to change any member role including transferring ownership', async () => {
-      const aliceDb = testEnv.authenticatedContext('alice').firestore();
+    // Alice owns s1, bob is an admin and charlie a plain member. Only an update is under test here.
+    const setRole = (uid, memberId, role) => testEnv.authenticatedContext(uid).firestore()
+      .collection('spaces').doc('s1').collection('members').doc(memberId).update({ role });
 
-      const transfer = await assertSucceeds(
-        aliceDb.collection('spaces').doc('s1').collection('members').doc('bob').update({
-          role: 'owner',
-        })
-      );
-      assert.ok(!transfer);
+    it('lets the owner set a member to admin and an admin back to member', async () => {
+      await assertSucceeds(setRole('alice', 'charlie', 'admin'));
+      await assertSucceeds(setRole('alice', 'bob', 'member'));
+    });
+
+    it('lets an admin change the role of a member and of another admin', async () => {
+      await assertSucceeds(setRole('bob', 'charlie', 'admin'));
+      await assertSucceeds(setRole('bob', 'charlie', 'member'));
+    });
+
+    it('denies anyone making a second owner, the owner included', async () => {
+      await assertFails(setRole('alice', 'bob', 'owner'));
+      await assertFails(setRole('alice', 'charlie', 'owner'));
+      await assertFails(setRole('bob', 'charlie', 'owner'));
+      await assertFails(setRole('bob', 'bob', 'owner'));
+      await assertFails(setRole('charlie', 'charlie', 'owner'));
+    });
+
+    it('denies changing the role of the owner, even by the owner', async () => {
+      await assertFails(setRole('alice', 'alice', 'admin'));
+      await assertFails(setRole('alice', 'alice', 'member'));
+      await assertFails(setRole('bob', 'alice', 'member'));
+      await assertFails(setRole('bob', 'alice', 'admin'));
+    });
+
+    it('denies a plain member changing any role, their own included', async () => {
+      await assertFails(setRole('charlie', 'bob', 'member'));
+      await assertFails(setRole('charlie', 'charlie', 'admin'));
+    });
+
+    it('denies someone outside the space changing a role', async () => {
+      await assertFails(setRole('david', 'charlie', 'admin'));
+    });
+
+    it('denies a role that is not one of admin and member', async () => {
+      await assertFails(setRole('alice', 'charlie', 'superuser'));
+      await assertFails(setRole('alice', 'charlie', 'Admin'));
+    });
+
+    it('lets the owner still edit their own profile copy, with the role unchanged', async () => {
+      await assertSucceeds(testEnv.authenticatedContext('alice').firestore()
+        .collection('spaces').doc('s1').collection('members').doc('alice').update({ displayName: 'Alice P.' }));
     });
 
     it('allows regular member to delete their own membership to leave, denies deleting owner', async () => {

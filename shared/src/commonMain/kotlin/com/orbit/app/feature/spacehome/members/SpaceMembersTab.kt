@@ -3,6 +3,8 @@ package com.orbit.app.feature.spacehome.members
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -15,6 +17,7 @@ import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.load_failed_body
+import orbit.shared.generated.resources.member_change_role
 import orbit.shared.generated.resources.retry
 import orbit.shared.generated.resources.space_members_load_failed
 import orbit.shared.generated.resources.space_members_loading
@@ -22,7 +25,10 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-/** The members of a space with their roles, loaded by the tab's own view model. */
+/**
+ * The members of a space with their roles, loaded by a view model of its own. An owner or admin gets a
+ * "Change role" button on every member whose role they can change.
+ */
 @Composable
 internal fun SpaceMembersTab(
     spaceId: String,
@@ -49,7 +55,25 @@ internal fun SpaceMembersTab(
                 leading = {
                     OrbitAvatar(member.initials, OrbitTheme.colors.spaceAccent(index), photoUrl = member.photoUrl)
                 },
+                trailing = if (member.canChangeRole) {
+                    {
+                        TextButton(onClick = { viewModel.openRolePicker(member.id) }) {
+                            Text(stringResource(Res.string.member_change_role))
+                        }
+                    }
+                } else {
+                    null
+                },
             )
         }
+    }
+    state.rolePicker?.let { member ->
+        RolePickerDialog(
+            member = member,
+            busy = state.busy,
+            failed = state.failed,
+            onPick = viewModel::changeRole,
+            onDismiss = viewModel::closeRolePicker,
+        )
     }
 }
