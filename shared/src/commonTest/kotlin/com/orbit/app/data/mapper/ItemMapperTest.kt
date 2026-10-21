@@ -28,7 +28,9 @@ class ItemMapperTest {
     private val modules = ItemModules(
         schedule = Schedule(LocalDate(2026, 10, 9), time = LocalTime(20, 0), duration = 90.minutes),
         assignment = Assignment.ToMember("ben"),
-        checklist = Checklist(listOf(ChecklistEntry("e2", "Milk", quantity = 2), ChecklistEntry("e1", "Bread", true))),
+        checklist = Checklist(
+            listOf(ChecklistEntry("e2", "Milk", quantity = 2, order = 0), ChecklistEntry("e1", "Bread", true, order = 1)),
+        ),
         reminder = Reminder(listOf(30.minutes)),
     )
 
@@ -175,8 +177,21 @@ class ItemMapperTest {
         val item = mapItem("item-1", stored.copy(modules = ModulesDocument(checklist = checklist)))
 
         assertEquals(
-            Checklist(listOf(ChecklistEntry("first", "Milk", checked = true), ChecklistEntry("late", "Bread"))),
+            Checklist(listOf(ChecklistEntry("first", "Milk", checked = true, order = 0), ChecklistEntry("late", "Bread"))),
             item?.modules?.checklist,
         )
+    }
+
+    @Test
+    fun entriesWithTheSameOrderHaveAStableIdOrder() {
+        val checklist = ChecklistDocument(
+            mapOf(
+                "z" to EntryDocument("Last", checked = false, order = 2),
+                "a" to EntryDocument("First", checked = false, order = 2),
+            ),
+        )
+        val item = mapItem("item-1", stored.copy(modules = ModulesDocument(checklist = checklist)))
+
+        assertEquals(listOf("a", "z"), item?.modules?.checklist?.entries?.map { it.id })
     }
 }

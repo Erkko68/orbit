@@ -239,6 +239,33 @@ class ItemScreenTest : ComposeTest() {
     }
 
     @Test
+    fun checklistCardAddsEditsChecksAndRemovesAnEntry() = runComposeUiTest {
+        val id = createItem(NewItem("Groceries", modules = ItemModules(checklist = Checklist(emptyList()))))
+        val viewModel = model(id, items)
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+
+        onNodeWithText("+ Add item").performScrollTo().performClick()
+        onNodeWithText("Item name").performTextInput("Milk")
+        onNodeWithText("Quantity (optional)").performTextInput("2")
+        onNodeWithText("Save").performScrollTo().performClick()
+        onNodeWithText("Milk × 2").performScrollTo().assertIsDisplayed()
+
+        onNodeWithContentDescription("Check Milk").performScrollTo().performClick()
+        onNodeWithContentDescription("Uncheck Milk").performScrollTo().assertIsDisplayed()
+        onNodeWithContentDescription("Edit Milk").performScrollTo().performClick()
+        onNodeWithText("Milk").performTextReplacement("Oat milk")
+        onNodeWithText("2").performTextReplacement("0")
+        onNodeWithText("Enter a whole number greater than zero.").assertIsDisplayed()
+        onNodeWithText("Save").assertIsNotEnabled()
+        onNodeWithText("0").performTextReplacement("3")
+        onNodeWithText("Save").performScrollTo().performClick()
+        onNodeWithText("Oat milk × 3").performScrollTo().assertIsDisplayed()
+        onNodeWithContentDescription("Edit Oat milk").performScrollTo().performClick()
+        onNodeWithText("Remove item").performScrollTo().performClick()
+        onNodeWithText("No checklist entries").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun eventRendersScheduleDurationAndReminderOffsets() = runComposeUiTest {
         val id = createItem(
             NewItem(

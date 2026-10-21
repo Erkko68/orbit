@@ -9,6 +9,7 @@ import com.orbit.app.core.orOnFailure
 import com.orbit.app.core.valueOrNull
 import com.orbit.app.data.repository.requireUser
 import com.orbit.app.domain.model.Assignment
+import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.ModuleType
@@ -42,6 +43,10 @@ class ItemViewModel(
 ) : ViewModel() {
     private val action = MutableStateFlow(ActionState())
     private val scheduleEditor = MutableStateFlow<ScheduleEditor?>(null)
+    private val checklistEditor = MutableStateFlow<ChecklistEditor?>(null)
+    private val editors = combine(scheduleEditor, checklistEditor) { schedule, checklist ->
+        Editors(schedule, checklist)
+    }
     private val askNotifications = MutableStateFlow(false)
     private val pickingMember = MutableStateFlow(false)
     private val retries = Channel<Unit>(Channel.CONFLATED)
@@ -68,10 +73,9 @@ class ItemViewModel(
         item,
         action,
         context,
-        combine(scheduleEditor, askNotifications, pickingMember) { editor, ask, picking ->
-            Triple(editor, ask, picking)
-        },
-    ) { load, action, context, (editor, ask, picking) ->
+        editors,
+        combine(askNotifications, pickingMember) { ask, picking -> ask to picking },
+    ) { load, action, context, editors, (ask, picking) ->
         val loaded = load.valueOrNull
         ItemUiState(
             title = loaded?.title.orEmpty(),
@@ -88,7 +92,8 @@ class ItemViewModel(
             memberNames = context.memberNames,
             members = context.members,
             currentUserId = context.currentUserId,
-            scheduleEditor = editor,
+            scheduleEditor = editors.schedule,
+            checklistEditor = editors.checklist,
             askNotifications = ask,
             pickingMember = picking,
         )
@@ -214,6 +219,64 @@ class ItemViewModel(
         submit(onSuccess = { scheduleEditor.value = null }) { items.setModule(spaceId, itemId, schedule) }
     }
 
+    fun addChecklistEntry() {
+        if (!uiState.value.canSubmit || checklist() == null) return
+        action.update { it.copy(failed = false) }
+        checklistEditor.value = ChecklistEditor()
+    }
+
+    fun editChecklistEntry(entryId: String) {
+        if (!uiState.value.canSubmit) return
+        val entry = checklist()?.entries?.firstOrNull { it.id == entryId } ?: return
+        action.update { it.copy(failed = false) }
+        checklistEditor.value = ChecklistEditor.of(entry)
+    }
+
+    fun dismissChecklistEditor() {
+        if (!action.value.submitting) checklistEditor.value = null
+    }
+
+    fun onChecklistTextChange(text: String) = updateChecklistEditor { it.copy(text = text) }
+
+    fun onChecklistQuantityChange(quantity: String) = updateChecklistEditor { it.copy(quantity = quantity) }
+
+    fun saveChecklistEntry() {
+        if (!uiState.value.canSaveChecklist) return
+        val editor = checklistEditor.value ?: return
+        val checklist = checklist() ?: return
+        val text = editor.text.trim()
+        val quantity = editor.quantityValue
+        val entryId = editor.entryId
+        if (entryId != null && checklist.entries.none { it.id == entryId }) return
+        submit(onSuccess = { checklistEditor.value = null }) {
+            if (entryId == null) {
+                val nextOrder = checklist.entries.mapIndexed { index, entry -> entry.order ?: index }.maxOrNull()
+                    ?.plus(1) ?: 0
+                items.addEntry(spaceId, itemId, text, quantity, nextOrder)
+            } else {
+                items.updateEntry(spaceId, itemId, entryId, text, quantity)
+            }
+        }
+    }
+
+    fun removeChecklistEntry() {
+        val entryId = checklistEditor.value?.entryId ?: return
+        if (checklist()?.entries?.any { it.id == entryId } != true) return
+        submit(onSuccess = { checklistEditor.value = null }) { items.removeEntry(spaceId, itemId, entryId) }
+    }
+
+    fun toggleChecklistEntry(entryId: String) {
+        val entry = checklist()?.entries?.firstOrNull { it.id == entryId } ?: return
+        submit { items.setEntryChecked(spaceId, itemId, entryId, !entry.checked) }
+    }
+
+    private fun checklist(): Checklist? = uiState.value.modules.filterIsInstance<Checklist>().firstOrNull()
+
+    private fun updateChecklistEditor(change: (ChecklistEditor) -> ChecklistEditor) {
+        checklistEditor.update { it?.let(change) }
+        action.update { it.copy(failed = false) }
+    }
+
     private fun updateEditor(change: (ScheduleEditor) -> ScheduleEditor) {
         scheduleEditor.update { it?.let(change) }
         action.update { it.copy(failed = false) }
@@ -234,6 +297,8 @@ class ItemViewModel(
     }
 
     private data class ActionState(val submitting: Boolean = false, val failed: Boolean = false)
+
+    private data class Editors(val schedule: ScheduleEditor?, val checklist: ChecklistEditor?)
 
     private data class ItemContext(
         val spaceName: String? = null,

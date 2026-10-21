@@ -30,6 +30,22 @@ internal class ControlledItemRepository(private val delegate: ItemRepository) : 
         write("remove:$type") { delegate.removeModule(spaceId, itemId, type) }
     }
 
+    override suspend fun addEntry(spaceId: String, itemId: String, text: String, quantity: Int?, order: Int) {
+        write("addEntry") { delegate.addEntry(spaceId, itemId, text, quantity, order) }
+    }
+
+    override suspend fun updateEntry(spaceId: String, itemId: String, entryId: String, text: String, quantity: Int?) {
+        write("updateEntry") { delegate.updateEntry(spaceId, itemId, entryId, text, quantity) }
+    }
+
+    override suspend fun removeEntry(spaceId: String, itemId: String, entryId: String) {
+        write("removeEntry") { delegate.removeEntry(spaceId, itemId, entryId) }
+    }
+
+    override suspend fun setEntryChecked(spaceId: String, itemId: String, entryId: String, checked: Boolean) {
+        write("checkEntry") { delegate.setEntryChecked(spaceId, itemId, entryId, checked) }
+    }
+
     override suspend fun complete(spaceId: String, itemId: String) {
         write("complete") { delegate.complete(spaceId, itemId) }
     }

@@ -211,6 +211,9 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `setModule` | same | `update` of `modules.<type>` (the whole module) |
 | `removeModule` | same | `update`: delete `modules.<type>` |
 | `setEntryChecked` | same | `update` of `modules.checklist.entries.<id>.checked` |
+| `addEntry` | same | `update` of `modules.checklist.entries.<new id>` with text, checked, optional quantity and order |
+| `updateEntry` | same | `update` of `modules.checklist.entries.<id>.text` and `.quantity` only |
+| `removeEntry` | same | `update`: delete `modules.checklist.entries.<id>` |
 | `complete` | same | `update` of `status: done`, `completedBy`, `completedAt` |
 | `reopen` | same | `update` of `status: open`, delete `completedBy` and `completedAt` |
 

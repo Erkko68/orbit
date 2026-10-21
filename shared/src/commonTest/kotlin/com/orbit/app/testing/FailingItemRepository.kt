@@ -26,6 +26,13 @@ internal class FailingItemRepository(
     override suspend fun setEntryChecked(spaceId: String, itemId: String, entryId: String, checked: Boolean) =
         throw failure
 
+    override suspend fun addEntry(spaceId: String, itemId: String, text: String, quantity: Int?, order: Int) = throw failure
+
+    override suspend fun updateEntry(spaceId: String, itemId: String, entryId: String, text: String, quantity: Int?) =
+        throw failure
+
+    override suspend fun removeEntry(spaceId: String, itemId: String, entryId: String) = throw failure
+
     override suspend fun complete(spaceId: String, itemId: String) = throw failure
 
     override suspend fun reopen(spaceId: String, itemId: String) = throw failure

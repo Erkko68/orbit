@@ -3,6 +3,7 @@ package com.orbit.app.data.repository
 import co.touchlab.kermit.Logger
 import com.orbit.app.data.mapper.AssignmentDocument
 import com.orbit.app.data.mapper.ChecklistDocument
+import com.orbit.app.data.mapper.EntryDocument
 import com.orbit.app.data.mapper.ModulesDocument
 import com.orbit.app.data.mapper.ReminderDocument
 import com.orbit.app.data.mapper.STATUS_DONE
@@ -78,6 +79,23 @@ class FirestoreItemRepository(
             FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "checked") to checked
         }
 
+    override suspend fun addEntry(spaceId: String, itemId: String, text: String, quantity: Int?, order: Int) {
+        val entryId = items(spaceId).document.id
+        update(spaceId, itemId) {
+            entryPath(entryId).to(EntryDocument.serializer(), EntryDocument(text, false, quantity, order))
+        }
+    }
+
+    override suspend fun updateEntry(spaceId: String, itemId: String, entryId: String, text: String, quantity: Int?) =
+        update(spaceId, itemId) {
+            FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "text") to text
+            FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "quantity") to
+                (quantity ?: FieldValue.delete)
+        }
+
+    override suspend fun removeEntry(spaceId: String, itemId: String, entryId: String) =
+        update(spaceId, itemId) { entryPath(entryId) to FieldValue.delete }
+
     override suspend fun complete(spaceId: String, itemId: String) {
         val userId = auth.requireUser().id
         update(spaceId, itemId) {
@@ -95,6 +113,8 @@ class FirestoreItemRepository(
         }
 
     private fun items(spaceId: String) = firestore.collection(SPACES).document(spaceId).collection(ITEMS)
+
+    private fun entryPath(entryId: String) = FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId)
 
     private suspend fun update(spaceId: String, itemId: String, fields: FieldsAndValuesUpdateDSL.() -> Unit) {
         val document = items(spaceId).document(itemId)
