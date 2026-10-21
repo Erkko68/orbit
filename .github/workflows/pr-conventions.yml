@@ -1,6 +1,7 @@
 name: PR conventions
 
 # Squash merge turns the PR title into the commit on main, so it must follow Conventional Commits.
+# Every issue a PR closes must have its real hours in the project's Actual field.
 on:
   pull_request:
     types: [opened, edited, synchronize, reopened]
@@ -39,3 +40,19 @@ jobs:
             echo "::error::Branch '$BRANCH' must be <type>/<issue>-short-name, e.g. feature/42-balance-calculation"
             exit 1
           fi
+
+  actual:
+    name: Actual hours
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write  # the comment that says how to log the hours
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: python3 .github/scripts/actual_hours.py
+        env:
+          # GITHUB_TOKEN cannot read a user-owned project: a classic PAT with the project scope.
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          COMMENT_TOKEN: ${{ github.token }}

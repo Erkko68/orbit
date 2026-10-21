@@ -13,7 +13,7 @@ stateDiagram-v2
     InProgress --> Planned: unassigned
 ```
 
-The board moves the cards and computes the dates itself ([project automation](project-automation.md)). Never edit Status, `Start date`, `Target date` or `Deviation (days)` by hand. What people keep right: the milestone, the "Blocked by" links, `Priority`, and `Estimate` in hours (or a `size:` label).
+The board moves the cards and computes the dates itself ([project automation](project-automation.md)). Never edit Status, `Start date`, `Target date` or `Deviation (days)` by hand. What people keep right: the milestone, the "Blocked by" links, `Priority`, `Estimate` in hours (or a `size:` label), and `Actual`, the hours really spent. The [dashboard](https://erkko68.github.io/orbit/) shows where the project stands.
 
 ## Step by step
 
@@ -44,7 +44,11 @@ The board moves the cards and computes the dates itself ([project automation](pr
    ./gradlew :shared:testAndroidHostTest :shared:iosSimulatorArm64Test
    ```
    For a rules change, also run the rules tests ([testing](testing.md#firestore-rules)).
-7. **Open one PR per complete feature.** Title in Conventional Commits without the issue number, its subject lowercase and at most about 60 characters (CI checks it); the body follows the template and says `Closes #42`. Close only when every "Done when" item is met, including both platforms; otherwise link a follow-up issue for what is left.
+7. **Log your hours** in the issue's `Actual` field on the board: every hour you really spent on it. The `Actual hours` check fails the PR until you do, and the project's cost is computed from it.
+   ```sh
+   python3 .github/scripts/actual_hours.py --set 42 3.5
+   ```
+8. **Open one PR per complete feature.** Title in Conventional Commits without the issue number, its subject lowercase and at most about 60 characters (CI checks it); the body follows the template and says `Closes #42`. Close only when every "Done when" item is met, including both platforms; otherwise link a follow-up issue for what is left.
 
 ## Checks on every pull request
 
@@ -55,6 +59,7 @@ The board moves the cards and computes the dates itself ([project automation](pr
 | Firestore rules | `ci.yml` | A rules test fails in the emulator |
 | PR title | `pr-conventions.yml` | The title is not a Conventional Commit |
 | Branch name | `pr-conventions.yml` | The branch is not `<type>/<issue>-name` |
+| Actual hours | `pr-conventions.yml` | An issue the PR closes has no `Actual` on the board. Log it, then re-run the check |
 | SonarCloud Code Analysis | `sonarqube.yml` | The quality gate fails, including under 80% coverage on new code |
 
 ## Review and merge

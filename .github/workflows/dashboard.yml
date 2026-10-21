@@ -1,0 +1,48 @@
+name: Dashboard
+
+# Rebuilds the GitHub Pages dashboard (earned value, burn charts, roadmap by date) from the issues and the project.
+on:
+  issues:
+    types: [opened, closed, reopened, deleted, assigned, milestoned, demilestoned]
+  push:
+    branches: [main]
+    paths: ['.github/dashboard/**', '.github/scripts/**']
+  schedule:
+    - cron: '30 * * * *'  # board fields (Estimate, Actual) trigger nothing, so this picks them up
+  workflow_dispatch:
+
+concurrency:
+  group: dashboard
+  cancel-in-progress: false  # never cut a Pages deployment short
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: python3 .github/scripts/dashboard.py
+        env:
+          # GITHUB_TOKEN cannot read a user-owned project: a classic PAT with the project scope.
+          GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

@@ -121,14 +121,18 @@ This file holds the rules. The background to them (architecture, schema, roles, 
 - 4 members, GitHub Projects kanban with columns Backlog, Planned, In progress, Done.
 - The board and its roadmap keep themselves up to date (`project-sync.yml`). How it works: [docs/process/project-automation.md](docs/process/project-automation.md). The walk-through of the whole workflow: [docs/process/workflow.md](docs/process/workflow.md).
   - Never edit Status, `Start date`, `Target date` or `Deviation (days)` by hand: the next run overwrites them.
-  - What people maintain: the milestone, the "Blocked by" links, `Priority`, and `Estimate` in hours (or at least a `size:` label). The plan is computed from those.
+  - What people maintain: the milestone, the "Blocked by" links, `Priority`, `Estimate` in hours (or at least a `size:` label), and `Actual`. The plan and the dashboard are computed from those.
   - Assign yourself the day you start, not when you finish: the assignment starts the issue's bar and the clock for its deviation.
+- **Log the hours you really spent in the issue's `Actual` field (project board, hours, decimals allowed) before asking for review. Mandatory: the `Actual hours` check fails the PR until every issue it closes has one, and the project's cost and earned value are computed from it.**
+  - The total for the issue, review fixes included: update it if more work lands before the merge.
+  - From the terminal: `python3 .github/scripts/actual_hours.py --set <issue> <hours>`. Then re-run the check: editing a board field triggers nothing.
 - Starting work. Agents do these steps, in order, before changing any code:
   1. Check the GitHub CLI with `gh auth status`. If `gh` is missing or not logged in, suggest setting it up in the terminal (`brew install gh` or https://cli.github.com, then `gh auth login`) before anything else.
   2. Find the current milestone (the open one with the earliest due date) and list its free issues: `gh issue list --milestone "<milestone>" --search "no:assignee"`. Ask the user which one to work on. Skip issues whose "Blocked by" issues are still open.
   3. Assign it to the user with `gh issue edit <issue> --add-assignee @me` when the work starts, not when it is done: the assignment moves it to In progress and starts its bar on the roadmap.
   4. Create the branch for that issue (see below).
   5. Read the issue critically before building it. If a "Done when" item is wrong, outdated or does not make sense for the product (e.g. #19 asked for language and time zone pickers the phone already provides), or the issue misses something (an ADR rule, a platform), do not build it as written: fix the issue if the user owns it, otherwise comment on it proposing the change, and tell the user. Issues that depend on it get rescoped too.
+- Finishing work. Before opening the PR, agents ask the user how many hours the issue took and log them with `python3 .github/scripts/actual_hours.py --set <issue> <hours>`. Never guess or estimate the number for them.
 - An assigned issue is taken. Never pick, reassign or commit against an issue assigned to someone else unless the user explicitly says they are helping on it. In that case add the user as a second assignee and leave the original one.
 - **Every commit references its issue as `(#<issue>)` at the end of the subject, and every PR closes it with `Closes #<issue>`. No issue, no commit: create the issue first.**
 - Commits: Conventional Commits, imperative, subject ≤ 72 chars.
@@ -149,7 +153,7 @@ This file holds the rules. The background to them (architecture, schema, roles, 
 - No direct pushes, force pushes or deletion of `main`. Every change goes through a PR, including docs.
 - **1 approval** from another team member. New pushes dismiss existing approvals.
 - All review conversations resolved.
-- Required checks: `Android build + tests`, `iOS compile + tests` (`ci.yml`), `PR title`, `Branch name` (`pr-conventions.yml`), `SonarCloud Code Analysis` (quality gate).
+- Required checks: `Android build + tests`, `iOS compile + tests` (`ci.yml`), `PR title`, `Branch name`, `Actual hours` (`pr-conventions.yml`), `SonarCloud Code Analysis` (quality gate).
 - `sonarqube.yml` runs SonarQube Cloud on every PR (`sonar-project.properties`). A failed quality gate blocks the merge, so fix what it reports before asking for review.
   - Kotlin coverage comes from Kover: the workflow runs `./gradlew :shared:koverXmlReport` (Android host tests) and Sonar reads `shared/build/reports/kover/report.xml`. The gate needs 80% coverage on new code, so new logic ships with tests.
   - Temporary: `sonar.coverage.exclusions` skips `.github/scripts/**` and `firebase/**` because the Python code and Firebase have no coverage report yet. Remove the `firebase/functions/**` exclusion once the functions have pytest coverage reported to Sonar.
