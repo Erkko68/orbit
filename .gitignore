@@ -29,3 +29,5 @@ DerivedData/
 *-debug.log
 firebase/functions/venv/
 __pycache__/
+# Dashboard build output (.github/scripts/dashboard.py)
+/site/

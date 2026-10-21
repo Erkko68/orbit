@@ -5,6 +5,7 @@ estimated hours against the time the issues really took. The full dashboard is b
 Run with --print to see the markdown without touching GitHub.
 """
 import json
+import math
 import os
 import subprocess
 import sys
@@ -130,15 +131,17 @@ def time_report(issues, today, start=None, due=None, table=True):
         out += (f" {passed:.0%} of the sprint has passed, so {planned * passed:.0f} h were expected by now:"
                 f" {abs(gap):.0f} h {'ahead' if gap >= 0 else 'behind'}.")
     rows = [(i, *spent(i)) for i in issues if i["closed"] and i["estimate"]]
-    if not rows:
-        return out + "\n\n"
+    return out + (issue_table(rows, table) if rows else "\n\n")
+
+
+def issue_table(rows, with_rows=True):
+    """Estimate against actual per finished issue, with a total over the issues whose actual can be trusted."""
     known = [(i, hours) for i, hours, source in rows if source in ("logged", "measured")]
-    out += "\n\n| Issue | Assignee | Estimate (h) | Actual (h) | Source | Deviation |\n|---|---|---|---|---|---|\n"
-    if table:
-        for i, hours, source in rows:
-            trusted = source in ("logged", "measured")
-            out += (f"| #{i['number']} | {i['who']} | {i['estimate']:g} | {f'{hours:g}' if trusted else '–'} |"
-                    f" {source if trusted else '⚠️ ' + source} | {deviation(i['estimate'], hours) if trusted else '–'} |\n")
+    out = "\n\n| Issue | Assignee | Estimate (h) | Actual (h) | Source | Deviation |\n|---|---|---|---|---|---|\n"
+    for i, hours, source in (rows if with_rows else []):
+        trusted = source in ("logged", "measured")
+        out += (f"| #{i['number']} | {i['who']} | {i['estimate']:g} | {f'{hours:g}' if trusted else '–'} |"
+                f" {source if trusted else '⚠️ ' + source} | {deviation(i['estimate'], hours) if trusted else '–'} |\n")
     if known:
         estimate, actual = sum(i["estimate"] for i, _ in known), sum(hours for _, hours in known)
         out += f"| **Total** ({len(known)} of {len(rows)}) | | {estimate:g} | {actual:g} | | {deviation(estimate, actual)} |\n"
@@ -246,8 +249,8 @@ def check():
     late = {"timelineItems": {"nodes": [{"createdAt": "2026-10-05T23:00:00Z"}]},
             "closedByPullRequestsReferences": {"nodes": [{"createdAt": "2026-10-06T00:30:00Z"}]}}
     open_ = {"timelineItems": node["timelineItems"], "closedByPullRequestsReferences": {"nodes": []}}
-    if (worked(node) != 2 or worked(idle) != 8 or worked(late) != 1.5 or worked(open_) is not None
-            or worked(open_, datetime(2026, 10, 1, 9, 0, tzinfo=timezone.utc)) != 1):
+    expected = [(node, None, 2), (idle, None, 8), (late, None, 1.5), (open_, datetime(2026, 10, 1, 9, 0, tzinfo=timezone.utc), 1)]
+    if worked(open_) is not None or not all(math.isclose(worked(n, until), hours) for n, until, hours in expected):
         raise RuntimeError("worked() self-check failed")
 
     def timed(number, estimate, actual=None, measured=None, closed=d, started=True):

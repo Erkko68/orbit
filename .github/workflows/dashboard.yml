@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - run: python3 .github/scripts/dashboard.py --out site
+      - run: python3 .github/scripts/dashboard.py
         env:
           # GITHUB_TOKEN cannot read a user-owned project: a classic PAT with the project scope.
           GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}

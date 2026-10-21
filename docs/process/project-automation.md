@@ -39,7 +39,7 @@ GITHUB_REPOSITORY=Erkko68/orbit python3 .github/scripts/dashboard.py --print
 To see the dashboard locally, build it and serve the folder:
 
 ```
-GITHUB_REPOSITORY=Erkko68/orbit python3 .github/scripts/dashboard.py --out /tmp/site && python3 -m http.server -d /tmp/site
+GITHUB_REPOSITORY=Erkko68/orbit python3 .github/scripts/dashboard.py && python3 -m http.server -d site
 ```
 
 Each script checks its own logic before it does anything (`check()` at the bottom of the file).
