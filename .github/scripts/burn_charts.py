@@ -27,7 +27,7 @@ QUERY = """query($owner: String!, $name: String!, $endCursor: String) {
         milestone { title dueOn }
         labels(first: 20) { nodes { name } }
         assignees(first: 5) { nodes { login } }
-        timelineItems(itemTypes: ASSIGNED_EVENT, first: 1) { nodes { ... on AssignedEvent { createdAt } } }
+        timelineItems(itemTypes: ASSIGNED_EVENT, last: 1) { nodes { ... on AssignedEvent { createdAt } } }
         closedByPullRequestsReferences(first: 10) { nodes { createdAt } }
       }
     }
@@ -72,7 +72,7 @@ def fields():
 
 
 def worked(node, until=None):
-    """Hours from the first assignment to the closing PR being opened (or `until`, for work in progress), at most
+    """Hours from the last assignment to the closing PR being opened (or `until`, for work in progress), at most
     HOURS_PER_DAY per day, or None when either end is missing. An issue left assigned for days counts as the days'
     budget, not as 24 h each."""
     assigned = [e["createdAt"] for e in node["timelineItems"]["nodes"]]
@@ -145,7 +145,7 @@ def issue_table(rows, with_rows=True):
     if known:
         estimate, actual = sum(i["estimate"] for i, _ in known), sum(hours for _, hours in known)
         out += f"| **Total** ({len(known)} of {len(rows)}) | | {estimate:g} | {actual:g} | | {deviation(estimate, actual)} |\n"
-    return out + (f"\nActual is the `Actual` field on the project. Without it, the time from the first assignment to"
+    return out + (f"\nActual is the `Actual` field on the project. Without it, the time from the last assignment to"
                   f" the closing PR being opened, at most {HOURS_PER_DAY} h a day. ⚠️ rows have neither a log nor a"
                   f" believable measure and are left out of the total.\n\n")
 

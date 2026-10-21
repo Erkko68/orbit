@@ -53,8 +53,8 @@ catches up.
 | State of the issue | Status | `Start date` | `Target date` | `Deviation (days)` |
 |---|---|---|---|---|
 | Open, nobody assigned | Untouched (back to Planned if it was In progress) | Planned start | Planned end | |
-| Open, assigned | In progress | Day of the first assignment | Start plus its duration | |
-| A PR closes it | Untouched (GitHub's own project workflows handle In progress and Done) | Day of the first assignment | Day the PR was opened | Real end minus expected end |
+| Open, assigned | In progress | Day of the last assignment | Start plus its duration | |
+| A PR closes it | Untouched (GitHub's own project workflows handle In progress and Done) | Day of the last assignment | Day the PR was opened | Real end minus expected end |
 
 A negative deviation means the issue ended early, a positive one late. The Roadmap view draws one bar per issue from
 `Start date` to `Target date`, so a bar is the plan until someone takes the issue, the expectation while they work on
@@ -101,7 +101,7 @@ The actual cost and the time tables need the hours each issue really took. They 
 
 1. **`Actual`**, the hours logged on the project. Required before review (`Actual hours` check), and the only source
    that is not a guess. `python3 .github/scripts/actual_hours.py --set <issue> <hours>` logs it from the terminal.
-2. **Measured**: the time from the first assignment to the closing PR being opened, at most 2 h a day.
+2. **Measured**: the time from the last assignment to the closing PR being opened, at most 2 h a day.
 3. **The issue's work hours** (`Estimate`, else its size) when the measure cannot be believed. These issues are
    flagged on the dashboard under "Issues to check":
 
@@ -181,4 +181,4 @@ Measured against the Sprint 0 cost plan, whose numbers are constants at the top 
   `Actual hours` check on the PR (or push, or edit its description).
 - The dashboard's past roadmaps use today's estimates, milestones and blockers, so an issue moved to another sprint
   shows in its new sprint on every day.
-- An issue that is unassigned and assigned again keeps the day of its first assignment as its start.
+- An issue that is unassigned and assigned again starts over from the new assignment, so reassigning retracks its time.

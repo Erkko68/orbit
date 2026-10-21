@@ -50,7 +50,7 @@ QUERY = """query($owner: String!, $name: String!, $project: Int!, $cursor: Strin
               labels(first: 20) { nodes { name } }
               assignees(first: 5) { totalCount nodes { login } }
               blockedBy(first: 50) { nodes { number } }
-              timelineItems(itemTypes: ASSIGNED_EVENT, first: 1) { nodes { ... on AssignedEvent { createdAt } } }
+              timelineItems(itemTypes: ASSIGNED_EVENT, last: 1) { nodes { ... on AssignedEvent { createdAt } } }
               closedByPullRequestsReferences(first: 10) { nodes { createdAt } }
             }
           }
