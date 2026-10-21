@@ -63,7 +63,7 @@ it, and what really happened once the PR is open.
 ## How the plan is computed
 
 1. **Duration.** `Estimate` hours divided by 2 hours a day, rounded up to whole days. 8 h is four days, 3 h is two.
-   Without an estimate the size is used: XS 1 h, S 3 h, M 6 h, L 12 h, XL 20 h. With neither, the issue counts as an S.
+   Without an estimate the size is used: XS 0.25 h, S 0.5 h, M 1 h, L 2 h, XL 4 h. With neither, the issue counts as an S.
 2. **Earliest start.** The day after its last blocker ends, never before its sprint starts and never in the past.
    A sprint starts the day the previous one is due. Blockers that are closed or have a PR open do not hold anything
    back. Blockers in progress hold until their expected end, or until today if that has passed.
@@ -84,7 +84,7 @@ The constants are at the top of `project_sync.py`.
 |---|---|---|
 | `HOURS_PER_DAY` | Hours one member puts in per day, weekends included | 2 |
 | `TEAM` | Members working in parallel | 4 |
-| `SIZE_HOURS` | Hours each size stands for | XS 1, S 3, M 6, L 12, XL 20 |
+| `SIZE_HOURS` | Hours each size stands for | XS 0.25, S 0.5, M 1, L 2, XL 4 |
 | `PROJECT` | Number of the project in the owner's account | 3 |
 
 ### What the plan does not know

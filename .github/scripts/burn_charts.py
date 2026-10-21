@@ -258,7 +258,7 @@ def check():
                 "work": work(estimate, None), "measured": measured, "started": started, "who": "a"}
 
     if (spent(timed(1, 2, actual=5, measured=0.1)) != (5, "logged") or spent(timed(2, 2, measured=18)) != (2, "left running")
-            or spent(timed(3, None, measured=0.2)) != (3, "assigned at PR") or spent(timed(4, 4, measured=3)) != (3, "measured")
+            or spent(timed(3, None, measured=0.2)) != (0.5, "assigned at PR") or spent(timed(4, 4, measured=3)) != (3, "measured")
             or spent(timed(5, 4, closed=None, started=False)) != (0, "not started")
             or spent(timed(6, 4, measured=0.2, closed=None)) != (0.2, "measured")):
         raise RuntimeError("spent() self-check failed")
