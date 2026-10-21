@@ -124,5 +124,8 @@ class SessionViewModelTest {
         override suspend fun createSpace(name: String, accent: Int): String = error("Not used by these tests")
 
         override suspend fun changeRole(spaceId: String, userId: String, role: Role) = error("Not used by these tests")
+
+        override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) =
+            error("Not used by these tests")
     }
 }
