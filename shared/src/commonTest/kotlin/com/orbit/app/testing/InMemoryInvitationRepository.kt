@@ -32,6 +32,9 @@ class InMemoryInvitationRepository(
         return code
     }
 
+    /** The invitation with this code, whatever its space and state: what joining looks up. */
+    fun find(code: String): Invitation? = invitations.value.firstOrNull { it.code == code }
+
     override suspend fun revokeInvitation(code: String) {
         invitations.update { all -> all.map { if (it.code == code) it.copy(revoked = true) else it } }
     }

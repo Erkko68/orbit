@@ -33,6 +33,8 @@ internal class FakeSpaceRepository(
         members.update { all -> all.map { if (it.userId == userId) it.copy(role = role) else it } }
     }
 
+    override suspend fun joinSpace(code: String): String = error("Not used by these tests")
+
     companion object {
         fun withMembers(vararg people: Pair<String, Role>, changeRoleFailure: Exception? = null) = FakeSpaceRepository(
             space = Space("space-1", "Flat 4B", accent = 0, memberIds = people.map { it.first }),

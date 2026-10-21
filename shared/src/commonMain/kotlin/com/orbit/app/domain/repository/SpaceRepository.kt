@@ -1,5 +1,6 @@
 package com.orbit.app.domain.repository
 
+import com.orbit.app.domain.model.JoinException
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
@@ -24,4 +25,11 @@ interface SpaceRepository {
      * transfer (#27). Throws when it is not allowed.
      */
     suspend fun changeRole(spaceId: String, userId: String, role: Role)
+
+    /**
+     * Joins the space the invitation with this [code] invites to, as a plain member, and returns its id. Needs
+     * a connection: the server decides whether the invitation still works. Throws a [JoinException] when the
+     * invitation refuses and any other exception when the join itself fails.
+     */
+    suspend fun joinSpace(code: String): String
 }

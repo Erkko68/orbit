@@ -13,11 +13,15 @@ internal class SpaceDocument(
     val createdAt: Timestamp.ServerTimestamp,
 )
 
-/** `spaces/{spaceId}/members/{uid}` as written. An absent [photoUrl] is omitted, never stored as null. */
+/**
+ * `spaces/{spaceId}/members/{uid}` as written. Absent [photoUrl] and [invitationCode] are omitted, never stored
+ * as null. [invitationCode] is only there for a member who joined with an invitation: the rules read it.
+ */
 @Serializable
 internal class MemberDocument(
     val role: String,
     val displayName: String,
     val photoUrl: String? = null,
     val joinedAt: Timestamp.ServerTimestamp,
+    val invitationCode: String? = null,
 )

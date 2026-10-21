@@ -83,4 +83,19 @@ class SpaceMapperTest {
         assertEquals("admin", roleValue(Role.ADMIN))
         assertEquals("member", roleValue(Role.MEMBER))
     }
+
+    @Test
+    fun aMemberWhoJoinsIsAPlainMemberNamingTheInvitationThatLetThemIn() {
+        val member = joiningMemberDocument("Ben", photoUrl = null, code = "ABCD2345")
+
+        assertEquals("member", member.role)
+        assertEquals("Ben", member.displayName)
+        assertEquals("ABCD2345", member.invitationCode)
+        assertNull(member.photoUrl)
+    }
+
+    @Test
+    fun theOwnerOfANewSpaceNamesNoInvitation() {
+        assertNull(ownerMemberDocument("Ana", photoUrl = null).invitationCode)
+    }
 }

@@ -44,6 +44,51 @@ service cloud.firestore {
       );
     }
 
+    // The invitation a joining member names: it invites to this space, is not revoked and has not expired.
+    function validInvitation(spaceId, code) {
+      return code is string
+        && exists(/databases/$(database)/documents/invitations/$(code))
+        && get(/databases/$(database)/documents/invitations/$(code)).data.spaceId == spaceId
+        && get(/databases/$(database)/documents/invitations/$(code)).data.revoked == false
+        && get(/databases/$(database)/documents/invitations/$(code)).data.expiresAt > request.time;
+    }
+
+    // The caller joining a space, as the member document of that batch (ADR 0002, "Joining"). It is theirs, a
+    // plain member, names a valid invitation to this space, and the same batch adds the caller to memberIds.
+    function joinsAsMember(spaceId) {
+      return request.resource.data.role == 'member'
+        && request.resource.data.keys().hasOnly(['role', 'displayName', 'photoUrl', 'joinedAt', 'invitationCode'])
+        && request.resource.data.keys().hasAll(['role', 'displayName', 'joinedAt', 'invitationCode'])
+        && request.resource.data.displayName is string
+        && request.resource.data.joinedAt == request.time
+        && validInvitation(spaceId, request.resource.data.invitationCode)
+        && !(request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.memberIds)
+        && request.auth.uid in getAfter(/databases/$(database)/documents/spaces/$(spaceId)).data.memberIds;
+    }
+
+    // The space half of that batch: it appends the caller, and only the caller, to memberIds, and the batch
+    // also creates their member document with a valid invitation.
+    function joinsSpace(spaceId) {
+      let memberPath = /databases/$(database)/documents/spaces/$(spaceId)/members/$(request.auth.uid);
+      return isAuthenticated()
+        && !(request.auth.uid in resource.data.memberIds)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds'])
+        && request.resource.data.memberIds == resource.data.memberIds.concat([request.auth.uid])
+        && existsAfter(memberPath)
+        && getAfter(memberPath).data.role == 'member'
+        && validInvitation(spaceId, getAfter(memberPath).data.invitationCode);
+    }
+
+    // The members of a space grow only through a join, never by an admin writing uids into memberIds.
+    function addsMembers() {
+      return request.resource.data.memberIds.size() > resource.data.memberIds.size();
+    }
+
+    // The invitation a member joined with and when are set once, with the join.
+    function keepsJoin() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['invitationCode', 'joinedAt']);
+    }
+
     // Fields set once, on creation, that no later write may change.
     function keepsCreation() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'createdAt', 'spaceId']);
@@ -76,7 +121,7 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.name.trim().size() > 0
         && request.resource.data.accent is int;
-      allow update: if isAdminOrOwner(spaceId) && keepsCreation();
+      allow update: if (isAdminOrOwner(spaceId) && keepsCreation() && !addsMembers()) || joinsSpace(spaceId);
       allow delete: if isOwner(spaceId);
 
       // spaces/{spaceId}/members/{memberId}
@@ -84,12 +129,12 @@ service cloud.firestore {
         allow read: if isMember(spaceId);
         allow create: if (
           (isSpaceCreator(spaceId) && request.auth.uid == memberId && request.resource.data.role == 'owner') ||
-          (isAdminOrOwner(spaceId) && request.resource.data.role in ['admin', 'member'])
+          (request.auth.uid == memberId && joinsAsMember(spaceId))
         );
         // A member edits their own profile copy and the role stays. An owner or admin sets the role of
         // anyone but the owner to admin or member: nobody becomes owner with an update, ownership moves
         // only through the transfer in #27.
-        allow update: if (
+        allow update: if keepsJoin() && (
           (isMember(spaceId) && request.auth.uid == memberId && request.resource.data.role == resource.data.role) ||
           (isAdminOrOwner(spaceId) && resource.data.role != 'owner' && request.resource.data.role in ['admin', 'member'])
         );
@@ -122,7 +167,7 @@ service cloud.firestore {
 
     // invitations/{code}: an invitation to one space, the document id being the code (ADR 0002).
     // A bearer capability: whoever knows the code reads it by id, nobody lists them across spaces.
-    // Joining writes to the space itself and its rules are added with #25.
+    // Joining reads it from the space and member rules above (validInvitation).
     match /invitations/{code} {
       allow get: if isAuthenticated();
       allow list: if isAuthenticated() && isAdminOrOwner(resource.data.spaceId);

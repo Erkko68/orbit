@@ -1,5 +1,6 @@
 package com.orbit.app.feature.space
 
+import com.orbit.app.core.PendingInvitation
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.FlakySpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
@@ -34,7 +35,7 @@ class SpaceViewModelTest {
     @Test
     fun startsLoadingThenShowsTheSpaces() = runTest {
         val auth = InMemoryAuthRepository()
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
         assertTrue(viewModel.uiState.value.loading)
 
         val loaded = viewModel.uiState.first { !it.loading }
@@ -45,7 +46,11 @@ class SpaceViewModelTest {
 
     @Test
     fun flagsAFailedLoadAndRetriesIt() = runTest {
-        val viewModel = SpaceViewModel(FlakySpaceRepository(spaceFailures = 1), InMemoryAuthRepository())
+        val viewModel = SpaceViewModel(
+            FlakySpaceRepository(spaceFailures = 1),
+            InMemoryAuthRepository(),
+            PendingInvitation(),
+        )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         assertTrue(viewModel.uiState.value.loadFailed)
@@ -63,7 +68,7 @@ class SpaceViewModelTest {
     fun aFailedLoadKeepsTheAvatarAndTheOpenDialog() = runTest {
         val auth = InMemoryAuthRepository()
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
-        val viewModel = SpaceViewModel(FlakySpaceRepository(spaceFailures = 1), auth)
+        val viewModel = SpaceViewModel(FlakySpaceRepository(spaceFailures = 1), auth, PendingInvitation())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.openCreate()
@@ -78,7 +83,7 @@ class SpaceViewModelTest {
     fun createsASpaceForTheSignedInUser() = runTest {
         val auth = InMemoryAuthRepository()
         auth.signIn("ana@orbit.app", "secret")
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
 
         viewModel.openCreate()
         viewModel.onNewSpaceNameChange("  Flat 4B ")
@@ -96,7 +101,7 @@ class SpaceViewModelTest {
     @Test
     fun opensTheCreateDialogAndForgetsItsNameWhenDismissed() = runTest {
         val auth = InMemoryAuthRepository()
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.openCreate()
@@ -112,7 +117,7 @@ class SpaceViewModelTest {
     fun createsOnlyWithAName() = runTest {
         val auth = InMemoryAuthRepository()
         auth.signIn("ana@orbit.app", "secret")
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.onNewSpaceNameChange("   ")
@@ -125,7 +130,7 @@ class SpaceViewModelTest {
     @Test
     fun aFailedCreateKeepsTheNameAndIsFlaggedUntilTheNextEdit() = runTest {
         // This fake's createSpace always throws.
-        val viewModel = SpaceViewModel(FakeSpaceRepository.withMembers(), InMemoryAuthRepository())
+        val viewModel = SpaceViewModel(FakeSpaceRepository.withMembers(), InMemoryAuthRepository(), PendingInvitation())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.openCreate()

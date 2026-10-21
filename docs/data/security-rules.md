@@ -13,7 +13,8 @@ A space is shared, so its items are too: every member creates, edits and complet
 | Delete an item | any | any | only their own |
 | Edit the space (name, colour) | ✓ | ✓ | |
 | Create, list and revoke invitations | ✓ | ✓ | |
-| Add a member, or change a role between member and admin (never the owner's, never to owner) | ✓ | ✓ | |
+| Change a role between member and admin (never the owner's, never to owner) | ✓ | ✓ | |
+| Join with an invitation (#25) | anyone signed in who has a valid invitation, as a plain member | | |
 | Remove a member | anyone but the owner | plain members only | |
 | Hand ownership to someone else (#27) | ✓ | | |
 | Delete the space | ✓ | | |
@@ -34,6 +35,7 @@ flowchart TB
     path -- "spaces/{id}/…" --> isMember["isMember(id):<br/>space exists and uid in memberIds"]
     isMember --> checks["role and field checks"]
     path -- "invitations/{code}" --> inv["get by code: anyone signed in<br/>list, create, revoke: owner or admin"]
+    path -- "a join batch" --> join["valid invitation in the member document<br/>caller appended to memberIds"]
 ```
 
 The helper functions at the top of the file:
@@ -58,14 +60,23 @@ Read and written by its owner only.
 
 - **Read:** a member.
 - **Create:** `memberIds` is exactly `[caller]`, `createdBy` is the caller, `createdAt` is the server time, `name` is a non-blank string, `accent` an integer. Others join through an invitation (#25), never by being written in.
-- **Update:** an owner or admin, without changing `createdBy` or `createdAt`.
+- **Update:** an owner or admin, without changing `createdBy` or `createdAt` and without adding to `memberIds`; or someone joining (below).
 - **Delete:** the owner.
+
+### Joining a space
+
+A join is one batch, and the rules accept it only whole (ADR 0002, decision 6). The space document gets the caller appended to `memberIds`, and the caller creates their own member document naming the invitation:
+
+- **The invitation** (`validInvitation`) exists, invites to this space, is not revoked and has not expired. The code comes from the `invitationCode` of the member document.
+- **The space update** (`joinsSpace`) is by someone not yet in `memberIds`, changes nothing but `memberIds`, and makes it exactly the old list plus the caller.
+- **The member document** (`joinsAsMember`) is the caller's own, a plain `member`, has exactly `role`, `displayName`, an optional `photoUrl`, `joinedAt` (the server time) and `invitationCode`, and the same batch adds the caller to `memberIds`.
+- **Joining twice changes nothing.** A member is in `memberIds` already, so the space half is refused and the whole batch fails. Nobody can change `invitationCode` or `joinedAt` afterwards, so an admin who joins again cannot reset their role either.
 
 ### `spaces/{spaceId}/members/{uid}`
 
 - **Read:** a member.
-- **Create:** the space's creator making their own `owner` membership (in the batch that creates the space), or an owner or admin adding an `admin` or `member`.
-- **Update:** a member changing their own document without changing their role; an owner or admin changing a non-owner between `admin` and `member`. Nobody sets `owner` with an update, and the role of the owner never changes, not even by the owner: ownership moves only through the transfer in #27, which gets its own rule.
+- **Create:** the space's creator making their own `owner` membership (in the batch that creates the space), or someone joining (below). An owner or admin cannot add a member directly.
+- **Update:** a member changing their own document without changing their role; an owner or admin changing a non-owner between `admin` and `member`. Nobody sets `owner` with an update, and the role of the owner never changes, not even by the owner: ownership moves only through the transfer in #27, which gets its own rule. Never the `invitationCode` or `joinedAt`, which are set once with the join.
 - **Delete:** a member leaving (not the owner); the owner removing anyone else; an admin removing a plain member.
 
 ### `spaces/{spaceId}/items/{itemId}`
@@ -90,7 +101,7 @@ Rules cannot loop, and some checks cost a document read per write. These are lef
 - The shape of each module (dates, modes, entries). An unknown or malformed module is skipped when read, never trusted.
 - That `assignment.assigneeId` is a member.
 - The `users/{uid}` fields.
-- Until #25, an admin can write any uid into `memberIds`. The join rule with #25 narrows how members get in.
+- The size of a space: the plan cap of 8 members is not enforced, so a valid invitation fills a space past it.
 
 ## Running the tests
 

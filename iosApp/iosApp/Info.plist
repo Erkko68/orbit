@@ -4,13 +4,22 @@
     <dict>
         <key>CADisableMinimumFrameDurationOnPhone</key>
         <true/>
-        <!-- REVERSED_CLIENT_ID from GoogleService-Info.plist: Google Sign-In returns to the app through it. -->
         <key>CFBundleURLTypes</key>
         <array>
+            <!-- REVERSED_CLIENT_ID from GoogleService-Info.plist: Google Sign-In returns to the app through it. -->
             <dict>
                 <key>CFBundleURLSchemes</key>
                 <array>
                     <string>com.googleusercontent.apps.854195957903-49ua6d3aq0kjnh75pfq3tanig9tvr99i</string>
+                </array>
+            </dict>
+            <!-- Invitation links: orbit://join/<code> (ADR 0002). -->
+            <dict>
+                <key>CFBundleURLName</key>
+                <string>com.orbit.app.invitation</string>
+                <key>CFBundleURLSchemes</key>
+                <array>
+                    <string>orbit</string>
                 </array>
             </dict>
         </array>

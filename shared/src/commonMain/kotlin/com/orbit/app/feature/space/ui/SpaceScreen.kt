@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
@@ -129,12 +130,15 @@ fun SpaceScreen(
             }
         }
     }
+    LaunchedEffect(state.invitationWaiting) {
+        if (state.invitationWaiting) viewModel.openPendingInvitation()
+    }
     if (state.createOpen) {
         NewSpaceDialog(state, viewModel)
     }
 }
 
-/** One way in for a new space: name one to create it, or join one with an invite (a placeholder until #25). */
+/** Two ways in to a space: name one to create it, or type or paste an invitation code or link to join one. */
 @Composable
 private fun NewSpaceDialog(state: SpaceUiState, viewModel: SpaceViewModel) {
     OrbitDialog(
@@ -159,18 +163,19 @@ private fun NewSpaceDialog(state: SpaceUiState, viewModel: SpaceViewModel) {
         )
         OrbitLabeledDivider(stringResource(Res.string.or))
         OrbitTextField(
-            value = "",
-            onValueChange = {},
+            value = state.joinCode,
+            onValueChange = viewModel::onJoinCodeChange,
             placeholder = stringResource(Res.string.spaces_join_code),
             modifier = Modifier.fillMaxWidth(),
-            enabled = false,
+            isError = state.joinError != null,
+            supportingText = state.joinError?.let { stringResource(it.message()) },
             leadingIcon = Res.drawable.ic_link,
         )
         OrbitOutlinedButton(
             text = stringResource(Res.string.spaces_join),
-            onClick = {},
+            onClick = viewModel::joinSpace,
             modifier = Modifier.fillMaxWidth(),
-            enabled = false,
+            enabled = state.canJoin,
         )
     }
 }

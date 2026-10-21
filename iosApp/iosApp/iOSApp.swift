@@ -13,7 +13,12 @@ struct iOSApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .onOpenURL { GIDSignIn.sharedInstance.handle($0) }
+                .onOpenURL { url in
+                    // Google Sign-In returns through its own scheme. Any other link is an invitation: orbit://join/<code>.
+                    if !GIDSignIn.sharedInstance.handle(url) {
+                        InvitationLinksKt.offerInvitationLink(link: url.absoluteString)
+                    }
+                }
         }
     }
 }

@@ -116,6 +116,7 @@ There is no `ownerId`: the owner is the member whose role is `owner`.
 | `displayName` | string | yes | Copy of the user's profile, updated in the same batch as the profile |
 | `photoUrl` | string | no | Copy of the user's profile |
 | `joinedAt` | timestamp | yes | Server time |
+| `invitationCode` | string | only for a member who joined | The invitation that let them in. Written with the join, which the rules check against it; never changed. |
 
 ### `spaces/{spaceId}/items/{itemId}`
 
@@ -200,6 +201,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `observeSpaces` | `spaces` where `memberIds` array-contains uid | Listener, restarted when the signed-in user changes |
 | `observeMembers` | `spaces/{id}/members` | Listener, retried for a few seconds while refused |
 | `createSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: the space and the owner's membership |
+| `joinSpace` | `invitations/{code}`, then `spaces/{id}` and `spaces/{id}/members/{uid}` | A `get` of the invitation from the server, a check of the user's spaces, then one batch: `memberIds` gets the user (`arrayUnion`) and the member document names the invitation. Awaited, never queued offline. |
 
 ### `FirestoreItemRepository`
 
