@@ -23,6 +23,7 @@ import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.feature.spacehome.items.SpaceItemsViewModel
 import com.orbit.app.feature.spacehome.members.InviteViewModel
 import com.orbit.app.feature.spacehome.members.SpaceMembersViewModel
+import com.orbit.app.feature.spacehome.settings.SpaceSettingsViewModel
 import com.russhwolf.settings.Settings
 import dev.gitlive.firebase.Firebase
 import dev.gitlive.firebase.auth.auth
@@ -72,4 +73,5 @@ val featureModule = module {
     viewModelOf(::SpaceItemsViewModel)
     viewModelOf(::SpaceMembersViewModel)
     viewModelOf(::InviteViewModel)
+    viewModelOf(::SpaceSettingsViewModel)
 }

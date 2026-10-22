@@ -208,4 +208,13 @@
     <string name="member_role_make_admin">Make admin</string>
     <string name="member_role_make_member">Make member</string>
     <string name="member_role_failed">Could not change the role. Try again.</string>
+    <string name="space_settings">Space settings</string>
+    <string name="space_settings_name">Space name</string>
+    <string name="space_settings_colour">Colour</string>
+    <string name="space_settings_save">Save</string>
+    <string name="space_settings_failed">Could not save the changes. Try again.</string>
+    <string name="space_colour_violet">Violet</string>
+    <string name="space_colour_coral">Coral</string>
+    <string name="space_colour_teal">Teal</string>
+    <string name="space_colour_sun">Sun</string>
 </resources>

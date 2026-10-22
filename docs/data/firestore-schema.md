@@ -200,6 +200,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `observeSpaces` | `spaces` where `memberIds` array-contains uid | Listener, restarted when the signed-in user changes |
 | `observeMembers` | `spaces/{id}/members` | Listener, retried for a few seconds while refused |
 | `createSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: the space and the owner's membership |
+| `updateSpace` | `spaces/{id}` | `update` of only the fields that changed: `name`, `accent`, or both |
 
 ### `FirestoreItemRepository`
 
