@@ -2,14 +2,14 @@ package com.orbit.app.core.navigation
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
+import com.orbit.app.core.PendingInvitation
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.notification.ReminderSync
@@ -35,6 +35,7 @@ import kotlinx.coroutines.runBlocking
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
+import org.koin.mp.KoinPlatform
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -88,7 +89,7 @@ class OrbitNavHostTest : ComposeTest() {
 
         onNodeWithText("No spaces yet").assertIsDisplayed()
         onNodeWithText("New space").performClick()
-        onNode(hasSetTextAction() and isEnabled()).performTextInput("Flat 4B")
+        onAllNodes(hasSetTextAction())[0].performTextInput("Flat 4B")
         onNodeWithText("Create space").performClick()
         onNodeWithText("1 member").assertIsDisplayed()
         onNodeWithText("Flat 4B").performScrollTo().performClick()
@@ -222,5 +223,51 @@ class OrbitNavHostTest : ComposeTest() {
 
         onNodeWithText("No items yet").assertIsDisplayed()
         assertEquals(spaceId, lastSpace.lastSpaceId())
+    }
+
+    @Test
+    fun anInvitationLinkBringsTheListWithTheDialogToJoin() = runComposeUiTest {
+        runBlocking {
+            auth.signIn("ana@orbit.app", "secret")
+            lastSpace.remember(spaces.createSpace("Flat 4B", accent = 0))
+        }
+        setContent { OrbitTheme { OrbitNavHost() } }
+        onNodeWithText("No items yet").assertIsDisplayed()
+
+        KoinPlatform.getKoin().get<PendingInvitation>().offer("orbit://join/ABCD2345")
+
+        onNodeWithText("Create space").assertIsDisplayed()
+        onNodeWithText("ABCD2345").assertIsDisplayed()
+        onNodeWithText("No items yet").assertDoesNotExist()
+    }
+
+    @Test
+    fun anInvitationLinkOpenedWhileSignedOutWaitsForTheListAfterSigningIn() = runComposeUiTest {
+        KoinPlatform.getKoin().get<PendingInvitation>().offer("orbit://join/ABCD2345")
+        setContent { OrbitTheme { OrbitNavHost() } }
+        onNodeWithText("Welcome back").assertIsDisplayed()
+
+        runBlocking { auth.signIn("ana@orbit.app", "secret") }
+
+        onNodeWithText("Create space").assertIsDisplayed()
+        onNodeWithText("ABCD2345").assertIsDisplayed()
+    }
+
+    @Test
+    fun anInvitationLinkOpenedInsideASpaceBringsTheListBackWithTheDialog() = runComposeUiTest {
+        runBlocking {
+            auth.signIn("ana@orbit.app", "secret")
+            spaces.createSpace("Flat 4B", accent = 0)
+        }
+        setContent { OrbitTheme { OrbitNavHost() } }
+        // Opened from the list, so the list is under the space and keeps its view model.
+        onNodeWithText("Flat 4B").performScrollTo().performClick()
+        onNodeWithText("No items yet").assertIsDisplayed()
+
+        KoinPlatform.getKoin().get<PendingInvitation>().offer("orbit://join/ABCD2345")
+
+        onNodeWithText("Create space").assertIsDisplayed()
+        onNodeWithText("ABCD2345").assertIsDisplayed()
+        onNodeWithText("No items yet").assertDoesNotExist()
     }
 }

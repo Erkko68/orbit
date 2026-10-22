@@ -48,6 +48,15 @@ internal fun spaceDocument(name: String, accent: Int, creatorId: String) = Space
     createdAt = Timestamp.ServerTimestamp,
 )
 
+/** The membership of someone who joined with the invitation [code]: a plain member. */
+internal fun joiningMemberDocument(displayName: String, photoUrl: String?, code: String) = MemberDocument(
+    role = "member",
+    displayName = displayName,
+    photoUrl = photoUrl,
+    joinedAt = Timestamp.ServerTimestamp,
+    invitationCode = code,
+)
+
 /** The creator's membership of the space they just made. */
 internal fun ownerMemberDocument(displayName: String, photoUrl: String?) = MemberDocument(
     role = "owner",

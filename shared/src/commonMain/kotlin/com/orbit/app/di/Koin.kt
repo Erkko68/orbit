@@ -1,5 +1,6 @@
 package com.orbit.app.di
 
+import com.orbit.app.core.PendingInvitation
 import com.orbit.app.core.notification.ReminderSync
 import com.orbit.app.core.notification.permission.NotificationPermissionViewModel
 import com.orbit.app.data.repository.FirebaseAuthRepository
@@ -60,6 +61,7 @@ val dataModule = module {
 }
 
 val featureModule = module {
+    single { PendingInvitation() }
     viewModelOf(::AccountViewModel)
     viewModelOf(::SessionViewModel)
     viewModelOf(::SignInViewModel)

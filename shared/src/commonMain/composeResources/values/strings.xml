@@ -60,6 +60,11 @@
     <string name="spaces_create_failed">Could not create the space. Try again.</string>
     <string name="spaces_join_code">Invite code or link</string>
     <string name="spaces_join">Join space</string>
+    <string name="join_error_invalid">That is not an invitation code. Check it and try again.</string>
+    <string name="join_error_expired">This invitation has expired. Ask for a new one.</string>
+    <string name="join_error_revoked">This invitation was revoked. Ask for a new one.</string>
+    <string name="join_error_already_member">You are already in this space.</string>
+    <string name="join_error_failed">Could not join the space. Check your connection and try again.</string>
     <string name="spaces_section">Your spaces</string>
     <plurals name="spaces_count">
         <item quantity="one">%1$d space</item>

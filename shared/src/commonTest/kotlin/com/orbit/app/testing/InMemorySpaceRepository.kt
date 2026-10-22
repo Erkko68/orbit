@@ -1,6 +1,8 @@
 package com.orbit.app.testing
 
 import com.orbit.app.data.repository.requireUser
+import com.orbit.app.domain.model.JoinError
+import com.orbit.app.domain.model.JoinException
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
@@ -12,9 +14,17 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlin.time.Clock
 
-/** Spaces and members in memory. A new space's only member is its owner. */
-class InMemorySpaceRepository(private val auth: AuthRepository) : SpaceRepository {
+/**
+ * Spaces and members in memory. A new space only member is its owner. Joining looks the code up in
+ * [invitations], so a test that joins gives it the invitations it created.
+ */
+class InMemorySpaceRepository(
+    private val auth: AuthRepository,
+    private val invitations: InMemoryInvitationRepository? = null,
+    private val clock: Clock = Clock.System,
+) : SpaceRepository {
     private val spaces = MutableStateFlow(emptyList<Space>())
     private val members = MutableStateFlow(emptyMap<String, List<Member>>())
 
@@ -59,11 +69,22 @@ class InMemorySpaceRepository(private val auth: AuthRepository) : SpaceRepositor
         }
     }
 
-    /** Stands in for joining, which comes with #25, so tests can have more than the owner in a space. */
+    /** Gives a space a member without an invitation, so tests can have more than the owner in it. */
     fun addMember(spaceId: String, member: Member) {
         spaces.update { all ->
             all.map { if (it.id == spaceId) it.copy(memberIds = it.memberIds + member.userId) else it }
         }
         members.update { all -> all + (spaceId to all[spaceId].orEmpty() + member) }
+    }
+
+    override suspend fun joinSpace(code: String): String {
+        val user = auth.requireUser()
+        val invitation = invitations?.find(code) ?: throw JoinException(JoinError.INVALID)
+        if (invitation.revoked) throw JoinException(JoinError.REVOKED)
+        if (!invitation.isActive(clock.now())) throw JoinException(JoinError.EXPIRED)
+        val space = spaces.value.firstOrNull { it.id == invitation.spaceId } ?: throw JoinException(JoinError.INVALID)
+        if (user.id in space.memberIds) throw JoinException(JoinError.ALREADY_MEMBER)
+        addMember(space.id, Member(user.id, user.displayName, user.photoUrl, Role.MEMBER))
+        return space.id
     }
 }

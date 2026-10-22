@@ -5,7 +5,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -15,6 +14,7 @@ import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.domain.model.Role
 import com.orbit.app.feature.space.SpaceViewModel
+import com.orbit.app.core.PendingInvitation
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.FlakySpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
@@ -35,7 +35,7 @@ class SpaceScreenTest : ComposeTest() {
 
     @Test
     fun showsTheEmptyStateAndTheWayToGetASpace() = runComposeUiTest {
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
         setContent {
             OrbitTheme {
                 SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
@@ -52,7 +52,7 @@ class SpaceScreenTest : ComposeTest() {
         val spaces = FlakySpaceRepository(spaceFailures = 1)
         // The space cards get their view models from Koin.
         startTestKoin(auth, spaces)
-        val viewModel = SpaceViewModel(spaces, auth)
+        val viewModel = SpaceViewModel(spaces, auth, PendingInvitation())
         setContent {
             OrbitTheme {
                 SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
@@ -69,7 +69,7 @@ class SpaceScreenTest : ComposeTest() {
 
     @Test
     fun newSpaceOpensADialogThatCreatesOnlyWithAName() = runComposeUiTest {
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth)
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
         setContent {
             OrbitTheme {
                 SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
@@ -80,10 +80,10 @@ class SpaceScreenTest : ComposeTest() {
         onNodeWithText("New space").performClick()
 
         onNodeWithText("Create space").assertIsNotEnabled()
-        onNode(hasSetTextAction() and isEnabled()).performTextInput("Flat 4B")
+        onAllNodes(hasSetTextAction())[0].performTextInput("Flat 4B")
         onNodeWithText("Create space").assertIsEnabled()
-        // Joining is a placeholder until invites land.
-        onNodeWithText("Invite code or link").assertIsNotEnabled()
+        // Joining waits for a code of its own.
+        onNodeWithText("Invite code or link").assertIsEnabled()
         onNodeWithText("Join space").assertIsNotEnabled()
 
         onNodeWithText("Cancel").performClick()
@@ -102,7 +102,7 @@ class SpaceScreenTest : ComposeTest() {
         )
         // The space cards get their view models from Koin.
         startTestKoin(auth, spaces)
-        val viewModel = SpaceViewModel(spaces, auth)
+        val viewModel = SpaceViewModel(spaces, auth, PendingInvitation())
         setContent {
             OrbitTheme {
                 SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
@@ -118,7 +118,7 @@ class SpaceScreenTest : ComposeTest() {
         onNodeWithText("+2").assertIsDisplayed()
 
         onNodeWithText("New space").performClick()
-        onNode(hasSetTextAction() and isEnabled()).performTextInput("Flat 4C")
+        onAllNodes(hasSetTextAction())[0].performTextInput("Flat 4C")
         onNodeWithText("Create space").performClick()
         onNodeWithText("Could not create the space. Try again.").assertIsDisplayed()
     }

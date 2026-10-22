@@ -33,6 +33,8 @@ internal class FakeSpaceRepository(
         members.update { all -> all.map { if (it.userId == userId) it.copy(role = role) else it } }
     }
 
+    override suspend fun joinSpace(code: String): String = error("Not used by these tests")
+
     override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) = error("Not used by these tests")
 
     companion object {

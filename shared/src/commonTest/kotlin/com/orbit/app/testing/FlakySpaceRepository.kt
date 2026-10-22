@@ -33,5 +33,7 @@ internal class FlakySpaceRepository(private var spaceFailures: Int = 0, private 
 
     override suspend fun changeRole(spaceId: String, userId: String, role: Role) = error("Not used by these tests")
 
+    override suspend fun joinSpace(code: String): String = error("Not used by these tests")
+
     override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) = error("Not used by these tests")
 }

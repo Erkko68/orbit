@@ -1,23 +1,33 @@
 package com.orbit.app.data.repository
 
 import co.touchlab.kermit.Logger
+import com.orbit.app.data.mapper.joiningMemberDocument
+import com.orbit.app.data.mapper.mapInvitation
 import com.orbit.app.data.mapper.mapMember
 import com.orbit.app.data.mapper.mapSpace
 import com.orbit.app.data.mapper.ownerMemberDocument
 import com.orbit.app.data.mapper.roleValue
 import com.orbit.app.data.mapper.spaceDocument
+import com.orbit.app.domain.model.JoinError
+import com.orbit.app.domain.model.JoinException
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import dev.gitlive.firebase.firestore.DocumentSnapshot
+import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import dev.gitlive.firebase.firestore.Source
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withTimeout
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Spaces and their members in Firestore (ADR 0002), read through live listeners. Firestore's offline
@@ -78,6 +88,42 @@ class FirestoreSpaceRepository(
         writeLocally("Role of $userId in space $spaceId") { member.update("role" to roleValue(role)) }
     }
 
+    /**
+     * The batch is the one the rules accept for a join (ADR 0002): the caller added to `memberIds` and their
+     * member document naming the invitation. The invitation is read from the server, so one revoked a moment ago
+     * is not trusted from the cache, and the write is awaited: joining needs the server's answer, so it cannot
+     * queue offline and surprise the user later.
+     */
+    override suspend fun joinSpace(code: String): String {
+        val user = auth.requireUser()
+        val document = firestore.collection(INVITATIONS).document(code).get(Source.SERVER)
+        val invitation = mapInvitation(
+            code = code,
+            spaceId = document.field("spaceId"),
+            createdBy = document.field("createdBy"),
+            createdAt = document.instant("createdAt"),
+            expiresAt = document.instant("expiresAt"),
+            revoked = document.field("revoked"),
+        )
+        if (!document.exists || invitation == null) throw JoinException(JoinError.INVALID)
+        if (invitation.revoked) throw JoinException(JoinError.REVOKED)
+        if (!invitation.isActive(Clock.System.now())) throw JoinException(JoinError.EXPIRED)
+        val mine = firestore.collection(SPACES).where { "memberIds" contains user.id }.get().documents
+        if (mine.any { it.id == invitation.spaceId }) throw JoinException(JoinError.ALREADY_MEMBER)
+
+        val space = firestore.collection(SPACES).document(invitation.spaceId)
+        val batch = firestore.batch()
+        batch.update(space, "memberIds" to FieldValue.arrayUnion(user.id))
+        val membership = joiningMemberDocument(user.displayName, user.photoUrl, code)
+        batch.set(space.collection(MEMBERS).document(user.id), membership)
+        try {
+            withTimeout(JOIN_WAIT) { batch.commit() }
+        } catch (e: TimeoutCancellationException) {
+            throw IllegalStateException("The server did not confirm joining the space in time", e)
+        }
+        return invitation.spaceId
+    }
+
     /** Writes only the fields that changed. The rules decide who may. */
     override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) {
         require(name != null || accent != null) { "Nothing to change" }
@@ -92,3 +138,5 @@ class FirestoreSpaceRepository(
             if (it == null) Logger.w { "Skipping the malformed space ${document.id}" }
         }
 }
+
+private val JOIN_WAIT = 15.seconds
