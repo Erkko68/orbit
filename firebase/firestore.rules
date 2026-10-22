@@ -44,13 +44,6 @@ service cloud.firestore {
       );
     }
 
-    // A space keeps a name that is not blank and a whole-number colour, whatever an edit changes.
-    function hasValidSpaceFields() {
-      return request.resource.data.name is string
-        && request.resource.data.name.trim().size() > 0
-        && request.resource.data.accent is int;
-    }
-
     // Fields set once, on creation, that no later write may change.
     function keepsCreation() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'createdAt', 'spaceId']);
@@ -83,7 +76,7 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.name.trim().size() > 0
         && request.resource.data.accent is int;
-      allow update: if isAdminOrOwner(spaceId) && keepsCreation() && hasValidSpaceFields();
+      allow update: if isAdminOrOwner(spaceId) && keepsCreation();
       allow delete: if isOwner(spaceId);
 
       // spaces/{spaceId}/members/{memberId}

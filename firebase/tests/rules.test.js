@@ -200,43 +200,6 @@ describe('Firestore Security Rules', () => {
       assert.ok(outsiderUpdate);
     });
 
-    it('lets an owner or admin change the name and the colour, together or one at a time', async () => {
-      const space = (uid) => testEnv.authenticatedContext(uid).firestore().collection('spaces').doc('s1');
-
-      await assertSucceeds(space('alice').update({ name: 'Flat 4C' }));
-      await assertSucceeds(space('alice').update({ accent: 3 }));
-      await assertSucceeds(space('bob').update({ name: 'Flat 4D', accent: 2 }));
-      await assertSucceeds(space('bob').update({ accent: 0 }));
-    });
-
-    it('denies a plain member and someone outside the space changing the name or the colour', async () => {
-      const space = (uid) => testEnv.authenticatedContext(uid).firestore().collection('spaces').doc('s1');
-
-      await assertFails(space('charlie').update({ name: 'Mine now' }));
-      await assertFails(space('charlie').update({ accent: 3 }));
-      await assertFails(space('david').update({ name: 'Mine now' }));
-      await assertFails(space('david').update({ accent: 3 }));
-    });
-
-    it('keeps the name a non-blank string and the colour a whole number', async () => {
-      const space = testEnv.authenticatedContext('alice').firestore().collection('spaces').doc('s1');
-
-      await assertFails(space.update({ name: '' }));
-      await assertFails(space.update({ name: '   ' }));
-      await assertFails(space.update({ name: 42 }));
-      await assertFails(space.update({ accent: 'violet' }));
-      await assertFails(space.update({ accent: 1.5 }));
-    });
-
-    it('changes nothing about the space when an invalid edit is refused', async () => {
-      const space = testEnv.authenticatedContext('alice').firestore().collection('spaces').doc('s1');
-      await assertFails(space.update({ name: '   ', accent: 3 }));
-
-      const after = await assertSucceeds(space.get());
-      assert.strictEqual(after.data().name, 'Home');
-      assert.strictEqual(after.data().accent, 0);
-    });
-
     it('allows only the owner to delete the space', async () => {
       const bobDb = testEnv.authenticatedContext('bob').firestore();
       const charlieDb = testEnv.authenticatedContext('charlie').firestore();

@@ -58,7 +58,7 @@ Read and written by its owner only.
 
 - **Read:** a member.
 - **Create:** `memberIds` is exactly `[caller]`, `createdBy` is the caller, `createdAt` is the server time, `name` is a non-blank string, `accent` an integer. Others join through an invitation (#25), never by being written in.
-- **Update:** an owner or admin, without changing `createdBy` or `createdAt`, and leaving `name` a non-blank string and `accent` an integer (`hasValidSpaceFields`). This is how the space settings change the name and the colour.
+- **Update:** an owner or admin, without changing `createdBy` or `createdAt`.
 - **Delete:** the owner.
 
 ### `spaces/{spaceId}/members/{uid}`
