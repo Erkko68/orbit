@@ -60,7 +60,7 @@ Read and written by its owner only.
 
 - **Read:** a member.
 - **Create:** `memberIds` is exactly `[caller]`, `createdBy` is the caller, `createdAt` is the server time, `name` is a non-blank string, `accent` an integer. Others join through an invitation (#25), never by being written in.
-- **Update:** an owner or admin, without changing `createdBy` or `createdAt` and without adding to `memberIds`; or someone joining (below).
+- **Update:** an owner or admin, without changing `createdBy` or `createdAt`, without adding to `memberIds`, and leaving `name` a non-blank string and `accent` an integer (`hasValidSpaceFields`): this is how the space settings change the name and the colour. Or someone joining (below).
 - **Delete:** the owner.
 
 ### Joining a space

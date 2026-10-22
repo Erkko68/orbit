@@ -37,6 +37,7 @@ import com.orbit.app.feature.spacehome.SpaceHomeUiState
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
 import com.orbit.app.feature.spacehome.members.SpaceMembersTab
+import com.orbit.app.feature.spacehome.settings.SpaceSettings
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.cancel
 import orbit.shared.generated.resources.ic_add
@@ -78,6 +79,7 @@ fun SpaceHomeScreen(
             OrbitTopBar(
                 title = state.name,
                 actions = {
+                    SpaceSettings(spaceId)
                     OrbitIconButton(Res.drawable.ic_swap_horiz, stringResource(Res.string.space_switch), onSwitchSpace)
                     // Placeholder until notifications land.
                     OrbitIconButton(

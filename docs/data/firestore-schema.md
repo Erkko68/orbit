@@ -202,6 +202,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `observeMembers` | `spaces/{id}/members` | Listener, retried for a few seconds while refused |
 | `createSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: the space and the owner's membership |
 | `joinSpace` | `invitations/{code}`, then `spaces/{id}` and `spaces/{id}/members/{uid}` | A `get` of the invitation from the server, a check of the user's spaces, then one batch: `memberIds` gets the user (`arrayUnion`) and the member document names the invitation. Awaited, never queued offline. |
+| `updateSpace` | `spaces/{id}` | `update` of only the fields that changed: `name`, `accent`, or both |
 
 ### `FirestoreItemRepository`
 

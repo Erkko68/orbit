@@ -32,4 +32,11 @@ interface SpaceRepository {
      * invitation refuses and any other exception when the join itself fails.
      */
     suspend fun joinSpace(code: String): String
+
+    /**
+     * Changes the name and the colour of a space. A null argument is left as it is, and only the fields given are
+     * written, so an edit never overwrites a change someone else made to the other one. Only an owner or admin
+     * can. Throws when it is not allowed, when the name is blank or when nothing is given.
+     */
+    suspend fun updateSpace(spaceId: String, name: String?, accent: Int?)
 }

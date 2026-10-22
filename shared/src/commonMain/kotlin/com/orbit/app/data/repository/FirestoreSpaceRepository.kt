@@ -124,6 +124,15 @@ class FirestoreSpaceRepository(
         return invitation.spaceId
     }
 
+    /** Writes only the fields that changed. The rules decide who may. */
+    override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) {
+        require(name != null || accent != null) { "Nothing to change" }
+        require(name == null || name.isNotBlank()) { "A space needs a name" }
+        val changes = listOfNotNull(name?.let { "name" to it }, accent?.let { "accent" to it })
+        val space = firestore.collection(SPACES).document(spaceId)
+        writeLocally("Settings of space $spaceId") { space.update(*changes.toTypedArray()) }
+    }
+
     private fun toSpace(document: DocumentSnapshot): Space? =
         mapSpace(document.id, document.field("name"), document.field("accent"), document.field("memberIds")).also {
             if (it == null) Logger.w { "Skipping the malformed space ${document.id}" }

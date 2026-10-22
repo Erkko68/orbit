@@ -35,6 +35,8 @@ internal class FakeSpaceRepository(
 
     override suspend fun joinSpace(code: String): String = error("Not used by these tests")
 
+    override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) = error("Not used by these tests")
+
     companion object {
         fun withMembers(vararg people: Pair<String, Role>, changeRoleFailure: Exception? = null) = FakeSpaceRepository(
             space = Space("space-1", "Flat 4B", accent = 0, memberIds = people.map { it.first }),
