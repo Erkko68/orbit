@@ -16,8 +16,10 @@ import com.orbit.app.core.designsystem.component.OrbitErrorState
 import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitFilterChip
 import com.orbit.app.core.designsystem.component.OrbitLoadingState
+import com.orbit.app.core.designsystem.component.OrbitSectionHeader
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.ic_task
 import orbit.shared.generated.resources.item_action_failed
 import orbit.shared.generated.resources.load_failed_body
 import orbit.shared.generated.resources.retry
@@ -25,11 +27,14 @@ import orbit.shared.generated.resources.space_items_empty_body
 import orbit.shared.generated.resources.space_items_empty_title
 import orbit.shared.generated.resources.space_items_load_failed
 import orbit.shared.generated.resources.space_items_loading
+import orbit.shared.generated.resources.space_items_open
+import orbit.shared.generated.resources.space_tab_items
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-/** The items of a space under their filter chips, loaded by the tab's own view model. */
+/** The items of a space under their section header and filter chips, loaded by the tab's own view model. */
 @Composable
 internal fun SpaceItemsTab(
     spaceId: String,
@@ -39,6 +44,14 @@ internal fun SpaceItemsTab(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     Column(modifier, verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
+        OrbitSectionHeader(
+            title = stringResource(Res.string.space_tab_items),
+            icon = Res.drawable.ic_task,
+            modifier = Modifier.fillMaxWidth(),
+            count = state.openCount.takeIf { it > 0 }?.let {
+                pluralStringResource(Res.plurals.space_items_open, it, it)
+            },
+        )
         Row(
             modifier = Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),

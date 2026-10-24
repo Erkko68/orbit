@@ -221,4 +221,120 @@ class SpaceSettingsViewModelTest {
         assertFalse(viewModel.uiState.value.open)
         assertTrue(writes.isEmpty())
     }
+
+    @Test
+    fun theOwnerDeletesAndEveryoneElseLeaves() = runTest {
+        flat()
+        assertTrue(settingsViewModel().uiState.value.deletes)
+
+        auth.signOut()
+        auth.signIn("ben@orbit.app", "secret")
+        val admin = settingsViewModel().uiState.value
+        assertTrue(admin.visible)
+        assertFalse(admin.deletes)
+
+        auth.signOut()
+        auth.signIn("cy@orbit.app", "secret")
+        assertTrue(settingsViewModel().uiState.value.visible)
+    }
+
+    @Test
+    fun nobodyOutsideTheSpaceSeesTheSettings() = runTest {
+        flat()
+        auth.signOut()
+        auth.signIn("zoe@orbit.app", "secret")
+
+        assertFalse(settingsViewModel().uiState.value.visible)
+    }
+
+    @Test
+    fun aPlainMemberOpensStraightOnLeavingAndCancellingCloses() = runTest {
+        flat()
+        auth.signOut()
+        auth.signIn("cy@orbit.app", "secret")
+        val viewModel = settingsViewModel()
+
+        viewModel.open()
+        assertTrue(viewModel.uiState.value.confirmingExit)
+
+        viewModel.cancelExit()
+        assertFalse(viewModel.uiState.value.open)
+    }
+
+    @Test
+    fun anOwnerBacksOutOfDeletingToTheSettings() = runTest {
+        flat()
+        val viewModel = settingsViewModel()
+        viewModel.open()
+
+        viewModel.confirmExit()
+        assertTrue(viewModel.uiState.value.confirmingExit)
+        viewModel.cancelExit()
+
+        assertTrue(viewModel.uiState.value.open)
+        assertFalse(viewModel.uiState.value.confirmingExit)
+    }
+
+    @Test
+    fun theOwnerDeletesTheSpace() = runTest {
+        flat()
+        val viewModel = settingsViewModel()
+        viewModel.open()
+        viewModel.confirmExit()
+
+        viewModel.exit()
+
+        assertTrue(viewModel.uiState.value.gone)
+        assertFalse(viewModel.uiState.value.open)
+        assertEquals(emptyList(), spaces.observeSpaces().first())
+    }
+
+    @Test
+    fun anAdminLeavesTheSpace() = runTest {
+        flat()
+        auth.signOut()
+        auth.signIn("ben@orbit.app", "secret")
+        val viewModel = settingsViewModel()
+        viewModel.open()
+        viewModel.confirmExit()
+
+        viewModel.exit()
+
+        assertTrue(viewModel.uiState.value.gone)
+        assertEquals(emptyList(), spaces.observeSpaces().first())
+        auth.signOut()
+        auth.signIn("ana@orbit.app", "secret")
+        assertEquals(listOf("ana@orbit.app", "cy@orbit.app"), spaceNow().memberIds)
+    }
+
+    @Test
+    fun staysOpenAndSaysSoWhenDeletingFails() = runTest {
+        flat()
+        val failing = object : SpaceRepository by spaces {
+            override suspend fun deleteSpace(spaceId: String) = error("Could not reach the server")
+        }
+        val viewModel = settingsViewModel(failing)
+        viewModel.open()
+        viewModel.confirmExit()
+
+        viewModel.exit()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.exitFailed)
+        assertFalse(state.exiting)
+        assertFalse(state.gone)
+        assertTrue(state.confirmingExit)
+    }
+
+    @Test
+    fun exitingWithoutConfirmingDoesNothing() = runTest {
+        flat()
+        val viewModel = settingsViewModel()
+        viewModel.open()
+
+        viewModel.exit()
+
+        assertFalse(viewModel.uiState.value.gone)
+        assertEquals(1, spaces.observeSpaces().first().size)
+    }
 }

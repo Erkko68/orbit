@@ -5,9 +5,11 @@ import orbit.shared.generated.resources.invite_create_failed
 import orbit.shared.generated.resources.invite_revoke_failed
 import org.jetbrains.compose.resources.StringResource
 
-/** The invitation card of the members tab. It only shows for an owner or admin of the space. */
+/** The "Invite" chip of the member row and the dialog it opens. It only shows for an owner or admin of the space. */
 data class InviteUiState(
     val canInvite: Boolean = false,
+    /** The invitation dialog is showing. */
+    val open: Boolean = false,
     val spaceName: String = "",
     /** The invitations have not arrived yet, so the card cannot say whether there is one to share. */
     val loading: Boolean = false,
@@ -15,7 +17,7 @@ data class InviteUiState(
     val invitation: ActiveInvitation? = null,
     /** An invitation is being created or revoked. */
     val busy: Boolean = false,
-    /** The last create or revoke failed. Cleared by the next attempt. */
+    /** The last create or revoke failed. Cleared by the next attempt or by closing the dialog. */
     val failure: InviteFailure? = null,
 )
 

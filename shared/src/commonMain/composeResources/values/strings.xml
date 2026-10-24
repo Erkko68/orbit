@@ -4,6 +4,7 @@
     <string name="show_password">Show password</string>
     <string name="hide_password">Hide password</string>
     <string name="cancel">Cancel</string>
+    <string name="close">Close</string>
     <string name="more_count">+%1$d</string>
     <string name="retry">Try again</string>
     <string name="load_failed_body">Check your connection and try again.</string>
@@ -75,7 +76,7 @@
         <item quantity="other">%1$d members</item>
     </plurals>
     <!-- Space home -->
-    <string name="space_switch">Switch space</string>
+    <string name="space_back">Back to spaces</string>
     <string name="space_notifications">Notifications</string>
     <string name="space_new_item">New item</string>
     <string name="space_new_item_name">Name it</string>
@@ -90,12 +91,12 @@
     <string name="item_type_list">List</string>
     <string name="item_type_event">Event</string>
     <string name="item_type_other">Item</string>
-    <string name="space_open_tasks">open tasks</string>
-    <string name="space_bills_due">bills due</string>
-    <string name="space_events_today">events today</string>
     <string name="space_tab_items">Items</string>
     <string name="space_tab_agenda">Agenda</string>
-    <string name="space_tab_members">Members</string>
+    <plurals name="space_items_open">
+        <item quantity="one">%1$d open</item>
+        <item quantity="other">%1$d open</item>
+    </plurals>
     <string name="space_items_loading">Loading the items…</string>
     <string name="space_items_load_failed">Could not load the items</string>
     <string name="space_members_loading">Loading the members…</string>
@@ -208,11 +209,24 @@
     <string name="notification_permission_body">Orbit can only remind you if it may send notifications. Turn them on in the settings.</string>
     <string name="notification_permission_open_settings">Open settings</string>
     <string name="notification_permission_not_now">Not now</string>
-    <string name="member_change_role">Change role</string>
+    <string name="member_you">You</string>
+    <string name="member_invite">Invite</string>
     <string name="member_role_title">Role of %1$s</string>
     <string name="member_role_make_admin">Make admin</string>
     <string name="member_role_make_member">Make member</string>
     <string name="member_role_failed">Could not change the role. Try again.</string>
+    <string name="member_role_make_owner">Make owner</string>
+    <string name="member_role_make_owner_body">They take over the space and you become an admin.</string>
+    <string name="leave_title">Leave this space?</string>
+    <string name="leave_body">You will stop seeing its items. A new invitation brings you back.</string>
+    <string name="leave_confirm">Leave</string>
+    <string name="leave_failed">Could not leave the space. Try again.</string>
+    <string name="delete_space_title">Delete this space?</string>
+    <string name="delete_space_body">Everyone loses its items, members and invitations, and this cannot be undone. To leave without deleting it, make another member the owner first.</string>
+    <string name="delete_space_confirm">Delete</string>
+    <string name="delete_space_failed">Could not delete the space. Try again.</string>
+    <string name="space_settings_leave">Leave space</string>
+    <string name="space_settings_delete">Delete space</string>
     <string name="space_settings">Space settings</string>
     <string name="space_settings_name">Space name</string>
     <string name="space_settings_colour">Colour</string>

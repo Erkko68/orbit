@@ -11,6 +11,7 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
@@ -29,6 +30,7 @@ import kotlin.test.assertEquals
 class SpaceSettingsTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
     private val spaces = InMemorySpaceRepository(auth)
+    private var gone = 0
 
     /** Ana owns Flat 4B, in the second colour (Coral). Ben is an admin of it and Cy a plain member. */
     private fun ComposeUiTest.showSettingsAs(email: String, repository: SpaceRepository = spaces) {
@@ -42,7 +44,11 @@ class SpaceSettingsTest : ComposeTest() {
         }
         setContent {
             OrbitTheme {
-                SpaceSettings("space-1", viewModel = SpaceSettingsViewModel("space-1", repository, auth))
+                SpaceSettings(
+                    "space-1",
+                    onGone = { gone++ },
+                    viewModel = SpaceSettingsViewModel("space-1", repository, auth),
+                )
             }
         }
     }
@@ -62,10 +68,79 @@ class SpaceSettingsTest : ComposeTest() {
     }
 
     @Test
-    fun aPlainMemberSeesNothing() = runComposeUiTest {
+    fun aPlainMemberOnlySeesLeaveSpace() = runComposeUiTest {
         showSettingsAs("cy@orbit.app")
 
         onNodeWithContentDescription("Space settings").assertDoesNotExist()
+        onNodeWithContentDescription("Leave space").performClick()
+        onNodeWithText("Leave this space?").assertIsDisplayed()
+    }
+
+    @Test
+    fun aMemberLeavesAfterConfirming() = runComposeUiTest {
+        showSettingsAs("cy@orbit.app")
+        onNodeWithContentDescription("Leave space").performClick()
+
+        onNodeWithText("Leave").performClick()
+
+        waitForIdle()
+        assertEquals(1, gone)
+        val members = runBlocking { spaces.observeMembers("space-1").first() }
+        assertEquals(listOf("ana@orbit.app", "ben@orbit.app"), members.map { it.userId })
+    }
+
+    @Test
+    fun anAdminLeavesFromTheSettings() = runComposeUiTest {
+        showSettingsAs("ben@orbit.app")
+        onNodeWithContentDescription("Space settings").performClick()
+
+        onNodeWithText("Leave space").performScrollTo().performClick()
+        onNodeWithText("Leave").performClick()
+
+        waitForIdle()
+        assertEquals(1, gone)
+    }
+
+    @Test
+    fun theOwnerDeletesTheSpaceAfterConfirming() = runComposeUiTest {
+        showSettingsAs("ana@orbit.app")
+        onNodeWithContentDescription("Space settings").performClick()
+        onNodeWithText("Leave space").assertDoesNotExist()
+
+        onNodeWithText("Delete space").performScrollTo().performClick()
+        onNodeWithText("Delete this space?").assertIsDisplayed()
+        onNodeWithText("Delete").performClick()
+
+        waitForIdle()
+        assertEquals(1, gone)
+        assertEquals(emptyList(), runBlocking { spaces.observeSpaces().first() })
+    }
+
+    @Test
+    fun cancellingTheDeleteGoesBackToTheSettings() = runComposeUiTest {
+        showSettingsAs("ana@orbit.app")
+        onNodeWithContentDescription("Space settings").performClick()
+        onNodeWithText("Delete space").performScrollTo().performClick()
+
+        onNodeWithText("Cancel").performClick()
+
+        onNodeWithText("Delete this space?").assertDoesNotExist()
+        onNodeWithText("Space settings").assertIsDisplayed()
+        assertEquals(0, gone)
+    }
+
+    @Test
+    fun saysWhenLeavingFailed() = runComposeUiTest {
+        val failing = object : SpaceRepository by spaces {
+            override suspend fun leaveSpace(spaceId: String) = error("Could not reach the server")
+        }
+        showSettingsAs("cy@orbit.app", failing)
+        onNodeWithContentDescription("Leave space").performClick()
+
+        onNodeWithText("Leave").performClick()
+
+        onNodeWithText("Could not leave the space. Try again.").assertIsDisplayed()
+        assertEquals(0, gone)
     }
 
     @Test

@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** The members tab of a space: its members and their roles, and for an owner or admin the way to change them. */
+/** The members of a space, and for an owner or admin the way to change their roles or hand the space over. */
 class SpaceMembersViewModel(
     private val spaceId: String,
     private val spaces: SpaceRepository,
@@ -29,7 +29,7 @@ class SpaceMembersViewModel(
 ) : ViewModel() {
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
-    /** The role picker: which member it is for, and whether a change is under way or failed. */
+    /** The role picker: which member it is for, and whether its write is under way or failed. */
     private val picker = MutableStateFlow(Picker())
 
     val uiState: StateFlow<SpaceMembersUiState> = combine(
@@ -38,15 +38,21 @@ class SpaceMembersViewModel(
         picker,
     ) { load, user, picker ->
         val members = load.valueOrNull.orEmpty()
-        val manages = members.firstOrNull { it.userId == user?.id }?.role?.managesSpace == true
+        val myRole = members.firstOrNull { it.userId == user?.id }?.role
         val shown = members.map { member ->
-            toSpaceMember(member, canChangeRole = manages && member.role != Role.OWNER && member.userId != user?.id)
+            val other = member.userId != user?.id
+            toSpaceMember(
+                member,
+                isYou = !other,
+                canChangeRole = myRole?.managesSpace == true && member.role != Role.OWNER && other,
+                canTakeOwnership = myRole == Role.OWNER && other,
+            )
         }
         SpaceMembersUiState(
             loading = load == Load.Loading,
             loadFailed = load == Load.Failed,
             members = shown,
-            rolePicker = shown.firstOrNull { it.id == picker.memberId && it.canChangeRole },
+            rolePicker = shown.firstOrNull { it.id == picker.memberId && (it.canChangeRole || it.canTakeOwnership) },
             busy = picker.busy,
             failed = picker.failed,
         )
@@ -56,7 +62,7 @@ class SpaceMembersViewModel(
         if (uiState.value.loadFailed) retries.trySend(Unit)
     }
 
-    /** Opens the picker for a member whose role the user can change. */
+    /** Opens the picker for a member whose role the user can change or who can take the space over. */
     fun openRolePicker(memberId: String) {
         picker.value = Picker(memberId)
     }
@@ -65,13 +71,23 @@ class SpaceMembersViewModel(
         picker.value = Picker()
     }
 
-    /** Gives the member in the picker [role] and closes the picker. It stays open, saying so, if that fails. */
+    /** Gives the member in the picker [role] and closes it. It stays open, saying so, if that fails. */
     fun changeRole(role: Role) {
-        val member = uiState.value.rolePicker ?: return
+        val member = uiState.value.rolePicker?.takeIf { it.canChangeRole } ?: return
+        submit("Changing the role of ${member.id}") { spaces.changeRole(spaceId, member.id, role) }
+    }
+
+    /** Makes the member in the picker the owner, and the user an admin. */
+    fun transferOwnership() {
+        val member = uiState.value.rolePicker?.takeIf { it.canTakeOwnership } ?: return
+        submit("Handing space $spaceId to ${member.id}") { spaces.transferOwnership(spaceId, member.id) }
+    }
+
+    private fun submit(what: String, write: suspend () -> Unit) {
         if (picker.value.busy) return
         picker.update { it.copy(busy = true, failed = false) }
         viewModelScope.launch {
-            val result = attempt("Changing the role of ${member.id}") { spaces.changeRole(spaceId, member.id, role) }
+            val result = attempt(what) { write() }
             picker.value = if (result.isSuccess) Picker() else picker.value.copy(busy = false, failed = true)
         }
     }
@@ -79,12 +95,15 @@ class SpaceMembersViewModel(
     private data class Picker(val memberId: String? = null, val busy: Boolean = false, val failed: Boolean = false)
 }
 
-private fun toSpaceMember(member: Member, canChangeRole: Boolean) = SpaceMember(
-    id = member.userId,
-    name = member.displayName,
-    initials = initialsOf(member.displayName),
-    photoUrl = member.photoUrl,
-    role = member.role.label,
-    currentRole = member.role,
-    canChangeRole = canChangeRole,
-)
+private fun toSpaceMember(member: Member, isYou: Boolean, canChangeRole: Boolean, canTakeOwnership: Boolean) =
+    SpaceMember(
+        id = member.userId,
+        name = member.displayName,
+        initials = initialsOf(member.displayName),
+        photoUrl = member.photoUrl,
+        role = member.role.label,
+        currentRole = member.role,
+        isYou = isYou,
+        canChangeRole = canChangeRole,
+        canTakeOwnership = canTakeOwnership,
+    )

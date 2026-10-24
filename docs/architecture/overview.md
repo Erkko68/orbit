@@ -76,7 +76,7 @@ Everything is under `shared/src/commonMain/kotlin/com/orbit/app/`.
 | `auth` | Sign-in and create account (shared `AuthLayout`), and `SessionViewModel`, which decides where the app starts |
 | `account` | The account screen: rename, change the password, delete the account, sign out |
 | `space` | The list of spaces, with one `card/` component per space, and the new-space dialog |
-| `spacehome` | One space: its header and tabs, with `items/` and `members/` components (the members tab holds the invitation card) |
+| `spacehome` | One space: its header and tabs, with `items/`, `members/` (the member chips, role picker and invitation dialog) and `settings/` (edit, leave or delete the space) components |
 | `item` | One item: its modules as cards, "Add detail", and the schedule editor |
 
 ## Dependency injection

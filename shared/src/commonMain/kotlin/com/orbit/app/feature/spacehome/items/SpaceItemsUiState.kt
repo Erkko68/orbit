@@ -23,7 +23,10 @@ data class SpaceItemsUiState(
     val failed: Boolean = false,
     /** A complete or reopen write is currently in progress. */
     val submitting: Boolean = false,
-)
+) {
+    /** For the count next to the section header. */
+    val openCount: Int get() = items.count { !it.done }
+}
 
 data class SpaceItem(
     val id: String,

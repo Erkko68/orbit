@@ -48,11 +48,11 @@ class SpaceMembersViewModelTest {
         }
 
     /** Ana owns the space, Ben is an admin and Cy a plain member. */
-    private fun team(changeRoleFailure: Exception? = null) = FakeSpaceRepository.withMembers(
+    private fun team(writeFailure: Exception? = null) = FakeSpaceRepository.withMembers(
         "ana@orbit.app" to Role.OWNER,
         "ben@orbit.app" to Role.ADMIN,
         "cy@orbit.app" to Role.MEMBER,
-        changeRoleFailure = changeRoleFailure,
+        writeFailure = writeFailure,
     )
 
     private fun SpaceMembersViewModel.canChange() = uiState.value.members.filter { it.canChangeRole }.map { it.id }
@@ -72,6 +72,7 @@ class SpaceMembersViewModelTest {
             photoUrl = null,
             role = Res.string.role_owner,
             currentRole = Role.OWNER,
+            isYou = true,
         )
         assertEquals(listOf(owner), state.members)
     }
@@ -146,7 +147,7 @@ class SpaceMembersViewModelTest {
     @Test
     fun keepsThePickerOpenAndSaysSoWhenTheChangeFails() = runTest {
         auth.signIn("ana@orbit.app", "secret")
-        val viewModel = membersViewModel(team(changeRoleFailure = IllegalStateException("Could not reach the server")))
+        val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Could not reach the server")))
         viewModel.openRolePicker("cy@orbit.app")
 
         viewModel.changeRole(Role.ADMIN)
@@ -161,7 +162,7 @@ class SpaceMembersViewModelTest {
     @Test
     fun forgetsAFailureWhenThePickerClosesAndOpensAgain() = runTest {
         auth.signIn("ana@orbit.app", "secret")
-        val viewModel = membersViewModel(team(changeRoleFailure = IllegalStateException("Could not reach the server")))
+        val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Could not reach the server")))
         viewModel.openRolePicker("cy@orbit.app")
         viewModel.changeRole(Role.ADMIN)
 
@@ -188,9 +189,58 @@ class SpaceMembersViewModelTest {
     @Test
     fun changingARoleWithNoPickerOpenDoesNothing() = runTest {
         auth.signIn("ana@orbit.app", "secret")
-        val viewModel = membersViewModel(team(changeRoleFailure = IllegalStateException("Must not be called")))
+        val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Must not be called")))
 
         viewModel.changeRole(Role.ADMIN)
+
+        assertFalse(viewModel.uiState.value.failed)
+    }
+
+    @Test
+    fun onlyTheOwnerCanHandTheSpaceToAnyoneElse() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val owner = membersViewModel(team()).uiState.value.members
+        assertEquals(listOf("ben@orbit.app", "cy@orbit.app"), owner.filter { it.canTakeOwnership }.map { it.id })
+
+        auth.signOut()
+        auth.signIn("ben@orbit.app", "secret")
+        assertTrue(membersViewModel(team()).uiState.value.members.none { it.canTakeOwnership })
+    }
+
+    @Test
+    fun handsTheSpaceOverAndClosesThePicker() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val viewModel = membersViewModel(team())
+        viewModel.openRolePicker("cy@orbit.app")
+
+        viewModel.transferOwnership()
+
+        val state = viewModel.uiState.value
+        assertEquals(Role.OWNER, state.members.single { it.id == "cy@orbit.app" }.currentRole)
+        assertEquals(Role.ADMIN, state.members.single { it.id == "ana@orbit.app" }.currentRole)
+        assertNull(state.rolePicker)
+    }
+
+    @Test
+    fun keepsThePickerOpenWhenTheHandoverFails() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Could not reach the server")))
+        viewModel.openRolePicker("cy@orbit.app")
+
+        viewModel.transferOwnership()
+
+        assertTrue(viewModel.uiState.value.failed)
+        assertNotNull(viewModel.uiState.value.rolePicker)
+        assertEquals(Role.OWNER, viewModel.uiState.value.members.single { it.id == "ana@orbit.app" }.currentRole)
+    }
+
+    @Test
+    fun anAdminCannotHandTheSpaceOver() = runTest {
+        auth.signIn("ben@orbit.app", "secret")
+        val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Must not be called")))
+        viewModel.openRolePicker("cy@orbit.app")
+
+        viewModel.transferOwnership()
 
         assertFalse(viewModel.uiState.value.failed)
     }
