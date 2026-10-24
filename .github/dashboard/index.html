@@ -308,11 +308,11 @@ footer code { font-size: 12px; }
   </div>
 
   <footer>
-    <p><b>PV</b> planned labour and depreciation spread over each sprint, plus the cash planned at its start.
-      <b>EV</b> share of the sprint's planned hours earned by closed issues (their Estimate) × the sprint budget.
+    <p><b>PV</b> each sprint's budget (labour, depreciation and planned cash) spread over the sprint.
+      <b>EV</b> share of the sprint's estimated work that is closed × the sprint budget.
       <b>AC</b> hours spent × €<span id="rate"></span>/h + depreciation so far + cash spent.
       <b>CPI</b> EV / AC. <b>SPI</b> EV / PV. <b>EAC</b> BAC / CPI. <b>ETC</b> EAC − AC. <b>VAC</b> BAC − EAC.
-      In hours, the same indicators count team effort only: planned hours, estimates of closed issues and hours spent.</p>
+      In hours, the same indicators count team effort only: planned hours, that share of them and hours spent.</p>
     <p>Rebuilt by <code>.github/workflows/dashboard.yml</code> from <code>.github/scripts/dashboard.py</code>.</p>
   </footer>
 </main>
@@ -567,7 +567,6 @@ const tone = (v) => v == null || Math.abs(v) < 0.05 ? "" : v < 0 ? "bad" : "good
 function renderMetrics() {
   const s = sprint(), t = indicatorsNow(), H = inHours(), rows = costRows();
   const sprints = s ? [s] : data.sprints;
-  const earned = sprints.reduce((a, x) => a + x.earned_h, 0);
   const planned = rows["Team effort, planned issues"]?.actual_h || 0, unplanned = rows["Team effort, unplanned issues"]?.actual_h || 0;
   const equipment = rows["Equipment depreciation"]?.actual || 0;
   const cash = Object.values(rows).filter((r) => !/Team effort|depreciation/.test(r.item)).reduce((a, r) => a + r.actual, 0);
@@ -579,12 +578,12 @@ function renderMetrics() {
   $("m-status").innerHTML = [
     { abbr: "PV", name: "Planned value", value: fmt(t.PV), meter: [of(t.PV), css("--s1")],
       meaning: H ? `Hours the plan expected done by today: ${pct(of(t.PV))} of ${scopeName}.` : `Budget the plan expected spent by today: ${pct(of(t.PV))} of ${scopeName}.`,
-      formula: s ? (H ? `${hours(s.plan_h)} planned × ${pct(s.passed)} of the sprint passed` : `(labour + equipment) × ${pct(s.passed)} passed + planned cash`)
-        : (H ? `Σ sprints: planned hours × time passed` : `Σ sprints: (labour + equipment) × time passed + planned cash`) },
+      formula: s ? (H ? `${hours(s.plan_h)} planned × ${pct(s.passed)} of the sprint passed` : `${eur(s.budget, 0)} budget × ${pct(s.passed)} of the sprint passed`)
+        : (H ? `Σ sprints: planned hours × time passed` : `Σ sprints: budget × time passed`) },
     { abbr: "EV", name: "Earned value", value: fmt(t.EV), meter: [of(t.EV), css("--s3")],
       meaning: H ? "Estimates of the issues already closed: the planned work really done." : "The planned work really done, at what the plan said it would cost.",
-      formula: H ? `Σ Estimate of closed issues = <b>${hours(earned)}</b>${s ? `, capped at ${hours(s.plan_h)}` : ""}`
-        : s ? `${hours(s.earned_h)} ÷ ${hours(s.plan_h)} × ${eur(s.budget, 0)} budget` : "Σ sprints: closed estimates ÷ planned hours × budget" },
+      formula: s ? `${hours(s.earned_h)} closed ÷ ${hours(s.scope_h)} estimated × ${H ? `${hours(s.plan_h)} planned` : `${eur(s.budget, 0)} budget`}`
+        : `Σ sprints: closed ÷ estimated × ${H ? "planned hours" : "budget"}` },
     { abbr: "AC", name: "Actual cost", value: fmt(t.AC), meter: [of(t.AC), css("--s2")],
       meaning: H ? "Hours really spent on the issues, planned or not." : "What the work has really cost so far.",
       formula: H ? `${hours(planned)} planned issues + ${hours(unplanned)} unplanned`
@@ -621,12 +620,12 @@ function renderMetrics() {
   ].map(metric).join("");
 }
 
-// Each issue's share of CV = what it earned (its Estimate, once closed) − what it cost. In money the earned
-// hours are valued at the sprint's budget per planned hour and the spent ones at the rate, as EV and AC are.
+// Each issue's share of CV = what it earned (its share of the sprint's estimated work, once closed) − what it
+// cost. Earned hours are valued at the sprint's plan per estimated hour and the spent ones at the rate, as EV and AC are.
 function renderDrivers() {
   const s = sprint(), t = indicatorsNow(), H = inHours();
   const bySprint = Object.fromEntries(data.sprints.map((x) => [x.title, x]));
-  const value = (i, h) => H ? h : h * bySprint[i.sprint].budget / bySprint[i.sprint].plan_h;
+  const value = (i, h) => h * (H ? bySprint[i.sprint].plan_h : bySprint[i.sprint].budget) / bySprint[i.sprint].scope_h;
   const cost = (h) => H ? h : h * data.rate;
   const issues = scoped().filter((i) => bySprint[i.sprint]);
   const states = Object.fromEntries(data.roadmap.days[data.today]?.map((b) => [b[0], data.roadmap.states[b[3]]]) || []);
@@ -640,7 +639,8 @@ function renderDrivers() {
     const why = !i.estimate ? `Unplanned: ${hours(i.spent)} spent, no Estimate to earn`
       : !i.closed ? `In progress: ${hours(i.spent)} spent, earns its ${hours(i.estimate)} when it closes`
       : `${hours(i.spent)} spent against ${hours(i.estimate)} estimated` + (TRUSTED.includes(i.source) ? "" : " (estimate standing in)");
-    return { i, why, v: (earned ? value(i, earned) : 0) - cost(i.spent), kind: !i.estimate ? "unplanned" : !i.closed ? "open" : i.spent > i.estimate ? "over" : i.spent < i.estimate ? "under" : "even" };
+    const v = (earned ? value(i, earned) : 0) - cost(i.spent);
+    return { i, why, v, kind: !i.estimate ? "unplanned" : !i.closed ? "open" : v < 0 ? "over" : "under" };
   }).filter((p) => Math.abs(p.v) >= 0.05);
   const total = (list) => list.reduce((a, p) => a + p.v, 0);
   const worst = parts.filter((p) => p.v < 0).sort((a, b) => a.v - b.v), best = parts.filter((p) => p.v > 0).sort((a, b) => b.v - a.v);
@@ -650,7 +650,7 @@ function renderDrivers() {
   $("cost-drivers").innerHTML = shown.length
     ? shown.map((p) => row(link(p.i), p.v, p.why, max, p.v < 0 ? "--critical-text" : "--good-text")).join("") +
       (rest ? `<li class="rest"><span>${rest} more issues</span><span class="d-value">${signed(restV)}</span></li>` : "") +
-      (Math.abs(other) >= 0.5 ? `<li class="rest"><span>${H ? "Hours closed beyond the sprint plan, not earned" : "Equipment, cash and work beyond the sprint plan"}</span><span class="d-value">${signed(other)}</span></li>` : "")
+      (Math.abs(other) >= 0.5 ? `<li class="rest"><span>Equipment and cash</span><span class="d-value">${signed(other)}</span></li>` : "")
     : `<li class="empty">No hours spent yet.</li>`;
 
   const started = (i) => bySprint[i.sprint].start <= data.today;
@@ -673,9 +673,9 @@ function renderDrivers() {
   if (unplanned.length) say.push(`<b>${unplanned.length} unplanned issues</b> took ${fmt(-sum(unplanned))} and earned nothing, having no Estimate${share(sum(unplanned))}.`);
   if (over.length) {
     const top = over[0].i;
-    say.push(`<b>${over.length} issues ran over</b> their estimates by ${fmt(-sum(over))}${share(sum(over))}. The largest is ${link(top)}: ${hours(top.spent)} against ${hours(top.estimate)}.`);
+    say.push(`<b>${over.length} issues cost more</b> than they earned, by ${fmt(-sum(over))}${share(sum(over))}. The largest is ${link(top)}: ${hours(top.spent)} against ${hours(top.estimate)}.`);
   }
-  if (under.length) say.push(`<b>${under.length} issues finished under</b> their estimates, saving ${fmt(sum(under))}.`);
+  if (under.length) say.push(`<b>${under.length} issues cost less</b> than they earned, saving ${fmt(sum(under))}.`);
   if (progress.length) say.push(`<b>${progress.length} issues in progress</b> have used ${fmt(-sum(progress))} that counts as earned only once they close.`);
   const late = open.filter((i) => states[i.number] === "overdue");
   if (late.length) say.push(`<b>${late.length} open issues are past their target date</b>, worth ${fmt(late.reduce((a, i) => a + value(i, i.estimate), 0))} of earned value.`);

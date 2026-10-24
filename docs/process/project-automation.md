@@ -150,19 +150,20 @@ Measured against the Sprint 0 cost plan, whose numbers are constants at the top 
 | `DEPRECIATION` | € per month of equipment (computers and test devices) | 138.20 |
 | `BAC` | Budget at completion: the Sprint 0 total | 9,164.28 |
 | `PLAN` | Hours and months of equipment per sprint | 160 h and 1 month per development sprint, 60 h and half a month for the final one |
-| `PLANNED_CASH` | Cash the plan expects, at the start of the sprint that needs it | Apple and Play accounts in Sprint 1, cloud AI and the Firebase reserve in Sprint 2, the domain in Sprint 3 |
+| `PLANNED_CASH` | Cash the plan expects, in the sprint that needs it | Apple and Play accounts in Sprint 1, cloud AI and the Firebase reserve in Sprint 2, the domain in Sprint 3 |
 | `SPENT` | Cash really spent, as (day, item, €) | Empty. **Add a row when the team pays for something** |
 
-- **PV** (planned value): each sprint's labour and depreciation, spread evenly from its start to its due date,
-  plus its planned cash from its first day.
-- **EV** (earned value): per sprint, the `Estimate` of its closed issues over its planned hours, times its budget.
-  Issues without an `Estimate` earn nothing: they are unplanned work, so estimate an issue at planning for it to
-  count.
+- **PV** (planned value): each sprint's budget (labour, depreciation and planned cash), spread evenly from its start
+  to its due date.
+- **EV** (earned value): per sprint, the `Estimate` of its closed issues over the `Estimate` of all its issues, times
+  its budget. A sprint whose issues are all closed has earned its whole budget, so its SPI ends at 1 on its due date
+  even when its issues add up to fewer hours than the plan. Issues without an `Estimate` earn nothing: they are
+  unplanned work, so estimate an issue at planning for it to count.
 - **AC** (actual cost): hours spent × `RATE`, plus depreciation so far, plus `SPENT`.
 - **CPI** EV / AC, **SPI** EV / PV, **CV** EV − AC, **SV** EV − PV, **EAC** BAC / CPI, **ETC** EAC − AC,
   **VAC** BAC − EAC. The dashboard also shows AC + (BAC − EV), the EAC if the overrun so far does not repeat.
-- **In hours**, the same indicators count team effort only: PV is the planned hours × time passed, EV the `Estimate`
-  of closed issues (capped at the sprint's planned hours), AC the hours spent, and BAC the planned hours.
+- **In hours**, the same indicators count team effort only: PV is the planned hours × time passed, EV the same share
+  of the planned hours, AC the hours spent, and BAC the planned hours.
 
 ## Setup
 

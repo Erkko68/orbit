@@ -19,7 +19,7 @@ RATE = 15.69  # € per hour: employer cost of a junior developer in Spain
 DEPRECIATION = 85.42 + 52.78  # € per month: development computers + test devices
 BAC = 9164.28  # the plan's total as stated; its own rounding puts the rows 0.02 above it
 PLAN = {"Sprint 1": (160, 1), "Sprint 2": (160, 1), "Sprint 3": (160, 1), "Sprint 4 (final)": (60, 0.5)}  # hours, months
-# Sprint 0 does not say when the cash goes out, so each item is planned at the start of the sprint that needs it.
+# Sprint 0 does not say when the cash goes out, so each item is planned in the sprint that needs it.
 PLANNED_CASH = {"Sprint 1": [("Apple Developer Program", 99), ("Google Play Console", 22)],
                 "Sprint 2": [("Cloud AI API", 65), ("Firebase reserve", 10)],
                 "Sprint 3": [("Domain", 12)]}
@@ -76,17 +76,19 @@ def values(issues, sprints, when, today):
         hours, months = PLAN[title]
         passed = fraction(when, window)
         own = [i for i in issues if (i["milestone"] or {}).get("title") == title]
+        scope = sum(i["estimate"] or 0 for i in own)
         earned = sum(i["estimate"] or 0 for i in own if i["closed"] and i["closed"] <= when)
+        done = earned / scope if scope else 0  # share of the sprint's estimated work closed: all of it earns the budget
         planned_h = sum(hours_by(i, when, today) for i in own if i["estimate"])
         unplanned_h = sum(hours_by(i, when, today) for i in own if not i["estimate"])
         cash = [(d, item, euros) for d, item, euros in SPENT if day(d) <= when and sprint_of(day(d), sprints) == title]
         out[title] = {
-            "PV": (hours * RATE + months * DEPRECIATION) * passed + (planned_cash(title) if when >= day(window[0]) else 0),
-            "EV": min(earned / hours, 1) * budget(title),
+            "PV": budget(title) * passed,
+            "EV": done * budget(title),
             "AC": (planned_h + unplanned_h) * RATE + months * DEPRECIATION * passed + sum(e for *_, e in cash),
             # The same three in hours of team effort only, without equipment or cash.
-            "PV_h": hours * passed, "EV_h": min(earned, hours), "AC_h": planned_h + unplanned_h,
-            "passed": passed, "earned_h": earned, "planned_h": planned_h, "unplanned_h": unplanned_h,
+            "PV_h": hours * passed, "EV_h": done * hours, "AC_h": planned_h + unplanned_h,
+            "passed": passed, "earned_h": earned, "scope_h": scope, "planned_h": planned_h, "unplanned_h": unplanned_h,
             "depreciation": months * DEPRECIATION * passed, "cash": cash}
     return out
 
@@ -189,7 +191,7 @@ def build(items, sprints, today):
         own = [i for i in issues if (i["milestone"] or {}).get("title") == title]
         v = now_values[title]
         sprint_out.append({"title": title, "start": first, "due": due, "plan_h": PLAN[title][0],
-                           "budget": budget(title), "passed": v["passed"], "earned_h": v["earned_h"],
+                           "budget": budget(title), "passed": v["passed"], "earned_h": v["earned_h"], "scope_h": v["scope_h"],
                            **indicators(v["PV"], v["EV"], v["AC"], budget(title)),
                            "h": indicators(v["PV_h"], v["EV_h"], v["AC_h"], PLAN[title][0]),
                            "cost": breakdown(title, v), "burn": burn(own, today, day(due)) if own else None})
@@ -226,16 +228,20 @@ def check():
 
         def issue(estimate, closed, measured, actual=None):
             return {"milestone": {"title": "S1"}, "estimate": estimate, "actual": actual, "closed": closed,
-                    "work": bc.work(estimate, None), "measured": measured, "started": True}
+                    "work": bc.work(estimate, None), "measured": measured, "started": bool(closed)}
 
-        # The Sprint 1 report on 21 October: 125 h earned of 160, 246.6 h spent, no cash out.
-        issues = [issue(125, d, 132.6), issue(None, d, 0.5, actual=114)]
+        # The Sprint 1 report on 21 October: 125 h closed of 160 estimated, 246.6 h spent, no cash out.
+        issues = [issue(125, d, 132.6), issue(None, d, 0.5, actual=114), issue(35, None, None)]
         v = values(issues, sprints, d, d)["S1"]
-        if not all(math.isclose(v[k], want, abs_tol=0.005) for k, want in (("PV", 2012.86), ("EV", 2163.75), ("AC", 3967.87),
+        if not all(math.isclose(v[k], want, abs_tol=0.005) for k, want in (("PV", 1978.29), ("EV", 2163.75), ("AC", 3967.87),
                                                                             ("PV_h", 114.29), ("EV_h", 125), ("AC_h", 246.6))):
             raise RuntimeError(f"values() self-check failed: {v}")
         if not math.isclose(indicators(v["PV"], v["EV"], v["AC"])["CPI"], 0.55, abs_tol=0.005):
             raise RuntimeError("indicators() self-check failed")
+        # A sprint whose estimated work is all closed has earned its budget, even if it was estimated under the plan.
+        v = values(issues[:2], sprints, d, d)["S1"]
+        if not (math.isclose(v["EV"], budget("S1")) and math.isclose(v["EV_h"], 160)):
+            raise RuntimeError(f"values() full-scope self-check failed: {v}")
     finally:
         del PLAN["S1"], PLANNED_CASH["S1"]
     item = {"content": {"createdAt": "2026-10-06T10:00:00Z", "closedAt": "2026-10-09T10:00:00Z",
