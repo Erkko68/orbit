@@ -93,6 +93,18 @@ def values(issues, sprints, when, today):
     return out
 
 
+def overview(issues, sprints, when, today):
+    """The overview's numbers as of `when`: the indicators in € and in hours, for the project and each sprint."""
+    v = values(issues, sprints, when, today)
+    sums = {k: sum(x[k] for x in v.values()) for k in ("PV", "EV", "AC", "PV_h", "EV_h", "AC_h")}
+    return {"total": indicators(sums["PV"], sums["EV"], sums["AC"]),
+            "total_h": indicators(sums["PV_h"], sums["EV_h"], sums["AC_h"], sum(PLAN[t][0] for t in sprints)),
+            "sprints": {t: {**indicators(x["PV"], x["EV"], x["AC"], budget(t)),
+                            "h": indicators(x["PV_h"], x["EV_h"], x["AC_h"], PLAN[t][0]),
+                            **{k: x[k] for k in ("passed", "earned_h", "planned_h", "unplanned_h", "depreciation")},
+                            "cash": sum(e for *_, e in x["cash"])} for t, x in v.items()}}
+
+
 def snapshot(item, when):
     """The board item as it stood at the end of `when`, or None if it did not exist yet."""
     # ponytail: estimates, milestones and blockers are today's. Store daily snapshots if the plan's history matters.
@@ -176,16 +188,13 @@ def burn(issues, today, due):
 
 def build(items, sprints, today):
     values_by = {i["content"]["number"]: {k: ps.value(i, k) for k in ("estimate", "actual", "size")} for i in items}
-    now = datetime.now(timezone.utc)
+    generated = datetime.now(timezone.utc)
     items = [i for i in items if i["content"]["title"] != bc.TITLE]
-    issues = [{**bc.issue(i["content"], values_by, now), "url": i["content"]["url"]} for i in items]
+    issues = [{**bc.issue(i["content"], values_by, generated), "url": i["content"]["url"]} for i in items]
     sprints = {t: w for t, w in sprints.items() if t in PLAN}
     start = min(day(w[0]) for w in sprints.values())
     end = max(day(w[1]) for w in sprints.values())
-    now_values = values(issues, sprints, today, today)
-    total = indicators(*(sum(v[k] for v in now_values.values()) for k in ("PV", "EV", "AC")))
-    total_h = indicators(*(sum(v[k] for v in now_values.values()) for k in ("PV_h", "EV_h", "AC_h")),
-                         sum(PLAN[t][0] for t in sprints))
+    now_values, now = values(issues, sprints, today, today), overview(issues, sprints, today, today)
     sprint_out = []
     for title, (first, due) in sorted(sprints.items(), key=lambda s: s[1][1]):
         own = [i for i in issues if (i["milestone"] or {}).get("title") == title]
@@ -195,8 +204,10 @@ def build(items, sprints, today):
                            **indicators(v["PV"], v["EV"], v["AC"], budget(title)),
                            "h": indicators(v["PV_h"], v["EV_h"], v["AC_h"], PLAN[title][0]),
                            "cost": breakdown(title, v), "burn": burn(own, today, day(due)) if own else None})
-    return {"generated": now.isoformat(timespec="minutes"), "today": today.isoformat(), "rate": RATE, "total": total,
-            "total_h": total_h, "sprints": sprint_out,
+    return {"generated": generated.isoformat(timespec="minutes"), "today": today.isoformat(), "rate": RATE,
+            "total": now["total"], "total_h": now["total_h"], "sprints": sprint_out,
+            "history": {(start + timedelta(n)).isoformat(): overview(issues, sprints, start + timedelta(n), today)
+                        for n in range((today - start).days + 1)},
             "curve": curve(issues, sprints, start, end, today), "burn": burn(issues, today, None),
             "issues": [{**{k: i[k] for k in ("number", "title", "url", "estimate", "actual", "work", "measured", "who")},
                         "sprint": (i["milestone"] or {}).get("title"), "created": i["created"].isoformat(),

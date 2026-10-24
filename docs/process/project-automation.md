@@ -131,7 +131,7 @@ The ☰ menu switches between views, and the scope buttons between the whole pro
 
 | View | Shows |
 |---|---|
-| Overview | The earned value indicators, each with what it means and its formula with today's numbers, the issues that drove the cost variance and the planned work still open, and the PV, EV and AC curves against the budget. In hours (team effort only) by default, or in money |
+| Overview | The earned value indicators on any day, picked from the calendar (today by default), each with what it means and its formula with that day's numbers, the issues that drove the cost variance and the planned work still open, and the PV, EV and AC curves against the budget. In hours (team effort only) by default, or in money |
 | Burn charts | Burn-up and burn-down in hours |
 | Roadmap | The board as it stood on any day, picked from the calendar: real bars for the work that had started, the plan of that day for the rest. A sprint zooms to its own issues |
 | Cost | Planned against actual cost, by resource |

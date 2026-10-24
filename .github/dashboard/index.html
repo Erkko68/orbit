@@ -72,6 +72,7 @@ header { position: relative; }
 a { color: var(--accent); }
 .toolbar { display: flex; flex-wrap: wrap; gap: 8px 12px; justify-content: space-between; margin-bottom: 16px; }
 .toolbar [hidden] { display: none; }
+.toolbar-end { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
 .scope { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--border);
   border-radius: 999px; width: fit-content; max-width: 100%; }
 .scope button { border: 0; background: none; color: var(--ink-2); font: inherit; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
@@ -141,8 +142,8 @@ tr.total td { font-weight: 600; border-bottom: 0; }
 .quality { display: flex; height: 14px; border-radius: 4px; overflow: hidden; gap: 2px; margin: 8px 0; }
 .quality div { background: var(--c); min-width: 2px; }
 /* Roadmap */
-.road-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.road-controls button, .road-controls input { font: inherit; color: var(--ink); background: var(--raised); border: 1px solid var(--border);
+.road-controls, .day-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.road-controls button, .road-controls input, .day-controls button, .day-controls input { font: inherit; color: var(--ink); background: var(--raised); border: 1px solid var(--border);
   border-radius: 8px; padding: 5px 10px; cursor: pointer; }
 .gantt { overflow: auto; position: relative; border-top: 1px solid var(--grid); margin-top: 12px; overscroll-behavior: contain; }
 .gantt-inner { position: relative; }
@@ -185,7 +186,7 @@ footer code { font-size: 12px; }
       <a href="https://github.com/Erkko68/orbit/blob/main/docs/process/project-automation.md">How it is computed</a>
     </nav>
     <nav class="menu" id="menu" hidden>
-      <a href="#overview"><b>Overview</b><span>Indicators and the earned value curve</span></a>
+      <a href="#overview"><b>Overview</b><span>Indicators on any day, from the calendar, and the earned value curve</span></a>
       <a href="#burn"><b>Burn charts</b><span>Burn-up and burn-down in hours</span></a>
       <a href="#roadmap"><b>Roadmap</b><span>The board on any day, from the calendar</span></a>
       <a href="#cost"><b>Cost</b><span>Planned against actual, by resource</span></a>
@@ -195,8 +196,16 @@ footer code { font-size: 12px; }
 
   <div class="toolbar">
     <div class="scope" id="scope" role="group" aria-label="Scope"></div>
-    <div class="scope" id="unit" role="group" aria-label="Unit">
-      <button data-v="h">Hours</button><button data-v="eur">Money</button>
+    <div class="toolbar-end" id="overview-tools">
+      <div class="day-controls">
+        <button id="ov-prev" aria-label="Previous day">◀</button>
+        <input type="date" id="ov-day" aria-label="Overview day">
+        <button id="ov-next" aria-label="Next day">▶</button>
+        <button id="ov-today">Today</button>
+      </div>
+      <div class="scope" id="unit" role="group" aria-label="Unit">
+        <button data-v="h">Hours</button><button data-v="eur">Money</button>
+      </div>
     </div>
   </div>
 
@@ -540,7 +549,14 @@ const inHours = () => unit === "h";
 const fmt = (v) => inHours() ? hours(v) : eur(v, 0);
 const signed = (v) => v == null ? "–" : (v > 0 ? "+" : v < 0 ? "−" : "") + fmt(Math.abs(v));
 const pct = (v) => Math.round(v * 100) + "%";
-const indicatorsNow = () => { const s = sprint(); return s ? (inHours() ? s.h : s) : (inHours() ? data.total_h : data.total); };
+// The overview shows the day picked in its calendar: data.history holds its numbers for every day up to today.
+const asOf = () => $("ov-day").value;
+const at = () => data.history[asOf()];
+const by = () => asOf() === data.today ? "today" : fmtDay(asOf());
+const indicatorsAt = () => {
+  const s = sprint(), x = s && at().sprints[s.title];
+  return inHours() ? (x ? x.h : at().total_h) : (x || at().total);
+};
 
 // Planned against actual cost by resource, summed over the sprints in scope.
 function costRows() {
@@ -565,24 +581,25 @@ function metric({ abbr, name, value, cls = "", badge = "", meaning, formula, met
 const tone = (v) => v == null || Math.abs(v) < 0.05 ? "" : v < 0 ? "bad" : "good";
 
 function renderMetrics() {
-  const s = sprint(), t = indicatorsNow(), H = inHours(), rows = costRows();
-  const sprints = s ? [s] : data.sprints;
-  const planned = rows["Team effort, planned issues"]?.actual_h || 0, unplanned = rows["Team effort, unplanned issues"]?.actual_h || 0;
-  const equipment = rows["Equipment depreciation"]?.actual || 0;
-  const cash = Object.values(rows).filter((r) => !/Team effort|depreciation/.test(r.item)).reduce((a, r) => a + r.actual, 0);
+  const s = sprint(), t = indicatorsAt(), H = inHours(), x = s && at().sprints[s.title];
+  const days = Object.keys(data.history);
+  $("ov-prev").disabled = asOf() <= days[0];
+  $("ov-next").disabled = asOf() >= days.at(-1);
+  const parts = s ? [x] : Object.values(at().sprints), sum = (k) => parts.reduce((a, v) => a + v[k], 0);
+  const planned = sum("planned_h"), unplanned = sum("unplanned_h"), equipment = sum("depreciation"), cash = sum("cash");
   const b = (v) => `<b>${fmt(v)}</b>`, of = (v) => t.BAC ? v / t.BAC : 0;
   const scopeName = s ? "the sprint" : "the project";
-  $("status-note").textContent = `${s ? `${s.title}, ${fmtDay(s.start)} – ${fmtDay(s.due)}` : "All sprints"}, as of ${fmtDay(data.today)}.` +
+  $("status-note").textContent = `${s ? `${s.title}, ${fmtDay(s.start)} – ${fmtDay(s.due)}` : "All sprints"}, as of ${fmtDay(asOf())}.` +
     (H ? " Hours of team effort." : ` Money: hours × €${data.rate.toFixed(2)}, plus equipment and cash.`);
 
   $("m-status").innerHTML = [
     { abbr: "PV", name: "Planned value", value: fmt(t.PV), meter: [of(t.PV), css("--s1")],
-      meaning: H ? `Hours the plan expected done by today: ${pct(of(t.PV))} of ${scopeName}.` : `Budget the plan expected spent by today: ${pct(of(t.PV))} of ${scopeName}.`,
-      formula: s ? (H ? `${hours(s.plan_h)} planned × ${pct(s.passed)} of the sprint passed` : `${eur(s.budget, 0)} budget × ${pct(s.passed)} of the sprint passed`)
+      meaning: H ? `Hours the plan expected done by ${by()}: ${pct(of(t.PV))} of ${scopeName}.` : `Budget the plan expected spent by ${by()}: ${pct(of(t.PV))} of ${scopeName}.`,
+      formula: s ? (H ? `${hours(s.plan_h)} planned × ${pct(x.passed)} of the sprint passed` : `${eur(s.budget, 0)} budget × ${pct(x.passed)} of the sprint passed`)
         : (H ? `Σ sprints: planned hours × time passed` : `Σ sprints: budget × time passed`) },
     { abbr: "EV", name: "Earned value", value: fmt(t.EV), meter: [of(t.EV), css("--s3")],
       meaning: H ? "Estimates of the issues already closed: the planned work really done." : "The planned work really done, at what the plan said it would cost.",
-      formula: s ? `${hours(s.earned_h)} closed ÷ ${hours(s.scope_h)} estimated × ${H ? `${hours(s.plan_h)} planned` : `${eur(s.budget, 0)} budget`}`
+      formula: s ? `${hours(x.earned_h)} closed ÷ ${hours(s.scope_h)} estimated × ${H ? `${hours(s.plan_h)} planned` : `${eur(s.budget, 0)} budget`}`
         : `Σ sprints: closed ÷ estimated × ${H ? "planned hours" : "budget"}` },
     { abbr: "AC", name: "Actual cost", value: fmt(t.AC), meter: [of(t.AC), css("--s2")],
       meaning: H ? "Hours really spent on the issues, planned or not." : "What the work has really cost so far.",
@@ -595,7 +612,7 @@ function renderMetrics() {
       meaning: t.CPI == null ? "Nothing spent yet." : H ? `Each hour spent earned ${ratio(t.CPI)} h of planned work.` : `Each €1 spent earned €${ratio(t.CPI)} of planned value.`,
       formula: `EV ÷ AC = ${b(t.EV)} ÷ ${b(t.AC)}` },
     { abbr: "SPI", name: "Schedule performance", value: ratio(t.SPI), badge: status(t.SPI, "On schedule", "Behind"),
-      meaning: t.SPI == null ? "The plan expects nothing yet." : `The work done is ${pct(t.SPI)} of what the plan expected by today.`,
+      meaning: t.SPI == null ? "The plan expects nothing yet." : `The work done is ${pct(t.SPI)} of what the plan expected by ${by()}.`,
       formula: `EV ÷ PV = ${b(t.EV)} ÷ ${b(t.PV)}` },
     { abbr: "CV", name: "Cost variance", value: signed(t.CV), cls: tone(t.CV),
       meaning: t.CV < 0 ? `The work done took ${fmt(-t.CV)} more than planned.` : `The work done took ${fmt(t.CV)} less than planned.`,
@@ -622,13 +639,15 @@ function renderMetrics() {
 
 // Each issue's share of CV = what it earned (its share of the sprint's estimated work, once closed) − what it
 // cost. Earned hours are valued at the sprint's plan per estimated hour and the spent ones at the rate, as EV and AC are.
+// On a past day an issue is open unless it had closed, and its hours count as AC counts them: once it closed.
 function renderDrivers() {
-  const s = sprint(), t = indicatorsNow(), H = inHours();
+  const s = sprint(), t = indicatorsAt(), H = inHours(), day = asOf();
   const bySprint = Object.fromEntries(data.sprints.map((x) => [x.title, x]));
   const value = (i, h) => h * (H ? bySprint[i.sprint].plan_h : bySprint[i.sprint].budget) / bySprint[i.sprint].scope_h;
   const cost = (h) => H ? h : h * data.rate;
-  const issues = scoped().filter((i) => bySprint[i.sprint]);
-  const states = Object.fromEntries(data.roadmap.days[data.today]?.map((b) => [b[0], data.roadmap.states[b[3]]]) || []);
+  const issues = scoped().filter((i) => bySprint[i.sprint]).map((i) => ({ ...i,
+    closed: i.closed && i.closed <= day ? i.closed : null, spent: (i.closed ? i.closed <= day : day >= data.today) ? i.spent : 0 }));
+  const states = Object.fromEntries(data.roadmap.days[day]?.map((b) => [b[0], data.roadmap.states[b[3]]]) || []);
   const link = (i) => `<a href="${esc(i.url)}">#${i.number}</a> ${esc(i.title)}`;
   const row = (title, v, why, max, color) =>
     `<li><span class="d-title">${title}</span><span class="d-value" style="color:var(${color})">${signed(v)}</span>` +
@@ -653,12 +672,12 @@ function renderDrivers() {
       (Math.abs(other) >= 0.5 ? `<li class="rest"><span>Equipment and cash</span><span class="d-value">${signed(other)}</span></li>` : "")
     : `<li class="empty">No hours spent yet.</li>`;
 
-  const started = (i) => bySprint[i.sprint].start <= data.today;
+  const started = (i) => bySprint[i.sprint].start <= day;
   const open = issues.filter((i) => i.estimate && !i.closed && started(i)).sort((a, b) => b.estimate - a.estimate);
   const openMax = Math.max(...open.map((i) => value(i, i.estimate)), 0);
   const label = { overdue: "Past its target date", progress: "In progress", planned: "Not started" };
   $("schedule-drivers-note").innerHTML = t.SV == null ? "Nothing planned yet." :
-    `The plan expected ${fmt(t.PV)} by today and closed issues earned ${fmt(t.EV)}. These open issues would earn <b>${fmt(open.reduce((a, i) => a + value(i, i.estimate), 0))}</b> when they close.`;
+    `The plan expected ${fmt(t.PV)} by ${by()} and closed issues earned ${fmt(t.EV)}. These open issues would earn <b>${fmt(open.reduce((a, i) => a + value(i, i.estimate), 0))}</b> when they close.`;
   $("schedule-drivers").innerHTML = open.length
     ? open.slice(0, 8).map((i) => row(link(i), value(i, i.estimate), `${label[states[i.number]] || "Open"}${i.who ? ", " + esc(i.who) : ""}`, openMax,
       states[i.number] === "overdue" ? "--critical-text" : "--ink-2")).join("") +
@@ -694,7 +713,8 @@ function renderEarnedValue() {
     days: c.days, yFmt: H ? hours : (v) => eur(v), axisFmt: H ? (v) => v + " h" : eurShort,
     series: [{ name: "PV", values: c["PV" + k], color: colors.PV }, { name: "EV", values: c["EV" + k], color: colors.EV }, { name: "AC", values: c["AC" + k], color: colors.AC }],
     refs: [{ y: bac, label: "BAC " + (H ? hours(bac) : eur(bac, 0)) }],
-    markers: [...data.sprints.map((s) => ({ day: s.due, label: s.title.replace("Sprint ", "S").replace(" (final)", "") + " due" })), { day: data.today, label: "Today", today: true }],
+    markers: [...data.sprints.map((s) => ({ day: s.due, label: s.title.replace("Sprint ", "S").replace(" (final)", "") + " due" })), { day: data.today, label: "Today", today: true },
+      ...(asOf() === data.today ? [] : [{ day: asOf(), label: fmtDay(asOf()) }])],
   });
 }
 
@@ -832,9 +852,10 @@ function renderRoadmap() {
   $("road-prev").disabled = when <= days[0];
   $("road-next").disabled = when >= days.at(-1);
 }
-function moveDay(n) {
-  const input = $("road-day"), next = addDays(input.value, n);
-  if (data.roadmap.days[next]) { input.value = next; renderRoadmap(); }
+// Steps a calendar one day, within the days that have data.
+function moveDay(input, days, n, draw) {
+  const next = addDays(input.value, n);
+  if (days[next]) { input.value = next; draw(); }
 }
 
 const VIEWS = {
@@ -850,7 +871,7 @@ const view = () => VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "ove
 function render() {
   const current = view();
   renderScope();
-  $("unit").hidden = current !== "overview";
+  $("overview-tools").hidden = current !== "overview";
   $("unit").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === unit));
   document.querySelectorAll(".view").forEach((v) => { v.hidden = v.dataset.view !== current; });
   document.querySelectorAll(".menu a").forEach((a) => a.hash === "#" + current ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
@@ -872,8 +893,14 @@ fetch("data.json").then((r) => r.json()).then((d) => {
   $("rate").textContent = data.rate.toFixed(2);
   $("unit").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { unit = b.dataset.v; render(); }));
   $("road-day").addEventListener("change", renderRoadmap);
-  $("road-prev").addEventListener("click", () => moveDay(-1));
-  $("road-next").addEventListener("click", () => moveDay(1));
+  $("road-prev").addEventListener("click", () => moveDay($("road-day"), data.roadmap.days, -1, renderRoadmap));
+  $("road-next").addEventListener("click", () => moveDay($("road-day"), data.roadmap.days, 1, renderRoadmap));
+  const ov = $("ov-day"), days = Object.keys(data.history);
+  ov.min = days[0]; ov.max = days.at(-1); ov.value = data.today;
+  ov.addEventListener("change", () => { if (!data.history[ov.value]) ov.value = data.today; render(); });
+  $("ov-prev").addEventListener("click", () => moveDay(ov, data.history, -1, render));
+  $("ov-next").addEventListener("click", () => moveDay(ov, data.history, 1, render));
+  $("ov-today").addEventListener("click", () => { ov.value = data.today; render(); });
   $("road-today").addEventListener("click", () => { $("road-day").value = data.today; renderRoadmap(); });
   render();
   addEventListener("hashchange", () => { toggleMenu(false); render(); });
