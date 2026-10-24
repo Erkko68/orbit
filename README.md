@@ -21,7 +21,7 @@
 ## Platform support
 
 - **Android**: minSdk 24, built and tested on every PR.
-- **iOS**: built and tested on the simulator only. The project has no paid Apple Developer account, so it cannot sign for a device or get an APNs key: push notifications do not reach iOS. Local notifications land with #204. A push can be simulated with `xcrun simctl push booted com.orbit.app <file>.apns`.
+- **iOS**: built and tested on the simulator only. The project has no paid Apple Developer account, so it cannot sign for a device or get an APNs key: push notifications do not reach iOS. Local notifications work. A push can be simulated with `xcrun simctl push booted com.orbit.app <file>.apns`.
 
 ## Quick start
 
@@ -52,11 +52,12 @@ Inside `shared`, code is split into `feature/` (screens and their ViewModels), `
 ## Documentation
 
 - **[Product overview](docs/product/overview.md)**: what Orbit does, its principles, the scope by sprint and a glossary.
-- **[Architecture](docs/architecture/overview.md)**: modules, layers, navigation and one change end to end, then [State and ViewModels](docs/architecture/state-and-viewmodels.md), [Offline and sync](docs/architecture/offline-and-sync.md) and the [Design system](docs/architecture/design-system.md).
+- **[Architecture](docs/architecture/overview.md)**: modules, layers, navigation and one change end to end, then [State and ViewModels](docs/architecture/state-and-viewmodels.md), [Offline and sync](docs/architecture/offline-and-sync.md), [Authentication](docs/architecture/authentication.md) and the [Design system](docs/architecture/design-system.md).
 - **[Firestore schema](docs/data/firestore-schema.md)**: every collection, field, query and write.
 - **[Security rules and roles](docs/data/security-rules.md)**: who may read and change what.
 - **[Decision records](docs/adr/README.md)**: why things are the way they are.
 - **[Workflow](docs/process/workflow.md)** and **[Testing](docs/process/testing.md)**: from an issue to a merged pull request.
+- **[Builds and deployment](docs/process/builds-and-deployment.md)**: what CI checks, how the apps are built and what is deployed to Firebase.
 
 ## Contributing
 
