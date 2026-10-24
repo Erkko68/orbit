@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
-/** The invitation card of the members tab: an owner or admin creates, shares and revokes the link of a space. */
+/** The invitation dialog of the member row: an owner or admin creates, shares and revokes the link of a space. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class InviteViewModel(
     private val spaceId: String,
@@ -34,7 +34,7 @@ class InviteViewModel(
     spaces: SpaceRepository,
     auth: AuthRepository,
 ) : ViewModel() {
-    /** Busy and failure: what the card is doing, not what the repositories hold. */
+    /** Open, busy and failure: what the dialog is doing, not what the repositories hold. */
     private val form = MutableStateFlow(InviteUiState())
 
     /** Members who cannot be read cannot be checked, so nobody can invite until they load. */
@@ -46,7 +46,7 @@ class InviteViewModel(
     }.distinctUntilChanged()
 
     /**
-     * The newest invitation that still works, or [Load.Loading] until the invitations arrive: the card
+     * The newest invitation that still works, or [Load.Loading] until the invitations arrive: the chip
      * shows as soon as the user is known to be able to invite and does not wait for them. Members who cannot
      * invite never ask for them. Invitations that fail to load show as none, so a new one can still be made.
      */
@@ -63,7 +63,7 @@ class InviteViewModel(
         }
     }
 
-    /** Only the share message needs the name, so the card does not wait for it. */
+    /** Only the share message needs the name, so the dialog does not wait for it. */
     private val spaceName: Flow<String> = spaces.observeSpaces()
         .orOnFailure("Loading the spaces", emptyList())
         .map { all -> all.firstOrNull { it.id == spaceId }?.name.orEmpty() }
@@ -78,6 +78,10 @@ class InviteViewModel(
                 invitation = load.valueOrNull?.let { ActiveInvitation(it.code, it.link) },
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InviteUiState())
+
+    fun open() = form.update { it.copy(open = true) }
+
+    fun dismiss() = form.update { it.copy(open = false, failure = null) }
 
     fun createInvitation() = submit(InviteFailure.CREATE) { invitations.createInvitation(spaceId) }
 

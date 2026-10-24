@@ -6,6 +6,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.orbit.app.core.designsystem.component.OrbitDialog
+import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitOutlinedButton
 import com.orbit.app.domain.model.Role
 import orbit.shared.generated.resources.Res
@@ -13,17 +14,19 @@ import orbit.shared.generated.resources.cancel
 import orbit.shared.generated.resources.member_role_failed
 import orbit.shared.generated.resources.member_role_make_admin
 import orbit.shared.generated.resources.member_role_make_member
+import orbit.shared.generated.resources.member_role_make_owner
+import orbit.shared.generated.resources.member_role_make_owner_body
 import orbit.shared.generated.resources.member_role_title
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** The roles somebody can be given. Owner is not one of them: ownership moves only through a transfer (#27). */
+/** The roles somebody can be given. Owner is not one of them: ownership moves only through a transfer. */
 private val AssignableRoles = listOf(Role.ADMIN, Role.MEMBER)
 
 /**
- * Picks the role of [member]: one button per role they can be given, the one they have being disabled.
- * [onPick] runs with the choice. While it is [busy] the choices wait, and [failed] says the last one did
- * not go through.
+ * Picks the role of [member]: one button per role they can be given, the one they have being disabled, and
+ * for the owner "Make owner", which hands the space over. [onPick] runs with the role, [onTransfer] for the
+ * handover. While it is [busy] the choices wait, and [failed] says the last one did not go through.
  */
 @Composable
 internal fun RolePickerDialog(
@@ -31,6 +34,7 @@ internal fun RolePickerDialog(
     busy: Boolean,
     failed: Boolean,
     onPick: (Role) -> Unit,
+    onTransfer: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     OrbitDialog(
@@ -38,20 +42,31 @@ internal fun RolePickerDialog(
         dismissText = stringResource(Res.string.cancel),
         onDismiss = onDismiss,
     ) {
-        for (role in AssignableRoles) {
+        if (member.canChangeRole) {
+            for (role in AssignableRoles) {
+                OrbitOutlinedButton(
+                    text = stringResource(role.makeLabel()),
+                    onClick = { onPick(role) },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !busy && role != member.currentRole,
+                )
+            }
+        }
+        if (member.canTakeOwnership) {
             OrbitOutlinedButton(
-                text = stringResource(role.makeLabel()),
-                onClick = { onPick(role) },
+                text = stringResource(Res.string.member_role_make_owner),
+                onClick = onTransfer,
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !busy && role != member.currentRole,
+                enabled = !busy,
+            )
+            Text(
+                text = stringResource(Res.string.member_role_make_owner_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         if (failed) {
-            Text(
-                text = stringResource(Res.string.member_role_failed),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-            )
+            OrbitErrorText(stringResource(Res.string.member_role_failed))
         }
     }
 }

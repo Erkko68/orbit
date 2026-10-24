@@ -21,8 +21,8 @@ interface SpaceRepository {
 
     /**
      * Sets the role of another member to [Role.ADMIN] or [Role.MEMBER]. Only an owner or admin can, the
-     * role of the owner never changes, and nobody becomes owner this way: ownership moves only through a
-     * transfer (#27). Throws when it is not allowed.
+     * role of the owner never changes, and nobody becomes owner this way: ownership moves only through
+     * [transferOwnership]. Throws when it is not allowed.
      */
     suspend fun changeRole(spaceId: String, userId: String, role: Role)
 
@@ -39,4 +39,16 @@ interface SpaceRepository {
      * can. Throws when it is not allowed, when the name is blank or when nothing is given.
      */
     suspend fun updateSpace(spaceId: String, name: String?, accent: Int?)
+
+    /**
+     * Takes the signed-in user out of the space. The owner cannot leave: they delete the space with [deleteSpace],
+     * or hand it over with [transferOwnership] first (ADR 0004). Throws when it is not allowed.
+     */
+    suspend fun leaveSpace(spaceId: String)
+
+    /** Deletes the space for every member. Only the owner can. Throws when it is not allowed. */
+    suspend fun deleteSpace(spaceId: String)
+
+    /** Makes [userId], another member, the owner, and the signed-in owner an admin. Throws when it is not allowed. */
+    suspend fun transferOwnership(spaceId: String, userId: String)
 }

@@ -131,7 +131,7 @@ The ☰ menu switches between views, and the scope buttons between the whole pro
 
 | View | Shows |
 |---|---|
-| Overview | The earned value indicators, and the PV, EV and AC curves against the budget |
+| Overview | The earned value indicators, each with what it means and its formula with today's numbers, the issues that drove the cost variance and the planned work still open, and the PV, EV and AC curves against the budget. In hours (team effort only) by default, or in money |
 | Burn charts | Burn-up and burn-down in hours |
 | Roadmap | The board as it stood on any day, picked from the calendar: real bars for the work that had started, the plan of that day for the rest. A sprint zooms to its own issues |
 | Cost | Planned against actual cost, by resource |
@@ -161,6 +161,8 @@ Measured against the Sprint 0 cost plan, whose numbers are constants at the top 
 - **AC** (actual cost): hours spent × `RATE`, plus depreciation so far, plus `SPENT`.
 - **CPI** EV / AC, **SPI** EV / PV, **CV** EV − AC, **SV** EV − PV, **EAC** BAC / CPI, **ETC** EAC − AC,
   **VAC** BAC − EAC. The dashboard also shows AC + (BAC − EV), the EAC if the overrun so far does not repeat.
+- **In hours**, the same indicators count team effort only: PV is the planned hours × time passed, EV the `Estimate`
+  of closed issues (capped at the sprint's planned hours), AC the hours spent, and BAC the planned hours.
 
 ## Setup
 

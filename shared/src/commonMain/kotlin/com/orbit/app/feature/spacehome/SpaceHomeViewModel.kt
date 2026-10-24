@@ -5,10 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.orbit.app.core.attempt
 import com.orbit.app.core.initialsOf
 import com.orbit.app.core.orOnFailure
-import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.defaultModules
+import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -28,6 +28,7 @@ class SpaceHomeViewModel(
     spaces: SpaceRepository,
     private val items: ItemRepository,
     lastSpace: LastSpaceRepository,
+    auth: AuthRepository,
 ) : ViewModel() {
     /** The tab and the "New item" dialog. The rest stays empty: [uiState] fills it from the repositories. */
     private val form = MutableStateFlow(SpaceHomeUiState())
@@ -37,17 +38,18 @@ class SpaceHomeViewModel(
         lastSpace.remember(spaceId)
     }
 
-    /** The header only decorates: the tabs show when their own reads fail, so here a failure reads as empty. */
+    /** The header only decorates: the member row and items show their own failures, so here a failure reads as empty. */
     val uiState: StateFlow<SpaceHomeUiState> = combine(
         spaces.observeSpaces().orOnFailure("Loading the spaces", emptyList()),
         spaces.observeMembers(spaceId).orOnFailure("Loading the members of $spaceId", emptyList()),
-        items.observeItems(spaceId).orOnFailure("Loading the items of $spaceId", emptyList()),
+        auth.session,
         form,
-    ) { allSpaces, members, spaceItems, form ->
+    ) { allSpaces, members, user, form ->
         form.copy(
             name = allSpaces.firstOrNull { it.id == spaceId }?.name.orEmpty(),
-            memberInitials = members.map { initialsOf(it.displayName) },
-            openTasks = spaceItems.count { it.status == ItemStatus.Open && it.preset in TASK_PRESETS },
+            memberCount = members.size,
+            userInitials = initialsOf(user?.displayName.orEmpty()),
+            userPhotoUrl = user?.photoUrl,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceHomeUiState())
 
@@ -96,6 +98,3 @@ private fun SpaceHomeUiState.closedNewItem() = copy(
     creating = false,
     createFailed = false,
 )
-
-/** Items without a preset count as tasks too. */
-private val TASK_PRESETS = setOf(Preset.TASK, null)

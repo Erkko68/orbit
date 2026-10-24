@@ -70,8 +70,10 @@ header { position: relative; }
 .view { display: grid; gap: 16px; }
 .view[hidden] { display: none; }
 a { color: var(--accent); }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px 12px; justify-content: space-between; margin-bottom: 16px; }
+.toolbar [hidden] { display: none; }
 .scope { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 999px; width: fit-content; max-width: 100%; margin-bottom: 16px; }
+  border-radius: 999px; width: fit-content; max-width: 100%; }
 .scope button { border: 0; background: none; color: var(--ink-2); font: inherit; padding: 6px 14px; border-radius: 999px; cursor: pointer; }
 .scope button[aria-pressed="true"] { background: var(--raised); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px var(--border); }
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
@@ -84,6 +86,34 @@ a { color: var(--accent); }
 .status.good { --dot: var(--good); color: var(--good-text); }
 .status.warning { --dot: var(--warning); color: var(--ink-2); }
 .status.critical { --dot: var(--critical); color: var(--critical-text); }
+/* Overview metrics: the value, what it means and how it was computed, with today's numbers */
+.group-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 4px 0 10px; }
+.group-head h2 { margin: 0; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 12px; }
+.metric { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.m-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.m-head .status { margin: 0; white-space: nowrap; }
+.m-name { color: var(--ink-2); font-size: 13px; }
+.m-name b { color: var(--ink); margin-right: 6px; }
+.m-value { font-size: 28px; font-weight: 650; letter-spacing: -0.02em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.m-value.bad { color: var(--critical-text); }
+.m-value.good { color: var(--good-text); }
+.m-meaning { font-size: 13px; }
+.m-meter { height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; }
+.m-meter div { height: 100%; border-radius: 3px; background: var(--c); }
+.m-formula { margin-top: auto; padding: 6px 8px; border-radius: 8px; background: var(--page); color: var(--ink-2);
+  font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.m-formula b { color: var(--ink); font-weight: 600; }
+h3 { font-size: 14px; margin: 0 0 4px; }
+.takeaways { margin: 0 0 16px; padding-left: 20px; display: grid; gap: 4px; }
+.drivers { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 8px; }
+.drivers li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: baseline; font-size: 13px; }
+.drivers .d-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.drivers .d-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+.drivers .d-why { color: var(--muted); font-size: 12px; grid-column: 1 / -1; }
+.drivers .d-bar { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: var(--c); }
+.drivers li.rest { color: var(--ink-2); }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
 .card-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: start; margin-bottom: 12px; }
 .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: 16px; }
@@ -163,13 +193,39 @@ footer code { font-size: 12px; }
     </nav>
   </header>
 
-  <div class="scope" id="scope" role="group" aria-label="Scope"></div>
+  <div class="toolbar">
+    <div class="scope" id="scope" role="group" aria-label="Scope"></div>
+    <div class="scope" id="unit" role="group" aria-label="Unit">
+      <button data-v="h">Hours</button><button data-v="eur">Money</button>
+    </div>
+  </div>
 
   <div class="view" data-view="overview">
-    <div class="tiles" id="tiles"></div>
+    <section>
+      <div class="group-head"><h2>Where the work stands</h2><p class="note" id="status-note"></p></div>
+      <div class="metrics" id="m-status"></div>
+    </section>
+    <section>
+      <div class="group-head"><h2>Performance</h2><p class="note">Above 1 is better than the plan, below 1 worse.</p></div>
+      <div class="metrics" id="m-perf"></div>
+    </section>
+    <section>
+      <div class="group-head"><h2>Forecast at completion</h2><p class="note">If the rest goes as efficiently as the work so far.</p></div>
+      <div class="metrics" id="m-forecast"></div>
+    </section>
     <section class="card">
       <div class="card-head">
-        <div><h2>Earned value</h2><p class="note">Cumulative planned value, earned value and actual cost against the Sprint 0 budget.</p></div>
+        <div><h2>What drove the numbers</h2><p class="note">The issues behind the variances, largest first.</p></div>
+      </div>
+      <ul class="takeaways" id="takeaways"></ul>
+      <div class="grid2">
+        <div><h3>Cost variance by issue</h3><p class="note" id="cost-drivers-note"></p><ol class="drivers" id="cost-drivers"></ol></div>
+        <div><h3>Planned work still open</h3><p class="note" id="schedule-drivers-note"></p><ol class="drivers" id="schedule-drivers"></ol></div>
+      </div>
+    </section>
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Earned value</h2><p class="note" id="ev-note"></p></div>
         <div class="legend" id="ev-legend"></div>
       </div>
       <div id="ev-chart"></div>
@@ -255,7 +311,8 @@ footer code { font-size: 12px; }
     <p><b>PV</b> planned labour and depreciation spread over each sprint, plus the cash planned at its start.
       <b>EV</b> share of the sprint's planned hours earned by closed issues (their Estimate) × the sprint budget.
       <b>AC</b> hours spent × €<span id="rate"></span>/h + depreciation so far + cash spent.
-      <b>CPI</b> EV / AC. <b>SPI</b> EV / PV. <b>EAC</b> BAC / CPI. <b>ETC</b> EAC − AC. <b>VAC</b> BAC − EAC.</p>
+      <b>CPI</b> EV / AC. <b>SPI</b> EV / PV. <b>EAC</b> BAC / CPI. <b>ETC</b> EAC − AC. <b>VAC</b> BAC − EAC.
+      In hours, the same indicators count team effort only: planned hours, estimates of closed issues and hours spent.</p>
     <p>Rebuilt by <code>.github/workflows/dashboard.yml</code> from <code>.github/scripts/dashboard.py</code>.</p>
   </footer>
 </main>
@@ -282,7 +339,7 @@ const STATE = {
   done: ["Done on time", "--good"], late: ["Done late", "--serious"], progress: ["In progress", "--s1"],
   overdue: ["In progress, past its end", "--critical"], planned: ["Planned", "--planned"],
 };
-let data, scope = "all";
+let data, scope = "all", unit = "h";
 
 /* ---------- tooltip ---------- */
 const tip = $("tip");
@@ -478,33 +535,165 @@ function tile([label, value, hint]) {
   return `<div class="tile"><div class="label">${label}</div><div class="value">${value}</div><div class="hint">${hint}</div></div>`;
 }
 
-function renderTiles() {
-  const s = sprint(), t = s || data.total;
-  const tiles = [
-    ["Planned value (PV)", eur(t.PV), s ? `${Math.round(s.passed * 100)}% of the sprint passed` : "Planned to date"],
-    ["Earned value (EV)", eur(t.EV), s ? `${hours(s.earned_h)} earned of ${s.plan_h} h` : "Work done, at budget cost"],
-    ["Actual cost (AC)", eur(t.AC), "Hours, equipment and cash"],
-    ["Cost index (CPI)", ratio(t.CPI), status(t.CPI, "On budget", "Over budget")],
-    ["Schedule index (SPI)", ratio(t.SPI), status(t.SPI, "On schedule", "Behind")],
-    ["Cost variance (CV)", eur(t.CV), "EV − AC"],
-    ["Schedule variance (SV)", eur(t.SV), "EV − PV"],
-  ];
-  if (s) tiles.push(["Sprint budget", eur(s.budget), `${fmtDay(s.start)} – ${fmtDay(s.due)}`]);
-  else tiles.push(
-    ["Budget at completion (BAC)", eur(t.BAC), "Sprint 0 total"],
-    ["Estimate at completion (EAC)", eur(t.EAC), `${eur(t.EAC_atypical)} if the overrun was one-off`],
-    ["Estimate to complete (ETC)", eur(t.ETC), "EAC − AC"],
-    ["Variance at completion (VAC)", eur(t.VAC), "BAC − EAC"]);
-  $("tiles").innerHTML = tiles.map(tile).join("");
+/* ---------- overview ---------- */
+const inHours = () => unit === "h";
+const fmt = (v) => inHours() ? hours(v) : eur(v, 0);
+const signed = (v) => v == null ? "–" : (v > 0 ? "+" : v < 0 ? "−" : "") + fmt(Math.abs(v));
+const pct = (v) => Math.round(v * 100) + "%";
+const indicatorsNow = () => { const s = sprint(); return s ? (inHours() ? s.h : s) : (inHours() ? data.total_h : data.total); };
+
+// Planned against actual cost by resource, summed over the sprints in scope.
+function costRows() {
+  const s = sprint(), rows = {};
+  for (const sp of s ? [s] : data.sprints) {
+    for (const r of sp.cost) {
+      const row = rows[r.item] ||= { item: r.item, planned: 0, actual: 0, planned_h: null, actual_h: null };
+      row.planned += r.planned; row.actual += r.actual;
+      if (r.planned_h != null) row.planned_h = (row.planned_h || 0) + r.planned_h;
+      if (r.actual_h != null) row.actual_h = (row.actual_h || 0) + r.actual_h;
+    }
+  }
+  return rows;
+}
+
+function metric({ abbr, name, value, cls = "", badge = "", meaning, formula, meter }) {
+  return `<div class="metric"><div class="m-head"><span class="m-name"><b>${abbr}</b>${name}</span>${badge}</div>` +
+    `<div class="m-value ${cls}">${value}</div>` +
+    (meter ? `<div class="m-meter" title="${pct(meter[0])} of the budget"><div style="--c:${meter[1]};width:${Math.min(meter[0], 1) * 100}%"></div></div>` : "") +
+    `<div class="m-meaning">${meaning}</div><div class="m-formula">${formula}</div></div>`;
+}
+const tone = (v) => v == null || Math.abs(v) < 0.05 ? "" : v < 0 ? "bad" : "good";
+
+function renderMetrics() {
+  const s = sprint(), t = indicatorsNow(), H = inHours(), rows = costRows();
+  const sprints = s ? [s] : data.sprints;
+  const earned = sprints.reduce((a, x) => a + x.earned_h, 0);
+  const planned = rows["Team effort, planned issues"]?.actual_h || 0, unplanned = rows["Team effort, unplanned issues"]?.actual_h || 0;
+  const equipment = rows["Equipment depreciation"]?.actual || 0;
+  const cash = Object.values(rows).filter((r) => !/Team effort|depreciation/.test(r.item)).reduce((a, r) => a + r.actual, 0);
+  const b = (v) => `<b>${fmt(v)}</b>`, of = (v) => t.BAC ? v / t.BAC : 0;
+  const scopeName = s ? "the sprint" : "the project";
+  $("status-note").textContent = `${s ? `${s.title}, ${fmtDay(s.start)} – ${fmtDay(s.due)}` : "All sprints"}, as of ${fmtDay(data.today)}.` +
+    (H ? " Hours of team effort." : ` Money: hours × €${data.rate.toFixed(2)}, plus equipment and cash.`);
+
+  $("m-status").innerHTML = [
+    { abbr: "PV", name: "Planned value", value: fmt(t.PV), meter: [of(t.PV), css("--s1")],
+      meaning: H ? `Hours the plan expected done by today: ${pct(of(t.PV))} of ${scopeName}.` : `Budget the plan expected spent by today: ${pct(of(t.PV))} of ${scopeName}.`,
+      formula: s ? (H ? `${hours(s.plan_h)} planned × ${pct(s.passed)} of the sprint passed` : `(labour + equipment) × ${pct(s.passed)} passed + planned cash`)
+        : (H ? `Σ sprints: planned hours × time passed` : `Σ sprints: (labour + equipment) × time passed + planned cash`) },
+    { abbr: "EV", name: "Earned value", value: fmt(t.EV), meter: [of(t.EV), css("--s3")],
+      meaning: H ? "Estimates of the issues already closed: the planned work really done." : "The planned work really done, at what the plan said it would cost.",
+      formula: H ? `Σ Estimate of closed issues = <b>${hours(earned)}</b>${s ? `, capped at ${hours(s.plan_h)}` : ""}`
+        : s ? `${hours(s.earned_h)} ÷ ${hours(s.plan_h)} × ${eur(s.budget, 0)} budget` : "Σ sprints: closed estimates ÷ planned hours × budget" },
+    { abbr: "AC", name: "Actual cost", value: fmt(t.AC), meter: [of(t.AC), css("--s2")],
+      meaning: H ? "Hours really spent on the issues, planned or not." : "What the work has really cost so far.",
+      formula: H ? `${hours(planned)} planned issues + ${hours(unplanned)} unplanned`
+        : `${hours(planned + unplanned)} × €${data.rate.toFixed(2)} + ${eur(equipment, 0)} equipment + ${eur(cash, 0)} cash` },
+  ].map(metric).join("");
+
+  $("m-perf").innerHTML = [
+    { abbr: "CPI", name: "Cost performance", value: ratio(t.CPI), badge: status(t.CPI, "On budget", "Over budget"),
+      meaning: t.CPI == null ? "Nothing spent yet." : H ? `Each hour spent earned ${ratio(t.CPI)} h of planned work.` : `Each €1 spent earned €${ratio(t.CPI)} of planned value.`,
+      formula: `EV ÷ AC = ${b(t.EV)} ÷ ${b(t.AC)}` },
+    { abbr: "SPI", name: "Schedule performance", value: ratio(t.SPI), badge: status(t.SPI, "On schedule", "Behind"),
+      meaning: t.SPI == null ? "The plan expects nothing yet." : `The work done is ${pct(t.SPI)} of what the plan expected by today.`,
+      formula: `EV ÷ PV = ${b(t.EV)} ÷ ${b(t.PV)}` },
+    { abbr: "CV", name: "Cost variance", value: signed(t.CV), cls: tone(t.CV),
+      meaning: t.CV < 0 ? `The work done took ${fmt(-t.CV)} more than planned.` : `The work done took ${fmt(t.CV)} less than planned.`,
+      formula: `EV − AC = ${b(t.EV)} − ${b(t.AC)}` },
+    { abbr: "SV", name: "Schedule variance", value: signed(t.SV), cls: tone(t.SV),
+      meaning: t.SV < 0 ? `${fmt(-t.SV)} of planned work behind the plan.` : `${fmt(t.SV)} of planned work ahead of the plan.`,
+      formula: `EV − PV = ${b(t.EV)} − ${b(t.PV)}` },
+  ].map(metric).join("");
+
+  $("m-forecast").innerHTML = [
+    { abbr: "BAC", name: "Budget at completion", value: fmt(t.BAC),
+      meaning: s ? `The sprint's budget, ${fmtDay(s.start)} – ${fmtDay(s.due)}.` : "The whole Sprint 0 plan.",
+      formula: H ? (s ? "the sprint's planned hours" : "Σ sprints' planned hours") : (s ? "labour + equipment + planned cash" : "the Sprint 0 total") },
+    { abbr: "EAC", name: "Estimate at completion", value: fmt(t.EAC),
+      meaning: t.EAC == null ? "Needs earned value first." : `At this efficiency ${scopeName} ends at ${fmt(t.EAC)}; ${fmt(t.EAC_atypical)} if the overrun was one-off.`,
+      formula: `BAC ÷ CPI = ${b(t.BAC)} ÷ <b>${ratio(t.CPI)}</b>` },
+    { abbr: "ETC", name: "Estimate to complete", value: fmt(t.ETC),
+      meaning: "Still to spend to finish, at this efficiency.", formula: `EAC − AC = ${b(t.EAC)} − ${b(t.AC)}` },
+    { abbr: "VAC", name: "Variance at completion", value: signed(t.VAC), cls: tone(t.VAC), badge: status(t.CPI, "Within budget", "Over budget"),
+      meaning: t.VAC == null ? "Needs earned value first." : t.VAC < 0 ? `${fmt(-t.VAC)} over budget by the end, at this pace.` : `${fmt(t.VAC)} under budget by the end, at this pace.`,
+      formula: `BAC − EAC = ${b(t.BAC)} − ${b(t.EAC)}` },
+  ].map(metric).join("");
+}
+
+// Each issue's share of CV = what it earned (its Estimate, once closed) − what it cost. In money the earned
+// hours are valued at the sprint's budget per planned hour and the spent ones at the rate, as EV and AC are.
+function renderDrivers() {
+  const s = sprint(), t = indicatorsNow(), H = inHours();
+  const bySprint = Object.fromEntries(data.sprints.map((x) => [x.title, x]));
+  const value = (i, h) => H ? h : h * bySprint[i.sprint].budget / bySprint[i.sprint].plan_h;
+  const cost = (h) => H ? h : h * data.rate;
+  const issues = scoped().filter((i) => bySprint[i.sprint]);
+  const states = Object.fromEntries(data.roadmap.days[data.today]?.map((b) => [b[0], data.roadmap.states[b[3]]]) || []);
+  const link = (i) => `<a href="${esc(i.url)}">#${i.number}</a> ${esc(i.title)}`;
+  const row = (title, v, why, max, color) =>
+    `<li><span class="d-title">${title}</span><span class="d-value" style="color:var(${color})">${signed(v)}</span>` +
+    `<span class="d-why">${why}</span><span class="d-bar" style="--c:var(${color});width:${max ? Math.max(Math.abs(v) / max * 100, 1) : 0}%"></span></li>`;
+
+  const parts = issues.map((i) => {
+    const earned = i.closed && i.estimate ? i.estimate : 0;
+    const why = !i.estimate ? `Unplanned: ${hours(i.spent)} spent, no Estimate to earn`
+      : !i.closed ? `In progress: ${hours(i.spent)} spent, earns its ${hours(i.estimate)} when it closes`
+      : `${hours(i.spent)} spent against ${hours(i.estimate)} estimated` + (TRUSTED.includes(i.source) ? "" : " (estimate standing in)");
+    return { i, why, v: (earned ? value(i, earned) : 0) - cost(i.spent), kind: !i.estimate ? "unplanned" : !i.closed ? "open" : i.spent > i.estimate ? "over" : i.spent < i.estimate ? "under" : "even" };
+  }).filter((p) => Math.abs(p.v) >= 0.05);
+  const total = (list) => list.reduce((a, p) => a + p.v, 0);
+  const worst = parts.filter((p) => p.v < 0).sort((a, b) => a.v - b.v), best = parts.filter((p) => p.v > 0).sort((a, b) => b.v - a.v);
+  const shown = [...worst.slice(0, 6), ...best.slice(0, 3)], max = Math.max(...shown.map((p) => Math.abs(p.v)), 0);
+  const rest = parts.length - shown.length, restV = total(parts) - total(shown), other = (t.CV ?? 0) - total(parts);
+  $("cost-drivers-note").innerHTML = `What each issue earned minus what it cost. Together they make up the CV of <b>${signed(t.CV)}</b>.`;
+  $("cost-drivers").innerHTML = shown.length
+    ? shown.map((p) => row(link(p.i), p.v, p.why, max, p.v < 0 ? "--critical-text" : "--good-text")).join("") +
+      (rest ? `<li class="rest"><span>${rest} more issues</span><span class="d-value">${signed(restV)}</span></li>` : "") +
+      (Math.abs(other) >= 0.5 ? `<li class="rest"><span>${H ? "Hours closed beyond the sprint plan, not earned" : "Equipment, cash and work beyond the sprint plan"}</span><span class="d-value">${signed(other)}</span></li>` : "")
+    : `<li class="empty">No hours spent yet.</li>`;
+
+  const started = (i) => bySprint[i.sprint].start <= data.today;
+  const open = issues.filter((i) => i.estimate && !i.closed && started(i)).sort((a, b) => b.estimate - a.estimate);
+  const openMax = Math.max(...open.map((i) => value(i, i.estimate)), 0);
+  const label = { overdue: "Past its target date", progress: "In progress", planned: "Not started" };
+  $("schedule-drivers-note").innerHTML = t.SV == null ? "Nothing planned yet." :
+    `The plan expected ${fmt(t.PV)} by today and closed issues earned ${fmt(t.EV)}. These open issues would earn <b>${fmt(open.reduce((a, i) => a + value(i, i.estimate), 0))}</b> when they close.`;
+  $("schedule-drivers").innerHTML = open.length
+    ? open.slice(0, 8).map((i) => row(link(i), value(i, i.estimate), `${label[states[i.number]] || "Open"}${i.who ? ", " + esc(i.who) : ""}`, openMax,
+      states[i.number] === "overdue" ? "--critical-text" : "--ink-2")).join("") +
+      (open.length > 8 ? `<li class="rest"><span>${open.length - 8} more issues</span><span class="d-value">${signed(open.slice(8).reduce((a, i) => a + value(i, i.estimate), 0))}</span></li>` : "")
+    : `<li class="empty">Every planned issue of the started sprints is closed.</li>`;
+
+  // A few sentences on why the indicators are where they are.
+  const sum = (list) => list.reduce((a, p) => a + p.v, 0), say = [];
+  const unplanned = parts.filter((p) => p.kind === "unplanned"), over = parts.filter((p) => p.kind === "over").sort((a, b) => a.v - b.v);
+  const under = parts.filter((p) => p.kind === "under"), progress = parts.filter((p) => p.kind === "open");
+  const overrun = sum(worst), share = (v) => overrun < 0 && v < 0 ? ` (${pct(v / overrun)} of everything over)` : "";
+  if (unplanned.length) say.push(`<b>${unplanned.length} unplanned issues</b> took ${fmt(-sum(unplanned))} and earned nothing, having no Estimate${share(sum(unplanned))}.`);
+  if (over.length) {
+    const top = over[0].i;
+    say.push(`<b>${over.length} issues ran over</b> their estimates by ${fmt(-sum(over))}${share(sum(over))}. The largest is ${link(top)}: ${hours(top.spent)} against ${hours(top.estimate)}.`);
+  }
+  if (under.length) say.push(`<b>${under.length} issues finished under</b> their estimates, saving ${fmt(sum(under))}.`);
+  if (progress.length) say.push(`<b>${progress.length} issues in progress</b> have used ${fmt(-sum(progress))} that counts as earned only once they close.`);
+  const late = open.filter((i) => states[i.number] === "overdue");
+  if (late.length) say.push(`<b>${late.length} open issues are past their target date</b>, worth ${fmt(late.reduce((a, i) => a + value(i, i.estimate), 0))} of earned value.`);
+  const counted = issues.reduce((a, i) => a + i.spent, 0), guessed = issues.filter((i) => REASONS[i.source]).reduce((a, i) => a + i.spent, 0);
+  if (guessed) say.push(`${pct(guessed / counted)} of the hours spent are estimates standing in for a missing log, so AC and CPI are less certain (<a href="#time">issues to check</a>).`);
+  $("takeaways").innerHTML = say.map((x) => `<li>${x}</li>`).join("") || "<li>Nothing stands out yet.</li>";
 }
 
 function renderEarnedValue() {
-  const c = data.curve, colors = { PV: css("--s1"), AC: css("--s2"), EV: css("--s3") };
+  const c = data.curve, H = inHours(), colors = { PV: css("--s1"), AC: css("--s2"), EV: css("--s3") };
+  const k = H ? "_h" : "", bac = (H ? data.total_h : data.total).BAC;
+  $("ev-note").textContent = H ? "Cumulative planned hours, hours earned by closed issues and hours spent, against the planned total."
+    : "Cumulative planned value, earned value and actual cost against the Sprint 0 budget.";
   legend($("ev-legend"), [["Planned value (PV)", colors.PV], ["Earned value (EV)", colors.EV], ["Actual cost (AC)", colors.AC], ["Budget (BAC)", css("--muted"), "ref"]]);
   lineChart($("ev-chart"), {
-    days: c.days, yFmt: (v) => eur(v), axisFmt: eurShort,
-    series: [{ name: "PV", values: c.PV, color: colors.PV }, { name: "EV", values: c.EV, color: colors.EV }, { name: "AC", values: c.AC, color: colors.AC }],
-    refs: [{ y: data.total.BAC, label: "BAC " + eur(data.total.BAC, 0) }],
+    days: c.days, yFmt: H ? hours : (v) => eur(v), axisFmt: H ? (v) => v + " h" : eurShort,
+    series: [{ name: "PV", values: c["PV" + k], color: colors.PV }, { name: "EV", values: c["EV" + k], color: colors.EV }, { name: "AC", values: c["AC" + k], color: colors.AC }],
+    refs: [{ y: bac, label: "BAC " + (H ? hours(bac) : eur(bac, 0)) }],
     markers: [...data.sprints.map((s) => ({ day: s.due, label: s.title.replace("Sprint ", "S").replace(" (final)", "") + " due" })), { day: data.today, label: "Today", today: true }],
   });
 }
@@ -524,15 +713,7 @@ function renderBurn() {
 }
 
 function renderCost() {
-  const s = sprint(), rows = {};
-  for (const sp of s ? [s] : data.sprints) {
-    for (const r of sp.cost) {
-      const row = rows[r.item] ||= { item: r.item, planned: 0, actual: 0, planned_h: null, actual_h: null };
-      row.planned += r.planned; row.actual += r.actual;
-      if (r.planned_h != null) row.planned_h = (row.planned_h || 0) + r.planned_h;
-      if (r.actual_h != null) row.actual_h = (row.actual_h || 0) + r.actual_h;
-    }
-  }
+  const s = sprint(), rows = costRows();
   const list = Object.values(rows), sum = (k) => list.reduce((a, r) => a + r[k], 0);
   const diff = (r) => { const d = r.actual - r.planned; return `<span style="color:var(${d > 0.005 ? "--critical-text" : d < -0.005 ? "--good-text" : "--ink-2"})">${d > 0 ? "+" : ""}${eur(d)}</span>`; };
   $("cost-note").textContent = s
@@ -657,7 +838,7 @@ function moveDay(n) {
 }
 
 const VIEWS = {
-  overview: ["Overview", [renderTiles, renderEarnedValue]],
+  overview: ["Overview", [renderMetrics, renderDrivers, renderEarnedValue]],
   burn: ["Burn charts", [renderBurn]],
   roadmap: ["Roadmap", [renderRoadmap]],
   cost: ["Cost", [renderCost]],
@@ -669,6 +850,8 @@ const view = () => VIEWS[location.hash.slice(1)] ? location.hash.slice(1) : "ove
 function render() {
   const current = view();
   renderScope();
+  $("unit").hidden = current !== "overview";
+  $("unit").querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === unit));
   document.querySelectorAll(".view").forEach((v) => { v.hidden = v.dataset.view !== current; });
   document.querySelectorAll(".menu a").forEach((a) => a.hash === "#" + current ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current"));
   $("view-name").textContent = VIEWS[current][0];
@@ -687,6 +870,7 @@ fetch("data.json").then((r) => r.json()).then((d) => {
   scope = now ? now.title : "all";
   $("updated").textContent = `Updated ${new Date(data.generated).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })} from the GitHub issues and the Sprint 0 cost plan.`;
   $("rate").textContent = data.rate.toFixed(2);
+  $("unit").querySelectorAll("button").forEach((b) => b.addEventListener("click", () => { unit = b.dataset.v; render(); }));
   $("road-day").addEventListener("change", renderRoadmap);
   $("road-prev").addEventListener("click", () => moveDay(-1));
   $("road-next").addEventListener("click", () => moveDay(1));

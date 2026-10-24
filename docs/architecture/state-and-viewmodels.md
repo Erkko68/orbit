@@ -8,19 +8,20 @@ How a screen gets its data, shows it, and changes it. The rules are in AGENTS.md
 flowchart LR
     subgraph screen["SpaceHomeScreen"]
         header["header, tabs<br/>(screen state)"]
+        settings["SpaceSettings(spaceId)"]
+        members["SpaceMembersRow(spaceId)"]
         items["SpaceItemsTab(spaceId)"]
-        members["SpaceMembersTab(spaceId)"]
-        invite["InviteCard(spaceId)"]
     end
     header --> svm["SpaceHomeViewModel"]
-    items --> ivm["SpaceItemsViewModel"]
+    settings --> setvm["SpaceSettingsViewModel"]
     members --> mvm["SpaceMembersViewModel"]
-    invite --> invm["InviteViewModel"]
-    svm & ivm & mvm & invm --> repos[("repository interfaces")]
+    members --> invm["InviteViewModel"]
+    items --> ivm["SpaceItemsViewModel"]
+    svm & setvm & ivm & mvm & invm --> repos[("repository interfaces")]
 ```
 
 - A **screen ViewModel** holds what belongs to the whole screen (the selected tab, a dialog) and the **ids** of what it lists, never the loaded entities.
-- A **component ViewModel** belongs to a part of the screen that reads or writes one entity (a space card, the items tab, the invitation card). The component gets the id and its ViewModel loads that entity.
+- A **component ViewModel** belongs to a part of the screen that reads or writes one entity (a space card, the items tab, the member row and its invitation dialog). The component gets the id and its ViewModel loads that entity.
 - **Plain components** (avatar, pill, list row) take values and callbacks and have no ViewModel.
 
 ## UiState

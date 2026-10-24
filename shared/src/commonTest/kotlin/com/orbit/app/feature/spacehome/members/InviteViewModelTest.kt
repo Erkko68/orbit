@@ -191,7 +191,7 @@ class InviteViewModelTest {
     }
 
     @Test
-    fun showsTheCardAtOnceAndWaitsForTheInvitationsToArrive() = runTest {
+    fun showsTheChipAtOnceAndWaitsForTheInvitationsToArrive() = runTest {
         val spaces = ownedSpace()
 
         val state = inviteViewModel(spaces, FailingInvitationRepository(neverLoad = true)).uiState.value
@@ -225,5 +225,20 @@ class InviteViewModelTest {
         val state = inviteViewModel(FlakySpaceRepository(memberFailures = 1), InMemoryInvitationRepository(auth)).uiState.value
 
         assertFalse(state.canInvite)
+    }
+
+    @Test
+    fun opensAndClosesTheDialogForgettingAFailure() = runTest {
+        val viewModel = inviteViewModel(ownedSpace(), FailingInvitationRepository())
+        assertFalse(viewModel.uiState.value.open)
+
+        viewModel.open()
+        viewModel.createInvitation()
+        assertTrue(viewModel.uiState.value.open)
+        assertEquals(InviteFailure.CREATE, viewModel.uiState.value.failure)
+
+        viewModel.dismiss()
+        assertFalse(viewModel.uiState.value.open)
+        assertNull(viewModel.uiState.value.failure)
     }
 }

@@ -2,30 +2,24 @@ package com.orbit.app.feature.spacehome.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PrimaryTabRow
-import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.orbit.app.core.designsystem.component.OrbitAvatarStack
+import com.orbit.app.core.designsystem.component.OrbitAvatarButton
 import com.orbit.app.core.designsystem.component.OrbitButton
-import com.orbit.app.core.designsystem.component.OrbitCard
 import com.orbit.app.core.designsystem.component.OrbitDialog
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitExtendedFab
 import com.orbit.app.core.designsystem.component.OrbitFilterChip
 import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
+import com.orbit.app.core.designsystem.component.OrbitSectionHeader
+import com.orbit.app.core.designsystem.component.OrbitSegmentedTabs
 import com.orbit.app.core.designsystem.component.OrbitTextField
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
@@ -36,40 +30,42 @@ import com.orbit.app.feature.spacehome.SpaceHomeTab
 import com.orbit.app.feature.spacehome.SpaceHomeUiState
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
-import com.orbit.app.feature.spacehome.members.SpaceMembersTab
+import com.orbit.app.feature.spacehome.members.SpaceMembersRow
 import com.orbit.app.feature.spacehome.settings.SpaceSettings
 import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.account_title
 import orbit.shared.generated.resources.cancel
 import orbit.shared.generated.resources.ic_add
+import orbit.shared.generated.resources.ic_arrow_back
+import orbit.shared.generated.resources.ic_event
 import orbit.shared.generated.resources.ic_notifications
-import orbit.shared.generated.resources.ic_swap_horiz
 import orbit.shared.generated.resources.space_agenda_empty_body
 import orbit.shared.generated.resources.space_agenda_empty_title
-import orbit.shared.generated.resources.space_bills_due
-import orbit.shared.generated.resources.space_events_today
+import orbit.shared.generated.resources.space_back
 import orbit.shared.generated.resources.space_new_item
 import orbit.shared.generated.resources.space_new_item_create
 import orbit.shared.generated.resources.space_new_item_failed
 import orbit.shared.generated.resources.space_new_item_name
 import orbit.shared.generated.resources.space_notifications
-import orbit.shared.generated.resources.space_open_tasks
-import orbit.shared.generated.resources.space_switch
 import orbit.shared.generated.resources.space_today
-import org.jetbrains.compose.resources.StringResource
+import orbit.shared.generated.resources.spaces_members
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * Home of a space, laid out as in the Sprint 1 mockups: its members, a summary and the items, agenda
- * and members tabs. The items and members tabs load themselves; "New item" creates one from a preset and
- * opens it. Placeholders until their features land: notifications, the bills and events counts, and the agenda.
- * [onSwitchSpace] goes back to the list of spaces.
+ * Home of a space (#170, #209): the space and its member count in the top bar, the members as chips, and
+ * the items and agenda behind segmented tabs. The member row and the items load themselves;
+ * "New item" creates one from a preset and opens it. Placeholders until their features land: notifications
+ * and the agenda. [onBack] goes back to the list of spaces, as does leaving the
+ * space; the account avatar calls [onOpenAccount].
  */
 @Composable
 fun SpaceHomeScreen(
     spaceId: String,
-    onSwitchSpace: () -> Unit,
+    onBack: () -> Unit,
+    onOpenAccount: () -> Unit,
     onOpenItem: (String) -> Unit,
     viewModel: SpaceHomeViewModel = koinViewModel { parametersOf(spaceId) },
 ) {
@@ -78,15 +74,27 @@ fun SpaceHomeScreen(
         topBar = {
             OrbitTopBar(
                 title = state.name,
+                subtitle = state.memberCount.takeIf { it > 0 }?.let {
+                    pluralStringResource(Res.plurals.spaces_members, it, it)
+                },
+                navigationIcon = {
+                    OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.space_back), onBack)
+                },
                 actions = {
-                    SpaceSettings(spaceId)
-                    OrbitIconButton(Res.drawable.ic_swap_horiz, stringResource(Res.string.space_switch), onSwitchSpace)
+                    SpaceSettings(spaceId, onGone = onBack)
                     // Placeholder until notifications land.
                     OrbitIconButton(
                         icon = Res.drawable.ic_notifications,
                         contentDescription = stringResource(Res.string.space_notifications),
                         onClick = {},
                         enabled = false,
+                    )
+                    OrbitAvatarButton(
+                        initials = state.userInitials,
+                        photoUrl = state.userPhotoUrl,
+                        accent = MaterialTheme.colorScheme.primary,
+                        contentDescription = stringResource(Res.string.account_title),
+                        onClick = onOpenAccount,
                     )
                 },
             )
@@ -100,23 +108,16 @@ fun SpaceHomeScreen(
         },
         scrollable = true,
     ) {
-        if (state.memberInitials.isNotEmpty()) {
-            OrbitAvatarStack(state.memberInitials)
-        }
-        Summary(state)
-        PrimaryTabRow(selectedTabIndex = state.tab.ordinal) {
-            for (tab in SpaceHomeTab.entries) {
-                Tab(
-                    selected = tab == state.tab,
-                    onClick = { viewModel.selectTab(tab) },
-                    text = { Text(stringResource(tab.label)) },
-                )
-            }
-        }
+        SpaceMembersRow(spaceId, modifier = Modifier.fillMaxWidth())
+        OrbitSegmentedTabs(
+            options = SpaceHomeTab.entries.map { stringResource(it.label) },
+            selectedIndex = state.tab.ordinal,
+            onSelect = { viewModel.selectTab(SpaceHomeTab.entries[it]) },
+            modifier = Modifier.fillMaxWidth(),
+        )
         when (state.tab) {
             SpaceHomeTab.ITEMS -> SpaceItemsTab(spaceId, onOpenItem)
             SpaceHomeTab.AGENDA -> Agenda()
-            SpaceHomeTab.MEMBERS -> SpaceMembersTab(spaceId)
         }
     }
     if (state.newItemOpen) {
@@ -170,40 +171,15 @@ private fun NewItemDialog(state: SpaceHomeUiState, viewModel: SpaceHomeViewModel
 @Composable
 private fun Agenda() {
     Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
-        Text(stringResource(Res.string.space_today), style = MaterialTheme.typography.titleMedium)
+        OrbitSectionHeader(
+            title = stringResource(Res.string.space_today),
+            icon = Res.drawable.ic_event,
+            modifier = Modifier.fillMaxWidth(),
+        )
         OrbitEmptyState(
             title = stringResource(Res.string.space_agenda_empty_title),
             body = stringResource(Res.string.space_agenda_empty_body),
             modifier = Modifier.fillMaxWidth(),
-        )
-    }
-}
-
-@Composable
-private fun Summary(state: SpaceHomeUiState) {
-    OrbitCard(Modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min)) {
-            Stat(state.openTasks, Res.string.space_open_tasks, Modifier.weight(1f))
-            VerticalDivider(color = MaterialTheme.colorScheme.outline)
-            Stat(state.billsDue, Res.string.space_bills_due, Modifier.weight(1f))
-            VerticalDivider(color = MaterialTheme.colorScheme.outline)
-            Stat(state.eventsToday, Res.string.space_events_today, Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-private fun Stat(count: Int, label: StringResource, modifier: Modifier) {
-    Column(
-        modifier = modifier,
-        verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(count.toString(), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-        Text(
-            text = stringResource(label),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

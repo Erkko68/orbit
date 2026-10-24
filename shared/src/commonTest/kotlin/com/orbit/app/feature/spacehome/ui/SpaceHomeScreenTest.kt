@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -33,9 +34,9 @@ class SpaceHomeScreenTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
     private val spaces = InMemorySpaceRepository(auth)
     private val items = InMemoryItemRepository(auth)
-    private val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository())
+    private val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository(), auth)
 
-    // The items and members tabs get their view models from Koin.
+    // The member row and the items get their view models from Koin.
     @BeforeTest
     fun startDi() {
         startTestKoin(auth, spaces, items)
@@ -47,17 +48,13 @@ class SpaceHomeScreenTest : ComposeTest() {
     }
 
     @Test
-    fun showsTheSummaryAndSwitchesBetweenTabs() = runComposeUiTest {
+    fun switchesBetweenItemsAndTheAgenda() = runComposeUiTest {
         setContent {
             OrbitTheme {
-                SpaceHomeScreen("space-1", onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)
+                SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, viewModel = viewModel)
             }
         }
-        onNodeWithText("open tasks").assertIsDisplayed()
-        onNodeWithText("bills due").assertIsDisplayed()
-        onNodeWithText("events today").assertIsDisplayed()
-
-        onNodeWithText("Items").assertIsSelected()
+        onAllNodesWithText("Items")[0].assertIsSelected()
         onNodeWithText("All").assertIsSelected()
         onNodeWithText("Tasks").assertIsNotSelected()
         onNodeWithText("No items yet").assertIsDisplayed()
@@ -66,7 +63,7 @@ class SpaceHomeScreenTest : ComposeTest() {
         onNodeWithText("Today").assertIsDisplayed()
         onNodeWithText("Nothing scheduled for today").assertIsDisplayed()
 
-        onNodeWithText("Members").performClick().assertIsSelected()
+        onAllNodesWithText("Items")[0].performClick().assertIsSelected()
         onNodeWithText("Nothing scheduled for today").assertDoesNotExist()
     }
 
@@ -74,29 +71,56 @@ class SpaceHomeScreenTest : ComposeTest() {
     fun theItemsTabKeepsItsFilterAcrossTabs() = runComposeUiTest {
         setContent {
             OrbitTheme {
-                SpaceHomeScreen("space-1", onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)
+                SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("Lists").performScrollTo().performClick().assertIsSelected()
 
-        onNodeWithText("Members").performClick()
-        onNodeWithText("Items").performClick()
+        onNodeWithText("Agenda").performClick()
+        onAllNodesWithText("Items")[0].performClick()
 
         onNodeWithText("Lists").performScrollTo().assertIsSelected()
     }
 
     @Test
     fun hasTheTopBarActions() = runComposeUiTest {
-        var switches = 0
+        var backs = 0
+        var accounts = 0
         setContent {
             OrbitTheme {
-                SpaceHomeScreen("space-1", onSwitchSpace = { switches++ }, onOpenItem = {}, viewModel = viewModel)
+                SpaceHomeScreen(
+                    "space-1",
+                    onBack = { backs++ },
+                    onOpenAccount = { accounts++ },
+                    onOpenItem = {},
+                    viewModel = viewModel,
+                )
             }
         }
-        onNodeWithContentDescription("Switch space").performClick()
-        assertEquals(1, switches)
+        onNodeWithContentDescription("Back to spaces").performClick()
+        assertEquals(1, backs)
+        onNodeWithContentDescription("Account").performClick()
+        assertEquals(1, accounts)
 
         onNodeWithContentDescription("Notifications").assertIsNotEnabled()
+    }
+
+    @Test
+    fun showsTheMembersAndTheirCount() = runComposeUiTest {
+        runBlocking {
+            auth.register("ana@orbit.app", "secret", displayName = "Ana López")
+            spaces.createSpace("Flat 4B", accent = 0)
+        }
+        setContent {
+            OrbitTheme {
+                SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, viewModel = viewModel)
+            }
+        }
+
+        onNodeWithText("Flat 4B").assertIsDisplayed()
+        onNodeWithText("1 member").assertIsDisplayed()
+        onNodeWithText("You").assertIsDisplayed()
+        onNodeWithText("Invite").assertIsDisplayed()
     }
 
     @Test
@@ -105,7 +129,13 @@ class SpaceHomeScreenTest : ComposeTest() {
         val opened = mutableListOf<String>()
         setContent {
             OrbitTheme {
-                SpaceHomeScreen("space-1", onSwitchSpace = {}, onOpenItem = { opened += it }, viewModel = viewModel)
+                SpaceHomeScreen(
+                    "space-1",
+                    onBack = {},
+                    onOpenAccount = {},
+                    onOpenItem = { opened += it },
+                    viewModel = viewModel,
+                )
             }
         }
         onNodeWithText("New item").performClick()

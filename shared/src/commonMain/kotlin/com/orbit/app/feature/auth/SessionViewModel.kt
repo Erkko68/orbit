@@ -7,6 +7,7 @@ import com.orbit.app.core.notification.ReminderSync
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -19,6 +20,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
 /** Backs the auth gate, decides where the app starts, and keeps the phone's reminders in step while the app runs. */
+@OptIn(ExperimentalCoroutinesApi::class)
 class SessionViewModel(
     auth: AuthRepository,
     private val spaces: SpaceRepository,

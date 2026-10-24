@@ -43,7 +43,7 @@ class FirestoreInvitationRepository(
 
     override suspend fun revokeInvitation(code: String) {
         writeLocally("Revoking invitation $code") {
-            firestore.collection(INVITATIONS).document(code).update(REVOKED to true)
+            firestore.collection(INVITATIONS).document(code).updateFields { REVOKED to true }
         }
     }
 

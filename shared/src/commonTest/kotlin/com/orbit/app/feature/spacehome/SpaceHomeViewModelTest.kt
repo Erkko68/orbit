@@ -48,45 +48,31 @@ class SpaceHomeViewModelTest {
     }
 
     @Test
-    fun showsTheSpaceAndItsMembersInitials() = runTest {
+    fun showsTheSpaceItsMemberCountAndTheUsersAvatar() = runTest {
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
         val id = spaces.createSpace("Flat 4B", accent = 0)
 
-        val state = SpaceHomeViewModel(id, spaces, items, lastSpace).uiState.first { it.memberInitials.isNotEmpty() }
+        val state = SpaceHomeViewModel(id, spaces, items, lastSpace, auth).uiState.first { it.memberCount > 0 }
 
         assertEquals("Flat 4B", state.name)
-        assertEquals(listOf("AL"), state.memberInitials)
-    }
-
-    @Test
-    fun countsOpenTasks() = runTest {
-        auth.signIn("ana@orbit.app", "secret")
-        val id = spaces.createSpace("Flat 4B", accent = 0)
-        items.create(id, NewItem("Book plumber", preset = Preset.TASK))
-        items.create(id, NewItem("Call the landlord"))
-        items.create(id, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
-        val done = items.create(id, NewItem("Take out recycling"))
-        items.complete(id, done)
-
-        val state = SpaceHomeViewModel(id, spaces, items, lastSpace).uiState.first { it.openTasks > 0 }
-
-        assertEquals(2, state.openTasks)
+        assertEquals(1, state.memberCount)
+        assertEquals("AL", state.userInitials)
     }
 
     @Test
     fun opensOnItemsAndSwitchesTab() = runTest {
-        val viewModel = SpaceHomeViewModel("space-1", spaces, items, lastSpace)
+        val viewModel = SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         assertEquals(SpaceHomeTab.ITEMS, viewModel.uiState.value.tab)
 
-        viewModel.selectTab(SpaceHomeTab.MEMBERS)
+        viewModel.selectTab(SpaceHomeTab.AGENDA)
 
-        assertEquals(SpaceHomeTab.MEMBERS, viewModel.uiState.value.tab)
+        assertEquals(SpaceHomeTab.AGENDA, viewModel.uiState.value.tab)
     }
 
     @Test
     fun hasNoNameForASpaceItCannotSee() = runTest {
-        val viewModel = SpaceHomeViewModel("missing", spaces, items, lastSpace)
+        val viewModel = SpaceHomeViewModel("missing", spaces, items, lastSpace, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         assertEquals("", viewModel.uiState.value.name)
@@ -94,17 +80,17 @@ class SpaceHomeViewModelTest {
 
     @Test
     fun remembersTheSpaceItOpensAsTheLastOne() {
-        SpaceHomeViewModel("space-1", spaces, items, lastSpace)
+        SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth)
         assertEquals("space-1", lastSpace.lastSpaceId())
 
-        SpaceHomeViewModel("space-2", spaces, items, lastSpace)
+        SpaceHomeViewModel("space-2", spaces, items, lastSpace, auth)
         assertEquals("space-2", lastSpace.lastSpaceId())
     }
 
     @Test
     fun createsTheItemWithItsPresetDefaultsAndAsksToOpenIt() = runTest {
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
-        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace))
+        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth))
 
         viewModel.openNewItem()
         viewModel.selectNewItemPreset(Preset.SHOPPING_LIST)
@@ -129,7 +115,7 @@ class SpaceHomeViewModelTest {
     @Test
     fun anItemThatRemindsOpensOnceNotificationsAreAnswered() = runTest {
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
-        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace))
+        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth))
 
         viewModel.openNewItem()
         viewModel.selectNewItemPreset(Preset.EVENT)
@@ -146,7 +132,7 @@ class SpaceHomeViewModelTest {
 
     @Test
     fun aFailedCreateKeepsTheDialogAndIsClearedByTheNextEdit() = runTest {
-        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, FailingItemRepository(), lastSpace))
+        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, FailingItemRepository(), lastSpace, auth))
         viewModel.openNewItem()
         viewModel.onNewItemTitleChange("Book plumber")
 
@@ -165,7 +151,7 @@ class SpaceHomeViewModelTest {
 
     @Test
     fun cannotCreateWithoutAName() = runTest {
-        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace))
+        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth))
         viewModel.openNewItem()
         viewModel.onNewItemTitleChange("   ")
         assertFalse(viewModel.uiState.value.canCreate)
@@ -178,7 +164,7 @@ class SpaceHomeViewModelTest {
 
     @Test
     fun dismissingForgetsTheDialog() = runTest {
-        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace))
+        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth))
         viewModel.openNewItem()
         viewModel.selectNewItemPreset(Preset.EVENT)
         viewModel.onNewItemTitleChange("Dinner")
@@ -199,12 +185,11 @@ class SpaceHomeViewModelTest {
     fun leavesTheHeaderEmptyWhenItsReadsFail() = runTest {
         val failingItems = ControlledItemRepository(items).apply { beforeRead = { error("Could not reach the server") } }
         val spaces = FlakySpaceRepository(spaceFailures = 1, memberFailures = 1)
-        val viewModel = SpaceHomeViewModel("space-1", spaces, failingItems, lastSpace)
+        val viewModel = SpaceHomeViewModel("space-1", spaces, failingItems, lastSpace, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         val state = viewModel.uiState.value
         assertEquals("", state.name)
-        assertEquals(emptyList(), state.memberInitials)
-        assertEquals(0, state.openTasks)
+        assertEquals(0, state.memberCount)
     }
 }

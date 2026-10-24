@@ -5,8 +5,9 @@ An ADR records one decision that shapes the code: the context, what was decided,
 | ADR | Decision | Status |
 |---|---|---|
 | [0001](0001-local-persistence.md) | Firestore's offline cache is the only local store: no local database | Accepted |
-| [0002](0002-firestore-data-model.md) | The Firestore data model for users, spaces, memberships, items and invitations, and the roles | Accepted |
+| [0002](0002-firestore-data-model.md) | The Firestore data model for users, spaces, memberships, items and invitations, and the roles | Accepted, `ownerId` superseded by 0004 |
 | [0003](0003-balances-on-device.md) | Balances are derived on the device, in the domain, never stored | Accepted |
+| [0004](0004-leaving-and-handing-over-a-space.md) | The space names its owner in `ownerId`; the owner hands over or deletes, never leaves | Accepted |
 
 ## Writing one
 

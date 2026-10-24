@@ -62,6 +62,7 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | `OrbitQuestionCard` | A question with answer chips (the assistant) |
 | `OrbitPill` | A short fact. `Neutral`, `Accent` (the one that matters), `Success`, `Warning`. Never an action. |
 | `OrbitAvatar`, `OrbitAvatarStack` | A member's photo or initials; a group's overlapping avatars |
+| `OrbitMemberChip` | A person in a row of chips: avatar, name and role on a tonal pill, `highlighted` for the user or an invite |
 | `OrbitIconBadge` | An icon on a circle, leading a card or as its arrow |
 | `OrbitProgress` | How far along something is |
 
@@ -89,10 +90,11 @@ All controls are 56 dp tall (`ControlHeight`) and take the full width in a form.
 | `OrbitTextField`, `OrbitPasswordField` | Text input. Visibility of a password is the caller's state. |
 | `OrbitFilterChip` | One option of a filter row |
 | `OrbitAssistChip` | A short action, such as adding a detail |
+| `OrbitSegmentedTabs` | Switching between the sections of a screen (a space's items and agenda): a tonal track, the selected one a primary pill |
 
 ## Adding a component
 
-1. The same styled element on a second screen becomes a component. A one-screen layout (the space home summary) stays a private composable in its feature.
+1. The same styled element on a second screen becomes a component. A one-screen layout (the new-item dialog of the space home) stays a private composable in its feature.
 2. It takes plain values (`String`, not `StringResource`), a `modifier`, and callbacks. An icon parameter is a `DrawableResource` and the component draws the `Icon`.
 3. It has no outer margin and no ViewModel. Its parent sets the gaps.
 4. It uses only theme values and `OrbitSpacing`. Raw `dp`, `sp` and `Color(0x…)` outside `core/designsystem/` fail CI.

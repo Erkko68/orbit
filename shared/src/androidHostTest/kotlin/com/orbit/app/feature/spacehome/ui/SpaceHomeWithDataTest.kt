@@ -1,9 +1,7 @@
 package com.orbit.app.feature.spacehome.ui
 
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -47,7 +45,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
     }
 
     @Test
-    fun showsFourAvatarsThenACountAndListsEveryone() = runComposeUiTest {
+    fun countsEveryMemberAndShowsThemAsChips() = runComposeUiTest {
         val spaces = FakeSpaceRepository.withMembers(
             "Ana" to Role.OWNER,
             "Ben" to Role.ADMIN,
@@ -58,19 +56,17 @@ class SpaceHomeWithDataTest : ComposeTest() {
         )
         val items = InMemoryItemRepository(auth)
         startTestKoin(auth, spaces, items)
-        val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository())
+        val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository(), auth)
         setContent {
             OrbitTheme {
-                SpaceHomeScreen("space-1", onSwitchSpace = {}, onOpenItem = {}, viewModel = viewModel)
+                SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("Flat 4B").assertIsDisplayed()
-        onNodeWithText("+2").assertIsDisplayed()
-
-        onNodeWithText("Members").performClick()
-        onNodeWithText("Flo").performScrollTo().assertIsDisplayed()
-        onNodeWithText("Admin").performScrollTo().assertIsDisplayed()
-        onAllNodesWithText("Member").assertCountEquals(4)
+        onNodeWithText("6 members").assertIsDisplayed()
+        onNodeWithText("Ana").assertIsDisplayed()
+        onNodeWithText("Owner").assertIsDisplayed()
+        onNodeWithText("Admin").assertIsDisplayed()
     }
 
     @Test
@@ -83,10 +79,16 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val groceriesId = items.create(id, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
         val opened = mutableListOf<String>()
         startTestKoin(auth, spaces, items)
-        val viewModel = SpaceHomeViewModel(id, spaces, items, InMemoryLastSpaceRepository())
+        val viewModel = SpaceHomeViewModel(id, spaces, items, InMemoryLastSpaceRepository(), auth)
         setContent {
             OrbitTheme {
-                SpaceHomeScreen(id, onSwitchSpace = {}, onOpenItem = { opened += it }, viewModel = viewModel)
+                SpaceHomeScreen(
+                    id,
+                    onBack = {},
+                    onOpenAccount = {},
+                    onOpenItem = { opened += it },
+                    viewModel = viewModel,
+                )
             }
         }
         onNodeWithText("Book plumber").performScrollTo().assertIsDisplayed()

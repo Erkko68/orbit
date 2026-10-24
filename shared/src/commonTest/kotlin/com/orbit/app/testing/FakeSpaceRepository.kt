@@ -12,12 +12,13 @@ import kotlinx.coroutines.flow.update
 
 /**
  * A space with members in any role, which the in-memory repository cannot build (it only adds owners).
- * A role change updates the member as the real one would; with [changeRoleFailure] it throws that instead.
+ * A role change or a transfer updates the members as the real one would; with [writeFailure] every write throws
+ * that instead. It has no signed-in user, so the transfer makes the current owner an admin.
  */
 internal class FakeSpaceRepository(
     private val space: Space,
     members: List<Member>,
-    private val changeRoleFailure: Exception? = null,
+    private val writeFailure: Exception? = null,
 ) : SpaceRepository {
     private val members = MutableStateFlow(members)
 
@@ -29,7 +30,7 @@ internal class FakeSpaceRepository(
     override suspend fun createSpace(name: String, accent: Int): String = error("Not used by these tests")
 
     override suspend fun changeRole(spaceId: String, userId: String, role: Role) {
-        changeRoleFailure?.let { throw it }
+        writeFailure?.let { throw it }
         members.update { all -> all.map { if (it.userId == userId) it.copy(role = role) else it } }
     }
 
@@ -37,11 +38,34 @@ internal class FakeSpaceRepository(
 
     override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) = error("Not used by these tests")
 
+    override suspend fun leaveSpace(spaceId: String) {
+        writeFailure?.let { throw it }
+        error("Has no signed-in user: leave through InMemorySpaceRepository")
+    }
+
+    override suspend fun deleteSpace(spaceId: String) {
+        writeFailure?.let { throw it }
+        error("Has no signed-in user: delete through InMemorySpaceRepository")
+    }
+
+    override suspend fun transferOwnership(spaceId: String, userId: String) {
+        writeFailure?.let { throw it }
+        members.update { all ->
+            all.map {
+                when {
+                    it.userId == userId -> it.copy(role = Role.OWNER)
+                    it.role == Role.OWNER -> it.copy(role = Role.ADMIN)
+                    else -> it
+                }
+            }
+        }
+    }
+
     companion object {
-        fun withMembers(vararg people: Pair<String, Role>, changeRoleFailure: Exception? = null) = FakeSpaceRepository(
+        fun withMembers(vararg people: Pair<String, Role>, writeFailure: Exception? = null) = FakeSpaceRepository(
             space = Space("space-1", "Flat 4B", accent = 0, memberIds = people.map { it.first }),
             members = people.map { (name, role) -> Member(name, name, photoUrl = null, role = role) },
-            changeRoleFailure = changeRoleFailure,
+            writeFailure = writeFailure,
         )
     }
 }

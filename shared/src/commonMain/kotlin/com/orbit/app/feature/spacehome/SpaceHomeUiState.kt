@@ -6,19 +6,16 @@ import com.orbit.app.domain.model.validateItem
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.space_tab_agenda
 import orbit.shared.generated.resources.space_tab_items
-import orbit.shared.generated.resources.space_tab_members
 import org.jetbrains.compose.resources.StringResource
 
-/** The header of a space, its selected tab and the "New item" dialog. The items and members tabs have their own state. */
+/** The header of a space, its selected tab and the "New item" dialog. The member row and items have their own state. */
 data class SpaceHomeUiState(
     val name: String = "",
-    /** One entry per member, for the row of avatars. */
-    val memberInitials: List<String> = emptyList(),
+    val memberCount: Int = 0,
+    /** The signed-in user, for the account avatar in the top bar. */
+    val userInitials: String = "",
+    val userPhotoUrl: String? = null,
     val tab: SpaceHomeTab = SpaceHomeTab.ITEMS,
-    val openTasks: Int = 0,
-    // Placeholders: nothing counts these until bills and the agenda land.
-    val billsDue: Int = 0,
-    val eventsToday: Int = 0,
     /** The "New item" dialog is showing. */
     val newItemOpen: Boolean = false,
     /** What the dialog creates: the preset picked and the name typed. */
@@ -40,6 +37,5 @@ data class SpaceHomeUiState(
 enum class SpaceHomeTab(val label: StringResource) {
     ITEMS(Res.string.space_tab_items),
     AGENDA(Res.string.space_tab_agenda),
-    MEMBERS(Res.string.space_tab_members),
 }
 

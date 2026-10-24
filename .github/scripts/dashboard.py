@@ -84,6 +84,8 @@ def values(issues, sprints, when, today):
             "PV": (hours * RATE + months * DEPRECIATION) * passed + (planned_cash(title) if when >= day(window[0]) else 0),
             "EV": min(earned / hours, 1) * budget(title),
             "AC": (planned_h + unplanned_h) * RATE + months * DEPRECIATION * passed + sum(e for *_, e in cash),
+            # The same three in hours of team effort only, without equipment or cash.
+            "PV_h": hours * passed, "EV_h": min(earned, hours), "AC_h": planned_h + unplanned_h,
             "passed": passed, "earned_h": earned, "planned_h": planned_h, "unplanned_h": unplanned_h,
             "depreciation": months * DEPRECIATION * passed, "cash": cash}
     return out
@@ -146,14 +148,15 @@ def breakdown(title, value):
 
 
 def curve(issues, sprints, start, end, today):
-    """PV for every day of the project, EV and AC up to today."""
-    out = {"days": [], "PV": [], "EV": [], "AC": []}
+    """PV for every day of the project, EV and AC up to today, in € and in hours."""
+    out = {"days": [], "PV": [], "EV": [], "AC": [], "PV_h": [], "EV_h": [], "AC_h": []}
     for n in range((end - start).days + 1):
         when = start + timedelta(n)
         v = values(issues, sprints, when, today).values()
         out["days"].append(when.isoformat())
         out["PV"].append(round(sum(x["PV"] for x in v), 2))
-        for key in ("EV", "AC"):
+        out["PV_h"].append(round(sum(x["PV_h"] for x in v), 2))
+        for key in ("EV", "AC", "EV_h", "AC_h"):
             out[key].append(round(sum(x[key] for x in v), 2) if when <= today else None)
     return out
 
@@ -179,6 +182,8 @@ def build(items, sprints, today):
     end = max(day(w[1]) for w in sprints.values())
     now_values = values(issues, sprints, today, today)
     total = indicators(*(sum(v[k] for v in now_values.values()) for k in ("PV", "EV", "AC")))
+    total_h = indicators(*(sum(v[k] for v in now_values.values()) for k in ("PV_h", "EV_h", "AC_h")),
+                         sum(PLAN[t][0] for t in sprints))
     sprint_out = []
     for title, (first, due) in sorted(sprints.items(), key=lambda s: s[1][1]):
         own = [i for i in issues if (i["milestone"] or {}).get("title") == title]
@@ -186,9 +191,11 @@ def build(items, sprints, today):
         sprint_out.append({"title": title, "start": first, "due": due, "plan_h": PLAN[title][0],
                            "budget": budget(title), "passed": v["passed"], "earned_h": v["earned_h"],
                            **indicators(v["PV"], v["EV"], v["AC"], budget(title)),
+                           "h": indicators(v["PV_h"], v["EV_h"], v["AC_h"], PLAN[title][0]),
                            "cost": breakdown(title, v), "burn": burn(own, today, day(due)) if own else None})
     return {"generated": now.isoformat(timespec="minutes"), "today": today.isoformat(), "rate": RATE, "total": total,
-            "sprints": sprint_out, "curve": curve(issues, sprints, start, end, today), "burn": burn(issues, today, None),
+            "total_h": total_h, "sprints": sprint_out,
+            "curve": curve(issues, sprints, start, end, today), "burn": burn(issues, today, None),
             "issues": [{**{k: i[k] for k in ("number", "title", "url", "estimate", "actual", "work", "measured", "who")},
                         "sprint": (i["milestone"] or {}).get("title"), "created": i["created"].isoformat(),
                         "closed": i["closed"] and i["closed"].isoformat(), "started": i["started"],
@@ -224,7 +231,8 @@ def check():
         # The Sprint 1 report on 21 October: 125 h earned of 160, 246.6 h spent, no cash out.
         issues = [issue(125, d, 132.6), issue(None, d, 0.5, actual=114)]
         v = values(issues, sprints, d, d)["S1"]
-        if not all(math.isclose(v[k], want, abs_tol=0.005) for k, want in (("PV", 2012.86), ("EV", 2163.75), ("AC", 3967.87))):
+        if not all(math.isclose(v[k], want, abs_tol=0.005) for k, want in (("PV", 2012.86), ("EV", 2163.75), ("AC", 3967.87),
+                                                                            ("PV_h", 114.29), ("EV_h", 125), ("AC_h", 246.6))):
             raise RuntimeError(f"values() self-check failed: {v}")
         if not math.isclose(indicators(v["PV"], v["EV"], v["AC"])["CPI"], 0.55, abs_tol=0.005):
             raise RuntimeError("indicators() self-check failed")

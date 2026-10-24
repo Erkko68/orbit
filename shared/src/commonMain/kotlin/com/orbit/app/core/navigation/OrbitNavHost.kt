@@ -61,7 +61,8 @@ fun OrbitNavHost(
                 val spaceId = entry.toRoute<SpaceHomeRoute>().spaceId
                 SpaceHomeScreen(
                     spaceId = spaceId,
-                    onSwitchSpace = { navController.showSpaces() },
+                    onBack = { navController.showSpaces() },
+                    onOpenAccount = { navController.navigate(AccountRoute) },
                     onOpenItem = { itemId -> navController.navigate(ItemRoute(spaceId = spaceId, itemId = itemId)) },
                 )
             }

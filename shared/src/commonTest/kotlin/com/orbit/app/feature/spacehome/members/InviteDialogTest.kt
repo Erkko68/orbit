@@ -14,11 +14,9 @@ import com.orbit.app.core.share.TextSharer
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryInvitationRepository
 import com.orbit.app.testing.InMemorySpaceRepository
-import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.FailingInvitationRepository
-import com.orbit.app.testing.FakeSpaceRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -26,7 +24,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
-class InviteCardTest : ComposeTest() {
+class InviteDialogTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
     private val shared = mutableListOf<String>()
 
@@ -36,24 +34,19 @@ class InviteCardTest : ComposeTest() {
         InMemorySpaceRepository(auth).also { it.createSpace("Flat 4B", accent = 0) }
     }
 
-    private fun ComposeUiTest.showCard(spaces: SpaceRepository, invitations: InvitationRepository) = setContent {
-        OrbitTheme {
-            InviteCard(
-                spaceId = "space-1",
-                viewModel = InviteViewModel("space-1", invitations, spaces, auth),
-                sharer = TextSharer { shared += it },
-            )
+    /** Shows the member row and opens the invitation dialog from its "Invite" chip. */
+    private fun ComposeUiTest.showCard(spaces: SpaceRepository, invitations: InvitationRepository) {
+        setContent {
+            OrbitTheme {
+                SpaceMembersRow(
+                    spaceId = "space-1",
+                    viewModel = SpaceMembersViewModel("space-1", spaces, auth),
+                    inviteViewModel = InviteViewModel("space-1", invitations, spaces, auth),
+                    sharer = TextSharer { shared += it },
+                )
+            }
         }
-    }
-
-    @Test
-    fun showsNothingToAPlainMember() = runComposeUiTest {
-        runBlocking { auth.signIn("ben@orbit.app", "secret") }
-        val spaces = FakeSpaceRepository.withMembers("ben@orbit.app" to Role.MEMBER, "cleo@orbit.app" to Role.OWNER)
-
-        showCard(spaces, InMemoryInvitationRepository(auth))
-
-        onNodeWithText("Invite people").assertDoesNotExist()
+        onNodeWithText("Invite").performClick()
     }
 
     @Test
@@ -66,7 +59,7 @@ class InviteCardTest : ComposeTest() {
     }
 
     @Test
-    fun showsTheCardAtOnceButOffersToCreateOnlyOnceTheInvitationsArrive() = runComposeUiTest {
+    fun opensAtOnceButOffersToCreateOnlyOnceTheInvitationsArrive() = runComposeUiTest {
         showCard(ownedSpace(), FailingInvitationRepository(neverLoad = true))
 
         onNodeWithText("Invite people").assertIsDisplayed()
@@ -123,5 +116,18 @@ class InviteCardTest : ComposeTest() {
 
         onNodeWithText("Could not create the invitation. Try again.").assertIsDisplayed()
         onNodeWithText("Create invitation").assertIsEnabled()
+    }
+
+    @Test
+    fun closingTheDialogForgetsAFailure() = runComposeUiTest {
+        showCard(ownedSpace(), FailingInvitationRepository())
+        onNodeWithText("Create invitation").performClick()
+
+        onNodeWithText("Close").performClick()
+        onNodeWithText("Invite people").assertDoesNotExist()
+        onNodeWithText("Invite").performClick()
+
+        onNodeWithText("Invite people").assertIsDisplayed()
+        onNodeWithText("Could not create the invitation. Try again.").assertDoesNotExist()
     }
 }
