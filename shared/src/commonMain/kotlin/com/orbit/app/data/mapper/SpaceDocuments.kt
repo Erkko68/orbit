@@ -10,6 +10,7 @@ internal class SpaceDocument(
     val accent: Int,
     val memberIds: List<String>,
     val createdBy: String,
+    val ownerId: String,
     val createdAt: Timestamp.ServerTimestamp,
 )
 

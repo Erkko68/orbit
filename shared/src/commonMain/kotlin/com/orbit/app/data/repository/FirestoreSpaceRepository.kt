@@ -85,7 +85,7 @@ class FirestoreSpaceRepository(
     override suspend fun changeRole(spaceId: String, userId: String, role: Role) {
         require(role != Role.OWNER) { "Ownership moves only through a transfer" }
         val member = firestore.collection(SPACES).document(spaceId).collection(MEMBERS).document(userId)
-        writeLocally("Role of $userId in space $spaceId") { member.update("role" to roleValue(role)) }
+        writeLocally("Role of $userId in space $spaceId") { member.updateFields { "role" to roleValue(role) } }
     }
 
     /**
@@ -113,7 +113,7 @@ class FirestoreSpaceRepository(
 
         val space = firestore.collection(SPACES).document(invitation.spaceId)
         val batch = firestore.batch()
-        batch.update(space, "memberIds" to FieldValue.arrayUnion(user.id))
+        batch.updateFields(space) { "memberIds" to FieldValue.arrayUnion(user.id) }
         val membership = joiningMemberDocument(user.displayName, user.photoUrl, code)
         batch.set(space.collection(MEMBERS).document(user.id), membership)
         try {
@@ -128,9 +128,48 @@ class FirestoreSpaceRepository(
     override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) {
         require(name != null || accent != null) { "Nothing to change" }
         require(name == null || name.isNotBlank()) { "A space needs a name" }
-        val changes = listOfNotNull(name?.let { "name" to it }, accent?.let { "accent" to it })
         val space = firestore.collection(SPACES).document(spaceId)
-        writeLocally("Settings of space $spaceId") { space.update(*changes.toTypedArray()) }
+        writeLocally("Settings of space $spaceId") {
+            space.updateFields {
+                if (name != null) "name" to name
+                if (accent != null) "accent" to accent
+            }
+        }
+    }
+
+    /**
+     * One batch takes the user out of `memberIds` and deletes their member document, so the two cannot drift. The
+     * rules refuse the owner, so nothing else checks it.
+     */
+    override suspend fun leaveSpace(spaceId: String) {
+        val user = auth.requireUser()
+        val space = firestore.collection(SPACES).document(spaceId)
+        val batch = firestore.batch()
+        batch.updateFields(space) { "memberIds" to FieldValue.arrayRemove(user.id) }
+        batch.delete(space.collection(MEMBERS).document(user.id))
+        writeLocally("Leaving space $spaceId") { batch.commit() }
+    }
+
+    /**
+     * Deletes the space document only. Its members and items stay behind, unreadable: the rules let only members
+     * of an existing space read them (ADR 0004). The rules decide who may.
+     */
+    override suspend fun deleteSpace(spaceId: String) {
+        // ponytail: orphaned subcollections stay in storage; a Cloud Function on delete can clear them.
+        val space = firestore.collection(SPACES).document(spaceId)
+        writeLocally("Deleting space $spaceId") { space.delete() }
+    }
+
+    /** The batch the rules accept for a transfer (ADR 0004): `ownerId`, the new owner's role and the caller's. */
+    override suspend fun transferOwnership(spaceId: String, userId: String) {
+        val user = auth.requireUser()
+        require(userId != user.id) { "The owner already owns the space" }
+        val space = firestore.collection(SPACES).document(spaceId)
+        val batch = firestore.batch()
+        batch.updateFields(space) { "ownerId" to userId }
+        batch.updateFields(space.collection(MEMBERS).document(userId)) { "role" to roleValue(Role.OWNER) }
+        batch.updateFields(space.collection(MEMBERS).document(user.id)) { "role" to roleValue(Role.ADMIN) }
+        writeLocally("Ownership of space $spaceId") { batch.commit() }
     }
 
     private fun toSpace(document: DocumentSnapshot): Space? =

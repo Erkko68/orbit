@@ -69,6 +69,35 @@ class InMemorySpaceRepository(
         }
     }
 
+    override suspend fun leaveSpace(spaceId: String) {
+        val userId = auth.requireUser().id
+        val team = members.value[spaceId].orEmpty()
+        val me = checkNotNull(team.firstOrNull { it.userId == userId }) { "Not a member of the space" }
+        check(me.role != Role.OWNER) { "The owner deletes the space or hands it over" }
+        spaces.update { all ->
+            all.map { if (it.id == spaceId) it.copy(memberIds = it.memberIds - userId) else it }
+        }
+        members.update { all -> all + (spaceId to team - me) }
+    }
+
+    override suspend fun deleteSpace(spaceId: String) {
+        val userId = auth.requireUser().id
+        check(members.value[spaceId].orEmpty().firstOrNull { it.userId == userId }?.role == Role.OWNER) {
+            "Only the owner can delete the space"
+        }
+        spaces.update { all -> all.filterNot { it.id == spaceId } }
+        members.update { it - spaceId }
+    }
+
+    override suspend fun transferOwnership(spaceId: String, userId: String) {
+        val actorId = auth.requireUser().id
+        val team = members.value[spaceId].orEmpty()
+        check(team.firstOrNull { it.userId == actorId }?.role == Role.OWNER) { "Only the owner can hand it over" }
+        check(userId != actorId && team.any { it.userId == userId }) { "Not another member of the space" }
+        val roles = mapOf(userId to Role.OWNER, actorId to Role.ADMIN)
+        members.update { all -> all + (spaceId to team.map { it.copy(role = roles[it.userId] ?: it.role) }) }
+    }
+
     /** Gives a space a member without an invitation, so tests can have more than the owner in it. */
     fun addMember(spaceId: String, member: Member) {
         spaces.update { all ->

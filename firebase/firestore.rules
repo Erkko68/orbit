@@ -1,7 +1,13 @@
 rules_version = '2';
 
+// Firebase deploys this one file and the rules language has no imports, so it is organised by scope: the
+// helpers every collection uses come first, and each collection keeps its own helpers inside its match
+// block, where they can use the path variables (spaceId, memberId) directly. The roles and what each
+// rule checks are in docs/data/security-rules.md.
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ── Shared helpers ────────────────────────────────────────────────────────────────────────────
 
     function isAuthenticated() {
       return request.auth != null;
@@ -11,20 +17,29 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == uid;
     }
 
-    function isMember(spaceId) {
-      return isAuthenticated() &&
-        exists(/databases/$(database)/documents/spaces/$(spaceId)) &&
-        request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.memberIds;
+    function spacePath(spaceId) {
+      return /databases/$(database)/documents/spaces/$(spaceId);
     }
 
-    function memberDoc(spaceId, uid) {
-      return get(/databases/$(database)/documents/spaces/$(spaceId)/members/$(uid));
+    function memberPath(spaceId, uid) {
+      return /databases/$(database)/documents/spaces/$(spaceId)/members/$(uid);
+    }
+
+    // The fields an update changes.
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function isMember(spaceId) {
+      return isAuthenticated() &&
+        exists(spacePath(spaceId)) &&
+        request.auth.uid in get(spacePath(spaceId)).data.memberIds;
     }
 
     function hasRole(spaceId, uid, roles) {
       return isAuthenticated() &&
-        exists(/databases/$(database)/documents/spaces/$(spaceId)/members/$(uid)) &&
-        memberDoc(spaceId, uid).data.role in roles;
+        exists(memberPath(spaceId, uid)) &&
+        get(memberPath(spaceId, uid)).data.role in roles;
     }
 
     function isOwner(spaceId) {
@@ -35,126 +50,186 @@ service cloud.firestore {
       return hasRole(spaceId, request.auth.uid, ['owner', 'admin']);
     }
 
-    function isSpaceCreator(spaceId) {
-      return isAuthenticated() && (
-        (exists(/databases/$(database)/documents/spaces/$(spaceId)) &&
-         get(/databases/$(database)/documents/spaces/$(spaceId)).data.createdBy == request.auth.uid) ||
-        (existsAfter(/databases/$(database)/documents/spaces/$(spaceId)) &&
-         getAfter(/databases/$(database)/documents/spaces/$(spaceId)).data.createdBy == request.auth.uid)
-      );
+    // Fields set once, on creation, that no later write may change.
+    function keepsCreation() {
+      return !changedKeys().hasAny(['createdBy', 'createdAt', 'spaceId']);
     }
 
     // The invitation a joining member names: it invites to this space, is not revoked and has not expired.
     function validInvitation(spaceId, code) {
+      let invitation = /databases/$(database)/documents/invitations/$(code);
       return code is string
-        && exists(/databases/$(database)/documents/invitations/$(code))
-        && get(/databases/$(database)/documents/invitations/$(code)).data.spaceId == spaceId
-        && get(/databases/$(database)/documents/invitations/$(code)).data.revoked == false
-        && get(/databases/$(database)/documents/invitations/$(code)).data.expiresAt > request.time;
+        && exists(invitation)
+        && get(invitation).data.spaceId == spaceId
+        && get(invitation).data.revoked == false
+        && get(invitation).data.expiresAt > request.time;
     }
 
-    // The caller joining a space, as the member document of that batch (ADR 0002, "Joining"). It is theirs, a
-    // plain member, names a valid invitation to this space, and the same batch adds the caller to memberIds.
-    function joinsAsMember(spaceId) {
-      return request.resource.data.role == 'member'
-        && request.resource.data.keys().hasOnly(['role', 'displayName', 'photoUrl', 'joinedAt', 'invitationCode'])
-        && request.resource.data.keys().hasAll(['role', 'displayName', 'joinedAt', 'invitationCode'])
-        && request.resource.data.displayName is string
-        && request.resource.data.joinedAt == request.time
-        && validInvitation(spaceId, request.resource.data.invitationCode)
-        && !(request.auth.uid in get(/databases/$(database)/documents/spaces/$(spaceId)).data.memberIds)
-        && request.auth.uid in getAfter(/databases/$(database)/documents/spaces/$(spaceId)).data.memberIds;
-    }
+    // ── users/{uid}: the private profile, read and written by its owner only ────────────────────────
 
-    // The space half of that batch: it appends the caller, and only the caller, to memberIds, and the batch
-    // also creates their member document with a valid invitation.
-    function joinsSpace(spaceId) {
-      let memberPath = /databases/$(database)/documents/spaces/$(spaceId)/members/$(request.auth.uid);
-      return isAuthenticated()
-        && !(request.auth.uid in resource.data.memberIds)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberIds'])
-        && request.resource.data.memberIds == resource.data.memberIds.concat([request.auth.uid])
-        && existsAfter(memberPath)
-        && getAfter(memberPath).data.role == 'member'
-        && validInvitation(spaceId, getAfter(memberPath).data.invitationCode);
-    }
-
-    // The members of a space grow only through a join, never by an admin writing uids into memberIds.
-    function addsMembers() {
-      return request.resource.data.memberIds.size() > resource.data.memberIds.size();
-    }
-
-    // The invitation a member joined with and when are set once, with the join.
-    function keepsJoin() {
-      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['invitationCode', 'joinedAt']);
-    }
-
-    // A space keeps a name that is not blank and a whole-number colour, whatever an edit changes.
-    function hasValidSpaceFields() {
-      return request.resource.data.name is string
-        && request.resource.data.name.trim().size() > 0
-        && request.resource.data.accent is int;
-    }
-
-    // Fields set once, on creation, that no later write may change.
-    function keepsCreation() {
-      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['createdBy', 'createdAt', 'spaceId']);
-    }
-
-    // Completing records the caller as who completed it; reopening removes it.
-    function completesAsSelf() {
-      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(['completedBy'])
-        || request.resource.data.get('completedBy', request.auth.uid) == request.auth.uid;
-    }
-
-    // 1 to 120 characters after trimming (ADR 0002).
-    function isTitle(title) {
-      return title is string && title.trim().size() > 0 && title.size() <= 120;
-    }
-
-    // users/{uid}: private profile, accessible only by owner
     match /users/{uid} {
       allow read, write: if isUser(uid);
     }
 
-    // spaces/{spaceId}
+    // ── spaces/{spaceId} ──────────────────────────────────────────────────────────────────────────
+
     match /spaces/{spaceId} {
+
+      // A space keeps a name that is not blank and a whole-number colour, whatever an edit changes.
+      function hasValidSpaceFields() {
+        return request.resource.data.name is string
+          && request.resource.data.name.trim().size() > 0
+          && request.resource.data.accent is int;
+      }
+
+      // Who owns the space changes only through a transfer.
+      function keepsOwner() {
+        return !changedKeys().hasAny(['ownerId']);
+      }
+
+      // The members of a space grow only through a join, never by an admin writing uids into memberIds.
+      function addsMembers() {
+        return request.resource.data.memberIds.size() > resource.data.memberIds.size();
+      }
+
+      // The space half of a join (ADR 0002, "Joining"): it appends the caller, and only the caller, to
+      // memberIds, and the batch also creates their member document with a valid invitation.
+      function joinsSpace() {
+        let membership = memberPath(spaceId, request.auth.uid);
+        return isAuthenticated()
+          && !(request.auth.uid in resource.data.memberIds)
+          && changedKeys().hasOnly(['memberIds'])
+          && request.resource.data.memberIds == resource.data.memberIds.concat([request.auth.uid])
+          && existsAfter(membership)
+          && getAfter(membership).data.role == 'member'
+          && validInvitation(spaceId, getAfter(membership).data.invitationCode);
+      }
+
+      // The space half of leaving (#27): it takes the caller, and only the caller, out of memberIds, and the
+      // same batch deletes their member document. The owner cannot (their member document stays).
+      function leavesSpace() {
+        return isAuthenticated()
+          && request.auth.uid in resource.data.memberIds
+          && changedKeys().hasOnly(['memberIds'])
+          && request.resource.data.memberIds == resource.data.memberIds.removeAll([request.auth.uid])
+          && !existsAfter(memberPath(spaceId, request.auth.uid));
+      }
+
+      // The space half of a transfer (#27, ADR 0004): it names another member as ownerId, and the same batch
+      // makes them owner and the caller an admin.
+      function transfersOwnership() {
+        let newOwner = request.resource.data.ownerId;
+        return isOwner(spaceId)
+          && changedKeys().hasOnly(['ownerId'])
+          && newOwner is string
+          && newOwner != request.auth.uid
+          && newOwner in resource.data.memberIds
+          && getAfter(memberPath(spaceId, newOwner)).data.role == 'owner'
+          && getAfter(memberPath(spaceId, request.auth.uid)).data.role == 'admin';
+      }
+
       allow read: if isAuthenticated() && request.auth.uid in resource.data.memberIds;
-      // A new space has its creator as its only member: others join through an invitation (#25).
+      // A new space has its creator as its only member and owner: others join through an invitation (#25).
       allow create: if isAuthenticated()
         && request.resource.data.memberIds == [request.auth.uid]
         && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.createdAt == request.time
-        && request.resource.data.name is string
-        && request.resource.data.name.trim().size() > 0
-        && request.resource.data.accent is int;
-      allow update: if (isAdminOrOwner(spaceId) && keepsCreation() && !addsMembers() && hasValidSpaceFields()) || joinsSpace(spaceId);
+        && hasValidSpaceFields();
+      // The settings (an owner or admin), or one half of a join, a leave or a transfer.
+      allow update: if (isAdminOrOwner(spaceId) && keepsCreation() && keepsOwner() && !addsMembers() && hasValidSpaceFields())
+        || joinsSpace()
+        || leavesSpace()
+        || transfersOwnership();
+      // Deleting leaves the members and items behind, unreadable: isMember needs the space (ADR 0004).
       allow delete: if isOwner(spaceId);
 
-      // spaces/{spaceId}/members/{memberId}
+      // ── spaces/{spaceId}/members/{memberId} ─────────────────────────────────────────────────────
+
       match /members/{memberId} {
+
+        function isSpaceCreator() {
+          return isAuthenticated() && (
+            (exists(spacePath(spaceId)) && get(spacePath(spaceId)).data.createdBy == request.auth.uid) ||
+            (existsAfter(spacePath(spaceId)) && getAfter(spacePath(spaceId)).data.createdBy == request.auth.uid)
+          );
+        }
+
+        // The member half of a join (ADR 0002, "Joining"): the caller's own document, a plain member, naming a
+        // valid invitation to this space, and the same batch adds the caller to memberIds.
+        function joinsAsMember() {
+          return request.auth.uid == memberId
+            && request.resource.data.role == 'member'
+            && request.resource.data.keys().hasOnly(['role', 'displayName', 'photoUrl', 'joinedAt', 'invitationCode'])
+            && request.resource.data.keys().hasAll(['role', 'displayName', 'joinedAt', 'invitationCode'])
+            && request.resource.data.displayName is string
+            && request.resource.data.joinedAt == request.time
+            && validInvitation(spaceId, request.resource.data.invitationCode)
+            && !(request.auth.uid in get(spacePath(spaceId)).data.memberIds)
+            && request.auth.uid in getAfter(spacePath(spaceId)).data.memberIds;
+        }
+
+        // The invitation a member joined with and when are set once, with the join.
+        function keepsJoin() {
+          return !changedKeys().hasAny(['invitationCode', 'joinedAt']);
+        }
+
+        // The member half of a transfer, which changes nothing but roles: the member the space now names
+        // becomes owner, and the owner becomes an admin. Neither stands alone: each needs the other and the
+        // new ownerId.
+        function handsOwnership() {
+          let ownerId = getAfter(spacePath(spaceId)).data.get('ownerId', request.auth.uid);
+          return isOwner(spaceId)
+            && changedKeys().hasOnly(['role'])
+            && ownerId != request.auth.uid
+            && getAfter(memberPath(spaceId, ownerId)).data.role == 'owner'
+            && getAfter(memberPath(spaceId, request.auth.uid)).data.role == 'admin'
+            && ((memberId == ownerId && request.resource.data.role == 'owner')
+              || (memberId == request.auth.uid && request.resource.data.role == 'admin'));
+        }
+
+        // The member half of leaving: the caller's own document, and the same batch takes them out of
+        // memberIds. The owner never leaves: they delete the space or hand it over first (ADR 0004).
+        function leaves() {
+          return request.auth.uid == memberId
+            && isMember(spaceId)
+            && resource.data.role != 'owner'
+            && !(request.auth.uid in getAfter(spacePath(spaceId)).data.memberIds);
+        }
+
         allow read: if isMember(spaceId);
-        allow create: if (
-          (isSpaceCreator(spaceId) && request.auth.uid == memberId && request.resource.data.role == 'owner') ||
-          (request.auth.uid == memberId && joinsAsMember(spaceId))
-        );
+        allow create: if (isSpaceCreator() && request.auth.uid == memberId && request.resource.data.role == 'owner')
+          || joinsAsMember();
         // A member edits their own profile copy and the role stays. An owner or admin sets the role of
-        // anyone but the owner to admin or member: nobody becomes owner with an update, ownership moves
-        // only through the transfer in #27.
+        // anyone but the owner to admin or member. Nobody becomes owner this way: only a transfer does.
         allow update: if keepsJoin() && (
           (isMember(spaceId) && request.auth.uid == memberId && request.resource.data.role == resource.data.role) ||
-          (isAdminOrOwner(spaceId) && resource.data.role != 'owner' && request.resource.data.role in ['admin', 'member'])
+          (isAdminOrOwner(spaceId) && resource.data.role != 'owner' && request.resource.data.role in ['admin', 'member']) ||
+          handsOwnership()
         );
-        allow delete: if (
-          (isMember(spaceId) && request.auth.uid == memberId && resource.data.role != 'owner') ||
-          (isOwner(spaceId) && resource.data.role != 'owner') ||
-          (isAdminOrOwner(spaceId) && resource.data.role == 'member')
-        );
+        // Leaving, the owner removing anyone else, or an admin removing a plain member.
+        allow delete: if leaves()
+          || (isOwner(spaceId) && resource.data.role != 'owner')
+          || (isAdminOrOwner(spaceId) && resource.data.role == 'member');
       }
 
-      // spaces/{spaceId}/items/{itemId}: every member creates, edits and completes any item, since the
-      // space shares them. Only its creator, an admin or the owner deletes one (ADR 0002, "Roles").
+      // ── spaces/{spaceId}/items/{itemId} ─────────────────────────────────────────────────────────
+      // Every member creates, edits and completes any item, since the space shares them. Only its creator,
+      // an admin or the owner deletes one (ADR 0002, "Roles").
+
       match /items/{itemId} {
+
+        // 1 to 120 characters after trimming (ADR 0002).
+        function isTitle(title) {
+          return title is string && title.trim().size() > 0 && title.size() <= 120;
+        }
+
+        // Completing records the caller as who completed it; reopening removes it.
+        function completesAsSelf() {
+          return !changedKeys().hasAny(['completedBy'])
+            || request.resource.data.get('completedBy', request.auth.uid) == request.auth.uid;
+        }
+
         allow read: if isMember(spaceId);
         allow create: if isMember(spaceId)
           && request.resource.data.createdBy == request.auth.uid
@@ -172,9 +247,10 @@ service cloud.firestore {
       }
     }
 
-    // invitations/{code}: an invitation to one space, the document id being the code (ADR 0002).
-    // A bearer capability: whoever knows the code reads it by id, nobody lists them across spaces.
-    // Joining reads it from the space and member rules above (validInvitation).
+    // ── invitations/{code} ────────────────────────────────────────────────────────────────────────
+    // An invitation to one space, the document id being the code (ADR 0002). A bearer capability: whoever
+    // knows the code reads it by id, nobody lists them across spaces. Joining checks it (validInvitation).
+
     match /invitations/{code} {
       allow get: if isAuthenticated();
       allow list: if isAuthenticated() && isAdminOrOwner(resource.data.spaceId);
@@ -193,7 +269,7 @@ service cloud.firestore {
       // Revoking is the only change, and it cannot be undone.
       allow update: if isAuthenticated()
         && isAdminOrOwner(resource.data.spaceId)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['revoked'])
+        && changedKeys().hasOnly(['revoked'])
         && request.resource.data.revoked == true;
       allow delete: if false;
     }

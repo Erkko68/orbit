@@ -27,6 +27,7 @@ erDiagram
         int accent "index into spaceAccents"
         array memberIds "uids"
         string createdBy FK
+        string ownerId FK "the member whose role is owner"
         timestamp createdAt
     }
     MEMBER {
@@ -104,9 +105,8 @@ The email is not stored: it comes from the Firebase Auth account.
 | `accent` | integer | yes | Index into `OrbitTheme.colors.spaceAccents`, not a color |
 | `memberIds` | array of uid | yes | Kept in step with the `members` subcollection, in the same batch. At most 8 (plan cap). |
 | `createdBy` | uid | yes | Never changes |
+| `ownerId` | uid | yes | The member whose role is `owner`. The creator at first; changes only in the transfer batch, with the two roles (ADR 0004). Spaces made before #27 have none until their first transfer. |
 | `createdAt` | timestamp | yes | Server time, never changes |
-
-There is no `ownerId`: the owner is the member whose role is `owner`.
 
 ### `spaces/{spaceId}/members/{uid}`
 
@@ -200,9 +200,13 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 |---|---|---|
 | `observeSpaces` | `spaces` where `memberIds` array-contains uid | Listener, restarted when the signed-in user changes |
 | `observeMembers` | `spaces/{id}/members` | Listener, retried for a few seconds while refused |
-| `createSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: the space and the owner's membership |
+| `createSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: the space (`ownerId` the creator) and the owner's membership |
 | `joinSpace` | `invitations/{code}`, then `spaces/{id}` and `spaces/{id}/members/{uid}` | A `get` of the invitation from the server, a check of the user's spaces, then one batch: `memberIds` gets the user (`arrayUnion`) and the member document names the invitation. Awaited, never queued offline. |
 | `updateSpace` | `spaces/{id}` | `update` of only the fields that changed: `name`, `accent`, or both |
+| `changeRole` | `spaces/{id}/members/{uid}` | `update` of `role` |
+| `transferOwnership` | `spaces/{id}`, `spaces/{id}/members/{new owner}`, `spaces/{id}/members/{uid}` | One batch: `ownerId`, the new owner's `role: owner`, the caller's `role: admin` |
+| `leaveSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: `memberIds` loses the user (`arrayRemove`) and their member document is deleted. Not for the owner. |
+| `deleteSpace` | `spaces/{id}` | `delete` of the space document only: its members and items stay, unreadable (ADR 0004) |
 
 ### `FirestoreItemRepository`
 
@@ -249,4 +253,4 @@ No method saves a whole existing item: every update writes only its field paths,
 
 ## Coming next
 
-Each extends this page in the PR that adds it: expenses and the ledger (#53, with balances derived on the device, see [ADR 0003](../adr/0003-balances-on-device.md)), recurrence (#45), the activity history (#83), and joining from an invitation (#25).
+Each extends this page in the PR that adds it: expenses and the ledger (#53, with balances derived on the device, see [ADR 0003](../adr/0003-balances-on-device.md)), recurrence (#45), and the activity history (#83).

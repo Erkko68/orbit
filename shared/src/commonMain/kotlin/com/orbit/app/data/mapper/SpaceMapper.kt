@@ -45,6 +45,7 @@ internal fun spaceDocument(name: String, accent: Int, creatorId: String) = Space
     accent = accent,
     memberIds = listOf(creatorId),
     createdBy = creatorId,
+    ownerId = creatorId,
     createdAt = Timestamp.ServerTimestamp,
 )
 

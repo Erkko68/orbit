@@ -9,8 +9,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 /**
- * The in-memory repository refuses a role change as the security rules do, so a test cannot rely on a
- * change the app could never make.
+ * The in-memory repository refuses a role change, a transfer or leaving as the security rules do, so a test
+ * cannot rely on a change the app could never make.
  */
 class InMemorySpaceRepositoryTest {
     private val auth = InMemoryAuthRepository()
@@ -165,5 +165,74 @@ class InMemorySpaceRepositoryTest {
         auth.signIn("ben@orbit.app", "secret")
 
         assertEquals("Flat 4C", spaceOf(id).name)
+    }
+
+    private suspend fun signInAs(userId: String) {
+        auth.signOut()
+        auth.signIn(userId, "secret")
+    }
+
+    @Test
+    fun aMemberLeavesTheSpace() = runTest {
+        val id = teamOfTwo()
+        signInAs("ben@orbit.app")
+
+        spaces.leaveSpace(id)
+
+        assertEquals(emptyList(), spaces.observeSpaces().first())
+        signInAs("ana@orbit.app")
+        assertEquals(listOf("ana@orbit.app"), spaceOf(id).memberIds)
+        assertEquals(listOf("ana@orbit.app"), spaces.observeMembers(id).first().map { it.userId })
+    }
+
+    @Test
+    fun theOwnerCannotLeave() = runTest {
+        val id = teamOfTwo()
+
+        assertFailsWith<IllegalStateException> { spaces.leaveSpace(id) }
+        assertEquals(Role.OWNER, roleOf(id, "ana@orbit.app"))
+    }
+
+    @Test
+    fun theOwnerDeletesTheSpaceForEveryone() = runTest {
+        val id = teamOfTwo()
+
+        spaces.deleteSpace(id)
+
+        assertEquals(emptyList(), spaces.observeSpaces().first())
+        signInAs("ben@orbit.app")
+        assertEquals(emptyList(), spaces.observeSpaces().first())
+    }
+
+    @Test
+    fun onlyTheOwnerDeletesTheSpace() = runTest {
+        val id = teamOfTwo()
+        signInAs("ben@orbit.app")
+
+        assertFailsWith<IllegalStateException> { spaces.deleteSpace(id) }
+        assertEquals(listOf(id), spaces.observeSpaces().first().map { it.id })
+    }
+
+    @Test
+    fun theOwnerHandsTheSpaceOverAndBecomesAnAdmin() = runTest {
+        val id = teamOfTwo()
+
+        spaces.transferOwnership(id, "ben@orbit.app")
+
+        assertEquals(Role.OWNER, roleOf(id, "ben@orbit.app"))
+        assertEquals(Role.ADMIN, roleOf(id, "ana@orbit.app"))
+        spaces.leaveSpace(id)
+        assertEquals(emptyList(), spaces.observeSpaces().first())
+    }
+
+    @Test
+    fun onlyTheOwnerHandsTheSpaceOverAndOnlyToAnotherMember() = runTest {
+        val id = teamOfTwo()
+        assertFailsWith<IllegalStateException> { spaces.transferOwnership(id, "ana@orbit.app") }
+        assertFailsWith<IllegalStateException> { spaces.transferOwnership(id, "zoe@orbit.app") }
+
+        signInAs("ben@orbit.app")
+        assertFailsWith<IllegalStateException> { spaces.transferOwnership(id, "ben@orbit.app") }
+        assertEquals(Role.OWNER, roleOf(id, "ana@orbit.app"))
     }
 }

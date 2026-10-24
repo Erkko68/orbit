@@ -1,6 +1,6 @@
 # ADR 0002: Firestore data model for users, spaces, memberships, items and invitations
 
-- Status: Accepted
+- Status: Accepted. Decision 2's "no `ownerId`" is superseded by [ADR 0004](0004-leaving-and-handing-over-a-space.md).
 - Date: 2026-10-06, revised 2026-10-19
 - Issues: #20, invitations #24, roles and field checks #215
 
