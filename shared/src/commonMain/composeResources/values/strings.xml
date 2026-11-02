@@ -213,6 +213,13 @@
     <string name="notification_permission_body">Orbit can only remind you if it may send notifications. Turn them on in the settings.</string>
     <string name="notification_permission_open_settings">Open settings</string>
     <string name="notification_permission_not_now">Not now</string>
+    <!-- AI consent -->
+    <string name="ai_consent_title">Before the assistant starts</string>
+    <string name="ai_consent_body">To suggest a plan, Orbit sends your answers, and the titles of the space's items and the names of its members, to an AI provider (Google Gemini).</string>
+    <string name="ai_consent_nothing_saved">Nothing is saved until you review the plan and confirm it.</string>
+    <string name="ai_consent_accept">Accept</string>
+    <string name="ai_consent_manual">Set up by hand</string>
+    <string name="ai_consent_failed">Could not save your answer. Try again.</string>
     <string name="member_you">You</string>
     <string name="member_invite">Invite</string>
     <string name="member_role_title">Role of %1$s</string>

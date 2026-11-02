@@ -12,11 +12,13 @@ internal fun mapUser(
     fallbackDisplayName: String? = null,
     fallbackPhotoUrl: String? = null,
     email: String? = null,
+    aiConsent: Boolean = false,
 ) = User(
     id = id,
     displayName = displayName?.ifBlank { null } ?: fallbackDisplayName?.ifBlank { null }.orEmpty(),
     photoUrl = photoUrl ?: fallbackPhotoUrl,
     email = email,
+    aiConsent = aiConsent,
 )
 
 internal fun userProfileDocument(

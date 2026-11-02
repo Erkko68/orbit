@@ -22,6 +22,12 @@ class UserMapperTest {
     }
 
     @Test
+    fun aUserHasNotAcceptedTheAiConsentUntilTheProfileSaysSo() {
+        assertEquals(false, mapUser(id = "user-1", displayName = "Ana", photoUrl = null).aiConsent)
+        assertEquals(true, mapUser(id = "user-1", displayName = "Ana", photoUrl = null, aiConsent = true).aiConsent)
+    }
+
+    @Test
     fun mapsUserWithMissingFieldsFallingBackToDefaults() {
         val user = mapUser(
             id = "user-456",
