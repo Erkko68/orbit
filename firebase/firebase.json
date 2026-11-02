@@ -6,7 +6,8 @@
     {
       "source": "functions",
       "codebase": "default",
-      "runtime": "python313"
+      "runtime": "python313",
+      "ignore": ["venv", "__pycache__", ".pytest_cache", "tests", "pytest.ini", ".coveragerc", "coverage.xml", "requirements-dev.txt"]
     }
   ],
   "emulators": {
