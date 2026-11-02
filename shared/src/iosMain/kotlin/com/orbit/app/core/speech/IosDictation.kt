@@ -11,12 +11,12 @@ import platform.AVFAudio.AVAudioSessionCategoryRecord
 import platform.AVFAudio.AVAudioSessionModeMeasurement
 import platform.AVFAudio.AVAudioSessionRecordPermissionGranted
 import platform.AVFAudio.AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation
+import platform.AVFAudio.setActive
 import platform.Foundation.NSLocale
 import platform.Foundation.currentLocale
 import platform.Speech.SFSpeechAudioBufferRecognitionRequest
 import platform.Speech.SFSpeechRecognizer
 import platform.Speech.SFSpeechRecognizerAuthorizationStatus
-import platform.Speech.SFSpeechRecognizerAuthorizationStatusAuthorized
 
 /**
  * [SFSpeechRecognizer] in the phone's language, fed from the microphone through an [AVAudioEngine]. Both the
@@ -69,4 +69,4 @@ class IosDictation : Dictation {
     }
 }
 
-internal val speechAuthorized: SFSpeechRecognizerAuthorizationStatus = SFSpeechRecognizerAuthorizationStatusAuthorized
+internal val speechAuthorized = SFSpeechRecognizerAuthorizationStatus.SFSpeechRecognizerAuthorizationStatusAuthorized
