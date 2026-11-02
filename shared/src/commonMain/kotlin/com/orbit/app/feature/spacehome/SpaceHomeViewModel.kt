@@ -30,7 +30,7 @@ class SpaceHomeViewModel(
     lastSpace: LastSpaceRepository,
     auth: AuthRepository,
 ) : ViewModel() {
-    /** The tab and the "New item" dialog. The rest stays empty: [uiState] fills it from the repositories. */
+    /** The destination and the "New item" dialog. The rest stays empty: [uiState] fills it from the repositories. */
     private val form = MutableStateFlow(SpaceHomeUiState())
 
     init {
@@ -54,6 +54,8 @@ class SpaceHomeViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceHomeUiState())
 
     fun selectTab(tab: SpaceHomeTab) = form.update { it.copy(tab = tab) }
+
+    fun selectTasksView(view: SpaceTasksView) = form.update { it.copy(tasksView = view) }
 
     fun openNewItem() = form.update { it.copy(newItemOpen = true) }
 

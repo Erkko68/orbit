@@ -16,7 +16,8 @@ import com.orbit.app.core.designsystem.component.OrbitDialog
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitExtendedFab
 import com.orbit.app.core.designsystem.component.OrbitFilterChip
-import com.orbit.app.core.designsystem.component.OrbitIconButton
+import com.orbit.app.core.designsystem.component.OrbitNavigationBar
+import com.orbit.app.core.designsystem.component.OrbitNavigationDestination
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitSectionHeader
 import com.orbit.app.core.designsystem.component.OrbitSegmentedTabs
@@ -27,6 +28,7 @@ import com.orbit.app.core.notification.permission.RequireNotificationPermission
 import com.orbit.app.domain.model.Preset
 import com.orbit.app.feature.item.label
 import com.orbit.app.feature.spacehome.SpaceHomeTab
+import com.orbit.app.feature.spacehome.SpaceTasksView
 import com.orbit.app.feature.spacehome.SpaceHomeUiState
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
@@ -36,17 +38,16 @@ import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.account_title
 import orbit.shared.generated.resources.cancel
 import orbit.shared.generated.resources.ic_add
-import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.ic_event
-import orbit.shared.generated.resources.ic_notifications
 import orbit.shared.generated.resources.space_agenda_empty_body
 import orbit.shared.generated.resources.space_agenda_empty_title
 import orbit.shared.generated.resources.space_back
+import orbit.shared.generated.resources.space_expenses_empty_body
+import orbit.shared.generated.resources.space_expenses_empty_title
 import orbit.shared.generated.resources.space_new_item
 import orbit.shared.generated.resources.space_new_item_create
 import orbit.shared.generated.resources.space_new_item_failed
 import orbit.shared.generated.resources.space_new_item_name
-import orbit.shared.generated.resources.space_notifications
 import orbit.shared.generated.resources.space_today
 import orbit.shared.generated.resources.spaces_members
 import org.jetbrains.compose.resources.pluralStringResource
@@ -55,11 +56,11 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * Home of a space (#170, #209): the space and its member count in the top bar, the members as chips, and
- * the items and agenda behind segmented tabs. The member row and the items load themselves;
- * "New item" creates one from a preset and opens it. Placeholders until their features land: notifications
- * and the agenda. [onBack] goes back to the list of spaces, as does leaving the
- * space; the account avatar calls [onOpenAccount].
+ * A space (ADR 0005): its name and member count in the top bar, which opens the list of spaces through [onBack],
+ * as does leaving the space, and its destinations in the bottom bar. Home has the members, Tasks the items and the
+ * agenda behind segmented tabs, and Expenses waits for #54. The member row and the items load themselves; "New item"
+ * creates one from a preset and opens it. The agenda is a placeholder until #38. The account avatar calls
+ * [onOpenAccount].
  */
 @Composable
 fun SpaceHomeScreen(
@@ -77,18 +78,10 @@ fun SpaceHomeScreen(
                 subtitle = state.memberCount.takeIf { it > 0 }?.let {
                     pluralStringResource(Res.plurals.spaces_members, it, it)
                 },
-                navigationIcon = {
-                    OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.space_back), onBack)
-                },
+                onTitleClick = onBack,
+                onTitleClickLabel = stringResource(Res.string.space_back),
                 actions = {
                     SpaceSettings(spaceId, onGone = onBack)
-                    // Placeholder until notifications land.
-                    OrbitIconButton(
-                        icon = Res.drawable.ic_notifications,
-                        contentDescription = stringResource(Res.string.space_notifications),
-                        onClick = {},
-                        enabled = false,
-                    )
                     OrbitAvatarButton(
                         initials = state.userInitials,
                         photoUrl = state.userPhotoUrl,
@@ -99,25 +92,46 @@ fun SpaceHomeScreen(
                 },
             )
         },
-        floatingActionButton = {
-            OrbitExtendedFab(
-                text = stringResource(Res.string.space_new_item),
-                icon = Res.drawable.ic_add,
-                onClick = viewModel::openNewItem,
+        bottomBar = {
+            OrbitNavigationBar(
+                destinations = SpaceHomeTab.entries.map { OrbitNavigationDestination(stringResource(it.label), it.icon) },
+                selectedIndex = state.tab.ordinal,
+                onSelect = { viewModel.selectTab(SpaceHomeTab.entries[it]) },
             )
+        },
+        floatingActionButton = if (state.canAddItem) {
+            {
+                OrbitExtendedFab(
+                    text = stringResource(Res.string.space_new_item),
+                    icon = Res.drawable.ic_add,
+                    onClick = viewModel::openNewItem,
+                )
+            }
+        } else {
+            null
         },
         scrollable = true,
     ) {
-        SpaceMembersRow(spaceId, modifier = Modifier.fillMaxWidth())
-        OrbitSegmentedTabs(
-            options = SpaceHomeTab.entries.map { stringResource(it.label) },
-            selectedIndex = state.tab.ordinal,
-            onSelect = { viewModel.selectTab(SpaceHomeTab.entries[it]) },
-            modifier = Modifier.fillMaxWidth(),
-        )
         when (state.tab) {
-            SpaceHomeTab.ITEMS -> SpaceItemsTab(spaceId, onOpenItem)
-            SpaceHomeTab.AGENDA -> Agenda()
+            SpaceHomeTab.HOME -> SpaceMembersRow(spaceId, modifier = Modifier.fillMaxWidth())
+            SpaceHomeTab.TASKS -> {
+                OrbitSegmentedTabs(
+                    options = SpaceTasksView.entries.map { stringResource(it.label) },
+                    selectedIndex = state.tasksView.ordinal,
+                    onSelect = { viewModel.selectTasksView(SpaceTasksView.entries[it]) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                when (state.tasksView) {
+                    SpaceTasksView.ITEMS -> SpaceItemsTab(spaceId, onOpenItem)
+                    SpaceTasksView.AGENDA -> Agenda()
+                }
+            }
+
+            SpaceHomeTab.EXPENSES -> OrbitEmptyState(
+                title = stringResource(Res.string.space_expenses_empty_title),
+                body = stringResource(Res.string.space_expenses_empty_body),
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
     if (state.newItemOpen) {

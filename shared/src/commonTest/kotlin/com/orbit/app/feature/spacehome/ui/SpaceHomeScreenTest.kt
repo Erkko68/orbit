@@ -1,9 +1,9 @@
 package com.orbit.app.feature.spacehome.ui
 
+import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -47,6 +47,12 @@ class SpaceHomeScreenTest : ComposeTest() {
         stopKoin()
     }
 
+    private fun ComposeUiTest.showTheSpace() = setContent {
+        OrbitTheme {
+            SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, viewModel = viewModel)
+        }
+    }
+
     @Test
     fun switchesBetweenItemsAndTheAgenda() = runComposeUiTest {
         setContent {
@@ -56,7 +62,6 @@ class SpaceHomeScreenTest : ComposeTest() {
         }
         onAllNodesWithText("Items")[0].assertIsSelected()
         onNodeWithText("All").assertIsSelected()
-        onNodeWithText("Tasks").assertIsNotSelected()
         onNodeWithText("No items yet").assertIsDisplayed()
 
         onNodeWithText("Agenda").performClick().assertIsSelected()
@@ -68,16 +73,31 @@ class SpaceHomeScreenTest : ComposeTest() {
     }
 
     @Test
-    fun theItemsTabKeepsItsFilterAcrossTabs() = runComposeUiTest {
-        setContent {
-            OrbitTheme {
-                SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, viewModel = viewModel)
-            }
+    fun theBarSwitchesBetweenTheDestinations() = runComposeUiTest {
+        runBlocking {
+            auth.register("ana@orbit.app", "secret", displayName = "Ana López")
+            spaces.createSpace("Flat 4B", accent = 0)
         }
+        showTheSpace()
+        onNodeWithText("No items yet").assertIsDisplayed()
+        onNodeWithText("New item").assertIsDisplayed()
+
+        onNodeWithText("Expenses").performClick().assertIsSelected()
+        onNodeWithText("No expenses yet").assertIsDisplayed()
+        onNodeWithText("New item").assertDoesNotExist()
+
+        onNodeWithText("Home").performClick().assertIsSelected()
+        onNodeWithText("Invite").assertIsDisplayed()
+        onNodeWithText("No expenses yet").assertDoesNotExist()
+    }
+
+    @Test
+    fun theItemsKeepTheirFilterAcrossDestinations() = runComposeUiTest {
+        showTheSpace()
         onNodeWithText("Lists").performScrollTo().performClick().assertIsSelected()
 
-        onNodeWithText("Agenda").performClick()
-        onAllNodesWithText("Items")[0].performClick()
+        onNodeWithText("Expenses").performClick()
+        onAllNodesWithText("Tasks")[0].performClick()
 
         onNodeWithText("Lists").performScrollTo().assertIsSelected()
     }
@@ -97,12 +117,32 @@ class SpaceHomeScreenTest : ComposeTest() {
                 )
             }
         }
-        onNodeWithContentDescription("Back to spaces").performClick()
-        assertEquals(1, backs)
         onNodeWithContentDescription("Account").performClick()
         assertEquals(1, accounts)
+        assertEquals(0, backs)
+    }
 
-        onNodeWithContentDescription("Notifications").assertIsNotEnabled()
+    @Test
+    fun theTitleOpensTheSpaces() = runComposeUiTest {
+        runBlocking {
+            auth.register("ana@orbit.app", "secret", displayName = "Ana López")
+            spaces.createSpace("Flat 4B", accent = 0)
+        }
+        var backs = 0
+        setContent {
+            OrbitTheme {
+                SpaceHomeScreen(
+                    "space-1",
+                    onBack = { backs++ },
+                    onOpenAccount = {},
+                    onOpenItem = {},
+                    viewModel = viewModel,
+                )
+            }
+        }
+        onNodeWithText("Flat 4B").performClick()
+
+        assertEquals(1, backs)
     }
 
     @Test
@@ -116,6 +156,8 @@ class SpaceHomeScreenTest : ComposeTest() {
                 SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, viewModel = viewModel)
             }
         }
+
+        onNodeWithText("Home").performClick()
 
         onNodeWithText("Flat 4B").assertIsDisplayed()
         onNodeWithText("1 member").assertIsDisplayed()

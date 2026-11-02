@@ -64,6 +64,8 @@ class SpaceHomeWithDataTest : ComposeTest() {
         }
         onNodeWithText("Flat 4B").assertIsDisplayed()
         onNodeWithText("6 members").assertIsDisplayed()
+
+        onNodeWithText("Home").performClick()
         onNodeWithText("Ana").assertIsDisplayed()
         onNodeWithText("Owner").assertIsDisplayed()
         onNodeWithText("Admin").assertIsDisplayed()
@@ -92,7 +94,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
             }
         }
         onNodeWithText("Book plumber").performScrollTo().assertIsDisplayed()
-        onNodeWithText("Groceries").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Groceries").assertExists()
 
         onNodeWithText("Lists").performScrollTo().performClick()
         onNodeWithText("Groceries").performScrollTo().assertIsDisplayed()
