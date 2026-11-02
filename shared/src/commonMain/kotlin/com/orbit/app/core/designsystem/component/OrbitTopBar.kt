@@ -1,5 +1,6 @@
 package com.orbit.app.core.designsystem.component
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,28 +13,37 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
+import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.ic_expand_more
+import org.jetbrains.compose.resources.painterResource
 
 private val TopBarHeight = 64.dp
 
 /**
  * Top of a screen, passed to [OrbitScreen]'s `topBar`: [title] and [subtitle], an optional
- * [navigationIcon] (back) before them and [actions] after. Built on stable APIs because M3's
- * `TopAppBar` is experimental. It pads itself below the status bar.
+ * [navigationIcon] (back) before them and [actions] after. With [onTitleClick] the titles are a button
+ * with a chevron, which [onTitleClickLabel] names for screen readers, such as a space's name that opens
+ * the list of spaces. Built on stable APIs because M3's `TopAppBar` is experimental. It pads itself below
+ * the status bar.
  */
 @Composable
 fun OrbitTopBar(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    onTitleClick: (() -> Unit)? = null,
+    onTitleClickLabel: String? = null,
     navigationIcon: (@Composable () -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
@@ -50,17 +60,32 @@ fun OrbitTopBar(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             navigationIcon?.invoke()
-            Column(Modifier.weight(1f).then(titleStart)) {
-                Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (subtitle != null) {
+            val titleClick = onTitleClick?.let {
+                Modifier.clickable(onClickLabel = onTitleClickLabel, role = Role.Button, onClick = it)
+            } ?: Modifier
+            Row(
+                modifier = Modifier.weight(1f).then(titleClick).then(titleStart),
+                horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f, fill = false)) {
                     Text(
-                        subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        title,
+                        style = MaterialTheme.typography.titleLarge,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (subtitle != null) {
+                        Text(
+                            subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
+                if (onTitleClick != null) Icon(painterResource(Res.drawable.ic_expand_more), contentDescription = null)
             }
             Row(verticalAlignment = Alignment.CenterVertically, content = actions)
         }

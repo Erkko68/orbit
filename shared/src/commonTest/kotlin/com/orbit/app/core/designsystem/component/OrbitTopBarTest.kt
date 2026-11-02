@@ -7,7 +7,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
@@ -55,6 +60,22 @@ class OrbitTopBarTest : ComposeTest() {
             }
         }
         onNodeWithText("Orbit").assertIsDisplayed()
+    }
+
+    @Test
+    fun aTappableTitleIsANamedButton() = runComposeUiTest {
+        var taps = 0
+        setContent {
+            OrbitTheme {
+                OrbitTopBar("Flat 4B", subtitle = "2 members", onTitleClick = { taps++ }, onTitleClickLabel = "Spaces")
+            }
+        }
+        onNodeWithText("Flat 4B", useUnmergedTree = false)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+            .assert(SemanticsMatcher("named") { it.config[SemanticsActions.OnClick].label == "Spaces" })
+            .performClick()
+
+        assertEquals(1, taps)
     }
 
     @Test

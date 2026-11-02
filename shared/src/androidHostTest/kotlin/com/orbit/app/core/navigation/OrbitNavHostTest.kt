@@ -2,7 +2,6 @@ package com.orbit.app.core.navigation
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithText
@@ -96,10 +95,11 @@ class OrbitNavHostTest : ComposeTest() {
         onNodeWithText("Flat 4B").performScrollTo().performClick()
 
         onNodeWithText("No items yet").assertIsDisplayed()
+        onNodeWithText("Home").performClick()
         onNodeWithText("You").assertIsDisplayed()
         onNodeWithText("Owner").assertIsDisplayed()
 
-        onNodeWithContentDescription("Back to spaces").performClick()
+        onNodeWithText("Flat 4B").performClick()
         onNodeWithText("New space").assertIsDisplayed()
     }
 
@@ -174,12 +174,12 @@ class OrbitNavHostTest : ComposeTest() {
         onNodeWithText("+ Checklist").performScrollTo().assertIsDisplayed()
         // The top bar is outside the scroll container and always remains visible.
         onNodeWithContentDescription("Back to space").performClick()
-        onAllNodesWithText("Items")[0].assertIsDisplayed()
+        onNodeWithText("New item").assertIsDisplayed()
         onNodeWithText("Groceries").performScrollTo().performClick()
         onNodeWithText("+ Checklist").performScrollTo().performClick()
         onNodeWithText("Checklist").performScrollTo().assertIsDisplayed()
         onNodeWithContentDescription("Back to space").performClick()
-        onNodeWithContentDescription("Back to spaces").assertIsDisplayed()
+        onNodeWithText("New item").assertIsDisplayed()
     }
 
     @Test
@@ -191,7 +191,7 @@ class OrbitNavHostTest : ComposeTest() {
         setContent { OrbitTheme { OrbitNavHost() } }
 
         onNodeWithText("No items yet").assertIsDisplayed()
-        onNodeWithContentDescription("Back to spaces").performClick()
+        onNodeWithText("Flat 4B").performClick()
 
         onNodeWithText("New space").assertIsDisplayed()
         onNodeWithText("No items yet").assertDoesNotExist()

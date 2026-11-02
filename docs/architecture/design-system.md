@@ -43,7 +43,7 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | Component | Use it for |
 |---|---|
 | `OrbitScreen` | Every screen: scaffold, insets, gutter, gaps between sections, scrolling (`scrollable = true`) |
-| `OrbitTopBar` | The top of every signed-in screen: title, subtitle, back, actions |
+| `OrbitTopBar` | The top of every signed-in screen: title, subtitle, back, actions. The title can be a button, as a space's opens the list of spaces |
 | `OrbitScreenHeader` | The opening of a screen without a top bar (sign-in) |
 | `OrbitSectionHeader` | The opening of a group of cards: icon, title, optional count pill |
 | `OrbitCard` | Entity cards (`elevated = true`) and group cards |
@@ -90,7 +90,8 @@ All controls are 56 dp tall (`ControlHeight`) and take the full width in a form.
 | `OrbitTextField`, `OrbitPasswordField` | Text input. Visibility of a password is the caller's state. |
 | `OrbitFilterChip` | One option of a filter row |
 | `OrbitAssistChip` | A short action, such as adding a detail |
-| `OrbitSegmentedTabs` | Switching between the sections of a screen (a space's items and agenda): a tonal track, the selected one a primary pill |
+| `OrbitNavigationBar` | The destinations of a space, in `OrbitScreen`'s `bottomBar`: the selected icon on a primary pill ([ADR 0005](../adr/0005-bottom-bar-inside-a-space.md)) |
+| `OrbitSegmentedTabs` | Switching between the views of one destination (the items and agenda of Tasks): a tonal track, the selected one a primary pill |
 
 ## Adding a component
 

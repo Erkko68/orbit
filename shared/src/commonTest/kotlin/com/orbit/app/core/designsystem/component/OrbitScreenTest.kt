@@ -86,6 +86,20 @@ class OrbitScreenTest : ComposeTest() {
     }
 
     @Test
+    fun showsItsBottomBarBelowTheContent() = runComposeUiTest {
+        setContent {
+            OrbitTheme {
+                OrbitScreen(bottomBar = { Text("Bar", Modifier.testTag("bar")) }) {
+                    Text("Content", Modifier.testTag("content"))
+                }
+            }
+        }
+        val content = onNodeWithTag("content").getUnclippedBoundsInRoot()
+        val bar = onNodeWithTag("bar").getUnclippedBoundsInRoot()
+        assertTrue(bar.top >= content.bottom)
+    }
+
+    @Test
     fun showsItsFloatingActionButtonBelowTheContent() = runComposeUiTest {
         setContent {
             OrbitTheme {

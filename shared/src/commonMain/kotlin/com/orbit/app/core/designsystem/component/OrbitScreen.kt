@@ -19,8 +19,8 @@ private val FabClearance = 88.dp
 
 /**
  * Base layout of every screen: owns the scaffold, the screen gutter, the gap between sections and
- * the scrolling. [topBar] is usually an [OrbitTopBar], drawn edge to edge above the gutter, and
- * [floatingActionButton] an [OrbitExtendedFab]. A [scrollable] screen scrolls its content, padded
+ * the scrolling. [topBar] is usually an [OrbitTopBar], drawn edge to edge above the gutter, [bottomBar]
+ * an [OrbitNavigationBar] and [floatingActionButton] an [OrbitExtendedFab]. A [scrollable] screen scrolls its content, padded
  * above and below, and leaves room for the floating action button. Leave it off for a screen whose
  * content scrolls itself, such as a lazy list.
  */
@@ -30,11 +30,17 @@ fun OrbitScreen(
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(OrbitSpacing.md),
     horizontalAlignment: Alignment.Horizontal = Alignment.Start,
     topBar: @Composable () -> Unit = {},
+    bottomBar: @Composable () -> Unit = {},
     floatingActionButton: (@Composable () -> Unit)? = null,
     scrollable: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Scaffold(modifier = modifier, topBar = topBar, floatingActionButton = floatingActionButton ?: {}) { padding ->
+    Scaffold(
+        modifier = modifier,
+        topBar = topBar,
+        bottomBar = bottomBar,
+        floatingActionButton = floatingActionButton ?: {},
+    ) { padding ->
         val scroll = if (scrollable) {
             Modifier
                 .verticalScroll(rememberScrollState())
