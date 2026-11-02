@@ -111,12 +111,16 @@ service cloud.firestore {
       }
 
       // The space half of leaving (#27): it takes the caller, and only the caller, out of memberIds, and the
-      // same batch deletes their member document. The owner cannot (their member document stays).
+      // same batch deletes their member document. The owner cannot (their member document stays). The space
+      // keeps the leaver's name in formerMembers, and nobody else's entry changes.
       function leavesSpace() {
         return isAuthenticated()
           && request.auth.uid in resource.data.memberIds
-          && changedKeys().hasOnly(['memberIds'])
+          && changedKeys().hasOnly(['memberIds', 'formerMembers'])
           && request.resource.data.memberIds == resource.data.memberIds.removeAll([request.auth.uid])
+          && request.resource.data.formerMembers.get(request.auth.uid, null) is string
+          && request.resource.data.formerMembers.diff(resource.data.get('formerMembers', {})).affectedKeys()
+            .hasOnly([request.auth.uid])
           && !existsAfter(memberPath(spaceId, request.auth.uid));
       }
 

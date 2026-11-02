@@ -904,12 +904,12 @@ describe('Firestore Security Rules', () => {
 
     const spaceOf = (uid, spaceId = 's1') => testEnv.authenticatedContext(uid).firestore().collection('spaces').doc(spaceId);
 
-    // The batch the app sends to leave: the caller out of memberIds, and their member document deleted.
-    const leave = (uid, { removes = [uid], memberDoc = uid } = {}) => {
+    // The batch the app sends to leave: the caller out of memberIds, their name kept, their member document deleted.
+    const leave = (uid, { removes = [uid], memberDoc = uid, names = { [`formerMembers.${uid}`]: uid } } = {}) => {
       const db = testEnv.authenticatedContext(uid).firestore();
       const space = db.collection('spaces').doc('s1');
       const batch = db.batch();
-      batch.update(space, { memberIds: arrayRemove(...removes) });
+      batch.update(space, { memberIds: arrayRemove(...removes), ...names });
       batch.delete(space.collection('members').doc(memberDoc));
       return batch.commit();
     };
@@ -941,6 +941,18 @@ describe('Firestore Security Rules', () => {
       assert.deepStrictEqual((await read('spaces/s1')).memberIds, ['alice']);
       assert.strictEqual(await read('spaces/s1/members/charlie'), null);
       await assertFails(spaceOf('charlie').get());
+    });
+
+    it('keeps the name of whoever leaves, and only theirs', async () => {
+      await assertFails(leave('charlie', { names: {} }));
+      await assertFails(leave('charlie', { names: { 'formerMembers.charlie': 7 } }));
+      await assertFails(leave('charlie', { names: { 'formerMembers.bob': 'Bob' } }));
+      await assertFails(leave('charlie', { names: { 'formerMembers.charlie': 'Charlie', 'formerMembers.bob': 'Bob' } }));
+
+      await assertSucceeds(leave('charlie', { names: { 'formerMembers.charlie': 'Charlie' } }));
+      await assertSucceeds(leave('bob', { names: { 'formerMembers.bob': 'Bob' } }));
+
+      assert.deepStrictEqual((await read('spaces/s1')).formerMembers, { charlie: 'Charlie', bob: 'Bob' });
     });
 
     it('refuses either half of leaving on its own', async () => {

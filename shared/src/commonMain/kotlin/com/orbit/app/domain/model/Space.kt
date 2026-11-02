@@ -6,4 +6,6 @@ data class Space(
     val name: String,
     val accent: Int,
     val memberIds: List<String>,
+    /** The names of those who left, by uid. Their member documents are gone, but their balances are not (#56). */
+    val formerMembers: Map<String, String> = emptyMap(),
 )

@@ -16,6 +16,7 @@ import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import dev.gitlive.firebase.firestore.DocumentSnapshot
+import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import dev.gitlive.firebase.firestore.Source
@@ -145,7 +146,10 @@ class FirestoreSpaceRepository(
         val user = auth.requireUser()
         val space = firestore.collection(SPACES).document(spaceId)
         val batch = firestore.batch()
-        batch.updateFields(space) { "memberIds" to FieldValue.arrayRemove(user.id) }
+        batch.updateFields(space) {
+            "memberIds" to FieldValue.arrayRemove(user.id)
+            FieldPath("formerMembers", user.id) to user.displayName
+        }
         batch.delete(space.collection(MEMBERS).document(user.id))
         writeLocally("Leaving space $spaceId") { batch.commit() }
     }
@@ -173,7 +177,13 @@ class FirestoreSpaceRepository(
     }
 
     private fun toSpace(document: DocumentSnapshot): Space? =
-        mapSpace(document.id, document.field("name"), document.field("accent"), document.field("memberIds")).also {
+        mapSpace(
+            id = document.id,
+            name = document.field("name"),
+            accent = document.field("accent"),
+            memberIds = document.field("memberIds"),
+            formerMembers = document.field("formerMembers"),
+        ).also {
             if (it == null) Logger.w { "Skipping the malformed space ${document.id}" }
         }
 }

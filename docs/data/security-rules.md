@@ -86,7 +86,7 @@ A join is one batch, and the rules accept it only whole (ADR 0002, decision 6). 
 
 Also one batch, accepted only whole (ADR 0004). The caller takes themselves out of `memberIds` and deletes their member document:
 
-- **The space update** (`leavesSpace`) is by someone in `memberIds`, changes nothing but `memberIds`, makes it exactly the old list without the caller, and the caller's member document is gone after the batch.
+- **The space update** (`leavesSpace`) is by someone in `memberIds`, changes nothing but `memberIds` and `formerMembers`, makes `memberIds` exactly the old list without the caller, records the caller's name in `formerMembers` and no one else's, and the caller's member document is gone after the batch.
 - **The member delete** (`leaves`) is the caller's own document, not the owner's, and the caller is out of `memberIds` after the batch.
 - **The owner never leaves.** Their member document cannot be deleted, so the batch fails: they delete the space, or hand it over first.
 

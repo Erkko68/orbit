@@ -36,4 +36,5 @@ Expenses in, one net amount per member out, with debt simplification on top. The
 - The balances screen reads the whole ledger of the space. For a household that is small, and the cache holds it.
 - If a space ever has so many expenses that reading the whole ledger hurts, add a periodic checkpoint document (balances up to a date) and sum only what came after it. A shared household will not get there, so nothing is built for it now.
 - The expense schema (#53) needs the payer and the split as a map of uid to cents. Nothing else holds an amount.
+- Members who left keep their balance, so the space keeps their names in `formerMembers` (#244). Their member documents are gone.
 - The domain owns the invariant "balances sum to zero", and #56's property tests check it on random ledgers.

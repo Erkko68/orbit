@@ -27,6 +27,7 @@ erDiagram
         string name
         int accent "index into spaceAccents"
         array memberIds "uids"
+        map formerMembers "uid to name, optional"
         string createdBy FK
         string ownerId FK "the member whose role is owner"
         timestamp createdAt
@@ -118,6 +119,7 @@ The email is not stored: it comes from the Firebase Auth account.
 | `name` | string | yes | Not blank |
 | `accent` | integer | yes | Index into `OrbitTheme.colors.spaceAccents`, not a color |
 | `memberIds` | array of uid | yes | Kept in step with the `members` subcollection, in the same batch. At most 8 (plan cap). |
+| `formerMembers` | map of uid to string | no | The name of each member who left, written with the leave. Their member document is gone, but their balance still shows. A member who rejoins keeps an entry, and their member document wins. |
 | `createdBy` | uid | yes | Never changes |
 | `ownerId` | uid | yes | The member whose role is `owner`. The creator at first; changes only in the transfer batch, with the two roles (ADR 0004). Spaces made before #27 have none until their first transfer. |
 | `createdAt` | timestamp | yes | Server time, never changes |
@@ -237,7 +239,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `updateSpace` | `spaces/{id}` | `update` of only the fields that changed: `name`, `accent`, or both |
 | `changeRole` | `spaces/{id}/members/{uid}` | `update` of `role` |
 | `transferOwnership` | `spaces/{id}`, `spaces/{id}/members/{new owner}`, `spaces/{id}/members/{uid}` | One batch: `ownerId`, the new owner's `role: owner`, the caller's `role: admin` |
-| `leaveSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: `memberIds` loses the user (`arrayRemove`) and their member document is deleted. Not for the owner. |
+| `leaveSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: `memberIds` loses the user (`arrayRemove`), `formerMembers.<uid>` keeps their name and their member document is deleted. Not for the owner. |
 | `deleteSpace` | `spaces/{id}` | `delete` of the space document only: its members and items stay, unreadable (ADR 0004) |
 
 ### `FirestoreItemRepository`
