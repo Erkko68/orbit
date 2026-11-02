@@ -9,6 +9,7 @@ An ADR records one decision that shapes the code: the context, what was decided,
 | [0003](0003-balances-on-device.md) | Balances are derived on the device, in the domain, never stored | Accepted |
 | [0004](0004-leaving-and-handing-over-a-space.md) | The space names its owner in `ownerId`; the owner hands over or deletes, never leaves | Accepted |
 | [0005](0005-bottom-bar-inside-a-space.md) | Only a space has a bottom bar, and its title switches spaces | Accepted |
+| [0006](0006-dictation-through-the-platform-recognisers.md) | Voice dictation uses each platform's own speech recogniser, not ML Kit | Accepted |
 
 ## Writing one
 
