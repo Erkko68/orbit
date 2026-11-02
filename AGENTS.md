@@ -83,6 +83,7 @@ This file holds the rules. The background to them (architecture, schema, roles, 
   - A short task over the screen (adding a space: name a new one, or enter an invite code) is an `OrbitDialog`, not a form in the page. Whether it is open is a field of the `UiState`. Alternatives for the same goal share one dialog, split by an `OrbitLabeledDivider`, instead of one entry point each.
   - Signed-out screens (sign-in, create account) are one centered column on the canvas: `OrbitScreenHeader`, the fields and their one filled button, then the other ways in. No card around the form: every control has the same width and the groups are told apart by spacing and the labeled divider.
   - Every signed-in screen has a top bar (`OrbitTopBar` through `OrbitScreen`). The spaces list shows the Orbit mark and name with the user's account avatar on the right.
+  - Only a space has a bottom bar (`OrbitNavigationBar`, #239): Home, Tasks and Expenses, selected through `SpaceHomeUiState.tab`. The top bar title is the space's name, and tapping it opens the spaces list. The spaces list, the account and detail screens have no bar. A new section of a space goes in one of these destinations, not in a new tab or route.
   - No control for a feature that does not exist yet, unless the layout was agreed with it (e.g. joining with an invite code).
 - No hardcoded colors: only `core/designsystem/theme/Color.kt` defines colors.
 - Brand palette only: no dynamic (wallpaper) color.
@@ -128,7 +129,7 @@ This file holds the rules. The background to them (architecture, schema, roles, 
   - From the terminal: `python3 .github/scripts/actual_hours.py --set <issue> <hours>`. Then re-run the check: editing a board field triggers nothing.
 - Starting work. Agents do these steps, in order, before changing any code:
   1. Check the GitHub CLI with `gh auth status`. If `gh` is missing or not logged in, suggest setting it up in the terminal (`brew install gh` or https://cli.github.com, then `gh auth login`) before anything else.
-  2. Find the current milestone (the open one with the earliest due date) and list its free issues: `gh issue list --milestone "<milestone>" --search "no:assignee"`. Ask the user which one to work on. Skip issues whose "Blocked by" issues are still open.
+  2. Find the current milestone (the open one with the earliest due date) and list its free issues: `gh issue list --milestone "<milestone>" --search "no:assignee"`. Ask the user which one to work on, following the tracks and order in [ROADMAP.md](ROADMAP.md). Skip issues whose "Blocked by" issues are still open.
   3. Assign it to the user with `gh issue edit <issue> --add-assignee @me` when the work starts, not when it is done: the assignment moves it to In progress and starts its bar on the roadmap.
   4. Create the branch for that issue (see below).
   5. Read the issue critically before building it. If a "Done when" item is wrong, outdated or does not make sense for the product (e.g. #19 asked for language and time zone pickers the phone already provides), or the issue misses something (an ADR rule, a platform), do not build it as written: fix the issue if the user owns it, otherwise comment on it proposing the change, and tell the user. Issues that depend on it get rescoped too.

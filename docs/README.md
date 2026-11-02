@@ -24,7 +24,7 @@ Each fact has one home, and the other pages link to it instead of repeating it.
 | Why a choice was made | An [ADR](adr/README.md) |
 | Library versions | [`gradle/libs.versions.toml`](../gradle/libs.versions.toml) |
 | Colors, type, shapes and spacing | `core/designsystem/theme/` in the code |
-| What is being worked on | The [project board](https://github.com/users/Erkko68/projects/3) |
+| What is being worked on | The [project board](https://github.com/users/Erkko68/projects/3), and [ROADMAP.md](../ROADMAP.md) for who builds what and in which order |
 
 ## Keeping these pages true
 
