@@ -7,6 +7,8 @@ import com.orbit.app.core.notification.AndroidNotificationScheduler
 import com.orbit.app.core.notification.NotificationAccess
 import com.orbit.app.core.notification.NotificationScheduler
 import com.orbit.app.core.share.AndroidTextSharer
+import com.orbit.app.core.speech.AndroidDictation
+import com.orbit.app.core.speech.Dictation
 import com.orbit.app.core.share.TextSharer
 import com.orbit.app.data.auth.ActivityProvider
 import com.orbit.app.data.auth.AndroidGoogleAuthClient
@@ -41,4 +43,5 @@ actual val platformModule = module {
         )
     } bind NotificationScheduler::class
     single<NotificationAccess> { AndroidNotificationAccess(androidContext()) }
+    single<Dictation> { AndroidDictation(androidContext()) }
 }

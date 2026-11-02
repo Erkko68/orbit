@@ -3,6 +3,15 @@
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Dictation (ADR 0006). -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
+    <!-- Android 11+ hides other apps: without this the system's speech recogniser looks missing. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
+    </queries>
 
     <!--
     No backup: the data lives in Firestore, and a restored session or reminder store would be stale.

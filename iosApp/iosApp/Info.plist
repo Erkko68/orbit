@@ -4,6 +4,11 @@
     <dict>
         <key>CADisableMinimumFrameDurationOnPhone</key>
         <true/>
+        <!-- Dictation (ADR 0006): iOS ends the app if it asks without these. -->
+        <key>NSMicrophoneUsageDescription</key>
+        <string>Orbit uses the microphone when you dictate an answer.</string>
+        <key>NSSpeechRecognitionUsageDescription</key>
+        <string>Orbit turns what you dictate into text.</string>
         <key>CFBundleURLTypes</key>
         <array>
             <!-- REVERSED_CLIENT_ID from GoogleService-Info.plist: Google Sign-In returns to the app through it. -->
