@@ -1,0 +1,67 @@
+package com.orbit.app.core
+
+import androidx.compose.foundation.layout.Column
+import androidx.compose.material3.Text
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.v2.runComposeUiTest
+import com.orbit.app.core.designsystem.ComposeTest
+import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.feature.item.ui.itemDateLabel
+import kotlinx.datetime.LocalDate
+import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.sign_in
+import orbit.shared.generated.resources.spaces_count
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
+import org.robolectric.annotation.Config
+import kotlin.test.Test
+import kotlin.test.assertEquals
+
+@OptIn(ExperimentalTestApi::class)
+class LocalisationTest : ComposeTest() {
+    @Test
+    @Config(qualifiers = "en-rUS")
+    fun english() = assertLanguage("Sign in", "1 space", "2 spaces", "en", "Jan")
+
+    @Test
+    @Config(qualifiers = "es-rES")
+    fun spanish() = assertLanguage("Iniciar sesión", "1 espacio", "2 espacios", "es", "ene")
+
+    @Test
+    @Config(qualifiers = "ca-rES")
+    fun catalan() = assertLanguage("Inicia la sessió", "1 espai", "2 espais", "ca", "gen")
+
+    @Test
+    @Config(qualifiers = "it-rIT")
+    fun italian() = assertLanguage("Accedi", "1 spazio", "2 spazi", "it", "gen")
+
+    @Test
+    @Config(qualifiers = "fr-rFR")
+    fun unsupportedLanguageUsesEnglish() = assertLanguage("Sign in", "1 space", "2 spaces", "en", "janv")
+
+    private fun assertLanguage(action: String, one: String, two: String, language: String, month: String) =
+        runComposeUiTest {
+            assertEquals(language, deviceLanguage())
+            setContent {
+                OrbitTheme {
+                    Column {
+                        Text(stringResource(Res.string.sign_in))
+                        Text(pluralStringResource(Res.plurals.spaces_count, 1, 1))
+                        Text(pluralStringResource(Res.plurals.spaces_count, 2, 2))
+                        Text(itemDateLabel(LocalDate(2026, 1, 12)))
+                    }
+                }
+            }
+            onNodeWithText(action).assertIsDisplayed()
+            onNodeWithText(one).assertIsDisplayed()
+            onNodeWithText(two).assertIsDisplayed()
+            // Punctuation and abbreviations vary with the OS's locale data; the date and month must not.
+            onNodeWithText("2026", substring = true)
+                .assertIsDisplayed()
+                .assertTextContains("12", substring = true)
+                .assertTextContains(month, substring = true)
+        }
+}

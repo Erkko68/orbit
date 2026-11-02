@@ -23,6 +23,14 @@ class PlatformLocaleTest {
     }
 
     @Test
+    fun normalizesItalianVariants() {
+        assertEquals("it", normalizeLanguage("it"))
+        assertEquals("it", normalizeLanguage("IT"))
+        assertEquals("it", normalizeLanguage("it-IT"))
+        assertEquals("it", normalizeLanguage("it_CH"))
+    }
+
+    @Test
     fun normalizesEnglishVariants() {
         assertEquals("en", normalizeLanguage("en"))
         assertEquals("en", normalizeLanguage("EN"))
@@ -34,7 +42,6 @@ class PlatformLocaleTest {
     fun fallsBackToEnglishForUnsupportedOrMissingLanguages() {
         assertEquals("en", normalizeLanguage("fr"))
         assertEquals("en", normalizeLanguage("de"))
-        assertEquals("en", normalizeLanguage("it"))
         assertEquals("en", normalizeLanguage(null))
         assertEquals("en", normalizeLanguage(""))
     }
@@ -42,6 +49,6 @@ class PlatformLocaleTest {
     @Test
     fun deviceLanguageReturnsSupportedLanguage() {
         val lang = deviceLanguage()
-        assertTrue(lang in setOf("es", "ca", "en"), "Expected supported language but got $lang")
+        assertTrue(lang in setOf("es", "ca", "it", "en"), "Expected supported language but got $lang")
     }
 }
