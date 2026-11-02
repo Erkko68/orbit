@@ -75,7 +75,10 @@ class InMemorySpaceRepository(
         val me = checkNotNull(team.firstOrNull { it.userId == userId }) { "Not a member of the space" }
         check(me.role != Role.OWNER) { "The owner deletes the space or hands it over" }
         spaces.update { all ->
-            all.map { if (it.id == spaceId) it.copy(memberIds = it.memberIds - userId) else it }
+            all.map {
+                if (it.id != spaceId) return@map it
+                it.copy(memberIds = it.memberIds - userId, formerMembers = it.formerMembers + (userId to me.displayName))
+            }
         }
         members.update { all -> all + (spaceId to team - me) }
     }

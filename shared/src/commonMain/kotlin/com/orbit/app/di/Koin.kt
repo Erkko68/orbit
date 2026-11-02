@@ -4,11 +4,13 @@ import com.orbit.app.core.PendingInvitation
 import com.orbit.app.core.notification.ReminderSync
 import com.orbit.app.core.notification.permission.NotificationPermissionViewModel
 import com.orbit.app.data.repository.FirebaseAuthRepository
+import com.orbit.app.data.repository.FirestoreExpenseRepository
 import com.orbit.app.data.repository.FirestoreInvitationRepository
 import com.orbit.app.data.repository.FirestoreItemRepository
 import com.orbit.app.data.repository.FirestoreSpaceRepository
 import com.orbit.app.data.repository.SettingsLastSpaceRepository
 import com.orbit.app.domain.repository.AuthRepository
+import com.orbit.app.domain.repository.ExpenseRepository
 import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
@@ -54,6 +56,7 @@ val dataModule = module {
     singleOf(::FirebaseAuthRepository) bind AuthRepository::class
     singleOf(::FirestoreSpaceRepository) bind SpaceRepository::class
     singleOf(::FirestoreItemRepository) bind ItemRepository::class
+    singleOf(::FirestoreExpenseRepository) bind ExpenseRepository::class
     singleOf(::FirestoreInvitationRepository) bind InvitationRepository::class
     single { Settings() }
     singleOf(::SettingsLastSpaceRepository) bind LastSpaceRepository::class

@@ -55,6 +55,11 @@ service cloud.firestore {
       return !changedKeys().hasAny(['createdBy', 'createdAt', 'spaceId']);
     }
 
+    // 1 to 120 characters after trimming (ADR 0002).
+    function isTitle(title) {
+      return title is string && title.trim().size() > 0 && title.size() <= 120;
+    }
+
     // The invitation a joining member names: it invites to this space, is not revoked and has not expired.
     function validInvitation(spaceId, code) {
       let invitation = /databases/$(database)/documents/invitations/$(code);
@@ -106,12 +111,16 @@ service cloud.firestore {
       }
 
       // The space half of leaving (#27): it takes the caller, and only the caller, out of memberIds, and the
-      // same batch deletes their member document. The owner cannot (their member document stays).
+      // same batch deletes their member document. The owner cannot (their member document stays). The space
+      // keeps the leaver's name in formerMembers, and nobody else's entry changes.
       function leavesSpace() {
         return isAuthenticated()
           && request.auth.uid in resource.data.memberIds
-          && changedKeys().hasOnly(['memberIds'])
+          && changedKeys().hasOnly(['memberIds', 'formerMembers'])
           && request.resource.data.memberIds == resource.data.memberIds.removeAll([request.auth.uid])
+          && request.resource.data.formerMembers.get(request.auth.uid, null) is string
+          && request.resource.data.formerMembers.diff(resource.data.get('formerMembers', {})).affectedKeys()
+            .hasOnly([request.auth.uid])
           && !existsAfter(memberPath(spaceId, request.auth.uid));
       }
 
@@ -219,11 +228,6 @@ service cloud.firestore {
 
       match /items/{itemId} {
 
-        // 1 to 120 characters after trimming (ADR 0002).
-        function isTitle(title) {
-          return title is string && title.trim().size() > 0 && title.size() <= 120;
-        }
-
         // Completing records the caller as who completed it; reopening removes it.
         function completesAsSelf() {
           return !changedKeys().hasAny(['completedBy'])
@@ -242,6 +246,37 @@ service cloud.firestore {
           && isTitle(request.resource.data.title)
           && request.resource.data.status in ['open', 'done']
           && completesAsSelf();
+        allow delete: if isMember(spaceId)
+          && (resource.data.createdBy == request.auth.uid || isAdminOrOwner(spaceId));
+      }
+
+      // ── spaces/{spaceId}/expenses/{expenseId} ──────────────────────────────────────────────────
+      // The ledger. Editing and deleting follow the item table: every member edits, only the creator, an
+      // admin or the owner deletes. Rules cannot sum a split of any size, so the domain checks that the shares
+      // add up, and balances only trust the shares (ADR 0003).
+
+      match /expenses/{expenseId} {
+
+        function isExpense(data) {
+          return isTitle(data.title)
+            && data.paidBy is string
+            && data.split is map
+            && data.split.size() > 0
+            && data.date is string
+            && data.kind in ['expense', 'settlement']
+            && data.get('itemId', '') is string;
+        }
+
+        allow read: if isMember(spaceId);
+        allow create: if isMember(spaceId)
+          && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.spaceId == spaceId
+          && isExpense(request.resource.data);
+        allow update: if isMember(spaceId)
+          && keepsCreation()
+          && !changedKeys().hasAny(['kind', 'itemId'])
+          && isExpense(request.resource.data);
         allow delete: if isMember(spaceId)
           && (resource.data.createdBy == request.auth.uid || isAdminOrOwner(spaceId));
       }

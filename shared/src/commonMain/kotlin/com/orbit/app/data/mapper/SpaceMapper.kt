@@ -9,8 +9,21 @@ import dev.gitlive.firebase.firestore.Timestamp
  * A space from the fields of its document, or null when it has no name: a malformed document is
  * skipped by the caller instead of crashing the list.
  */
-internal fun mapSpace(id: String, name: String?, accent: Int?, memberIds: List<String>?): Space? =
-    name?.let { Space(id = id, name = it, accent = accent ?: 0, memberIds = memberIds.orEmpty()) }
+internal fun mapSpace(
+    id: String,
+    name: String?,
+    accent: Int?,
+    memberIds: List<String>?,
+    formerMembers: Map<String, String>? = null,
+): Space? = name?.let {
+    Space(
+        id = id,
+        name = it,
+        accent = accent ?: 0,
+        memberIds = memberIds.orEmpty(),
+        formerMembers = formerMembers.orEmpty(),
+    )
+}
 
 /** A member from the fields of its document. The document id is the user's uid. */
 internal fun mapMember(

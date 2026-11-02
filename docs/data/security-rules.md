@@ -11,6 +11,8 @@ A space is shared, so its items are too: every member creates, edits and complet
 | Read the space, its members and items | ✓ | ✓ | ✓ |
 | Create, edit and complete any item | ✓ | ✓ | ✓ |
 | Delete an item | any | any | only their own |
+| Read the ledger, add and edit expenses | ✓ | ✓ | ✓ |
+| Delete an expense | any | any | only their own |
 | Edit the space (name, colour) | ✓ | ✓ | |
 | Create, list and revoke invitations | ✓ | ✓ | |
 | Change a role between member and admin (never the owner's, never to owner) | ✓ | ✓ | |
@@ -49,12 +51,14 @@ Firebase deploys one rules file and the language has no imports, so the file is 
 | `hasRole(spaceId, uid, roles)` | shared | That member's document has one of `roles` |
 | `isOwner`, `isAdminOrOwner` | shared | The caller has that role in the space |
 | `keepsCreation()` | shared | The write leaves `createdBy`, `createdAt` and `spaceId` alone |
+| `isTitle(title)` | shared | A title of 1 to 120 characters after trimming |
 | `validInvitation(spaceId, code)` | shared | The invitation exists, invites to this space, is not revoked and has not expired |
 | `hasValidSpaceFields`, `keepsOwner`, `addsMembers` | spaces | The name and colour are valid; `ownerId` is unchanged; `memberIds` grew |
 | `joinsSpace`, `leavesSpace`, `transfersOwnership` | spaces | The space half of a join, a leave or a transfer |
 | `isSpaceCreator`, `joinsAsMember`, `keepsJoin` | members | The creator's own owner document; the member half of a join; `invitationCode` and `joinedAt` unchanged |
 | `handsOwnership`, `leaves` | members | The member half of a transfer or a leave |
-| `isTitle`, `completesAsSelf` | items | A title of 1 to 120 characters after trimming; `completedBy` set only to the caller |
+| `completesAsSelf` | items | `completedBy` set only to the caller |
+| `isExpense(data)` | expenses | The fields of an expense have the right types |
 
 ## What each collection checks
 
@@ -82,7 +86,7 @@ A join is one batch, and the rules accept it only whole (ADR 0002, decision 6). 
 
 Also one batch, accepted only whole (ADR 0004). The caller takes themselves out of `memberIds` and deletes their member document:
 
-- **The space update** (`leavesSpace`) is by someone in `memberIds`, changes nothing but `memberIds`, makes it exactly the old list without the caller, and the caller's member document is gone after the batch.
+- **The space update** (`leavesSpace`) is by someone in `memberIds`, changes nothing but `memberIds` and `formerMembers`, makes `memberIds` exactly the old list without the caller, records the caller's name in `formerMembers` and no one else's, and the caller's member document is gone after the batch.
 - **The member delete** (`leaves`) is the caller's own document, not the owner's, and the caller is out of `memberIds` after the batch.
 - **The owner never leaves.** Their member document cannot be deleted, so the batch fails: they delete the space, or hand it over first.
 
@@ -107,6 +111,13 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 - **Update:** a member, keeping the creation fields, a valid title and `status` `open` or `done`; `completedBy` can only become the caller.
 - **Delete:** the item's creator, an admin or the owner.
 
+### `spaces/{spaceId}/expenses/{expenseId}`
+
+- **Read:** a member.
+- **Create:** a member, with `createdBy` the caller, `createdAt` the server time, `spaceId` the path's and valid fields (`isExpense`): a valid title, a non-empty `split` map, a string `paidBy` and `date`, `kind` `expense` or `settlement`, and a string `itemId` if there is one.
+- **Update:** a member, keeping the creation fields, `kind` and `itemId`, and valid fields.
+- **Delete:** the expense's creator, an admin or the owner.
+
 ### `invitations/{code}`
 
 - **Get by code:** anyone signed in. The code is the capability.
@@ -117,10 +128,11 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 
 ## What the rules do not check
 
-Rules cannot loop, and some checks cost a document read per write. These are left to the app, where the domain validates before writing (`validateItem`):
+Rules cannot loop, and some checks cost a document read per write. These are left to the app, where the domain validates before writing (`validateItem`, `validateExpense`):
 
 - The shape of each module (dates, modes, entries). An unknown or malformed module is skipped when read, never trusted.
 - That `assignment.assigneeId` is a member.
+- That an expense's payer and shares belong to members, and that each share is above zero. Rules cannot loop over a split, and members who left keep their shares. Balances credit the payer with the sum of the shares, so a bad document cannot create money (ADR 0003).
 - The `users/{uid}` fields.
 - The size of a space: the plan cap of 8 members is not enforced, so a valid invitation fills a space past it.
 

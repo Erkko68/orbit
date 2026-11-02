@@ -10,6 +10,14 @@ import kotlin.test.assertNull
 
 class SpaceMapperTest {
     @Test
+    fun theNamesOfThoseWhoLeftAreKept() {
+        val former = mapOf("eve" to "Eve")
+        val space = mapSpace("space-1", name = "Flat 4B", accent = 1, memberIds = listOf("ana"), formerMembers = former)
+
+        assertEquals(former, space?.formerMembers)
+    }
+
+    @Test
     fun mapsASpaceFromItsFields() {
         val space = mapSpace("space-1", name = "Flat 4B", accent = 2, memberIds = listOf("ana", "ben"))
 
@@ -18,7 +26,7 @@ class SpaceMapperTest {
 
     @Test
     fun fillsInWhatAnOlderOrOfflineSpaceLacks() {
-        val space = mapSpace("space-1", name = "Flat 4B", accent = null, memberIds = null)
+        val space = mapSpace("space-1", name = "Flat 4B", accent = null, memberIds = null, formerMembers = null)
 
         assertEquals(Space("space-1", "Flat 4B", accent = 0, memberIds = emptyList()), space)
     }

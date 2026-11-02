@@ -1,12 +1,12 @@
 # ADR 0003: Balances are derived on the device, in the domain
 
-- Status: Accepted
+- Status: Accepted, amended by #53 (no stored total)
 - Date: 2026-10-19
 - Issues: #53 (expense model and ledger), #56 (balances and debt simplification)
 
 ## Context
 
-A space's members share expenses. Each one has a payer, a total and a split: how much of it each member owes. The balances screen (#57) shows what each member is owed or owes, and the fewest payments that settle it.
+A space's members share expenses. Each one has a payer and a split: how much each member owes. The balances screen (#57) shows what each member is owed or owes, and the fewest payments that settle it.
 
 That computation could run in a Cloud Function, be stored in a document that is kept up to date, or run on each phone. The expense model itself (#53) is not designed yet; this record fixes where balances come from so that #53 and #56 build towards it.
 
@@ -23,7 +23,7 @@ Expenses in, one net amount per member out, with debt simplification on top. The
 ### Two rules every implementation follows
 
 1. **Rounding is deterministic.** Amounts are `Long` cents. When a split leaves cents over, they go to members in a fixed order (sorted by uid). Every device then computes exactly the same result.
-2. **The payer is credited with the sum of the stored shares, not the stated total.** A bad expense document then cannot create or destroy money, and the balances of a space always sum to zero. Firestore rules cannot loop, so they cannot sum a split map of any size: the rules check membership and field types, and the domain checks that the shares add up.
+2. **The shares are the only amount stored.** The payer is credited with their sum, so a bad expense document cannot create or destroy money, and the balances of a space always sum to zero. The total is that sum too. A stored total could only disagree with the shares, because Firestore rules cannot loop and so cannot sum a split map of any size: the rules check membership and field types, and the domain checks that the shares add up to the amount typed.
 
 ## Alternatives considered
 
@@ -35,5 +35,6 @@ Expenses in, one net amount per member out, with debt simplification on top. The
 
 - The balances screen reads the whole ledger of the space. For a household that is small, and the cache holds it.
 - If a space ever has so many expenses that reading the whole ledger hurts, add a periodic checkpoint document (balances up to a date) and sum only what came after it. A shared household will not get there, so nothing is built for it now.
-- The expense schema (#53) needs: the payer, the split as a map of uid to cents, and the stated total for display only. Shares are the source of truth.
+- The expense schema (#53) needs the payer and the split as a map of uid to cents. Nothing else holds an amount.
+- Members who left keep their balance, so the space keeps their names in `formerMembers` (#244). Their member documents are gone.
 - The domain owns the invariant "balances sum to zero", and #56's property tests check it on random ledgers.
