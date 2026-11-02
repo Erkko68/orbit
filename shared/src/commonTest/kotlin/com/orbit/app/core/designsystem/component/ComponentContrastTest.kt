@@ -12,12 +12,12 @@ import kotlin.test.assertTrue
 class ComponentContrastTest {
 
     private fun ColorScheme.textOnFill(): Map<String, Pair<Color, Color>> = mapOf(
-        "button label, the selected segmented tab" to (onPrimary to primary),
+        "button label, the selected segmented tab, the icon of the selected navigation destination" to (onPrimary to primary),
         "outlined button label, text on an elevated card or a dialog" to (onSurface to surfaceBright),
         "secondary text on an elevated card or a dialog" to (onSurfaceVariant to surfaceBright),
         "dialog actions" to (primary to surfaceBright),
-        "text on a card, a field or a member chip on the canvas" to (onSurface to surfaceContainer),
-        "placeholder, icons and supporting text on a card, a field, a member chip or the tabs on the canvas" to
+        "text on a card, a field or a member chip on the canvas, the selected navigation label" to (onSurface to surfaceContainer),
+        "placeholder, icons and supporting text on a card, a field, a member chip, the tabs or the navigation bar" to
             (onSurfaceVariant to surfaceContainer),
         "top bar title, text on the canvas or a field on a card" to (onSurface to surface),
         "top bar subtitle, placeholder, icons and supporting text on the canvas or a field on a card" to
