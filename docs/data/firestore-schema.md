@@ -109,6 +109,7 @@ The signed-in user's private profile. Only its owner reads or writes it.
 | `language` | string | yes | `es`, `ca` or `en`, from the phone. Refreshed on every sign-in. For the server only: the app reads the phone's. |
 | `timeZone` | string | yes | IANA id, from the phone. Same as `language`. |
 | `createdAt` | timestamp | yes | Server time |
+| `aiConsentAt` | timestamp | no | Server time when the user accepted what the assistant sends to the AI provider (#71). Missing until then, so the notice is asked once per account, on any device. Withdrawing it is #112. |
 
 The email is not stored: it comes from the Firebase Auth account.
 
@@ -227,6 +228,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `signInWithGoogle` | `users/{uid}` | `get`, then `set(merge)` of the full profile if it does not exist, or of `language`, `timeZone` if it does. A failed `get` writes nothing. |
 | `updateDisplayName` | `spaces` where `memberIds` array-contains uid | One-off `get` |
 | | `users/{uid}`, `spaces/{id}/members/{uid}` for each | One batch: `set(merge)` of `displayName` |
+| `acceptAiConsent` | `users/{uid}` | `set(merge)`: `aiConsentAt` (server time) |
 
 ### `FirestoreSpaceRepository`
 
