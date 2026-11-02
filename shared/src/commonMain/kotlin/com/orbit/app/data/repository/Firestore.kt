@@ -16,6 +16,7 @@ internal const val USERS = "users"
 internal const val SPACES = "spaces"
 internal const val MEMBERS = "members"
 internal const val ITEMS = "items"
+internal const val EXPENSES = "expenses"
 internal const val INVITATIONS = "invitations"
 
 /**

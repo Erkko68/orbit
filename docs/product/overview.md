@@ -41,5 +41,6 @@ The words below mean the same thing in the code, the issues and these pages.
 | **Item** | Anything the space keeps track of: a title, a status and modules | `Item`, `spaces/{id}/items/{itemId}` |
 | **Module** | One capability of an item. Today: Schedule, Assignment, Checklist, Reminder | `Module`, `ItemModules` |
 | **Preset** | A label and a starting set of modules: task, shopping list, event | `Preset`, `Preset.defaultModules` |
+| **Expense** | An entry of a space's ledger: who paid and what each member owes. A settlement is one too | `Expense`, `spaces/{id}/expenses/{expenseId}` |
 | **Proposal** | What the assistant suggests, shown for review before anything is saved | Sprint 2 |
 | **Profile** | The user's name and photo, private in `users/{uid}` and copied into each membership | `User` |

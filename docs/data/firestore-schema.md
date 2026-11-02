@@ -9,6 +9,7 @@ erDiagram
     USER ||--o{ MEMBER : "is, in each space"
     SPACE ||--|{ MEMBER : "has (memberIds mirrors them)"
     SPACE ||--o{ ITEM : contains
+    SPACE ||--o{ EXPENSE : "keeps its ledger in"
     SPACE ||--o{ INVITATION : "invites through"
     USER ||--o{ INVITATION : creates
     MEMBER ||--o{ ITEM : "creates, completes, is assigned"
@@ -50,6 +51,18 @@ erDiagram
         timestamp completedAt "optional"
         map modules
     }
+    EXPENSE {
+        string expenseId PK "auto id, made on the device"
+        string spaceId FK "copy of the parent"
+        string title
+        string paidBy FK
+        map split "uid to cents"
+        string date "YYYY-MM-DD"
+        string kind "expense or settlement"
+        string itemId FK "optional"
+        string createdBy FK
+        timestamp createdAt
+    }
     INVITATION {
         string code PK "8 characters"
         string spaceId FK
@@ -67,10 +80,11 @@ users/{uid}                          private profile
 spaces/{spaceId}                     the space, with the list of member ids
 spaces/{spaceId}/members/{uid}       one membership: role and public profile copy
 spaces/{spaceId}/items/{itemId}      one item: core fields and its modules
+spaces/{spaceId}/expenses/{expenseId}  one entry of the ledger
 invitations/{code}                   an invitation to one space; the id is the code
 ```
 
-The collection names are constants in `data/repository/Firestore.kt` (`USERS`, `SPACES`, `MEMBERS`, `ITEMS`, `INVITATIONS`).
+The collection names are constants in `data/repository/Firestore.kt` (`USERS`, `SPACES`, `MEMBERS`, `ITEMS`, `EXPENSES`, `INVITATIONS`).
 
 ## Conventions
 
@@ -167,6 +181,24 @@ The *deadline* is `endDate`, or `date` without one: an open item is overdue once
 |---|---|---|---|
 | `offsetsMinutes` | array of integer | yes | Minutes before the due moment, each 0 or more. Needs `modules.schedule`. Each phone schedules its own local notifications from it while the item is open and not assigned to another member. |
 
+### `spaces/{spaceId}/expenses/{expenseId}`
+
+An entry of the ledger. Balances are derived from these on the device and never stored ([ADR 0003](../adr/0003-balances-on-device.md)). Amounts are in euro cents until the space has a currency (#111).
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `spaceId` | string | yes | Copy of the parent id. Never changes. |
+| `title` | string | yes | 1 to 120 characters after trimming |
+| `paidBy` | uid | yes | Who paid. For a settlement, the debtor. |
+| `split` | map of uid to integer | yes | Cents each member owes, each above 0: the only amount stored, and the total is its sum. Replaced whole on an edit. For a settlement, one entry: the creditor. |
+| `date` | string | yes | `YYYY-MM-DD`, chosen by the user |
+| `kind` | string | yes | `expense` or `settlement`. Never changes. Unknown reads as `expense`, because it still moves money. |
+| `itemId` | string | no | The item whose Cost module made it (#58). Never changes. |
+| `createdBy` | uid | yes | Never changes |
+| `createdAt` | timestamp | yes | Server time, never changes |
+
+A document without a required field, with an empty `split` or with a malformed `date` is skipped when read.
+
 ### `invitations/{code}`
 
 | Field | Type | Required | Notes |
@@ -226,6 +258,15 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 
 No method saves a whole existing item: every update writes only its field paths, so concurrent edits merge.
 
+### `FirestoreExpenseRepository`
+
+| Method | Path | Operation |
+|---|---|---|
+| `observeExpenses` | `spaces/{id}/expenses` | Listener on the whole ledger, sorted in the app (latest `date`, then latest `createdAt`), retried for a few seconds while refused |
+| `add` | `spaces/{id}/expenses/{expenseId}` | `set` of the whole new expense |
+| `edit` | same | `update` of `title`, `paidBy`, `split` and `date` |
+| `delete` | same | `delete`. Deleting a settlement undoes it. |
+
 ### `FirestoreInvitationRepository`
 
 | Method | Path | Operation |
@@ -248,9 +289,10 @@ No method saves a whole existing item: every update writes only its field paths,
 | Spaces list | `spaces` where `memberIds` array-contains uid | automatic |
 | Members | `spaces/{id}/members` | automatic |
 | Items | `spaces/{id}/items` ordered by `createdAt` | automatic |
+| Ledger | `spaces/{id}/expenses` | automatic |
 | Invitations (owner, admin) | `invitations` where `spaceId ==` id | automatic |
 | Agenda (#37) | `spaces/{id}/items` where `status == open` and `modules.schedule.date <=` end of week | composite: `status` asc, `modules.schedule.date` asc, in `firebase/firestore.indexes.json` with #37 |
 
 ## Coming next
 
-Each extends this page in the PR that adds it: expenses and the ledger (#53, with balances derived on the device, see [ADR 0003](../adr/0003-balances-on-device.md)), recurrence (#45), and the activity history (#83).
+Each extends this page in the PR that adds it: recurrence (#45) and the activity history (#83).
