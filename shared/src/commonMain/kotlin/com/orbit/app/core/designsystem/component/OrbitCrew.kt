@@ -5,7 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-private val CrewStage = 64.dp
+// Wider than the cluster, so it floats in the free space of the bar rather than against the account avatar.
+private val CrewWidth = 120.dp
+private val CrewHeight = 64.dp
 private val CrewFace = 20.dp
 
 /** More would not fit the top bar and still turn: the rest are in the space's settings, which the faces open. */
@@ -24,7 +26,7 @@ fun OrbitCrew(
 ) {
     OrbitFloatingFaces(
         faces = faces,
-        modifier = modifier.size(CrewStage),
+        modifier = modifier.size(CrewWidth, CrewHeight),
         largest = CrewFace,
         limit = CREW_FACES,
         onFaceClick = { onClick() },
