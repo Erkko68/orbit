@@ -1,6 +1,8 @@
 package com.orbit.app.testing
 
 import com.orbit.app.core.share.TextSharer
+import com.orbit.app.core.speech.Dictation
+import com.orbit.app.domain.repository.AssistantRepository
 import com.orbit.app.testing.InMemoryInvitationRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
@@ -24,6 +26,8 @@ internal fun startTestKoin(
     lastSpace: LastSpaceRepository = InMemoryLastSpaceRepository(),
     invitations: InvitationRepository = InMemoryInvitationRepository(auth),
     sharer: TextSharer = TextSharer {},
+    assistant: AssistantRepository = ScriptedAssistantRepository(emptyList()),
+    dictation: Dictation = FakeDictation(),
 ) = startKoin {
     modules(
         module {
@@ -33,6 +37,8 @@ internal fun startTestKoin(
             single { lastSpace }
             single { invitations }
             single { sharer }
+            single { assistant }
+            single { dictation }
         },
         featureModule,
     )
