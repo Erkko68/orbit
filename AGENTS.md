@@ -60,7 +60,7 @@ This file holds the rules. The background to them (architecture, schema, roles, 
 ## AI
 - The assistant runs in the cloud, behind Cloud Functions in `firebase/functions/`. No on-device LLM.
 - AI output is always a proposal shown for review; only a user confirmation persists it.
-- Provider keys live only in the Cloud Functions secret manager, never in the repo or the app.
+- Provider keys live only in the Cloud Functions secret manager, never in the repo or the app. Gemini runs on Vertex AI as the function's service account, so it needs no key at all.
 - Every assistant flow also has a manual path.
 
 ## UI and theme
@@ -108,6 +108,7 @@ This file holds the rules. The background to them (architecture, schema, roles, 
     - Tests opt in to `ExperimentalTestApi`, because `runComposeUiTest` is the only multiplatform Compose test entry point.
     - M3's `DatePickerDialog`, which is stable on Android and only marked experimental on iOS. `TimePicker` stays out.
 - No hardcoded strings in composables: use `composeResources/values/strings.xml`.
+  - English is the default. Every new or changed string and plural ships in Spanish (`values-es`), Catalan (`values-ca`) and Italian (`values-it`) too, with matching keys and format placeholders. Run `python3 .github/scripts/check_translations.py`; CI enforces it. Android-only user-facing resources follow the same rule.
 - One public composable per file.
 - Immutable UI state (`data class` + `StateFlow`), no mutable collections in state.
 - Kotlin official code style.
@@ -157,7 +158,8 @@ This file holds the rules. The background to them (architecture, schema, roles, 
 - Required checks: `Android build + tests`, `iOS compile + tests` (`ci.yml`), `PR title`, `Branch name`, `Actual hours` (`pr-conventions.yml`), `SonarCloud Code Analysis` (quality gate).
 - `sonarqube.yml` runs SonarQube Cloud on every PR (`sonar-project.properties`). A failed quality gate blocks the merge, so fix what it reports before asking for review.
   - Kotlin coverage comes from Kover: the workflow runs `./gradlew :shared:koverXmlReport` (Android host tests) and Sonar reads `shared/build/reports/kover/report.xml`. The gate needs 80% coverage on new code, so new logic ships with tests.
-  - Temporary: `sonar.coverage.exclusions` skips `.github/scripts/**` and `firebase/**` because the Python code and Firebase have no coverage report yet. Remove the `firebase/functions/**` exclusion once the functions have pytest coverage reported to Sonar.
+  - Python coverage comes from pytest-cov: the workflow runs `pytest --cov` in `firebase/functions/` and Sonar reads its `coverage.xml`. New function code ships with pytest tests too.
+  - Temporary: `sonar.coverage.exclusions` skips `.github/scripts/**` because the scripts have no coverage report yet.
   - The Firebase repositories call the live SDK and cannot run in host tests (repositories are faked).
 - Squash merge only: the squash commit is the PR title + description. The branch is deleted after merge.
 - The repo owner (admin) can bypass these rules. Team members and agents cannot.

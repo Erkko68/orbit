@@ -121,19 +121,6 @@
     <string name="item_back">Back to space</string>
     <string name="item_add_detail">Add detail</string>
     <string name="item_unknown_member">Unknown member</string>
-    <string name="item_date_format">%1$s %2$d, %3$d</string>
-    <string name="item_month_1">Jan</string>
-    <string name="item_month_2">Feb</string>
-    <string name="item_month_3">Mar</string>
-    <string name="item_month_4">Apr</string>
-    <string name="item_month_5">May</string>
-    <string name="item_month_6">Jun</string>
-    <string name="item_month_7">Jul</string>
-    <string name="item_month_8">Aug</string>
-    <string name="item_month_9">Sep</string>
-    <string name="item_month_10">Oct</string>
-    <string name="item_month_11">Nov</string>
-    <string name="item_month_12">Dec</string>
     <string name="item_load_failed">Could not load item</string>
     <string name="item_loading">Loading item…</string>
     <string name="item_load_failed_body">Try loading the item again.</string>
@@ -222,6 +209,13 @@
     <string name="dictation_unavailable">This phone cannot dictate in its language. You can type your answer.</string>
     <string name="dictation_no_speech">Orbit did not catch anything. Try again, or type your answer.</string>
     <string name="dictation_error">Dictation stopped. Try again, or type your answer.</string>
+    <!-- AI consent -->
+    <string name="ai_consent_title">Before the assistant starts</string>
+    <string name="ai_consent_body">To suggest a plan, Orbit sends your answers, and the titles of the space's items and the names of its members, to an AI provider (Google Gemini).</string>
+    <string name="ai_consent_nothing_saved">Nothing is saved until you review the plan and confirm it.</string>
+    <string name="ai_consent_accept">Accept</string>
+    <string name="ai_consent_manual">Set up by hand</string>
+    <string name="ai_consent_failed">Could not save your answer. Try again.</string>
     <string name="member_you">You</string>
     <string name="member_invite">Invite</string>
     <string name="member_role_title">Role of %1$s</string>

@@ -18,6 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Complete translations in every supported language
+        run: |
+          python3 -m unittest discover -s .github/scripts -p test_check_translations.py
+          python3 .github/scripts/check_translations.py
       - name: No hardcoded styles outside the design system
         run: |
           if grep -rnE '[0-9]\.(dp|sp)\b|Color\(0x' --include='*.kt' shared/src androidApp/src | grep -v '/core/designsystem/'; then
@@ -62,6 +66,20 @@ jobs:
             -clonedSourcePackagesDirPath build/swiftpm \
             -skipPackagePluginValidation \
             CODE_SIGNING_ALLOWED=NO
+
+  functions:
+    name: Cloud Functions tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase/functions
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: pytest
 
   firestore-rules:
     name: Firestore rules

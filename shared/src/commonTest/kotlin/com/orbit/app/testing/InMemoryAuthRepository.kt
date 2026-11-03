@@ -46,6 +46,10 @@ class InMemoryAuthRepository : AuthRepository {
         password = newPassword
     }
 
+    override suspend fun acceptAiConsent() {
+        user.value = requireUser().copy(aiConsent = true)
+    }
+
     override suspend fun deleteAccount() {
         requireUser()
         user.value = null

@@ -9,4 +9,6 @@ data class User(
     val displayName: String,
     val photoUrl: String?,
     val email: String? = null,
+    /** They accepted what the assistant sends to the AI provider, once for the account. */
+    val aiConsent: Boolean = false,
 )

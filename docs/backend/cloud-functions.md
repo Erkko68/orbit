@@ -9,8 +9,15 @@ firebase/
 ├── firebase.json        rules, functions (Python 3.13) and emulator config
 ├── firestore.rules      see ../data/security-rules.md
 ├── functions/
-│   ├── main.py          the functions; today only initialize_app()
-│   └── requirements.txt firebase-functions, firebase-admin
+│   ├── main.py          the callables and their Firebase wiring (params, the Vertex client)
+│   ├── assistant/       the assistant, testable without Firebase
+│   │   ├── interview.py   the interview callable's logic
+│   │   ├── question.py    the question the app gets, and its check
+│   │   └── provider.py    the AI provider interface and Gemini on Vertex AI
+│   ├── prompts/         the prompts, versioned as files
+│   ├── tests/           pytest, with a fake provider
+│   ├── requirements.txt firebase-functions, firebase-admin, google-genai
+│   └── requirements-dev.txt pytest, pytest-cov
 ├── tests/rules.test.js  rules tests (emulator)
 └── package.json         Node tooling for the rules tests and the Firebase CLI
 ```
@@ -37,7 +44,21 @@ A function is worth it only for what the phone cannot or must not do. Everything
 ## Rules for functions
 
 - Callable functions check `request.auth` and reject unauthenticated calls.
-- Provider keys live in the Cloud Functions secret manager, never in the repo or the app.
+- Provider keys live in the Cloud Functions secret manager, never in the repo or the app. Gemini needs none: it runs on Vertex AI as the function's service account.
+- The provider sits behind `assistant.provider.Provider`, and the model is configuration (`ASSISTANT_MODEL`, `ASSISTANT_LOCATION`), so #70 can change it without touching the callers.
+- What the provider answers is checked before it reaches the app. An answer that is not valid is an `unavailable` error, never passed on.
+
+## The assistant
+
+`interview` is a callable. For now it returns the first question of the interview (#43); #66 turns it into the whole interview.
+
+| Call | Result |
+|---|---|
+| Signed in | `{id, text, options, multiSelect, freeText, position, budget}` |
+| Signed out | `unauthenticated` error |
+| The provider failed or answered something invalid | `unavailable` error, details `{"reason": "unavailable"}` |
+
+The project needs the Blaze plan and the Vertex AI API enabled (`gcloud services enable aiplatform.googleapis.com`). The function's service account calls Vertex AI with its default role.
 - What the assistant returns is a proposal. The function never writes it to Firestore; the app saves it only after the user confirms.
 - Every assistant flow has a manual path in the app.
 
@@ -49,6 +70,13 @@ npx firebase deploy --only firestore:rules   # rules
 npx firebase deploy --only functions         # functions (needs the Blaze plan)
 ```
 
-## Coverage
+## Tests and coverage
 
-The Python code has no coverage report yet, so `sonar.coverage.exclusions` skips `firebase/**`. Add pytest with coverage when the first real function lands (#43), and remove the exclusion for `firebase/functions/**` then.
+pytest covers the functions with a fake provider, so the tests never call an AI. CI runs them in the `Cloud Functions tests` job, and `sonarqube.yml` sends their coverage to SonarCloud, which needs 80% on new code like the Kotlin side.
+
+```sh
+cd firebase/functions
+python -m venv venv && source venv/bin/activate   # venv\Scripts\activate on Windows
+pip install -r requirements.txt -r requirements-dev.txt
+pytest --cov
+```

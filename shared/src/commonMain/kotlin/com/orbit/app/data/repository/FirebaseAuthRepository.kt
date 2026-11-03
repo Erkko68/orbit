@@ -173,6 +173,14 @@ class FirebaseAuthRepository(
         auth.signOut()
     }
 
+    override suspend fun acceptAiConsent() {
+        val user = checkNotNull(auth.currentUser) { "Not signed in" }
+        writeLocally("Record the AI consent of ${user.uid}") {
+            firestore.collection(USERS).document(user.uid)
+                .set(mapOf("aiConsentAt" to FieldValue.serverTimestamp), merge = true)
+        }
+    }
+
     /** The user from their profile document, or from the Firebase account alone when [profile] is null. */
     private fun FirebaseUser.toUser(profile: DocumentSnapshot?) = mapUser(
         id = uid,
@@ -181,5 +189,6 @@ class FirebaseAuthRepository(
         fallbackDisplayName = displayName ?: email?.substringBefore('@'),
         fallbackPhotoUrl = photoURL,
         email = email,
+        aiConsent = profile?.instant("aiConsentAt") != null,
     )
 }

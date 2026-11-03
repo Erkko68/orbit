@@ -28,6 +28,12 @@ interface AuthRepository {
     /** Deletes the signed-in user's account, which signs them out. */
     suspend fun deleteAccount()
 
+    /**
+     * Records that the signed-in user accepted what the assistant sends to the AI provider, so it is asked
+     * once per account. Throws when signed out or when the write fails.
+     */
+    suspend fun acceptAiConsent()
+
     /** Shows the platform's Google account picker. Does nothing when the user closes it. */
     suspend fun signInWithGoogle()
 
