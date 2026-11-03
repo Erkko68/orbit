@@ -12,8 +12,7 @@ import com.orbit.app.core.designsystem.theme.OrbitSpacing
 /**
  * A question and its answers as chips, such as one the assistant asks. It holds no state: the chips of
  * [selected] show as selected and a tap calls [onSelect] with the option. Whether that picks one answer
- * (replace the set) or several (toggle in it) is up to the caller. Full width, and the main content of
- * its screen, so it is elevated.
+ * (replace the set) or several (toggle in it) is up to the caller. Full width.
  */
 @Composable
 fun OrbitQuestionCard(
@@ -23,7 +22,7 @@ fun OrbitQuestionCard(
     onSelect: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    OrbitCard(modifier.fillMaxWidth(), elevated = true) {
+    OrbitCard(modifier.fillMaxWidth()) {
         Text(prompt, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),

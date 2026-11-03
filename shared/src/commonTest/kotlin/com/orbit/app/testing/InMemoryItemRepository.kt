@@ -30,8 +30,8 @@ class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository 
             id = id,
             title = item.title,
             description = item.description,
+            details = item.details,
             status = ItemStatus.Open,
-            preset = item.preset,
             createdBy = auth.requireUser().id,
             createdAt = Clock.System.now(),
             modules = item.modules,
@@ -40,8 +40,18 @@ class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository 
         return id
     }
 
+    override suspend fun delete(spaceId: String, itemId: String) {
+        items.update { all -> all + (spaceId to all[spaceId].orEmpty().filterNot { it.id == itemId }) }
+    }
+
     override suspend fun rename(spaceId: String, itemId: String, title: String) =
         edit(spaceId, itemId) { it.copy(title = title) }
+
+    override suspend fun setDescription(spaceId: String, itemId: String, description: String?) =
+        edit(spaceId, itemId) { it.copy(description = description) }
+
+    override suspend fun setDetails(spaceId: String, itemId: String, details: String?) =
+        edit(spaceId, itemId) { it.copy(details = details) }
 
     override suspend fun setModule(spaceId: String, itemId: String, module: Module) =
         edit(spaceId, itemId) { it.copy(modules = it.modules.with(module)) }

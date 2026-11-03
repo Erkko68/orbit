@@ -62,9 +62,9 @@ class ReminderSync(
     private fun Item.reminders(spaceName: String, userId: String): List<Pair<String, Scheduled>> {
         val schedule = modules.schedule
         val offsets = modules.reminder?.offsets
-        val assignee = modules.assignment?.assigneeId
+        val assignees = modules.assignment?.assigneeIds.orEmpty()
         if (status != ItemStatus.Open || schedule == null || offsets == null) return emptyList()
-        if (assignee != null && assignee != userId) return emptyList()
+        if (assignees.isNotEmpty() && userId !in assignees) return emptyList()
         val due = schedule.dueMoment(TimeZone.currentSystemDefault())
         return offsets.map { offset ->
             "reminder-$id-${offset.inWholeMinutes}" to Scheduled((due - offset).toEpochMilliseconds(), title, spaceName)

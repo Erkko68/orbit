@@ -9,7 +9,6 @@ import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
-import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import dev.gitlive.firebase.firestore.Timestamp
@@ -36,8 +35,8 @@ internal fun itemDocument(spaceId: String, item: NewItem, creatorId: String) = I
     spaceId = spaceId,
     title = item.title,
     description = item.description,
+    details = item.details,
     status = STATUS_OPEN,
-    preset = item.preset?.name?.lowercase(),
     createdBy = creatorId,
     createdAt = Timestamp.ServerTimestamp,
     modules = ModulesDocument(
@@ -56,9 +55,8 @@ internal fun scheduleDocument(schedule: Schedule) = ScheduleDocument(
 )
 
 internal fun assignmentDocument(assignment: Assignment) = when (assignment) {
-    is Assignment.ToMember -> AssignmentDocument("member", assignment.assigneeId)
+    is Assignment.ToMembers -> AssignmentDocument("member", assignment.assigneeIds.toList())
     Assignment.Anyone -> AssignmentDocument("anyone")
-    is Assignment.Claim -> AssignmentDocument("claim", assignment.assigneeId)
 }
 
 /** Entries keyed by id, their list position kept in `order`. */
@@ -73,8 +71,8 @@ internal fun reminderDocument(reminder: Reminder) =
 
 /**
  * An item from its stored fields, or null when it has no title, creator or creation time: a malformed
- * document is skipped by the caller. What a newer build may have written (an unknown preset, module or
- * assignment mode) is skipped and logged, so the rest of the item still shows.
+ * document is skipped by the caller. What a newer build may have written (an unknown module or assignment
+ * mode) is skipped and logged, so the rest of the item still shows.
  */
 internal fun mapItem(id: String, stored: StoredItem): Item? {
     val title = stored.title ?: return null
@@ -85,10 +83,10 @@ internal fun mapItem(id: String, stored: StoredItem): Item? {
         title = title,
         description = stored.description,
         status = statusOf(stored),
-        preset = stored.preset?.let { presetOf(id, it) },
         createdBy = createdBy,
         createdAt = createdAt,
         modules = modulesOf(id, stored),
+        details = stored.details,
     )
 }
 
@@ -97,12 +95,6 @@ private fun statusOf(stored: StoredItem): ItemStatus {
     val by = stored.completedBy
     val at = stored.completedAt
     return if (stored.status == STATUS_DONE && by != null && at != null) ItemStatus.Done(by, at) else ItemStatus.Open
-}
-
-private fun presetOf(id: String, preset: String): Preset? {
-    val known = Preset.entries.firstOrNull { it.name.lowercase() == preset }
-    if (known == null) Logger.w { "Item $id has the unknown preset $preset, read as none" }
-    return known
 }
 
 private fun modulesOf(id: String, stored: StoredItem): ItemModules {
@@ -132,11 +124,15 @@ private fun scheduleOf(document: ScheduleDocument): Schedule? = try {
     null
 }
 
-private fun assignmentOf(document: AssignmentDocument): Assignment? = when (document.mode) {
-    "member" -> document.assigneeId?.let(Assignment::ToMember)
-    "anyone" -> Assignment.Anyone
-    "claim" -> Assignment.Claim(document.assigneeId)
-    else -> null
+/** Older items have one `assigneeId`, and first to claim is gone: a claimed item is that member's, the rest anyone's. */
+private fun assignmentOf(document: AssignmentDocument): Assignment? {
+    val members = (document.assigneeIds ?: listOfNotNull(document.assigneeId)).toSet()
+    return when (document.mode) {
+        "member" -> Assignment.ToMembers(members).takeIf { members.isNotEmpty() }
+        "anyone" -> Assignment.Anyone
+        "claim" -> if (members.isEmpty()) Assignment.Anyone else Assignment.ToMembers(members)
+        else -> null
+    }
 }
 
 /** Entries without text are left by a tick on a removed entry, and skipped. */

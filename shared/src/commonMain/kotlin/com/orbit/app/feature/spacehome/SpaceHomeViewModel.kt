@@ -2,23 +2,24 @@ package com.orbit.app.feature.spacehome
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orbit.app.core.attempt
 import com.orbit.app.core.initialsOf
 import com.orbit.app.core.orOnFailure
-import com.orbit.app.domain.model.NewItem
-import com.orbit.app.domain.model.Preset
-import com.orbit.app.domain.model.defaultModules
+import com.orbit.app.domain.model.Item
+import com.orbit.app.domain.model.isDueFor
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import kotlin.time.Clock
@@ -26,11 +27,11 @@ import kotlin.time.Clock
 class SpaceHomeViewModel(
     private val spaceId: String,
     spaces: SpaceRepository,
-    private val items: ItemRepository,
+    items: ItemRepository,
     lastSpace: LastSpaceRepository,
     auth: AuthRepository,
 ) : ViewModel() {
-    /** The destination and the "New item" dialog. The rest stays empty: [uiState] fills it from the repositories. */
+    /** The destination. The rest stays empty: [uiState] fills it from the repositories. */
     private val form = MutableStateFlow(SpaceHomeUiState())
 
     init {
@@ -38,65 +39,38 @@ class SpaceHomeViewModel(
         lastSpace.remember(spaceId)
     }
 
-    /** The header only decorates: the member row and items show their own failures, so here a failure reads as empty. */
+    /** The header only decorates: the items show their own failures, so here a failure says nothing rather than "all clear". */
+    private val loadedItems: Flow<List<Item>?> = items.observeItems(spaceId)
+        .map<List<Item>, List<Item>?> { it }
+        .onStart { emit(null) }
+        .orOnFailure("Loading the items of $spaceId", null)
+
     val uiState: StateFlow<SpaceHomeUiState> = combine(
         spaces.observeSpaces().orOnFailure("Loading the spaces", emptyList()),
-        spaces.observeMembers(spaceId).orOnFailure("Loading the members of $spaceId", emptyList()),
+        loadedItems,
         auth.session,
         form,
-    ) { allSpaces, members, user, form ->
+    ) { allSpaces, loaded, user, form ->
+        val space = allSpaces.firstOrNull { it.id == spaceId }
+        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
         form.copy(
-            name = allSpaces.firstOrNull { it.id == spaceId }?.name.orEmpty(),
-            memberCount = members.size,
+            name = space?.name.orEmpty(),
+            accent = space?.accent,
             userInitials = initialsOf(user?.displayName.orEmpty()),
             userPhotoUrl = user?.photoUrl,
+            today = today,
+            headline = loaded?.let { headlineOf(it, user?.id, today) },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceHomeUiState())
 
     fun selectTab(tab: SpaceHomeTab) = form.update { it.copy(tab = tab) }
-
-    fun selectTasksView(view: SpaceTasksView) = form.update { it.copy(tasksView = view) }
-
-    fun openNewItem() = form.update { it.copy(newItemOpen = true) }
-
-    /** Closes the "New item" dialog and forgets what was picked and typed in it. */
-    fun dismissNewItem() = form.update { it.closedNewItem() }
-
-    fun selectNewItemPreset(preset: Preset) = form.update { it.copy(newItemPreset = preset, createFailed = false) }
-
-    fun onNewItemTitleChange(title: String) = form.update { it.copy(newItemTitle = title, createFailed = false) }
-
-    /** Creates the item with its preset's default modules, closes the dialog and asks the screen to open it. */
-    fun createItem() {
-        val current = form.value
-        if (!current.canCreate) return
-        form.update { it.copy(creating = true, createFailed = false) }
-        val item = NewItem(
-            title = current.newItemTitle.trim(),
-            preset = current.newItemPreset,
-            modules = current.newItemPreset.defaultModules(Clock.System.todayIn(TimeZone.currentSystemDefault())),
-        )
-        viewModelScope.launch {
-            attempt("Creating an item in space $spaceId") { items.create(spaceId, item) }
-                .onSuccess { id ->
-                    val reminds = item.modules.reminder != null
-                    form.update { it.closedNewItem().copy(createdItemId = id, askNotifications = reminds) }
-                }
-                .onFailure { form.update { it.copy(creating = false, createFailed = true) } }
-        }
-    }
-
-    /** The user allowed notifications, or not: the new item opens either way. */
-    fun onNotificationsAnswered() = form.update { it.copy(askNotifications = false) }
-
-    /** The screen opened [SpaceHomeUiState.createdItemId]. */
-    fun onCreatedItemOpened() = form.update { it.copy(createdItemId = null) }
 }
 
-private fun SpaceHomeUiState.closedNewItem() = copy(
-    newItemOpen = false,
-    newItemPreset = Preset.TASK,
-    newItemTitle = "",
-    creating = false,
-    createFailed = false,
-)
+private fun headlineOf(items: List<Item>, userId: String?, today: LocalDate): SpaceHeadline {
+    val due = items.count { userId != null && it.isDueFor(userId, today) }
+    return when {
+        items.isEmpty() -> SpaceHeadline.Empty
+        due == 0 -> SpaceHeadline.AllClear
+        else -> SpaceHeadline.Due(due)
+    }
+}

@@ -30,7 +30,7 @@ class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountUiState())
 
     fun openEditName() = form.update {
-        AccountUiState(dialog = AccountDialog.EDIT_NAME, nameDraft = uiState.value.name)
+        AccountUiState(dialog = AccountSheetKind.EDIT_NAME, nameDraft = uiState.value.name)
     }
 
     fun onNameChange(name: String) = form.update { it.copy(nameDraft = name, authError = null) }
@@ -40,7 +40,7 @@ class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
         if (state.canSaveName) submit("Renaming the user") { auth.updateDisplayName(state.nameDraft.trim()) }
     }
 
-    fun openChangePassword() = form.update { AccountUiState(dialog = AccountDialog.CHANGE_PASSWORD) }
+    fun openChangePassword() = form.update { AccountUiState(dialog = AccountSheetKind.CHANGE_PASSWORD) }
 
     fun onCurrentPasswordChange(password: String) =
         form.update { it.copy(currentPassword = password, passwordErrors = emptyList(), authError = null) }
@@ -64,14 +64,14 @@ class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
         submit("Changing the password") { auth.changePassword(state.currentPassword, state.newPassword) }
     }
 
-    fun openDeleteAccount() = form.update { AccountUiState(dialog = AccountDialog.DELETE_ACCOUNT) }
+    fun openDeleteAccount() = form.update { AccountUiState(dialog = AccountSheetKind.DELETE_ACCOUNT) }
 
     fun deleteAccount() = submit("Deleting the account") { auth.deleteAccount() }
 
     /** Closes the open dialog and forgets what was typed in it, unless its write is still running. */
     fun dismissDialog() = form.update { if (it.submitting) it else AccountUiState() }
 
-    fun openSignOut() = form.update { AccountUiState(dialog = AccountDialog.SIGN_OUT) }
+    fun openSignOut() = form.update { AccountUiState(dialog = AccountSheetKind.SIGN_OUT) }
 
     fun signOut() = submit("Signing out") { auth.signOut() }
 

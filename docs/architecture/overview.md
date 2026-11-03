@@ -27,7 +27,7 @@ flowchart TB
         vm["ViewModel → UiState"]
     end
     subgraph domain["domain (pure Kotlin)"]
-        model["Models, validation, presets"]
+        model["Models, validation"]
         repo["Repository interfaces"]
     end
     subgraph data["data"]
@@ -45,7 +45,7 @@ flowchart TB
 
 - **UI** only draws a `UiState` and forwards user actions to its ViewModel. It holds no state of its own ([State and ViewModels](state-and-viewmodels.md)).
 - **ViewModels** combine repository flows with what the user typed into one `uiState`, and turn every failure into state.
-- **Domain** is plain Kotlin: models, validation (`validateItem`, `validateSignIn`), preset defaults, and the repository interfaces. It knows nothing of Compose, Firebase or Koin.
+- **Domain** is plain Kotlin: models, validation (`validateItem`, `validateSignIn`) and the repository interfaces. It knows nothing of Compose, Firebase or Koin.
 - **Data** implements the interfaces against Firestore and maps documents to models. The in-memory fakes that tests use live in `commonTest/…/testing/`, not here.
 
 A dependency only points down: a ViewModel never sees a Firestore class, and the domain never sees a ViewModel.
@@ -61,7 +61,7 @@ Everything is under `shared/src/commonMain/kotlin/com/orbit/app/`.
 | `core/navigation/` | `Routes.kt` (type-safe routes) and `OrbitNavHost` (the auth gate and the graph) |
 | `core/notification/` | Local notifications: the scheduler interface, permission access and the permission flow |
 | `core/share/` | `TextSharer`, the system share sheet |
-| `domain/model/` | `Space`, `Member`, `Role`, `Item`, `ItemModules` and the modules, `Invitation`, `User`, validation, preset defaults |
+| `domain/model/` | `Space`, `Member`, `Role`, `Item`, `ItemModules` and the modules, `Invitation`, `User`, validation |
 | `domain/repository/` | `AuthRepository`, `SpaceRepository`, `ItemRepository`, `InvitationRepository`, `LastSpaceRepository` |
 | `data/repository/` | `Firebase…`/`Firestore…` implementations, `Firestore.kt` (collection names, field readers, `requireUser`), `WriteLocally.kt`, `RetryWhileRefused.kt` |
 | `data/mapper/` | Document classes (`…Documents.kt`) and the functions that map them to and from models |

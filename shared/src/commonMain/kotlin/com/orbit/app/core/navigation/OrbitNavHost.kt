@@ -11,12 +11,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.orbit.app.core.PendingInvitation
+import com.orbit.app.core.designsystem.component.OrbitStartup
 import com.orbit.app.feature.account.ui.AccountScreen
 import com.orbit.app.feature.auth.SessionStart
 import com.orbit.app.feature.auth.SessionViewModel
 import com.orbit.app.feature.auth.ui.CreateAccountScreen
 import com.orbit.app.feature.auth.ui.SignInScreen
 import com.orbit.app.feature.item.ui.ItemScreen
+import com.orbit.app.feature.newspace.ui.NewSpaceScreen
 import com.orbit.app.feature.space.ui.SpaceScreen
 import com.orbit.app.feature.spacehome.ui.SpaceHomeScreen
 import org.koin.compose.koinInject
@@ -26,14 +28,18 @@ import org.koin.compose.viewmodel.koinViewModel
  * The auth gate and the app's routes: signed out, only sign-in; signed in, the spaces and their
  * homes. Each side gets its own back stack, so signing in or out never leaves a way back across.
  * A signed-in user starts in the space they opened last, or in the list if there is none. An invitation
- * link brings them to the list, where the dialog offers to join.
+ * link brings them to the list, which opens the new space screen, ready to join.
  */
 @Composable
 fun OrbitNavHost(
     sessionViewModel: SessionViewModel = koinViewModel(),
     pendingInvitation: PendingInvitation = koinInject(),
 ) {
-    val start = sessionViewModel.start.collectAsStateWithLifecycle().value ?: return
+    val start = sessionViewModel.start.collectAsStateWithLifecycle().value
+    if (start == null) {
+        OrbitStartup()
+        return
+    }
     key(start) {
         val navController = rememberNavController()
         val invitation by pendingInvitation.code.collectAsStateWithLifecycle()
@@ -52,6 +58,17 @@ fun OrbitNavHost(
                 SpaceScreen(
                     onOpenSpace = { spaceId -> navController.navigate(SpaceHomeRoute(spaceId)) },
                     onOpenAccount = { navController.navigate(AccountRoute) },
+                    onNewSpace = { navController.navigate(NewSpaceRoute) { launchSingleTop = true } },
+                )
+            }
+            composable<NewSpaceRoute> {
+                NewSpaceScreen(
+                    onClose = { navController.popBackStack() },
+                    onOpenSpace = { spaceId ->
+                        navController.navigate(SpaceHomeRoute(spaceId)) {
+                            popUpTo<NewSpaceRoute> { inclusive = true }
+                        }
+                    },
                 )
             }
             composable<AccountRoute> {
@@ -64,6 +81,7 @@ fun OrbitNavHost(
                     onBack = { navController.showSpaces() },
                     onOpenAccount = { navController.navigate(AccountRoute) },
                     onOpenItem = { itemId -> navController.navigate(ItemRoute(spaceId = spaceId, itemId = itemId)) },
+                    onNewItem = { navController.navigate(ItemRoute(spaceId = spaceId)) },
                 )
             }
             composable<ItemRoute> { entry ->

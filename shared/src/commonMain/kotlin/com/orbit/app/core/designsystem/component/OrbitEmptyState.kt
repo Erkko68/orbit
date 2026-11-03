@@ -1,5 +1,6 @@
 package com.orbit.app.core.designsystem.component
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
@@ -7,6 +8,6 @@ import androidx.compose.ui.Modifier
 @Composable
 fun OrbitEmptyState(title: String, body: String, modifier: Modifier = Modifier) {
     OrbitCard(modifier) {
-        OrbitHeading(title, body)
+        OrbitHeading(title, body, titleStyle = MaterialTheme.typography.titleLarge)
     }
 }

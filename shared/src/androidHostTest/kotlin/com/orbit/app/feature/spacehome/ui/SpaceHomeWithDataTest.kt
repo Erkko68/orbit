@@ -2,6 +2,9 @@ package com.orbit.app.feature.spacehome.ui
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -16,8 +19,9 @@ import com.orbit.app.testing.InMemoryLastSpaceRepository
 import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Member
+import com.orbit.app.domain.model.Checklist
+import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.NewItem
-import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
@@ -45,7 +49,8 @@ class SpaceHomeWithDataTest : ComposeTest() {
     }
 
     @Test
-    fun countsEveryMemberAndShowsThemAsChips() = runComposeUiTest {
+    fun showsTheFacesOfTheMembersAndTheRestInTheSettings() = runComposeUiTest {
+        auth.signIn("Ana", "secret")
         val spaces = FakeSpaceRepository.withMembers(
             "Ana" to Role.OWNER,
             "Ben" to Role.ADMIN,
@@ -59,16 +64,25 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository(), auth)
         setContent {
             OrbitTheme {
-                SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, viewModel = viewModel)
+                SpaceHomeScreen(
+                    "space-1",
+                    onBack = {},
+                    onOpenAccount = {},
+                    onOpenItem = {},
+                    onNewItem = {},
+                    viewModel = viewModel,
+                )
             }
         }
         onNodeWithText("Flat 4B").assertIsDisplayed()
-        onNodeWithText("6 members").assertIsDisplayed()
+        onAllNodesWithText("A")[0].assertIsDisplayed()
 
-        onNodeWithText("Home").performClick()
-        onNodeWithText("Ana").assertIsDisplayed()
-        onNodeWithText("Owner").assertIsDisplayed()
-        onNodeWithText("Admin").assertIsDisplayed()
+        onNodeWithContentDescription("Space settings").performClick()
+        onNodeWithText("6 members").assertIsDisplayed()
+        onNodeWithText("Members and roles").performClick()
+        onNodeWithText("You").assertExists()
+        onNodeWithText("Owner").assertExists()
+        onNodeWithText("Admin").assertExists()
     }
 
     @Test
@@ -77,8 +91,8 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val spaces = InMemorySpaceRepository(auth)
         val items = InMemoryItemRepository(auth)
         val id = spaces.createSpace("Flat 4B", accent = 0)
-        items.create(id, NewItem("Book plumber", preset = Preset.TASK))
-        val groceriesId = items.create(id, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
+        items.create(id, NewItem("Book plumber"))
+        val groceriesId = items.create(id, NewItem("Groceries", modules = ItemModules(checklist = Checklist(emptyList()))))
         val opened = mutableListOf<String>()
         startTestKoin(auth, spaces, items)
         val viewModel = SpaceHomeViewModel(id, spaces, items, InMemoryLastSpaceRepository(), auth)
@@ -89,14 +103,16 @@ class SpaceHomeWithDataTest : ComposeTest() {
                     onBack = {},
                     onOpenAccount = {},
                     onOpenItem = { opened += it },
+                    onNewItem = {},
                     viewModel = viewModel,
                 )
             }
         }
-        onNodeWithText("Book plumber").performScrollTo().assertIsDisplayed()
+        onAllNodesWithText("Tasks")[0].performClick()
+        onNodeWithText("Book plumber").assertExists()
         onNodeWithText("Groceries").assertExists()
 
-        onNodeWithText("Lists").performScrollTo().performClick()
+        onNode(hasText("Lists") and hasClickAction()).performClick()
         onNodeWithText("Groceries").performScrollTo().assertIsDisplayed()
         onNodeWithText("Book plumber").assertDoesNotExist()
         onNodeWithText("Groceries").performScrollTo().performClick()
@@ -110,7 +126,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val spaces = FakeSpaceRepository(space, listOf(Member("ana@orbit.app", "Ana", null, Role.OWNER)))
         val items = InMemoryItemRepository(auth)
         val id = "space-2"
-        val itemId = items.create(id, NewItem("Buy bread", preset = Preset.TASK))
+        val itemId = items.create(id, NewItem("Buy bread"))
         startTestKoin(auth, spaces, items)
         val opened = mutableListOf<String>()
         setContent {
@@ -122,19 +138,19 @@ class SpaceHomeWithDataTest : ComposeTest() {
         }
 
         onNodeWithText("Buy bread").assertIsDisplayed()
-        onNodeWithContentDescription("Complete item").performScrollTo().performClick()
+        onNodeWithContentDescription("Complete Buy bread").performScrollTo().performClick()
         ShadowLooper.idleMainLooper()
         waitForIdle()
 
-        onNodeWithContentDescription("Reopen item").assertIsDisplayed()
+        onNodeWithContentDescription("Reopen Buy bread").assertIsDisplayed()
         val completed = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
         assertTrue(completed.status is ItemStatus.Done, "Expected item to be Done but was: ${completed.status}")
 
-        onNodeWithContentDescription("Reopen item").performScrollTo().performClick()
+        onNodeWithContentDescription("Reopen Buy bread").performScrollTo().performClick()
         ShadowLooper.idleMainLooper()
         waitForIdle()
 
-        onNodeWithContentDescription("Complete item").assertIsDisplayed()
+        onNodeWithContentDescription("Complete Buy bread").assertIsDisplayed()
         assertTrue(opened.isEmpty(), "Toggling completion must not open the detail")
         val reopened = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
         assertTrue(reopened.status is ItemStatus.Open, "Expected item to be Open but was: ${reopened.status}")

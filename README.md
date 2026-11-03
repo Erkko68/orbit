@@ -14,7 +14,7 @@
 ## Features
 
 - **Spaces and members**: email or Google sign-in, invitations by link or code, and roles (owner, admin, member).
-- **One flexible item**: a title plus the modules it needs (a schedule, an assignee, a checklist, a reminder). Task, shopping list and event are presets.
+- **One flexible item**: a title plus the modules it needs (a schedule, who has it, a checklist, a reminder).
 - **Offline first**: everything reads from and writes to the local cache, and syncs when the connection is back.
 - **Coming next**: the planning assistant, agenda and calendar, rotating chores, expenses and balances, a receipt scanner. See the [scope by sprint](docs/product/overview.md#scope-by-sprint).
 

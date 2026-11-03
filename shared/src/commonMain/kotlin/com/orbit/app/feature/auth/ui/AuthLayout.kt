@@ -10,11 +10,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.orbit.app.core.designsystem.component.OrbitCard
 import com.orbit.app.core.designsystem.component.OrbitLabeledDivider
-import com.orbit.app.core.designsystem.component.OrbitOutlinedButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitScreenHeader
 import com.orbit.app.core.designsystem.component.OrbitTextButton
+import com.orbit.app.core.designsystem.component.OrbitTonalButton
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.or
@@ -23,9 +24,8 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * What sign-in and create account share, as one centered column: the Orbit header, the [form], the other
- * ways in, then a line that leads to the other screen: [switchPrompt] and a [switchAction] button that
- * calls [onSwitch].
+ * What sign-in and create account share: the Orbit header on the page, then one panel with the [form], the other ways
+ * in and a line that leads to the other screen: [switchPrompt] and a [switchAction] button that calls [onSwitch].
  */
 @Composable
 internal fun AuthLayout(
@@ -38,27 +38,25 @@ internal fun AuthLayout(
     googleSignInEnabled: Boolean,
     form: @Composable ColumnScope.() -> Unit,
 ) {
-    OrbitScreen(
-        verticalArrangement = Arrangement.spacedBy(OrbitSpacing.lg, Alignment.CenterVertically),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        scrollable = true,
-    ) {
-        OrbitScreenHeader(stringResource(title), stringResource(subtitle))
-        Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md), content = form)
-        OrbitLabeledDivider(stringResource(Res.string.or))
-        OrbitOutlinedButton(
-            text = stringResource(Res.string.sign_in_google),
-            onClick = onGoogleSignIn,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = googleSignInEnabled,
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(switchPrompt),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+    OrbitScreen(scrollable = true) {
+        OrbitScreenHeader(stringResource(title), stringResource(subtitle), Modifier.fillMaxWidth())
+        OrbitCard(Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md), content = form)
+            OrbitLabeledDivider(stringResource(Res.string.or))
+            OrbitTonalButton(
+                text = stringResource(Res.string.sign_in_google),
+                onClick = onGoogleSignIn,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = googleSignInEnabled,
             )
-            OrbitTextButton(stringResource(switchAction), onSwitch)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(switchPrompt),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                OrbitTextButton(stringResource(switchAction), onSwitch)
+            }
         }
     }
 }

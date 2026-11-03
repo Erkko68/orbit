@@ -2,18 +2,26 @@ package com.orbit.app.feature.spacehome.settings
 
 import com.orbit.app.domain.model.Role
 
+/** What the settings of a space show while they are open. */
+enum class SpaceSettingsPage { MENU, IDENTITY, MEMBERS }
+
+/** Every step of the one sheet of the settings, including the ones other view models hold open. */
+internal enum class SpaceSettingsStep { MENU, IDENTITY, MEMBERS, ROLE, INVITE, EXIT }
+
 /**
- * The settings of a space, in a dialog: an owner or admin edits its name and colour, the owner deletes it and
- * everyone else leaves it.
+ * The settings of a space, in a sheet that holds everything the user can do with it: an owner or admin invites and
+ * edits its name and colour, anyone sees its members, the owner deletes it and everyone else leaves it.
  */
 data class SpaceSettingsUiState(
     /** The user's role in the space. Null until the members load, and for someone outside it: nothing shows. */
     val role: Role? = null,
-    /** The dialog is showing. */
-    val open: Boolean = false,
-    /** The name being typed: the current one when the dialog opened. */
+    /** What is showing, null while the settings are closed. */
+    val page: SpaceSettingsPage? = null,
+    /** The space's name, for the title of the sheet. */
+    val spaceName: String = "",
+    /** The name being typed: the current one when the settings opened. */
     val name: String = "",
-    /** The colour being picked, an index into the accent palette: the current one when the dialog opened. */
+    /** The colour being picked, an index into the accent palette: the current one when the settings opened. */
     val accent: Int = 0,
     val saving: Boolean = false,
     /** The last save failed. Cleared by the next edit or attempt. */

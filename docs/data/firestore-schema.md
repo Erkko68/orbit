@@ -44,8 +44,8 @@ erDiagram
         string spaceId FK "copy of the parent"
         string title
         string description "optional"
+        string details "optional"
         string status "open or done"
-        string preset "optional"
         string createdBy FK
         timestamp createdAt
         string completedBy FK "optional"
@@ -141,9 +141,9 @@ The email is not stored: it comes from the Firebase Auth account.
 |---|---|---|---|
 | `spaceId` | string | yes | Copy of the parent id, so a collection-group query stays possible. Never changes. |
 | `title` | string | yes | 1 to 120 characters after trimming |
-| `description` | string | no | |
+| `description` | string | no | A short summary under the title |
+| `details` | string | no | The long text of the item |
 | `status` | string | yes | `open` or `done`. New items are `open`. |
-| `preset` | string | no | `task`, `shopping_list` or `event`. A label for icons and filters: modules define behaviour. Unknown reads as none. |
 | `createdBy` | uid | yes | Never changes |
 | `createdAt` | timestamp | yes | Server time, never changes |
 | `completedBy` | uid | with `done` | Set with `status: done` to the member who completed it, removed on reopen |
@@ -250,6 +250,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 |---|---|---|
 | `observeItems` | `spaces/{id}/items` ordered by `createdAt` | Listener, retried for a few seconds while refused |
 | `create` | `spaces/{id}/items/{itemId}` | `set` of the whole new item |
+| `delete` | same | `delete`. The rules allow its creator, an admin or the owner |
 | `rename` | same | `update` of `title` |
 | `setModule` | same | `update` of `modules.<type>` (the whole module) |
 | `removeModule` | same | `update`: delete `modules.<type>` |

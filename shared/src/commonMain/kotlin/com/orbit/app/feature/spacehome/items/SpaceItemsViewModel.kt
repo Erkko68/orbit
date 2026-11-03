@@ -2,67 +2,68 @@ package com.orbit.app.feature.spacehome.items
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orbit.app.core.Load
-import com.orbit.app.core.asLoad
-import com.orbit.app.core.attempt
-import com.orbit.app.core.orOnFailure
-import com.orbit.app.core.valueOrNull
+import com.orbit.app.core.*
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemStatus
+import com.orbit.app.domain.model.Member
+import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
-import com.orbit.app.feature.item.icon
-import com.orbit.app.feature.item.label
+import com.orbit.app.feature.item.ItemFace
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.emitAll
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.item_unknown_member
-import orbit.shared.generated.resources.module_assignment_anyone
-import orbit.shared.generated.resources.module_assignment_unassigned
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
 
-/** The items tab of a space: its items and the filter over them. */
+private const val PEEK_ENTRIES = 2
+
+/** The Tasks destination of a space: its items, the filter over them and what is the user's to do next. */
 class SpaceItemsViewModel(
     private val spaceId: String,
     private val items: ItemRepository,
     spaces: SpaceRepository,
+    auth: AuthRepository,
 ) : ViewModel() {
     private val filter = MutableStateFlow(ItemFilter.ALL)
     private val actionFailed = MutableStateFlow(false)
     private val submitting = MutableStateFlow(false)
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
-    // Names only decorate the cards: a slow or failed member read must not hide the items.
-    private val memberNames = flow { emitAll(spaces.observeMembers(spaceId)) }
-        .map { members -> members.associate { it.userId to it.displayName } }
-        .onStart { emit(emptyMap()) }
-        .orOnFailure("Loading assignees for items in space $spaceId", emptyMap())
+    /** The item the user just finished from the turn card, which stays there so they can undo it. */
+    private val finishedTurn = MutableStateFlow<String?>(null)
+
+    // Members only decorate the rows: a slow or failed read must not hide the items.
+    private val memberIds = flow { emitAll(spaces.observeMembers(spaceId)) }
+        .onStart { emit(emptyList()) }
+        .orOnFailure("Loading assignees for items in space $spaceId", emptyList())
+
+    private val request = combine(filter, finishedTurn, actionFailed, submitting) { filter, finished, failed, busy ->
+        Request(filter, finished, failed, busy)
+    }
 
     val uiState: StateFlow<SpaceItemsUiState> = combine(
         items.observeItems(spaceId).asLoad("Loading the items of $spaceId", retries),
-        filter,
-        actionFailed,
-        submitting,
-        memberNames,
-    ) { load, selected, failed, isSubmitting, names ->
-        val filtered = load.valueOrNull.orEmpty().filter { selected.matches(it.preset) }
-        val (open, done) = filtered.partition { it.status is ItemStatus.Open }
+        request,
+        memberIds,
+        auth.session,
+    ) { load, request, members, user ->
+        val visible = load.valueOrNull.orEmpty().filter { request.filter.matches(it, user?.id) }
+        val turn = visible.firstOrNull { it.id == request.finishedTurn } ?: visible.nextTurn(user?.id)
+        val (open, done) = visible.filter { it.id != turn?.id }.partition { it.status is ItemStatus.Open }
         SpaceItemsUiState(
-            filter = selected,
+            filter = request.filter,
             loading = load == Load.Loading,
             loadFailed = load == Load.Failed,
-            items = (open + done).map { toSpaceItem(it, names) },
-            failed = failed,
-            submitting = isSubmitting,
+            items = (open + done).map { toSpaceItem(it, members) },
+            turn = turn?.let { toSpaceItem(it, members) },
+            userInitials = initialsOf(user?.displayName.orEmpty()),
+            userPhotoUrl = user?.photoUrl,
+            today = Clock.System.todayIn(TimeZone.currentSystemDefault()),
+            failed = request.failed,
+            submitting = request.submitting,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceItemsUiState(loading = true))
 
@@ -82,6 +83,18 @@ class SpaceItemsViewModel(
         if (done) complete(itemId) else reopen(itemId)
     }
 
+    /** Finishes what the turn card shows and keeps it there, or undoes it once finished. */
+    fun toggleTurn() {
+        val turn = uiState.value.turn ?: return
+        if (turn.done) {
+            finishedTurn.value = null
+            reopen(turn.id)
+        } else {
+            finishedTurn.value = turn.id
+            complete(turn.id)
+        }
+    }
+
     fun retry() {
         if (uiState.value.loadFailed) retries.trySend(Unit)
     }
@@ -99,28 +112,39 @@ class SpaceItemsViewModel(
             }
         }
     }
+
+    private data class Request(
+        val filter: ItemFilter,
+        val finishedTurn: String?,
+        val failed: Boolean,
+        val submitting: Boolean,
+    )
 }
 
-private fun toSpaceItem(item: Item, memberNames: Map<String, String>) = SpaceItem(
-    id = item.id,
-    title = item.title,
-    label = item.preset.label,
-    icon = item.preset.icon,
-    done = item.status is ItemStatus.Done,
-    assignmentLabel = when (val assignment = item.modules.assignment) {
-        null -> null
-        Assignment.Anyone -> Res.string.module_assignment_anyone
-        is Assignment.Claim -> if (assignment.assigneeId == null) {
-            Res.string.module_assignment_unassigned
-        } else {
-            Res.string.item_unknown_member
-        }
+/** The open item assigned to [userId] that is due first. An item without a date comes after any with one. A checklist is finished by ticking it, so it has no turn. */
+private fun List<Item>.nextTurn(userId: String?): Item? = filter {
+    userId != null && it.status is ItemStatus.Open && it.modules.checklist == null && it.modules.isAssignedTo(userId)
+}.minWithOrNull(compareBy(nullsLast()) { it.modules.schedule?.deadline })
 
-        is Assignment.ToMember -> Res.string.item_unknown_member
-    },
-    assigneeName = item.modules.assignment?.assigneeId?.let { memberNames[it] }?.takeIf { it.isNotBlank() },
-    dueDate = item.modules.schedule?.deadline,
-    checklist = item.modules.checklist?.let { checklist ->
-        SpaceItemChecklist(done = checklist.entries.count { it.checked }, total = checklist.entries.size)
-    },
-)
+private fun toSpaceItem(item: Item, members: List<Member>): SpaceItem {
+    val assignment = item.modules.assignment
+    val assigneeIds = assignment?.assigneeIds.orEmpty()
+    val faces = members.mapIndexed { index, member -> ItemFace(member.userId, member.displayName, index, member.photoUrl) }
+    return SpaceItem(
+        id = item.id,
+        title = item.title,
+        done = item.status is ItemStatus.Done,
+        summary = item.description,
+        faces = if (assignment == Assignment.Anyone) faces else faces.filter { it.id in assigneeIds },
+        dueDate = item.modules.schedule?.deadline,
+        dueTime = item.modules.schedule?.time,
+        checklist = item.modules.checklist?.let { checklist ->
+            val left = checklist.entries.filterNot { it.checked }.map { it.text }
+            SpaceItemChecklist(
+                done = checklist.entries.count { it.checked },
+                total = checklist.entries.size,
+                peek = SpaceItemPeek(left.take(PEEK_ENTRIES), (left.size - PEEK_ENTRIES).coerceAtLeast(0)),
+            )
+        },
+    )
+}

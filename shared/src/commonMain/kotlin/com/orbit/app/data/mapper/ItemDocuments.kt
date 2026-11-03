@@ -15,8 +15,8 @@ internal class ItemDocument(
     val spaceId: String,
     val title: String,
     val description: String? = null,
+    val details: String? = null,
     val status: String,
-    val preset: String? = null,
     val createdBy: String,
     val createdAt: Timestamp.ServerTimestamp,
     val modules: ModulesDocument,
@@ -39,9 +39,11 @@ internal class ScheduleDocument(
     val durationMinutes: Int? = null,
 )
 
+/** [assigneeId] is how one member was stored before an item could have several: read, never written. */
 @Serializable
 internal class AssignmentDocument(
     val mode: String,
+    val assigneeIds: List<String>? = null,
     val assigneeId: String? = null,
 )
 
@@ -66,9 +68,9 @@ internal class ReminderDocument(val offsetsMinutes: List<Int>)
 /** An item's fields as read, each null when missing or not of the expected type. */
 internal data class StoredItem(
     val title: String? = null,
+    val details: String? = null,
     val description: String? = null,
     val status: String? = null,
-    val preset: String? = null,
     val createdBy: String? = null,
     val createdAt: Instant? = null,
     val completedBy: String? = null,

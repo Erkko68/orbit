@@ -14,10 +14,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
-/**
- * Single-line input: a tonal fill with no stroke until it is focused (primary) or in error.
- * On an [OrbitCard] the card already has that fill, so the field takes the canvas color and an outline.
- */
+/** Single-line input: a sunk fill with no stroke until it is focused (ink) or in error. */
 @Composable
 fun OrbitTextField(
     value: String,
@@ -33,15 +30,18 @@ fun OrbitTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
 ) {
     val colors = MaterialTheme.colorScheme
-    val insideCard = LocalInsideCard.current
-    val fill = if (insideCard) colors.surface else colors.surfaceContainer
-    val restingBorder = if (insideCard) colors.outline else Color.Transparent
+    val fill = colors.surfaceContainer
+    val field = rememberFieldValue(value)
     OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
+        value = field.value,
+        onValueChange = {
+            field.value = it
+            onValueChange(it.text)
+        },
         modifier = modifier.heightIn(min = ControlHeight),
         enabled = enabled,
-        placeholder = { Text(placeholder) },
+        textStyle = MaterialTheme.typography.bodyLarge,
+        placeholder = { Text(placeholder, style = MaterialTheme.typography.bodyLarge) },
         leadingIcon = leadingIcon?.let { { Icon(painterResource(it), contentDescription = null) } },
         trailingIcon = trailingIcon,
         supportingText = supportingText?.let { { Text(it) } },
@@ -55,8 +55,8 @@ fun OrbitTextField(
             unfocusedContainerColor = fill,
             disabledContainerColor = fill,
             errorContainerColor = fill,
-            unfocusedBorderColor = restingBorder,
-            disabledBorderColor = restingBorder,
+            unfocusedBorderColor = Color.Transparent,
+            disabledBorderColor = Color.Transparent,
         ),
     )
 }

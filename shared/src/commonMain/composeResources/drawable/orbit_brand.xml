@@ -1,0 +1,18 @@
+<!-- The Orbit mark in its brand colours, for the startup screen. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="40"
+    android:viewportHeight="40">
+    <path
+        android:strokeColor="#FF86B6FF"
+        android:strokeWidth="3.4"
+        android:strokeLineCap="round"
+        android:pathData="M33.725,17.240A14,14 0,1 1 22.760,6.275" />
+    <path
+        android:fillColor="#FF86B6FF"
+        android:pathData="M13.800,20a6.2,6.2 0,1 1 12.4,0a6.2,6.2 0,1 1 -12.4,0" />
+    <path
+        android:fillColor="#FFD4F26E"
+        android:pathData="M25.699,10.101a4.2,4.2 0,1 1 8.4,0a4.2,4.2 0,1 1 -8.4,0" />
+</vector>

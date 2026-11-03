@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * The code of an invitation link the user opened, waiting for the spaces screen to offer joining it. The
+ * The code of an invitation link the user opened, waiting for the new space screen to offer joining it. The
  * link can arrive before the app is signed in, so it waits here until that screen is up.
  */
 class PendingInvitation {
@@ -13,12 +13,12 @@ class PendingInvitation {
 
     val code: StateFlow<String?> = pending
 
-    /** Keeps the code of [link] for the spaces screen. A link without a code is ignored. */
+    /** Keeps the code of [link] for the new space screen. A link without a code is ignored. */
     fun offer(link: String) {
         invitationCodeOf(link)?.let { pending.value = it }
     }
 
-    /** The spaces screen has taken the code. */
+    /** The new space screen has taken the code. */
     fun consume() {
         pending.value = null
     }

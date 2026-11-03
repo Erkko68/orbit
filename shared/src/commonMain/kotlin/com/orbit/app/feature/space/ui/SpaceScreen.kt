@@ -1,68 +1,46 @@
 package com.orbit.app.feature.space.ui
 
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.orbit.app.core.designsystem.component.OrbitAddButton
 import com.orbit.app.core.designsystem.component.OrbitAvatarButton
-import com.orbit.app.core.designsystem.component.OrbitButton
-import com.orbit.app.core.designsystem.component.OrbitDialog
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitErrorState
-import com.orbit.app.core.designsystem.component.OrbitExtendedFab
-import com.orbit.app.core.designsystem.component.OrbitLabeledDivider
+import com.orbit.app.core.designsystem.component.OrbitGroup
+import com.orbit.app.core.designsystem.component.OrbitHero
 import com.orbit.app.core.designsystem.component.OrbitLoadingState
-import com.orbit.app.core.designsystem.component.OrbitOutlinedButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
-import com.orbit.app.core.designsystem.component.OrbitSectionHeader
-import com.orbit.app.core.designsystem.component.OrbitTextField
 import com.orbit.app.core.designsystem.component.OrbitTopBar
-import com.orbit.app.core.designsystem.theme.OrbitSpacing
-import com.orbit.app.feature.space.SpaceUiState
+import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.feature.space.card.SpaceCard
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.account_title
 import orbit.shared.generated.resources.app_name
-import orbit.shared.generated.resources.cancel
-import orbit.shared.generated.resources.ic_add
-import orbit.shared.generated.resources.ic_home
-import orbit.shared.generated.resources.ic_link
-import orbit.shared.generated.resources.ic_orbit
 import orbit.shared.generated.resources.load_failed_body
-import orbit.shared.generated.resources.or
 import orbit.shared.generated.resources.retry
-import orbit.shared.generated.resources.spaces_count
-import orbit.shared.generated.resources.spaces_create
-import orbit.shared.generated.resources.spaces_create_failed
-import orbit.shared.generated.resources.spaces_create_name
 import orbit.shared.generated.resources.spaces_empty
 import orbit.shared.generated.resources.spaces_empty_body
-import orbit.shared.generated.resources.spaces_join
-import orbit.shared.generated.resources.spaces_join_code
 import orbit.shared.generated.resources.spaces_load_failed
 import orbit.shared.generated.resources.spaces_loading
 import orbit.shared.generated.resources.spaces_new
 import orbit.shared.generated.resources.spaces_section
-import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * The signed-in user's spaces, one [SpaceCard] each, under the Orbit bar with the user's account.
- * Tapping a space calls [onOpenSpace] with its id. "New space" opens the dialog to create or join one.
+ * The signed-in user's spaces, one [SpaceCard] each, under a big title and the Orbit bar with the user's account.
+ * Tapping a space calls [onOpenSpace] with its id. The add button opens the screen that creates or joins one, as does an invitation link that was opened.
  */
 @Composable
 fun SpaceScreen(
     onOpenSpace: (String) -> Unit,
     onOpenAccount: () -> Unit,
+    onNewSpace: () -> Unit,
     viewModel: SpaceViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -70,35 +48,24 @@ fun SpaceScreen(
         topBar = {
             OrbitTopBar(
                 title = stringResource(Res.string.app_name),
-                navigationIcon = {
-                    Icon(
-                        painter = painterResource(Res.drawable.ic_orbit),
-                        contentDescription = null,
-                        modifier = Modifier.padding(start = OrbitSpacing.sm),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                },
+                showMark = true,
                 actions = {
                     OrbitAvatarButton(
                         initials = state.userInitials,
                         photoUrl = state.userPhotoUrl,
-                        accent = MaterialTheme.colorScheme.primary,
+                        accent = OrbitTheme.accent.fill,
                         contentDescription = stringResource(Res.string.account_title),
                         onClick = onOpenAccount,
-                        modifier = Modifier.padding(end = OrbitSpacing.sm),
                     )
                 },
             )
         },
         floatingActionButton = {
-            OrbitExtendedFab(
-                text = stringResource(Res.string.spaces_new),
-                icon = Res.drawable.ic_add,
-                onClick = viewModel::openCreate,
-            )
+            OrbitAddButton(stringResource(Res.string.spaces_new), onNewSpace)
         },
         scrollable = true,
     ) {
+        OrbitHero(stringResource(Res.string.spaces_section), Modifier.fillMaxWidth())
         if (state.loading) {
             OrbitLoadingState(stringResource(Res.string.spaces_loading), Modifier.fillMaxWidth())
         } else if (state.loadFailed) {
@@ -116,66 +83,11 @@ fun SpaceScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        if (state.spaceCount > 0) {
-            OrbitSectionHeader(
-                title = stringResource(Res.string.spaces_section),
-                icon = Res.drawable.ic_home,
-                modifier = Modifier.fillMaxWidth(),
-                count = pluralStringResource(Res.plurals.spaces_count, state.spaceCount, state.spaceCount),
-            )
-        }
-        for (spaceId in state.spaceIds) {
-            key(spaceId) {
-                SpaceCard(spaceId, onClick = { onOpenSpace(spaceId) }, modifier = Modifier.fillMaxWidth())
-            }
+        OrbitGroup(state.spaceIds, key = { it }, modifier = Modifier.fillMaxWidth()) { spaceId ->
+            SpaceCard(spaceId, onClick = { onOpenSpace(spaceId) }, modifier = Modifier.fillMaxWidth())
         }
     }
     LaunchedEffect(state.invitationWaiting) {
-        if (state.invitationWaiting) viewModel.openPendingInvitation()
-    }
-    if (state.createOpen) {
-        NewSpaceDialog(state, viewModel)
-    }
-}
-
-/** Two ways in to a space: name one to create it, or type or paste an invitation code or link to join one. */
-@Composable
-private fun NewSpaceDialog(state: SpaceUiState, viewModel: SpaceViewModel) {
-    OrbitDialog(
-        title = stringResource(Res.string.spaces_new),
-        dismissText = stringResource(Res.string.cancel),
-        onDismiss = viewModel::dismissCreate,
-    ) {
-        OrbitTextField(
-            value = state.newSpaceName,
-            onValueChange = viewModel::onNewSpaceNameChange,
-            placeholder = stringResource(Res.string.spaces_create_name),
-            modifier = Modifier.fillMaxWidth(),
-            isError = state.createFailed,
-            supportingText = if (state.createFailed) stringResource(Res.string.spaces_create_failed) else null,
-            leadingIcon = Res.drawable.ic_home,
-        )
-        OrbitButton(
-            text = stringResource(Res.string.spaces_create),
-            onClick = viewModel::createSpace,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = state.canCreate,
-        )
-        OrbitLabeledDivider(stringResource(Res.string.or))
-        OrbitTextField(
-            value = state.joinCode,
-            onValueChange = viewModel::onJoinCodeChange,
-            placeholder = stringResource(Res.string.spaces_join_code),
-            modifier = Modifier.fillMaxWidth(),
-            isError = state.joinError != null,
-            supportingText = state.joinError?.let { stringResource(it.message()) },
-            leadingIcon = Res.drawable.ic_link,
-        )
-        OrbitOutlinedButton(
-            text = stringResource(Res.string.spaces_join),
-            onClick = viewModel::joinSpace,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = state.canJoin,
-        )
+        if (state.invitationWaiting) onNewSpace()
     }
 }

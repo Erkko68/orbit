@@ -8,46 +8,73 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.orbit.app.core.designsystem.component.OrbitColorPicker
-import com.orbit.app.core.designsystem.component.OrbitDialog
+import com.orbit.app.core.share.TextSharer
+import com.orbit.app.core.designsystem.component.OrbitActionRow
+import com.orbit.app.core.designsystem.component.OrbitAvatar
+import com.orbit.app.core.designsystem.component.OrbitAvatarSize
+import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitErrorText
+import com.orbit.app.core.designsystem.component.OrbitGroup
+import com.orbit.app.core.designsystem.component.OrbitGroupRow
+import com.orbit.app.core.designsystem.component.OrbitHeading
 import com.orbit.app.core.designsystem.component.OrbitIconButton
-import com.orbit.app.core.designsystem.component.OrbitOutlinedButton
+import com.orbit.app.core.designsystem.component.OrbitSheet
+import com.orbit.app.core.designsystem.component.OrbitSheetPages
+import com.orbit.app.core.designsystem.component.OrbitSpaceColorPicker
+import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.core.designsystem.component.OrbitTextField
+import com.orbit.app.core.designsystem.component.memberShape
+import com.orbit.app.core.designsystem.theme.OrbitShape
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.feature.spacehome.members.InvitePage
+import com.orbit.app.feature.spacehome.members.InviteViewModel
+import com.orbit.app.feature.spacehome.members.RolePickerPage
+import com.orbit.app.feature.spacehome.members.SpaceMember
+import com.orbit.app.feature.spacehome.members.SpaceMembersUiState
+import com.orbit.app.feature.spacehome.members.SpaceMembersViewModel
 import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.cancel
+import orbit.shared.generated.resources.back
+import orbit.shared.generated.resources.close
 import orbit.shared.generated.resources.delete_space_body
 import orbit.shared.generated.resources.delete_space_confirm
 import orbit.shared.generated.resources.delete_space_failed
 import orbit.shared.generated.resources.delete_space_title
 import orbit.shared.generated.resources.ic_edit
+import orbit.shared.generated.resources.ic_group
 import orbit.shared.generated.resources.ic_home
-import orbit.shared.generated.resources.ic_logout
+import orbit.shared.generated.resources.ic_person_add
+import orbit.shared.generated.resources.ic_tune
+import orbit.shared.generated.resources.invite_title
 import orbit.shared.generated.resources.leave_body
 import orbit.shared.generated.resources.leave_confirm
 import orbit.shared.generated.resources.leave_failed
 import orbit.shared.generated.resources.leave_title
-import orbit.shared.generated.resources.space_colour_coral
-import orbit.shared.generated.resources.space_colour_sun
-import orbit.shared.generated.resources.space_colour_teal
-import orbit.shared.generated.resources.space_colour_violet
+import orbit.shared.generated.resources.member_role_title
+import orbit.shared.generated.resources.member_you
 import orbit.shared.generated.resources.space_settings
-import orbit.shared.generated.resources.space_settings_colour
 import orbit.shared.generated.resources.space_settings_delete
 import orbit.shared.generated.resources.space_settings_failed
+import orbit.shared.generated.resources.space_settings_identity
+import orbit.shared.generated.resources.space_settings_identity_body
+import orbit.shared.generated.resources.space_settings_invite
+import orbit.shared.generated.resources.space_settings_invite_body
 import orbit.shared.generated.resources.space_settings_leave
+import orbit.shared.generated.resources.space_settings_members
 import orbit.shared.generated.resources.space_settings_name
 import orbit.shared.generated.resources.space_settings_save
+import orbit.shared.generated.resources.spaces_members
+import org.jetbrains.compose.resources.DrawableResource
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
+import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * The button that opens the settings of a space, for the top bar of the space, and its dialog. An owner or admin
- * edits the name and the colour from the accent palette of the theme; at the bottom the owner deletes the space
- * and an admin leaves it. A plain member has nothing to edit, so their button is "Leave space". Both ask to
- * confirm first, and [onGone] runs once the user has left or deleted the space.
+ * The button that opens the settings of a space, and everything behind it: one sheet that changes in place, with what
+ * the user can do with the space. An owner or admin invites people and edits the name and colour, anyone sees the
+ * members and their roles, and at the bottom the owner deletes the space and anyone else leaves it, after confirming.
+ * [onGone] runs once the user has left or deleted the space.
  */
 @Composable
 internal fun SpaceSettings(
@@ -55,93 +82,210 @@ internal fun SpaceSettings(
     onGone: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: SpaceSettingsViewModel = koinViewModel(key = "settings-$spaceId") { parametersOf(spaceId) },
+    membersViewModel: SpaceMembersViewModel = koinViewModel(key = "members-$spaceId") { parametersOf(spaceId) },
+    inviteViewModel: InviteViewModel = koinViewModel(key = "invite-$spaceId") { parametersOf(spaceId) },
+    sharer: TextSharer = koinInject(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val members by membersViewModel.uiState.collectAsStateWithLifecycle()
+    val invite by inviteViewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(state.gone) {
         if (state.gone) onGone()
     }
     if (!state.visible) return
-    if (state.canEdit) {
-        OrbitIconButton(Res.drawable.ic_edit, stringResource(Res.string.space_settings), viewModel::open, modifier)
-    } else {
-        val leave = stringResource(Res.string.space_settings_leave)
-        OrbitIconButton(Res.drawable.ic_logout, leave, viewModel::open, modifier)
+    OrbitIconButton(
+        icon = Res.drawable.ic_tune,
+        contentDescription = stringResource(Res.string.space_settings),
+        onClick = viewModel::open,
+        modifier = modifier,
+        raised = true,
+    )
+    val page = state.page ?: return
+    val step = when {
+        state.confirmingExit -> SpaceSettingsStep.EXIT
+        members.rolePicker != null -> SpaceSettingsStep.ROLE
+        invite.open && invite.canInvite -> SpaceSettingsStep.INVITE
+        page == SpaceSettingsPage.IDENTITY -> SpaceSettingsStep.IDENTITY
+        page == SpaceSettingsPage.MEMBERS -> SpaceSettingsStep.MEMBERS
+        else -> SpaceSettingsStep.MENU
     }
-    when {
-        !state.open -> Unit
-        state.confirmingExit -> ExitDialog(state, viewModel)
-        else -> EditDialog(state, viewModel)
+    OrbitSheet(
+        title = stepTitle(step, state, members),
+        closeDescription = stringResource(Res.string.close),
+        onDismiss = {
+            membersViewModel.closeRolePicker()
+            inviteViewModel.dismiss()
+            viewModel.dismiss()
+        },
+        backDescription = stringResource(Res.string.back),
+        onBack = when (step) {
+            SpaceSettingsStep.MENU -> null
+            SpaceSettingsStep.IDENTITY, SpaceSettingsStep.MEMBERS -> viewModel::backToMenu
+            SpaceSettingsStep.ROLE -> membersViewModel::closeRolePicker
+            SpaceSettingsStep.INVITE -> inviteViewModel::dismiss
+            SpaceSettingsStep.EXIT -> viewModel::cancelExit
+        },
+    ) {
+        OrbitSheetPages(step) { shown ->
+            when (shown) {
+                SpaceSettingsStep.MENU ->
+                    SettingsMenu(state, viewModel, members.members.size, invite.canInvite, inviteViewModel::open)
+                SpaceSettingsStep.IDENTITY -> IdentityPage(state, viewModel)
+                SpaceSettingsStep.MEMBERS -> MembersPage(members, membersViewModel::openRolePicker)
+                SpaceSettingsStep.ROLE -> members.rolePicker?.let { member ->
+                    RolePickerPage(
+                        member = member,
+                        busy = members.busy,
+                        failed = members.failed,
+                        onPick = membersViewModel::changeRole,
+                        onTransfer = membersViewModel::transferOwnership,
+                    )
+                }
+                SpaceSettingsStep.INVITE -> InvitePage(invite, inviteViewModel, sharer)
+                SpaceSettingsStep.EXIT -> ExitPage(state, viewModel)
+            }
+        }
     }
 }
 
 @Composable
-private fun EditDialog(state: SpaceSettingsUiState, viewModel: SpaceSettingsViewModel) {
-    val palette = OrbitTheme.colors.spaceAccents
-    // One name per colour of the palette, in its order.
-    val names = listOf(
-        stringResource(Res.string.space_colour_violet),
-        stringResource(Res.string.space_colour_coral),
-        stringResource(Res.string.space_colour_teal),
-        stringResource(Res.string.space_colour_sun),
+private fun stepTitle(step: SpaceSettingsStep, state: SpaceSettingsUiState, members: SpaceMembersUiState): String = when (step) {
+    SpaceSettingsStep.MENU -> state.spaceName
+    SpaceSettingsStep.IDENTITY -> stringResource(Res.string.space_settings_identity)
+    SpaceSettingsStep.MEMBERS -> stringResource(Res.string.space_settings_members)
+    SpaceSettingsStep.ROLE -> stringResource(Res.string.member_role_title, members.rolePicker?.name.orEmpty())
+    SpaceSettingsStep.INVITE -> stringResource(Res.string.invite_title)
+    SpaceSettingsStep.EXIT ->
+        stringResource(if (state.deletes) Res.string.delete_space_title else Res.string.leave_title)
+}
+
+/** One thing the menu of the settings offers. */
+private class MenuAction(
+    val title: String,
+    val supporting: String,
+    val icon: DrawableResource,
+    val shape: OrbitShape,
+    val onClick: () -> Unit,
+)
+
+@Composable
+private fun SettingsMenu(
+    state: SpaceSettingsUiState,
+    viewModel: SpaceSettingsViewModel,
+    memberCount: Int,
+    canInvite: Boolean,
+    onInvite: () -> Unit,
+) {
+    val invite = MenuAction(
+        title = stringResource(Res.string.space_settings_invite),
+        supporting = stringResource(Res.string.space_settings_invite_body),
+        icon = Res.drawable.ic_person_add,
+        shape = OrbitShape.Cookie,
+        onClick = onInvite,
     )
-    OrbitDialog(
-        title = stringResource(Res.string.space_settings),
-        dismissText = stringResource(Res.string.cancel),
-        onDismiss = viewModel::dismiss,
-        confirmText = stringResource(Res.string.space_settings_save),
-        onConfirm = viewModel::save,
-        confirmEnabled = state.canSave,
-    ) {
-        OrbitTextField(
-            value = state.name,
-            onValueChange = viewModel::onNameChange,
-            placeholder = stringResource(Res.string.space_settings_name),
+    val members = MenuAction(
+        title = stringResource(Res.string.space_settings_members),
+        supporting = pluralStringResource(Res.plurals.spaces_members, memberCount, memberCount),
+        icon = Res.drawable.ic_group,
+        shape = OrbitShape.Clover,
+        onClick = viewModel::openMembers,
+    )
+    val identity = MenuAction(
+        title = stringResource(Res.string.space_settings_identity),
+        supporting = stringResource(Res.string.space_settings_identity_body),
+        icon = Res.drawable.ic_edit,
+        shape = OrbitShape.Sunny,
+        onClick = viewModel::openIdentity,
+    )
+    OrbitGroup(
+        items = listOfNotNull(invite.takeIf { canInvite }, members, identity.takeIf { state.canEdit }),
+        key = { it.title },
+        modifier = Modifier.fillMaxWidth(),
+    ) { action ->
+        OrbitActionRow(
+            title = action.title,
+            supporting = action.supporting,
+            icon = action.icon,
+            shape = action.shape,
+            onClick = action.onClick,
             modifier = Modifier.fillMaxWidth(),
-            isError = state.failed,
-            supportingText = if (state.failed) stringResource(Res.string.space_settings_failed) else null,
-            leadingIcon = Res.drawable.ic_home,
-        )
-        Text(
-            text = stringResource(Res.string.space_settings_colour),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        OrbitColorPicker(
-            colors = palette,
-            labels = names,
-            selectedIndex = state.accent.mod(palette.size),
-            onSelect = viewModel::onAccentChange,
-        )
-        OrbitOutlinedButton(
-            text = stringResource(
-                if (state.deletes) Res.string.space_settings_delete else Res.string.space_settings_leave,
-            ),
-            onClick = viewModel::confirmExit,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !state.saving,
         )
     }
+    OrbitTextButton(
+        text = stringResource(if (state.deletes) Res.string.space_settings_delete else Res.string.space_settings_leave),
+        onClick = viewModel::confirmExit,
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.error,
+    )
+}
+
+/** Who is in the space. Tapping another member opens their role picker when the user may change it or hand them the space. */
+@Composable
+private fun MembersPage(members: SpaceMembersUiState, onOpenRole: (String) -> Unit) {
+    OrbitGroup(
+        items = members.members.withIndex().toList(),
+        key = { it.value.id },
+        modifier = Modifier.fillMaxWidth(),
+    ) { (index, member) ->
+        MemberRow(member, index, onOpenRole)
+    }
+}
+
+@Composable
+private fun MemberRow(member: SpaceMember, index: Int, onOpenRole: (String) -> Unit) {
+    val tappable = member.canChangeRole || member.canTakeOwnership
+    OrbitGroupRow(Modifier.fillMaxWidth(), onClick = if (tappable) ({ onOpenRole(member.id) }) else null) {
+        OrbitAvatar(
+            initials = member.initials,
+            accent = OrbitTheme.colors.spaceAccent(index),
+            photoUrl = member.photoUrl,
+            shape = memberShape(index),
+            size = OrbitAvatarSize.Large,
+        )
+        OrbitHeading(
+            title = if (member.isYou) stringResource(Res.string.member_you) else member.name,
+            subtitle = stringResource(member.role),
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun IdentityPage(state: SpaceSettingsUiState, viewModel: SpaceSettingsViewModel) {
+    OrbitTextField(
+        value = state.name,
+        onValueChange = viewModel::onNameChange,
+        placeholder = stringResource(Res.string.space_settings_name),
+        modifier = Modifier.fillMaxWidth(),
+        isError = state.failed,
+        supportingText = if (state.failed) stringResource(Res.string.space_settings_failed) else null,
+        leadingIcon = Res.drawable.ic_home,
+    )
+    OrbitSpaceColorPicker(state.accent, viewModel::onAccentChange)
+    OrbitButton(
+        text = stringResource(Res.string.space_settings_save),
+        onClick = viewModel::save,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = state.canSave,
+    )
 }
 
 /** Asks before the owner deletes the space, or before anyone else leaves it. */
 @Composable
-private fun ExitDialog(state: SpaceSettingsUiState, viewModel: SpaceSettingsViewModel) {
-    OrbitDialog(
-        title = stringResource(if (state.deletes) Res.string.delete_space_title else Res.string.leave_title),
-        dismissText = stringResource(Res.string.cancel),
-        onDismiss = viewModel::cancelExit,
-        confirmText = stringResource(if (state.deletes) Res.string.delete_space_confirm else Res.string.leave_confirm),
-        onConfirm = viewModel::exit,
-        confirmEnabled = !state.exiting,
-    ) {
-        Text(
-            text = stringResource(if (state.deletes) Res.string.delete_space_body else Res.string.leave_body),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        if (state.exitFailed) {
-            val failure = if (state.deletes) Res.string.delete_space_failed else Res.string.leave_failed
-            OrbitErrorText(stringResource(failure))
-        }
+private fun ExitPage(state: SpaceSettingsUiState, viewModel: SpaceSettingsViewModel) {
+    Text(
+        text = stringResource(if (state.deletes) Res.string.delete_space_body else Res.string.leave_body),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    if (state.exitFailed) {
+        OrbitErrorText(stringResource(if (state.deletes) Res.string.delete_space_failed else Res.string.leave_failed))
     }
+    OrbitButton(
+        text = stringResource(if (state.deletes) Res.string.delete_space_confirm else Res.string.leave_confirm),
+        onClick = viewModel::exit,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !state.exiting,
+        danger = true,
+    )
 }

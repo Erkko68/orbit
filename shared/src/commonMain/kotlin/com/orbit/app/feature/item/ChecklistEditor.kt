@@ -2,9 +2,9 @@ package com.orbit.app.feature.item
 
 import com.orbit.app.domain.model.ChecklistEntry
 
-/** Text typed in the add/edit dialog. A null id means a new entry. */
+/** An entry of the checklist being edited in its sheet. */
 data class ChecklistEditor(
-    val entryId: String? = null,
+    val entryId: String,
     val text: String = "",
     val quantity: String = "",
 ) {

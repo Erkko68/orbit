@@ -18,7 +18,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		F2EE2AE2F10980B6AC2CAEFC /* Exceptions for "iosApp" folder in "iosApp" target */ = {
+		F2EE2AE2F10980B6AC2CAEFC /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -28,17 +28,25 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		692E51DE008006FF0FBABABF /* Configuration */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = Configuration;
+			sourceTree = "<group>";
+		};
 		7C0F21B66FD2933740A1A5E3 /* iosApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				F2EE2AE2F10980B6AC2CAEFC /* Exceptions for "iosApp" folder in "iosApp" target */,
+				F2EE2AE2F10980B6AC2CAEFC /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
 			);
 			path = iosApp;
-			sourceTree = "<group>";
-		};
-		692E51DE008006FF0FBABABF /* Configuration */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Configuration;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -58,6 +66,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		B0B47247DA42D6CF9F738129 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				4CCACCA025BBC102EC20A477 /* orbit.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		CF80FF22BBB15A13D4101735 = {
 			isa = PBXGroup;
 			children = (
@@ -65,14 +81,6 @@
 				7C0F21B66FD2933740A1A5E3 /* iosApp */,
 				B0B47247DA42D6CF9F738129 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		B0B47247DA42D6CF9F738129 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				4CCACCA025BBC102EC20A477 /* orbit.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

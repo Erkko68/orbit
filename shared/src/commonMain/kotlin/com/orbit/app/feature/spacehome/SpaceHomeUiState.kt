@@ -1,60 +1,50 @@
 package com.orbit.app.feature.spacehome
 
-import com.orbit.app.domain.model.ItemModules
-import com.orbit.app.domain.model.Preset
-import com.orbit.app.domain.model.validateItem
+import kotlinx.datetime.LocalDate
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_home
+import orbit.shared.generated.resources.ic_home_selected
 import orbit.shared.generated.resources.ic_task
+import orbit.shared.generated.resources.ic_task_selected
 import orbit.shared.generated.resources.ic_wallet
-import orbit.shared.generated.resources.space_tab_agenda
+import orbit.shared.generated.resources.ic_wallet_selected
 import orbit.shared.generated.resources.space_tab_expenses
 import orbit.shared.generated.resources.space_tab_home
-import orbit.shared.generated.resources.space_tab_items
 import orbit.shared.generated.resources.space_tab_tasks
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 
-/** The header of a space, its selected destination and the "New item" dialog. The member row and items have their own state. */
+/** The header of a space and its selected destination. The member row and items have their own state. */
 data class SpaceHomeUiState(
     val name: String = "",
-    val memberCount: Int = 0,
+    /** The space's colour, null until it has loaded. */
+    val accent: Int? = null,
     /** The signed-in user, for the account avatar in the top bar. */
     val userInitials: String = "",
     val userPhotoUrl: String? = null,
-    /** Opens on the items until Home has more than the members (#241). */
-    val tab: SpaceHomeTab = SpaceHomeTab.TASKS,
-    val tasksView: SpaceTasksView = SpaceTasksView.ITEMS,
-    /** The "New item" dialog is showing. */
-    val newItemOpen: Boolean = false,
-    /** What the dialog creates: the preset picked and the name typed. */
-    val newItemPreset: Preset = Preset.TASK,
-    val newItemTitle: String = "",
-    val creating: Boolean = false,
-    /** The last create failed. Cleared by the next edit or attempt. */
-    val createFailed: Boolean = false,
-    /** The item just created, for the screen to open once. */
-    val createdItemId: String? = null,
-    /** The item just created reminds, so notifications get allowed before it opens. */
-    val askNotifications: Boolean = false,
+    val tab: SpaceHomeTab = SpaceHomeTab.HOME,
+    val today: LocalDate? = null,
+    /** What Home opens with. Null until the items load, or if they could not. */
+    val headline: SpaceHeadline? = null,
 ) {
-    /** The item to open now: the one just created, once notifications are settled. */
-    val itemToOpen: String? get() = createdItemId.takeIf { !askNotifications }
     /** Expenses will add expenses instead (#54). */
     val canAddItem: Boolean get() = tab != SpaceHomeTab.EXPENSES
-    val canCreate: Boolean get() = !creating && validateItem(newItemTitle, ItemModules(), emptyList()).isEmpty()
+}
+
+/** What Home says first, so a member knows where they stand without reading the agenda. */
+sealed interface SpaceHeadline {
+    /** The space has no items at all. */
+    data object Empty : SpaceHeadline
+
+    /** Nothing is due today for the user. */
+    data object AllClear : SpaceHeadline
+
+    data class Due(val count: Int) : SpaceHeadline
 }
 
 /** The destinations of a space's bottom bar (ADR 0005). */
-enum class SpaceHomeTab(val label: StringResource, val icon: DrawableResource) {
-    HOME(Res.string.space_tab_home, Res.drawable.ic_home),
-    TASKS(Res.string.space_tab_tasks, Res.drawable.ic_task),
-    EXPENSES(Res.string.space_tab_expenses, Res.drawable.ic_wallet),
+enum class SpaceHomeTab(val label: StringResource, val icon: DrawableResource, val selectedIcon: DrawableResource) {
+    HOME(Res.string.space_tab_home, Res.drawable.ic_home, Res.drawable.ic_home_selected),
+    TASKS(Res.string.space_tab_tasks, Res.drawable.ic_task, Res.drawable.ic_task_selected),
+    EXPENSES(Res.string.space_tab_expenses, Res.drawable.ic_wallet, Res.drawable.ic_wallet_selected),
 }
-
-/** The two views of the Tasks destination. */
-enum class SpaceTasksView(val label: StringResource) {
-    ITEMS(Res.string.space_tab_items),
-    AGENDA(Res.string.space_tab_agenda),
-}
-

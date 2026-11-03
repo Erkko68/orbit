@@ -120,9 +120,9 @@ class ReminderSyncTest {
     fun onlyRemindsTheAssigneeOrEveryoneWhenNobodyIs() = runTest {
         val spaceId = signedInSpace()
         fun assigned(assignment: Assignment) = dinner.copy(modules = dinner.modules.with(assignment))
-        val mine = items.create(spaceId, assigned(Assignment.ToMember("ana@orbit.app")))
-        val theirs = items.create(spaceId, assigned(Assignment.ToMember("bo@orbit.app")))
-        val unclaimed = items.create(spaceId, assigned(Assignment.Claim()))
+        val mine = items.create(spaceId, assigned(Assignment.ToMembers(setOf("ana@orbit.app"))))
+        val theirs = items.create(spaceId, assigned(Assignment.ToMembers(setOf("bo@orbit.app"))))
+        val unclaimed = items.create(spaceId, assigned(Assignment.Anyone))
         startSync()
 
         assertEquals(setOf("reminder-$mine-30", "reminder-$unclaimed-30"), scheduler.pending.keys)
