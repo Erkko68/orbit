@@ -21,6 +21,55 @@ class FacePhysicsTest {
     }
 
     @Test
+    fun theClusterKeepsTurningAroundTheCentre() {
+        val faces = listOf(FaceBody("a", 120f, 100f, 20f), FaceBody("b", 180f, 100f, 20f))
+        settle(faces)
+        val before = faces.map { it.x to it.y }
+        val spread = hypot(faces[0].x - faces[1].x, faces[0].y - faces[1].y)
+
+        settle(faces, frames = 120)
+
+        assertTrue(hypot(faces[0].x - before[0].first, faces[0].y - before[0].second) > 5f, "the cluster stopped turning")
+        assertEquals(spread, hypot(faces[0].x - faces[1].x, faces[0].y - faces[1].y), 2f)
+        assertTrue(hypot(faces[0].x - WIDTH / 2, faces[0].y - HEIGHT / 2) < 25f)
+    }
+
+    @Test
+    fun facesSizedForASmallStageKeepTurningClearOfTheWalls() {
+        val side = 64f
+        for (count in 2..8) {
+            val radius = radiusFor(count, largest = 20f, width = side, height = side)
+            // As big as the variety lets them get, the tightest the cluster can be.
+            val faces = List(count) { FaceBody("$it", side / 2 + it, side / 2, radius * 1.1f) }
+            val run = { frames: Int -> repeat(frames) { stepFaces(faces, side, side, side / 2, side / 2, step) } }
+            run(600)
+            val before = faces.map { it.x to it.y }
+
+            run(60)
+
+            assertTrue(faces.all { it.y > it.radius + 0.5f && it.y < side - it.radius - 0.5f }, "$count faces jam on the wall")
+            // Seven pack as a ring around one in the middle, which has nowhere to turn to.
+            assertTrue(
+                faces.indices.count { hypot(faces[it].x - before[it].first, faces[it].y - before[it].second) > 1f } >= count - 1,
+                "$count faces stopped turning",
+            )
+        }
+    }
+
+    @Test
+    fun aBigStageKeepsTheSizeTheFacesAskFor() {
+        assertEquals(16f, radiusFor(2, largest = 20f, width = 300f, height = 200f))
+    }
+
+    @Test
+    fun eachPersonKeepsTheirOwnSize() {
+        val sizes = listOf("ana", "ben", "mika", "noor").map(::sizeVariety)
+        assertEquals(sizes, listOf("ana", "ben", "mika", "noor").map(::sizeVariety))
+        assertTrue(sizes.all { it in 0.8f..1.1f })
+        assertTrue(sizes.distinct().size > 1)
+    }
+
+    @Test
     fun facesOnTopOfEachOtherPushApart() {
         val first = FaceBody("a", 100f, 100f, 20f)
         val second = FaceBody("b", 100f, 100f, 20f)

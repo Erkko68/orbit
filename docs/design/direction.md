@@ -63,7 +63,7 @@ Over the bar: item, list, expense form, interview, review board
 | Opening | The last space, not the list. The list is one tap away on the title |
 | Spaces | Each row says what matters: "2 for you today · you owe €18.40" |
 | New space | A page of its own: the mark, a big title, then a panel to name a space and pick its colour, which the page takes on as a preview, and a panel to join with a code or link. Either way lands in the space. The guided setup comes later |
-| Calendar | Headline counts what is yours today. Overdue, Today and This week are panels. The members float in the top bar around a small settings shape, and any of them opens the settings (#259) |
+| Calendar | Headline counts what is yours today. Overdue, Today and This week are panels. The members orbit in a cluster in the top bar, and any of them opens the settings (#259) |
 | Empty space | The assistant is the first thing, "Add something yourself" is one tap away |
 | Tasks | Filters on the page. Your turn on top, then lists as tiles and every task as a card with a big title |
 | List | An item with a checklist: a colour block with the name and a wavy progress line. One list with what is left first and a row at the top that adds. Ticking the last entry finishes it |
@@ -71,7 +71,8 @@ Over the bar: item, list, expense form, interview, review board
 | Add | Type a title, done. Dates and people can wait |
 | Expenses | The amount is the headline, with Settle up beside it. Balances as sentences, then the ledger |
 | Expense form | Amount first. Everyone in one line, with their share under their name. Tap to leave someone out |
-| Settings | A sheet: invite, members and roles, name and colour, leave or delete. Roles move here from the member row |
+| Settings | A sheet: invite, manage the space (members grouped by role, then leave or delete), name and colour. A member opens their page in the same sheet (#262) |
+| Member | A step of the settings sheet whose top edge turns their colour, the way a screen's colour header grows from the top: their face, name and role, then what they have and did lately, which fill in under it. The owner changes the role from there: "Make admin", "Make member", and "Make owner" for an admin, after a dialog (#261, #260) |
 | Interview | One question per screen in violet, and "Do it by hand instead" is always there |
 | Review board | Proposals grouped by kind, all kept by default. Tap to leave one out, pencil to edit, one button to add. "Nothing is saved until you confirm" |
 

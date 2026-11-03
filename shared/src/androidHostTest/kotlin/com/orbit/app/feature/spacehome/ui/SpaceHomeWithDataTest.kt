@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -13,20 +14,21 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.testing.InMemoryAuthRepository
-import com.orbit.app.testing.InMemoryItemRepository
-import com.orbit.app.testing.InMemoryLastSpaceRepository
-import com.orbit.app.testing.InMemorySpaceRepository
-import com.orbit.app.domain.model.ItemStatus
-import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ItemModules
+import com.orbit.app.domain.model.ItemStatus
+import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
 import com.orbit.app.testing.FakeSpaceRepository
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryItemRepository
+import com.orbit.app.testing.InMemoryLastSpaceRepository
+import com.orbit.app.testing.InMemorySpaceRepository
+import com.orbit.app.testing.hasClickLabel
 import com.orbit.app.testing.startTestKoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -34,8 +36,8 @@ import org.koin.core.context.stopKoin
 import org.robolectric.shadows.ShadowLooper
 import kotlin.test.AfterTest
 import kotlin.test.Test
-import kotlin.test.assertTrue
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /** Android only: the data arrives through the view model's flows, which these host tests run on the main looper. */
 @OptIn(ExperimentalTestApi::class)
@@ -78,9 +80,9 @@ class SpaceHomeWithDataTest : ComposeTest() {
         onNodeWithText("Flat 4B").assertIsDisplayed()
         onAllNodesWithText("A")[0].assertIsDisplayed()
 
-        onNodeWithContentDescription("Space settings").performClick()
+        onAllNodes(hasClickLabel("Space settings")).onFirst().performClick()
         onNodeWithText("6 members").assertIsDisplayed()
-        onNodeWithText("Members and roles").performClick()
+        onNodeWithText("Manage space").performClick()
         onNodeWithText("You").assertExists()
         onNodeWithText("Owner").assertExists()
         onNodeWithText("Admins").assertExists()

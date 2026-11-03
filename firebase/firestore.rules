@@ -124,8 +124,8 @@ service cloud.firestore {
           && !existsAfter(memberPath(spaceId, request.auth.uid));
       }
 
-      // The space half of a transfer (#27, ADR 0004): it names another member as ownerId, and the same batch
-      // makes them owner and the caller an admin.
+      // The space half of a transfer (#27, ADR 0004): it names an admin as ownerId, and the same batch makes
+      // them owner and the caller an admin. A plain member is made admin first.
       function transfersOwnership() {
         let newOwner = request.resource.data.ownerId;
         return isOwner(spaceId)
@@ -133,6 +133,7 @@ service cloud.firestore {
           && newOwner is string
           && newOwner != request.auth.uid
           && newOwner in resource.data.memberIds
+          && get(memberPath(spaceId, newOwner)).data.role == 'admin'
           && getAfter(memberPath(spaceId, newOwner)).data.role == 'owner'
           && getAfter(memberPath(spaceId, request.auth.uid)).data.role == 'admin';
       }
@@ -183,7 +184,7 @@ service cloud.firestore {
           return !changedKeys().hasAny(['invitationCode', 'joinedAt']);
         }
 
-        // The member half of a transfer, which changes nothing but roles: the member the space now names
+        // The member half of a transfer, which changes nothing but roles: the admin the space now names
         // becomes owner, and the owner becomes an admin. Neither stands alone: each needs the other and the
         // new ownerId.
         function handsOwnership() {
@@ -193,7 +194,7 @@ service cloud.firestore {
             && ownerId != request.auth.uid
             && getAfter(memberPath(spaceId, ownerId)).data.role == 'owner'
             && getAfter(memberPath(spaceId, request.auth.uid)).data.role == 'admin'
-            && ((memberId == ownerId && request.resource.data.role == 'owner')
+            && ((memberId == ownerId && resource.data.role == 'admin' && request.resource.data.role == 'owner')
               || (memberId == request.auth.uid && request.resource.data.role == 'admin'));
         }
 
@@ -209,11 +210,11 @@ service cloud.firestore {
         allow read: if isMember(spaceId);
         allow create: if (isSpaceCreator() && request.auth.uid == memberId && request.resource.data.role == 'owner')
           || joinsAsMember();
-        // A member edits their own profile copy and the role stays. An owner or admin sets the role of
-        // anyone but the owner to admin or member. Nobody becomes owner this way: only a transfer does.
+        // A member edits their own profile copy and the role stays. Only the owner sets the role of anyone
+        // else to admin or member: an admin makes no admins. Nobody becomes owner this way: only a transfer does.
         allow update: if keepsJoin() && (
           (isMember(spaceId) && request.auth.uid == memberId && request.resource.data.role == resource.data.role) ||
-          (isAdminOrOwner(spaceId) && resource.data.role != 'owner' && request.resource.data.role in ['admin', 'member']) ||
+          (isOwner(spaceId) && resource.data.role != 'owner' && request.resource.data.role in ['admin', 'member']) ||
           handsOwnership()
         );
         // Leaving, the owner removing anyone else, or an admin removing a plain member.

@@ -67,7 +67,7 @@ fun SpaceHomeScreen(
                     onTitleClick = onBack,
                     onTitleClickLabel = stringResource(Res.string.space_back),
                     actions = {
-                        SpaceSettings(spaceId, onGone = onBack)
+                        SpaceSettings(spaceId, onGone = onBack, onOpenItem = onOpenItem)
                         OrbitAvatarButton(
                             initials = state.userInitials,
                             photoUrl = state.userPhotoUrl,

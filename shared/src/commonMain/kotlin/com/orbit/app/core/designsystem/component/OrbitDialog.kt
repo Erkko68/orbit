@@ -15,9 +15,10 @@ import androidx.compose.ui.Modifier
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 
 /**
- * A prompt that stops the app until it is answered, such as asking to turn notifications on. Material 3 asks to use
- * dialogs sparingly: anything else over the screen is an [OrbitSheet]. A [title], the [content] and a way out. Give it
- * [confirmText] and [onConfirm] when the prompt ends with one action. Whether it is open is the caller's state: show it
+ * A prompt that stops the app until it is answered, such as asking to turn notifications on or confirming what cannot be
+ * undone. Material 3 asks to use dialogs sparingly: anything else over the screen is an [OrbitSheet]. A [title], the
+ * [content] and a way out. Give it [confirmText] and [onConfirm] when the prompt ends with one action, which
+ * [confirmEnabled] holds back until the content allows it. Whether it is open is the caller's state: show it
  * while it is, and close it in [onDismiss], which also runs when the user taps outside or goes back.
  */
 @Composable
@@ -28,13 +29,14 @@ fun OrbitDialog(
     modifier: Modifier = Modifier,
     confirmText: String? = null,
     onConfirm: () -> Unit = {},
+    confirmEnabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             if (confirmText != null) {
-                TextButton(onClick = onConfirm) { Text(confirmText) }
+                TextButton(onClick = onConfirm, enabled = confirmEnabled) { Text(confirmText) }
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(dismissText) } },

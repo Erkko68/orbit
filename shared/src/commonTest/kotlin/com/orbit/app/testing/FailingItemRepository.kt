@@ -45,6 +45,8 @@ internal class FailingItemRepository(
 
     override fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>> = flowOf(emptyList())
 
+    override fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>> = flowOf(emptyList())
+
     override suspend fun complete(spaceId: String, itemId: String) = throw failure
 
     override suspend fun reopen(spaceId: String, itemId: String) = throw failure

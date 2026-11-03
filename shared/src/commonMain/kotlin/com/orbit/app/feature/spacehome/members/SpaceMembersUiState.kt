@@ -7,20 +7,29 @@ import orbit.shared.generated.resources.members_members
 import orbit.shared.generated.resources.role_owner
 import org.jetbrains.compose.resources.StringResource
 
-/** The members of a space, and the role picker of another member. */
+/** The members of a space, and the role change or handover the owner is making. */
 data class SpaceMembersUiState(
     /** The members have not arrived yet. */
     val loading: Boolean = false,
     /** Loading the members failed. Cleared by a retry. */
     val loadFailed: Boolean = false,
     val members: List<SpaceMember> = emptyList(),
-    /** The member whose role is being picked, while the picker is open. */
-    val rolePicker: SpaceMember? = null,
+    /** The member whose role is changing, or failed to change last. */
+    val changing: String? = null,
     /** A role change or a transfer is under way. */
     val busy: Boolean = false,
-    /** The last of those failed. Cleared by the next attempt or by closing the picker. */
+    /** The last of those failed. Cleared by the next attempt. */
     val failed: Boolean = false,
+    /** The admin the user is about to hand the space to, while the dialog asks. */
+    val transferTo: SpaceMember? = null,
+    /** The user ticked that only the new owner can give the space back. */
+    val transferAcknowledged: Boolean = false,
 ) {
+    val canTransfer: Boolean get() = transferTo != null && transferAcknowledged && !busy
+
+    /** Changing the role of [memberId] failed, which their page says. */
+    fun roleFailed(memberId: String): Boolean = failed && changing == memberId
+
     /** The members under their role, the owner first. Within a role the user comes first, then by name. */
     val byRole: List<RoleSection>
         get() = Role.entries.mapNotNull { role ->
@@ -52,8 +61,8 @@ data class SpaceMember(
     val currentRole: Role,
     /** The signed-in user: their chip says "You". */
     val isYou: Boolean = false,
-    /** The user can change this role: they manage the space, and this is neither the owner nor themselves. */
+    /** The user owns the space and this is someone else: they make a member admin, or an admin member. */
     val canChangeRole: Boolean = false,
-    /** The user owns the space and can hand it to this member. */
+    /** The user owns the space and this is an admin, to whom they can hand it. */
     val canTakeOwnership: Boolean = false,
 )

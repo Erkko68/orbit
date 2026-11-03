@@ -3,20 +3,22 @@ package com.orbit.app.feature.spacehome.settings
 import com.orbit.app.domain.model.Role
 
 /** What the settings of a space show while they are open. */
-enum class SpaceSettingsPage { MENU, IDENTITY, MEMBERS }
+enum class SpaceSettingsPage { MENU, IDENTITY, MEMBERS, MEMBER }
 
 /** Every step of the one sheet of the settings, including the ones other view models hold open. */
-internal enum class SpaceSettingsStep { MENU, IDENTITY, MEMBERS, ROLE, INVITE, EXIT }
+internal enum class SpaceSettingsStep { MENU, IDENTITY, MEMBERS, MEMBER, INVITE, EXIT }
 
 /**
  * The settings of a space, in a sheet that holds everything the user can do with it: an owner or admin invites and
- * edits its name and colour, anyone sees its members, the owner deletes it and everyone else leaves it.
+ * edits its name and colour, anyone sees its members and each one's page, the owner deletes it and everyone else leaves it.
  */
 data class SpaceSettingsUiState(
     /** The user's role in the space. Null until the members load, and for someone outside it: nothing shows. */
     val role: Role? = null,
     /** What is showing, null while the settings are closed. */
     val page: SpaceSettingsPage? = null,
+    /** The member whose page is showing, on [SpaceSettingsPage.MEMBER]. */
+    val memberId: String? = null,
     /** The space's name, for the title of the sheet. */
     val spaceName: String = "",
     /** The name being typed: the current one when the settings opened. */

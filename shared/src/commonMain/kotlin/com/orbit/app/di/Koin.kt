@@ -32,6 +32,7 @@ import com.orbit.app.feature.space.card.SpaceCardViewModel
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.feature.spacehome.items.SpaceItemsViewModel
 import com.orbit.app.feature.spacehome.members.InviteViewModel
+import com.orbit.app.feature.spacehome.members.MemberActivityViewModel
 import com.orbit.app.feature.spacehome.members.SpaceMembersViewModel
 import com.orbit.app.feature.spacehome.settings.SpaceSettingsViewModel
 import com.russhwolf.settings.Settings
@@ -97,5 +98,6 @@ val featureModule = module {
     viewModelOf(::SpaceItemsViewModel)
     viewModelOf(::SpaceMembersViewModel)
     viewModelOf(::InviteViewModel)
+    viewModelOf(::MemberActivityViewModel)
     viewModelOf(::SpaceSettingsViewModel)
 }

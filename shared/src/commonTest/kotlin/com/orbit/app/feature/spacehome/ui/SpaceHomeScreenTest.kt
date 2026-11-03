@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -15,11 +16,12 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
 import com.orbit.app.testing.InMemorySpaceRepository
-import com.orbit.app.feature.spacehome.SpaceHomeViewModel
+import com.orbit.app.testing.hasClickLabel
 import com.orbit.app.testing.startTestKoin
 import kotlinx.coroutines.runBlocking
 import org.koin.core.context.stopKoin
@@ -63,7 +65,7 @@ class SpaceHomeScreenTest : ComposeTest() {
         onNodeWithText("Calendar").assertIsSelected()
         onNodeWithText("Nothing in orbit yet").assertIsDisplayed()
         onNodeWithText("Nothing scheduled for today").assertIsDisplayed()
-        onNodeWithContentDescription("Space settings").assertIsDisplayed()
+        onAllNodes(hasClickLabel("Space settings")).onFirst().assertIsDisplayed()
     }
 
     @Test
@@ -76,7 +78,7 @@ class SpaceHomeScreenTest : ComposeTest() {
 
         onNodeWithContentDescription("Ana López").performClick()
 
-        onNodeWithText("Members and roles").assertIsDisplayed()
+        onNodeWithText("Manage space").assertIsDisplayed()
     }
 
     @Test

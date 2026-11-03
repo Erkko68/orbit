@@ -297,6 +297,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `updateEntry` | same | `update` of `modules.checklist.entries.<id>.text` and `.quantity` only |
 | `removeEntry` | same | `update`: delete `modules.checklist.entries.<id>` |
 | `observeCompletions` | `spaces/{id}/completions` where `itemId ==` id, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way |
+| `observeMemberCompletions` | `spaces/{id}/completions` where `completedBy ==` uid, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way |
 | `complete` | same item, and a new `spaces/{id}/completions/{completionId}` | One batch: `update` of `status: done`, `completedBy`, `completedAt`, and `set` of the completion |
 | `reopen` | same | `update` of `status: open`, delete `completedBy` and `completedAt` |
 
@@ -335,6 +336,7 @@ No method saves a whole existing item: every update writes only its field paths,
 | Items | `spaces/{id}/items` ordered by `createdAt` | automatic |
 | Ledger | `spaces/{id}/expenses` | automatic |
 | Invitations (owner, admin) | `invitations` where `spaceId ==` id | automatic |
+| Member page | `spaces/{id}/completions` where `completedBy ==` uid ordered by `completedAt` desc | composite: `completedBy` asc, `completedAt` desc, in `firebase/firestore.indexes.json` |
 | Item history | `spaces/{id}/completions` where `itemId ==` id ordered by `completedAt` desc | composite: `itemId` asc, `completedAt` desc, in `firebase/firestore.indexes.json` |
 | Agenda | `spaces/{id}/items` where `status == open` and `modules.schedule.date <=` end of week | composite: `status` asc, `modules.schedule.date` asc, in `firebase/firestore.indexes.json` |
 

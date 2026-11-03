@@ -104,15 +104,14 @@ describe('Members subcollection', () => {
     assert.ok(promoteSelf);
   });
 
-  it('allows admin to promote member to admin, but denies changing owner', async () => {
+  it('denies an admin changing roles, the owner\'s included', async () => {
     const bobDb = testEnv.authenticatedContext('bob').firestore();
 
-    const promoteMember = await assertSucceeds(
+    await assertFails(
       bobDb.collection('spaces').doc('s1').collection('members').doc('charlie').update({
         role: 'admin',
       })
     );
-    assert.ok(!promoteMember);
 
     const changeOwner = await assertFails(
       bobDb.collection('spaces').doc('s1').collection('members').doc('alice').update({
@@ -131,9 +130,10 @@ describe('Members subcollection', () => {
     await assertSucceeds(setRole('alice', 'bob', 'member'));
   });
 
-  it('lets an admin change the role of a member and of another admin', async () => {
-    await assertSucceeds(setRole('bob', 'charlie', 'admin'));
-    await assertSucceeds(setRole('bob', 'charlie', 'member'));
+  it('denies an admin making an admin or a member of anyone', async () => {
+    await assertFails(setRole('bob', 'charlie', 'admin'));
+    await assertSucceeds(setRole('alice', 'charlie', 'admin'));
+    await assertFails(setRole('bob', 'charlie', 'member'));
   });
 
   it('denies anyone making a second owner, the owner included', async () => {

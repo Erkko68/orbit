@@ -56,7 +56,7 @@ import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.ic_edit
 import org.jetbrains.compose.resources.painterResource
 
-private val HeaderCorner = 32.dp
+internal val HeaderCorner = 32.dp
 private val PlanetRadius = 180.dp
 private val PlanetRight = 150.dp
 private val PlanetTop = 130.dp
@@ -105,12 +105,7 @@ fun OrbitColorHeader(
         Box {
             Column(
                 modifier = Modifier
-                    .drawBehind {
-                        val radius = PlanetRadius.toPx()
-                        val center = Offset(size.width + PlanetRight.toPx() - radius, radius - PlanetTop.toPx())
-                        drawCircle(Ink.copy(alpha = HALO_ALPHA), radius + HaloWidth.toPx(), center)
-                        drawCircle(Ink.copy(alpha = PLANET_ALPHA), radius, center)
-                    }
+                    .headerPlanet()
                     .windowInsetsPadding(insets)
                     .padding(start = OrbitSpacing.xs, end = OrbitSpacing.md, bottom = OrbitSpacing.lg),
             ) {
@@ -153,6 +148,14 @@ fun OrbitColorHeader(
             floating?.let { Box(Modifier.matchParentSize(), content = it) }
         }
     }
+}
+
+/** The faint planet that rises past the top right corner of a block of colour, with its halo. */
+internal fun Modifier.headerPlanet(): Modifier = drawBehind {
+    val radius = PlanetRadius.toPx()
+    val center = Offset(size.width + PlanetRight.toPx() - radius, radius - PlanetTop.toPx())
+    drawCircle(Ink.copy(alpha = HALO_ALPHA), radius + HaloWidth.toPx(), center)
+    drawCircle(Ink.copy(alpha = PLANET_ALPHA), radius, center)
 }
 
 /**

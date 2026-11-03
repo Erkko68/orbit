@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.Icon
@@ -20,6 +21,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
@@ -99,12 +102,16 @@ private fun BarTitle(
     )
 }
 
-/** The title that opens something: the mark, the name and a chevron on a soft pill, so it reads as something to change. */
+/**
+ * The title that opens something: the mark, the name and a chevron on a soft pill, so it reads as something to change.
+ * It takes at most half the screen, and a longer name ends in an ellipsis.
+ */
 @Composable
 private fun TitleButton(title: String, onClick: () -> Unit, onClickLabel: String?) {
     val shape = MaterialTheme.shapes.medium
+    val halfScreen = with(LocalDensity.current) { (LocalWindowInfo.current.containerSize.width / 2).toDp() }
     Surface(
-        modifier = Modifier.padding(start = OrbitSpacing.sm).panelShadow(shape),
+        modifier = Modifier.padding(start = OrbitSpacing.sm).widthIn(max = halfScreen).panelShadow(shape),
         shape = shape,
         color = MaterialTheme.colorScheme.surfaceBright,
     ) {

@@ -5,6 +5,7 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -12,14 +13,15 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.share.TextSharer
-import com.orbit.app.testing.InMemoryAuthRepository
-import com.orbit.app.testing.InMemoryInvitationRepository
-import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.spacehome.settings.SpaceSettings
 import com.orbit.app.feature.spacehome.settings.SpaceSettingsViewModel
 import com.orbit.app.testing.FailingInvitationRepository
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryInvitationRepository
+import com.orbit.app.testing.InMemorySpaceRepository
+import com.orbit.app.testing.hasClickLabel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -44,6 +46,7 @@ class InvitePageTest : ComposeTest() {
                 SpaceSettings(
                     spaceId = "space-1",
                     onGone = {},
+                    onOpenItem = {},
                     viewModel = SpaceSettingsViewModel("space-1", spaces, auth),
                     membersViewModel = SpaceMembersViewModel("space-1", spaces, auth),
                     inviteViewModel = InviteViewModel("space-1", invitations, spaces, auth),
@@ -51,7 +54,7 @@ class InvitePageTest : ComposeTest() {
                 )
             }
         }
-        onNodeWithContentDescription("Space settings").performClick()
+        onAllNodes(hasClickLabel("Space settings")).onFirst().performClick()
         onNodeWithText("Invite people").performClick()
     }
 

@@ -17,7 +17,7 @@ data object NewSpaceRoute
 @Serializable
 data object AccountRoute
 
-/** One space, with its bottom bar: home, tasks and expenses (ADR 0005). */
+/** One space, with its bottom bar: calendar, tasks and expenses (ADR 0005). */
 @Serializable
 data class SpaceHomeRoute(val spaceId: String)
 

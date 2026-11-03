@@ -112,12 +112,17 @@ describe('Leaving and handing over a space', () => {
     await assertFails(spaceOf('alice').collection('members').doc('alice').get());
   });
 
-  it('lets the owner hand the space to another member and become an admin', async () => {
-    await assertSucceeds(transfer('alice', 'charlie'));
+  it('lets the owner hand the space to an admin and become an admin', async () => {
+    await assertSucceeds(transfer('alice', 'bob'));
 
-    assert.strictEqual((await read('spaces/s1')).ownerId, 'charlie');
-    assert.strictEqual((await read('spaces/s1/members/charlie')).role, 'owner');
+    assert.strictEqual((await read('spaces/s1')).ownerId, 'bob');
+    assert.strictEqual((await read('spaces/s1/members/bob')).role, 'owner');
     assert.strictEqual((await read('spaces/s1/members/alice')).role, 'admin');
+  });
+
+  it('refuses handing the space to a plain member, who is made admin first', async () => {
+    await assertFails(transfer('alice', 'charlie'));
+    assert.strictEqual((await read('spaces/s1/members/charlie')).role, 'member');
   });
 
   it('lets the new owner hand it on, and the old one no longer can', async () => {

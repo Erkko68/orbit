@@ -1,45 +1,35 @@
 package com.orbit.app.core.designsystem.component
 
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.orbit.app.core.designsystem.theme.OrbitShape
-import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.ic_tune
 
-private val CrewWidth = 132.dp
-private val CrewHeight = 56.dp
+// Wider than the cluster, so it floats in the free space of the bar rather than against the account avatar.
+private val CrewWidth = 120.dp
+private val CrewHeight = 64.dp
 private val CrewFace = 20.dp
-private const val SETTINGS_SCALE = 0.75f
-private const val SETTINGS = "settings"
+
+/** More would not fit the top bar and still turn: the rest are in the space's settings, which the faces open. */
+private const val CREW_FACES = 4
 
 /**
- * The people of a space floating in the top bar around a smaller round settings shape, which [settingsDescription] names.
- * They are one way into the space's settings: tapping any of them calls [onClick].
+ * The people of a space orbiting in the top bar, the first few of them. They are the way into the space's settings:
+ * tapping any of them calls [onClick], which [openLabel] names for screen readers.
  */
 @Composable
 fun OrbitCrew(
     faces: List<OrbitFloatingFace>,
-    settingsDescription: String,
+    openLabel: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val settings = OrbitFloatingFace(
-        id = SETTINGS,
-        initials = "",
-        color = MaterialTheme.colorScheme.surfaceBright,
-        shape = OrbitShape.Circle,
-        description = settingsDescription,
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        icon = Res.drawable.ic_tune,
-        scale = SETTINGS_SCALE,
-    )
     OrbitFloatingFaces(
-        faces = listOf(settings) + faces,
+        faces = faces,
         modifier = modifier.size(CrewWidth, CrewHeight),
         largest = CrewFace,
+        limit = CREW_FACES,
         onFaceClick = { onClick() },
+        clickLabel = openLabel,
     )
 }

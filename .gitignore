@@ -27,7 +27,8 @@ DerivedData/
 # Firebase
 .firebase/
 *-debug.log
-server/venv/
+venv/
+.venv/
 __pycache__/
 .pytest_cache/
 server/coverage.xml

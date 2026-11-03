@@ -5,14 +5,18 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -24,8 +28,11 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.orbit.app.core.designsystem.theme.Ink
 import com.orbit.app.core.designsystem.theme.OrbitMotion
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.PanelTopShape
@@ -39,7 +46,9 @@ import orbit.shared.generated.resources.ic_close
  * content, and closes with a swipe, a tap outside, back or the close button. Whether it is open is the caller's state:
  * show it while it is, and close it in [onDismiss]. With [confirmText] it ends in one action, in red when [danger].
  * A task of several steps stays in one sheet: pass [onBack] on the steps after the first, and show them in
- * [OrbitSheetPages], so the sheet changes in place and never opens a second one on top.
+ * [OrbitSheetPages], so the sheet changes in place and never opens a second one on top. A [header], such as an
+ * [OrbitSheetColorHeader], takes the place of the title row, flush with the sheet's top edge, and gets what closes the
+ * sheet. Going between a step with one and a step without fades one into the other.
  */
 // M3's ModalBottomSheet is experimental in material3 1.9.0: an exception AGENTS.md allows, here and nowhere else.
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,10 +64,12 @@ fun OrbitSheet(
     onConfirm: () -> Unit = {},
     confirmEnabled: Boolean = true,
     danger: Boolean = false,
+    header: (@Composable (close: () -> Unit) -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
+    val close: () -> Unit = { scope.launch { state.hide() }.invokeOnCompletion { onDismiss() } }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier,
@@ -66,36 +77,70 @@ fun OrbitSheet(
         shape = PanelTopShape,
         containerColor = MaterialTheme.colorScheme.surfaceBright,
         contentColor = MaterialTheme.colorScheme.onSurface,
+        dragHandle = null,
     ) {
         CompositionLocalProvider(LocalInsideCard provides true) {
-            Column(
-                modifier = Modifier
-                    .imePadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(start = OrbitSpacing.md, end = OrbitSpacing.md, bottom = OrbitSpacing.md),
-                verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (onBack != null && backDescription != null) {
-                        OrbitIconButton(Res.drawable.ic_arrow_back, backDescription, onBack)
+            Column(Modifier.imePadding().verticalScroll(rememberScrollState())) {
+                Box {
+                    AnimatedContent(
+                        targetState = header,
+                        transitionSpec = { fadeIn(OrbitMotion.effects()) togetherWith fadeOut(OrbitMotion.effects()) },
+                        contentKey = { it != null },
+                    ) { shown ->
+                        if (shown != null) {
+                            shown(close)
+                        } else {
+                            SheetTitle(title, closeDescription, close, backDescription, onBack)
+                        }
                     }
-                    Text(
-                        text = title,
-                        modifier = Modifier.weight(1f).semantics { heading() },
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                    OrbitIconButton(
-                        icon = Res.drawable.ic_close,
-                        contentDescription = closeDescription,
-                        onClick = { scope.launch { state.hide() }.invokeOnCompletion { onDismiss() } },
-                    )
+                    SheetHandle(if (header != null) Ink else MaterialTheme.colorScheme.onSurfaceVariant, Modifier.align(Alignment.TopCenter))
                 }
-                content()
-                if (confirmText != null) {
-                    OrbitButton(confirmText, onConfirm, Modifier.fillMaxWidth(), confirmEnabled, danger)
+                Column(
+                    modifier = Modifier.padding(OrbitSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
+                ) {
+                    content()
+                    if (confirmText != null) {
+                        OrbitButton(confirmText, onConfirm, Modifier.fillMaxWidth(), confirmEnabled, danger)
+                    }
                 }
             }
         }
+    }
+}
+
+/** What says the sheet can be swiped, on its top edge: over the colour of a [OrbitSheetColorHeader] too. */
+@Composable
+private fun SheetHandle(color: Color, modifier: Modifier) {
+    Box(
+        modifier
+            .padding(top = OrbitSpacing.sm)
+            .size(HandleWidth, HandleHeight)
+            .background(color.copy(alpha = HANDLE_ALPHA), CircleShape),
+    )
+}
+
+@Composable
+private fun SheetTitle(
+    title: String,
+    closeDescription: String,
+    onClose: () -> Unit,
+    backDescription: String?,
+    onBack: (() -> Unit)?,
+) {
+    Row(
+        modifier = Modifier.padding(start = OrbitSpacing.md, top = OrbitSpacing.md, end = OrbitSpacing.md),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (onBack != null && backDescription != null) {
+            OrbitIconButton(Res.drawable.ic_arrow_back, backDescription, onBack)
+        }
+        Text(
+            text = title,
+            modifier = Modifier.weight(1f).semantics { heading() },
+            style = MaterialTheme.typography.headlineSmall,
+        )
+        OrbitIconButton(icon = Res.drawable.ic_close, contentDescription = closeDescription, onClick = onClose)
     }
 }
 
@@ -119,3 +164,6 @@ fun <T> OrbitSheetPages(page: T, modifier: Modifier = Modifier, content: @Compos
 }
 
 private const val SLIDE_FRACTION = 6
+private const val HANDLE_ALPHA = 0.4f
+private val HandleWidth = 32.dp
+private val HandleHeight = 4.dp
