@@ -34,6 +34,9 @@ interface AuthRepository {
      */
     suspend fun acceptAiConsent()
 
+    /** The signed-in user's Firebase ID token, which the assistant server checks (ADR 0007). Throws when signed out. */
+    suspend fun idToken(): String
+
     /** Shows the platform's Google account picker. Does nothing when the user closes it. */
     suspend fun signInWithGoogle()
 

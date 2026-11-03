@@ -94,6 +94,7 @@ kotlin {
             implementation(libs.kotlinx.coroutines.test)
             implementation(libs.koin.test)
             implementation(libs.multiplatformSettingsTest)
+            implementation(libs.ktor.client.mock)
             implementation(libs.compose.uiTest)
         }
         getByName("androidHostTest").dependencies {
