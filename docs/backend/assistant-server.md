@@ -6,15 +6,18 @@ Firebase is the backend for everything but the assistant: Authentication, and Fi
 
 ```
 server/
-├── main.py              the HTTP server (Flask): checks the caller's ID token, answers in the callable shape
+├── main.py              the HTTP server (http.server): answers in the callable shape
+├── auth.py              the check of the caller's Firebase ID token
 ├── assistant.py         the assistant and the check of what the model answers, testable without the server
 ├── models.py            the models it can ask (Gemma 4 on Ollama, Gemini), chosen by configuration
+├── net.py               JSON over HTTP
 ├── prompts/             the prompts, versioned as files
 ├── tests/               pytest, with a fake model and a fake token check
-├── Dockerfile           the server's image (gunicorn on port 8080)
+├── Dockerfile           the server's image (port 8080); installs nothing
 ├── compose.yaml         the server and Ollama, side by side
-├── requirements.txt     flask, gunicorn, firebase-admin, google-genai
-└── requirements-dev.txt pytest, pytest-cov
+└── requirements-dev.txt pytest, pytest-cov: the tests' only dependencies
+
+The server is Python's standard library only: no web framework, no Firebase or Google SDK. Its image installs nothing, so there are no dependencies to pin, patch or trust at build time.
 ```
 
 ## What runs here, and what does not
@@ -36,7 +39,7 @@ Entitlements (#117, #120) and push notices to other members (#102) need a server
 
 ## Rules for the server
 
-- Every request carries the caller's Firebase ID token (`Authorization: Bearer <token>`). The server checks it with `firebase-admin`, which needs only the project id, and rejects the call before the model without a valid one.
+- Every request carries the caller's Firebase ID token (`Authorization: Bearer <token>`). The server asks Firebase Authentication whether it is valid (Identity Toolkit's `accounts:lookup`, with `FIREBASE_API_KEY`), and rejects the call before the model without a valid one.
 - Provider keys live in the server's environment (a `.env` next to `compose.yaml`), never in the repo or the app.
 - The assistant takes the model as a plain function (`generate(prompt, schema)`), and the model is configuration, so #70 can change it without touching the assistant.
 - What the model answers is checked before it reaches the app. An answer that is not valid is an `UNAVAILABLE` error, never passed on.
@@ -59,7 +62,8 @@ Entitlements (#117, #120) and push notices to other members (#102) need a server
 
 | Variable | Default | |
 |---|---|---|
-| `FIREBASE_PROJECT_ID` | `orbit-app-dev` | Whose ID tokens are accepted |
+| `FIREBASE_API_KEY` | | An `orbit-app-dev` API key allowed to call the Identity Toolkit API, to check ID tokens. Make one for the server in Google Cloud (Credentials → API key → restrict to Identity Toolkit API): the apps' keys are restricted to the apps. In `.env`, never committed |
+| `HOST`, `PORT` | `0.0.0.0`, `8080` | Where the server listens |
 | `ASSISTANT_PROVIDER` | `local` | `local` (an OpenAI-compatible endpoint, such as Ollama) or `gemini` |
 | `ASSISTANT_MODEL` | `gemma4` (local), `gemini-3.5-flash` (gemini) | The model's name for that provider. For Ollama, the tag it was pulled with |
 | `MODEL_URL` | `http://ollama:11434/v1` | The OpenAI-compatible endpoint, for `local` |
@@ -85,6 +89,6 @@ pytest covers the server with a fake model and a fake token check, so the tests 
 ```sh
 cd server
 python -m venv venv && source venv/bin/activate   # venv\Scripts\activate on Windows
-pip install -r requirements.txt -r requirements-dev.txt
+pip install -r requirements-dev.txt
 pytest --cov
 ```

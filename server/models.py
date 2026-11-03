@@ -1,22 +1,12 @@
 """The models the assistant can ask, each as a Generate. Which one is configuration, so #70 can switch without code."""
 
 import json
-import urllib.request
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 
 from assistant import Generate
+from net import Post, post_json
 
-# An HTTP POST of a JSON body that returns the JSON reply.
-Post = Callable[[str, dict], dict]
-
-
-def post_json(url: str, body: dict) -> dict:
-    """Generous timeout: a small model on a CPU can take a while to answer."""
-    request = urllib.request.Request(
-        url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"}, method="POST"
-    )
-    with urllib.request.urlopen(request, timeout=120) as response:
-        return json.load(response)
+GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
 def openai_compatible(base_url: str, model: str, post: Post = post_json) -> Generate:
@@ -36,18 +26,19 @@ def openai_compatible(base_url: str, model: str, post: Post = post_json) -> Gene
     return generate
 
 
-def gemini(client, model: str) -> Generate:
-    """Gemini through its API, with [client] made from the key in the server's environment."""
+def gemini(api_key: str, model: str, post: Post = post_json) -> Generate:
+    """Gemini through its REST API, with the key from the server's environment."""
 
     def generate(prompt: str, schema: dict) -> object:
-        from google.genai import types
-
-        response = client.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=schema),
+        reply = post(
+            GEMINI.format(model=model),
+            {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"responseMimeType": "application/json", "responseJsonSchema": schema},
+            },
+            headers={"X-Goog-Api-Key": api_key},
         )
-        return json.loads(response.text)
+        return json.loads(reply["candidates"][0]["content"]["parts"][0]["text"])
 
     return generate
 
@@ -58,7 +49,5 @@ def from_env(env: Mapping[str, str]) -> Generate:
     if provider == "local":
         return openai_compatible(env.get("MODEL_URL", "http://ollama:11434/v1"), env.get("ASSISTANT_MODEL", "gemma4"))
     if provider == "gemini":
-        from google import genai
-
-        return gemini(genai.Client(api_key=env["GEMINI_API_KEY"]), env.get("ASSISTANT_MODEL", "gemini-3.5-flash"))
+        return gemini(env["GEMINI_API_KEY"], env.get("ASSISTANT_MODEL", "gemini-3.5-flash"))
     raise ValueError(f"Unknown ASSISTANT_PROVIDER {provider!r}: use local or gemini")

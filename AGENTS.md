@@ -7,7 +7,7 @@ This file holds the rules. The background to them (architecture, schema, roles, 
 ## Architecture
 - Modules: `shared/` (all app code), `androidApp/` (Android entry), `iosApp/` (Xcode entry), `firebase/` (backend), `server/` (the assistant).
 - `firebase/`: everything deployed to Firebase. `firestore.rules`, `firebase.json` and the rules tests. Run the Firebase CLI from this folder.
-- `server/`: the assistant's backend, a small Python HTTP server (Flask) in Docker on our own server, next to its model ([ADR 0007](docs/adr/0007-assistant-on-our-own-server.md)).
+- `server/`: the assistant's backend, a small Python HTTP server (standard library only) in Docker on our own server, next to its model ([ADR 0007](docs/adr/0007-assistant-on-our-own-server.md)).
 - Package root: `com.orbit.app`. Code lives in `shared/src/commonMain` by default.
 - `expect`/`actual` only where platforms really differ (camera, notifications, text recognition, file paths). Actuals go in `androidMain`/`iosMain` under the same package path.
 - `domain/`: models, validation, repository **interfaces**, use cases. Pure Kotlin only (kotlinx coroutines/datetime allowed). No Compose, Room, Firebase or Koin. A computation that is a pure function of stored data (balances, the agenda's sorting) is a domain use case on the device, not server code ([ADR 0003](docs/adr/0003-balances-on-device.md)).

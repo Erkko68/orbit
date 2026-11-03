@@ -14,11 +14,12 @@ What stays fixed: the app never calls an AI provider directly, provider keys nev
 
 **The assistant's backend is a small Python HTTP server in Docker, on Èric's server, next to the model it asks. The default model is Gemma 4, served by Ollama on the same machine; Gemini's free API is the fallback, by configuration.**
 
-- **No card, no bill.** Firebase stays on the free Spark plan. Verifying a Firebase ID token with `firebase-admin` needs no billing.
+- **No card, no bill.** Firebase stays on the free Spark plan. The server asks Firebase Authentication itself whether an ID token is valid (Identity Toolkit's `accounts:lookup`), which needs an API key but no billing.
+- **Nothing to install.** The server is Python's standard library only, so its image runs no third-party code and has no dependencies to pin or patch.
 - **The server still decides.** It checks the caller's ID token on every request and keeps the quota and the kill switch on our side, as the Cloud Function would have.
 - **The callable shape stays.** `POST /interview` takes `{"data": …}` and answers `{"result": …}` or `{"error": {status, message, details}}`, with the same statuses (`UNAUTHENTICATED`, `UNAVAILABLE`), so #44 calls it the way it would call a callable.
 - **The model is configuration.** `ASSISTANT_PROVIDER=local` asks any OpenAI-compatible endpoint (Ollama with Gemma 4); `ASSISTANT_PROVIDER=gemini` asks Gemini with `GEMINI_API_KEY` from the server's environment. #70 compares them with the scenarios of #69.
-- **The code from #43 carries over.** The question, its validation and their tests do not depend on where they run; only the wrapper changed, from `firebase-functions` to Flask.
+- **The code from #43 carries over.** The question, its validation and their tests do not depend on where they run; only the wrapper changed, from `firebase-functions` to `http.server`.
 
 The code lives in `server/`; `firebase/` keeps what is deployed to Firebase (the rules).
 

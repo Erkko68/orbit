@@ -8,12 +8,14 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
+    # Keys come from a .env file next to this one, never committed.
     environment:
-      FIREBASE_PROJECT_ID: orbit-app-dev
+      # An orbit-app-dev API key allowed to call the Identity Toolkit API: checks the callers' ID tokens.
+      FIREBASE_API_KEY: ${FIREBASE_API_KEY:?set FIREBASE_API_KEY in .env}
       ASSISTANT_PROVIDER: ${ASSISTANT_PROVIDER:-local}
       ASSISTANT_MODEL: ${ASSISTANT_MODEL:-gemma4}
       MODEL_URL: http://ollama:11434/v1
-      # Only for ASSISTANT_PROVIDER=gemini: from a .env file next to this one, never committed.
+      # Only for ASSISTANT_PROVIDER=gemini.
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     depends_on:
       - ollama
