@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.datetime.LocalDate
 import kotlin.time.Clock
 
 /** Items in memory, with ids in creation order across spaces. */
@@ -23,6 +24,14 @@ class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository 
     private var createdEntries = 0
 
     override fun observeItems(spaceId: String): Flow<List<Item>> = items.map { it[spaceId].orEmpty() }
+
+    override fun observeAgenda(spaceId: String, until: LocalDate): Flow<List<Item>> =
+        observeItems(spaceId).map { all ->
+            all.filter { item ->
+                val date = item.modules.schedule?.date
+                item.status is ItemStatus.Open && date != null && date <= until
+            }
+        }
 
     override suspend fun create(spaceId: String, item: NewItem): String {
         val id = "item-${++created}"
