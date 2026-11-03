@@ -200,6 +200,22 @@
     <string name="notification_permission_body">Orbit solo puede enviarte recordatorios si permites las notificaciones. Actívalas en los ajustes.</string>
     <string name="notification_permission_open_settings">Abrir ajustes</string>
     <string name="notification_permission_not_now">Ahora no</string>
+    <!-- Dictation -->
+    <string name="dictation_start">Dictar</string>
+    <string name="dictation_stop">Dejar de dictar</string>
+    <string name="dictation_failed_title">Dictado</string>
+    <string name="dictation_ok">OK</string>
+    <string name="dictation_no_permission">Orbit necesita el micrófono para dictar. Puedes permitirlo en los ajustes del teléfono o escribir tu respuesta.</string>
+    <string name="dictation_unavailable">Este teléfono no puede dictar en su idioma. Puedes escribir tu respuesta.</string>
+    <string name="dictation_no_speech">Orbit no ha entendido nada. Inténtalo de nuevo o escribe tu respuesta.</string>
+    <string name="dictation_error">El dictado se ha detenido. Inténtalo de nuevo o escribe tu respuesta.</string>
+    <!-- AI consent -->
+    <string name="ai_consent_title">Antes de que empiece el asistente</string>
+    <string name="ai_consent_body">Para sugerir un plan, Orbit envía tus respuestas, los títulos de los elementos del espacio y los nombres de sus miembros a un proveedor de IA (Google Gemini).</string>
+    <string name="ai_consent_nothing_saved">No se guarda nada hasta que revises el plan y lo confirmes.</string>
+    <string name="ai_consent_accept">Aceptar</string>
+    <string name="ai_consent_manual">Configurar a mano</string>
+    <string name="ai_consent_failed">No se ha podido guardar tu respuesta. Inténtalo de nuevo.</string>
     <string name="member_you">Tú</string>
     <string name="member_invite">Invitar</string>
     <string name="member_role_title">Rol de %1$s</string>

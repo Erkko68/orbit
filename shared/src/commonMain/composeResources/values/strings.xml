@@ -200,6 +200,15 @@
     <string name="notification_permission_body">Orbit can only remind you if it may send notifications. Turn them on in the settings.</string>
     <string name="notification_permission_open_settings">Open settings</string>
     <string name="notification_permission_not_now">Not now</string>
+    <!-- Dictation -->
+    <string name="dictation_start">Dictate</string>
+    <string name="dictation_stop">Stop dictating</string>
+    <string name="dictation_failed_title">Dictation</string>
+    <string name="dictation_ok">OK</string>
+    <string name="dictation_no_permission">Orbit needs the microphone to dictate. You can allow it in the phone settings, or type your answer.</string>
+    <string name="dictation_unavailable">This phone cannot dictate in its language. You can type your answer.</string>
+    <string name="dictation_no_speech">Orbit did not catch anything. Try again, or type your answer.</string>
+    <string name="dictation_error">Dictation stopped. Try again, or type your answer.</string>
     <!-- AI consent -->
     <string name="ai_consent_title">Before the assistant starts</string>
     <string name="ai_consent_body">To suggest a plan, Orbit sends your answers, and the titles of the space's items and the names of its members, to an AI provider (Google Gemini).</string>

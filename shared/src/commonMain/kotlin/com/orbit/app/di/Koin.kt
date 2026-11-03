@@ -16,6 +16,7 @@ import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.account.AccountViewModel
+import com.orbit.app.feature.assistant.dictation.DictationViewModel
 import com.orbit.app.feature.assistant.consent.AiConsentViewModel
 import com.orbit.app.feature.auth.CreateAccountViewModel
 import com.orbit.app.feature.auth.SessionViewModel
@@ -67,6 +68,7 @@ val dataModule = module {
 val featureModule = module {
     single { PendingInvitation() }
     viewModelOf(::AccountViewModel)
+    viewModelOf(::DictationViewModel)
     viewModelOf(::AiConsentViewModel)
     viewModelOf(::SessionViewModel)
     viewModelOf(::SignInViewModel)

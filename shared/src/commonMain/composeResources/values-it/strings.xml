@@ -200,6 +200,22 @@
     <string name="notification_permission_body">Orbit può inviarti promemoria solo se consenti le notifiche. Attivale nelle impostazioni.</string>
     <string name="notification_permission_open_settings">Apri impostazioni</string>
     <string name="notification_permission_not_now">Non ora</string>
+    <!-- Dictation -->
+    <string name="dictation_start">Detta</string>
+    <string name="dictation_stop">Interrompi la dettatura</string>
+    <string name="dictation_failed_title">Dettatura</string>
+    <string name="dictation_ok">OK</string>
+    <string name="dictation_no_permission">Orbit ha bisogno del microfono per la dettatura. Puoi consentirlo nelle impostazioni del telefono o scrivere la risposta.</string>
+    <string name="dictation_unavailable">Questo telefono non può dettare nella sua lingua. Puoi scrivere la risposta.</string>
+    <string name="dictation_no_speech">Orbit non ha sentito nulla. Riprova o scrivi la risposta.</string>
+    <string name="dictation_error">La dettatura si è interrotta. Riprova o scrivi la risposta.</string>
+    <!-- AI consent -->
+    <string name="ai_consent_title">Prima che l&apos;assistente inizi</string>
+    <string name="ai_consent_body">Per suggerire un piano, Orbit invia le tue risposte, i titoli degli elementi dello spazio e i nomi dei suoi membri a un fornitore di IA (Google Gemini).</string>
+    <string name="ai_consent_nothing_saved">Non viene salvato nulla finché non rivedi il piano e lo confermi.</string>
+    <string name="ai_consent_accept">Accetta</string>
+    <string name="ai_consent_manual">Configura a mano</string>
+    <string name="ai_consent_failed">Impossibile salvare la risposta. Riprova.</string>
     <string name="member_you">Tu</string>
     <string name="member_invite">Invita</string>
     <string name="member_role_title">Ruolo di %1$s</string>

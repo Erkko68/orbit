@@ -7,6 +7,8 @@ import com.orbit.app.core.notification.NotificationAccess
 import com.orbit.app.core.notification.NotificationScheduler
 import com.orbit.app.core.share.IosTextSharer
 import com.orbit.app.core.share.TextSharer
+import com.orbit.app.core.speech.Dictation
+import com.orbit.app.core.speech.IosDictation
 import com.orbit.app.data.auth.GoogleAuthClient
 import com.orbit.app.data.auth.GoogleSignInBridge
 import com.orbit.app.data.auth.IosGoogleAuthClient
@@ -18,6 +20,7 @@ actual val platformModule = module {
     single<TextSharer> { IosTextSharer() }
     single<NotificationScheduler> { IosNotificationScheduler() }
     single<NotificationAccess> { IosNotificationAccess() }
+    single<Dictation> { IosDictation() }
 }
 
 /** Starts Koin from Swift with the parts only Swift can provide. */
