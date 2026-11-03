@@ -10,6 +10,7 @@ erDiagram
     SPACE ||--|{ MEMBER : "has (memberIds mirrors them)"
     SPACE ||--o{ ITEM : contains
     SPACE ||--o{ EXPENSE : "keeps its ledger in"
+    ITEM ||--o{ COMPLETION : "has been completed in"
     SPACE ||--o{ INVITATION : "invites through"
     USER ||--o{ INVITATION : creates
     MEMBER ||--o{ ITEM : "creates, completes, is assigned"
@@ -52,6 +53,12 @@ erDiagram
         timestamp completedAt "optional"
         map modules
     }
+    COMPLETION {
+        string completionId PK "auto id, made on the device"
+        string itemId FK
+        string completedBy FK
+        timestamp completedAt
+    }
     EXPENSE {
         string expenseId PK "auto id, made on the device"
         string spaceId FK "copy of the parent"
@@ -81,11 +88,12 @@ users/{uid}                          private profile
 spaces/{spaceId}                     the space, with the list of member ids
 spaces/{spaceId}/members/{uid}       one membership: role and public profile copy
 spaces/{spaceId}/items/{itemId}      one item: core fields and its modules
+spaces/{spaceId}/completions/{completionId}  one time an item was completed
 spaces/{spaceId}/expenses/{expenseId}  one entry of the ledger
 invitations/{code}                   an invitation to one space; the id is the code
 ```
 
-The collection names are constants in `data/repository/Firestore.kt` (`USERS`, `SPACES`, `MEMBERS`, `ITEMS`, `EXPENSES`, `INVITATIONS`).
+The collection names are constants in `data/repository/Firestore.kt` (`USERS`, `SPACES`, `MEMBERS`, `ITEMS`, `COMPLETIONS`, `EXPENSES`, `INVITATIONS`).
 
 ## Conventions
 
@@ -184,6 +192,18 @@ The *deadline* is `endDate`, or `date` without one: an open item is overdue once
 |---|---|---|---|
 | `offsetsMinutes` | array of integer | yes | Minutes before the due moment, each 0 or more. Needs `modules.schedule`. Each phone schedules its own local notifications from it while the item is open and not assigned to another member. |
 
+### `spaces/{spaceId}/completions/{completionId}`
+
+Who completed an item and when, one document per completion, written in the batch that marks the item done. Append-only: reopening the item keeps it, and nobody edits or deletes one. One collection per space, so rotation and fairness (#49 to #51) read every completion of a space in one query.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `itemId` | string | yes | The item completed |
+| `completedBy` | uid | yes | The caller, as on the item |
+| `completedAt` | timestamp | yes | Server time |
+
+The occurrence date of a recurring item comes with recurrence (#46).
+
 ### `spaces/{spaceId}/expenses/{expenseId}`
 
 An entry of the ledger. Balances are derived from these on the device and never stored ([ADR 0003](../adr/0003-balances-on-device.md)). Amounts are in euro cents until the space has a currency (#111).
@@ -259,7 +279,8 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `addEntry` | same | `update` of `modules.checklist.entries.<new id>` with text, checked, optional quantity and order |
 | `updateEntry` | same | `update` of `modules.checklist.entries.<id>.text` and `.quantity` only |
 | `removeEntry` | same | `update`: delete `modules.checklist.entries.<id>` |
-| `complete` | same | `update` of `status: done`, `completedBy`, `completedAt` |
+| `observeCompletions` | `spaces/{id}/completions` where `itemId ==` id, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way |
+| `complete` | same item, and a new `spaces/{id}/completions/{completionId}` | One batch: `update` of `status: done`, `completedBy`, `completedAt`, and `set` of the completion |
 | `reopen` | same | `update` of `status: open`, delete `completedBy` and `completedAt` |
 
 No method saves a whole existing item: every update writes only its field paths, so concurrent edits merge.
@@ -297,6 +318,7 @@ No method saves a whole existing item: every update writes only its field paths,
 | Items | `spaces/{id}/items` ordered by `createdAt` | automatic |
 | Ledger | `spaces/{id}/expenses` | automatic |
 | Invitations (owner, admin) | `invitations` where `spaceId ==` id | automatic |
+| Item history | `spaces/{id}/completions` where `itemId ==` id ordered by `completedAt` desc | composite: `itemId` asc, `completedAt` desc, in `firebase/firestore.indexes.json` |
 | Agenda | `spaces/{id}/items` where `status == open` and `modules.schedule.date <=` end of week | composite: `status` asc, `modules.schedule.date` asc, in `firebase/firestore.indexes.json` |
 
 ## Coming next

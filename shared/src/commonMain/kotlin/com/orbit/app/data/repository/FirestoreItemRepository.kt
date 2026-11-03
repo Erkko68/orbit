@@ -3,6 +3,7 @@ package com.orbit.app.data.repository
 import co.touchlab.kermit.Logger
 import com.orbit.app.data.mapper.AssignmentDocument
 import com.orbit.app.data.mapper.ChecklistDocument
+import com.orbit.app.data.mapper.CompletionDocument
 import com.orbit.app.data.mapper.EntryDocument
 import com.orbit.app.data.mapper.ModulesDocument
 import com.orbit.app.data.mapper.ReminderDocument
@@ -19,6 +20,7 @@ import com.orbit.app.data.mapper.reminderDocument
 import com.orbit.app.data.mapper.scheduleDocument
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
+import com.orbit.app.domain.model.Completion
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
@@ -27,11 +29,13 @@ import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
+import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FieldsAndValuesUpdateDSL
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
@@ -119,13 +123,25 @@ class FirestoreItemRepository(
     override suspend fun removeEntry(spaceId: String, itemId: String, entryId: String) =
         update(spaceId, itemId) { entryPath(entryId) to FieldValue.delete }
 
+    override fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>> =
+        completions(spaceId)
+            .where { "itemId" equalTo itemId }
+            .orderBy(COMPLETED_AT, Direction.DESCENDING)
+            .limit(LATEST_COMPLETIONS)
+            .snapshots.map { snapshot -> snapshot.documents.mapNotNull(::toCompletion) }
+            .retryWhileRefused()
+
+    /** The item and its completion go in one batch, so the history never misses one nor has one too many. */
     override suspend fun complete(spaceId: String, itemId: String) {
         val userId = auth.requireUser().id
-        update(spaceId, itemId) {
+        val batch = firestore.batch()
+        batch.updateFields(items(spaceId).document(itemId)) {
             FieldPath(STATUS) to STATUS_DONE
             FieldPath(COMPLETED_BY) to userId
             FieldPath(COMPLETED_AT) to FieldValue.serverTimestamp
         }
+        batch.set(completions(spaceId).document, CompletionDocument(itemId, userId, Timestamp.ServerTimestamp))
+        writeLocally("Completing item $itemId") { batch.commit() }
     }
 
     override suspend fun reopen(spaceId: String, itemId: String) =
@@ -136,6 +152,19 @@ class FirestoreItemRepository(
         }
 
     private fun items(spaceId: String) = firestore.collection(SPACES).document(spaceId).collection(ITEMS)
+
+    private fun completions(spaceId: String) = firestore.collection(SPACES).document(spaceId).collection(COMPLETIONS)
+
+    private fun toCompletion(document: DocumentSnapshot): Completion? {
+        val itemId = document.field<String>("itemId")
+        val completedBy = document.field<String>(COMPLETED_BY)
+        val completedAt = document.instant(COMPLETED_AT)
+        if (itemId == null || completedBy == null || completedAt == null) {
+            Logger.w { "Skipping the malformed completion ${document.id}" }
+            return null
+        }
+        return Completion(document.id, itemId, completedBy, completedAt)
+    }
 
     private fun entryPath(entryId: String) = FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId)
 
@@ -180,5 +209,6 @@ class FirestoreItemRepository(
         const val CREATED_AT = "createdAt"
         const val COMPLETED_BY = "completedBy"
         const val COMPLETED_AT = "completedAt"
+        const val LATEST_COMPLETIONS = 10
     }
 }

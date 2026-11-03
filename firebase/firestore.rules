@@ -250,6 +250,26 @@ service cloud.firestore {
           && (resource.data.createdBy == request.auth.uid || isAdminOrOwner(spaceId));
       }
 
+      // ── spaces/{spaceId}/completions/{completionId} ────────────────────────────────────────────
+      // Who completed an item and when, kept for every completion. A member adds their own, in the batch that
+      // marks the item done. Append-only: reopening keeps it, and nobody edits or deletes one.
+
+      match /completions/{completionId} {
+        function completesItem(itemId) {
+          let item = /databases/$(database)/documents/spaces/$(spaceId)/items/$(itemId);
+          return getAfter(item).data.status == 'done';
+        }
+
+        allow read: if isMember(spaceId);
+        allow create: if isMember(spaceId)
+          && request.resource.data.keys().hasOnly(['itemId', 'completedBy', 'completedAt'])
+          && request.resource.data.itemId is string
+          && request.resource.data.completedBy == request.auth.uid
+          && request.resource.data.completedAt == request.time
+          && completesItem(request.resource.data.itemId);
+        allow update, delete: if false;
+      }
+
       // ── spaces/{spaceId}/expenses/{expenseId} ──────────────────────────────────────────────────
       // The ledger. Editing and deleting follow the item table: every member edits, only the creator, an
       // admin or the owner deletes. Rules cannot sum a split of any size, so the domain checks that the shares

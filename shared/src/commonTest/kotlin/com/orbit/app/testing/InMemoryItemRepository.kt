@@ -2,6 +2,7 @@ package com.orbit.app.testing
 
 import com.orbit.app.data.repository.requireUser
 import com.orbit.app.domain.model.ChecklistEntry
+import com.orbit.app.domain.model.Completion
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Module
@@ -16,10 +17,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.datetime.LocalDate
 import kotlin.time.Clock
 
+private const val LATEST_COMPLETIONS = 10
+
 /** Items in memory, with ids in creation order across spaces. */
 class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository {
     /** The items of each space, by its id. */
     private val items = MutableStateFlow(emptyMap<String, List<Item>>())
+    /** The completions of each space, newest first. */
+    private val completions = MutableStateFlow(emptyMap<String, List<Completion>>())
     private var created = 0
     private var createdEntries = 0
 
@@ -89,9 +94,16 @@ class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository 
             item.copy(modules = item.modules.with(checklist.copy(entries = checklist.entries.filterNot { it.id == entryId })))
         }
 
+    override fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>> =
+        completions.map { all -> all[spaceId].orEmpty().filter { it.itemId == itemId }.take(LATEST_COMPLETIONS) }
+
     override suspend fun complete(spaceId: String, itemId: String) {
         val done = ItemStatus.Done(by = auth.requireUser().id, at = Clock.System.now())
         edit(spaceId, itemId) { it.copy(status = done) }
+        completions.update { all ->
+            val completion = Completion("completion-${all.values.sumOf { it.size } + 1}", itemId, done.by, done.at)
+            all + (spaceId to listOf(completion) + all[spaceId].orEmpty())
+        }
     }
 
     override suspend fun reopen(spaceId: String, itemId: String) =

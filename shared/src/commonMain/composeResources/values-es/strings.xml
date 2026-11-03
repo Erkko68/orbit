@@ -125,6 +125,8 @@
     <string name="item_name_placeholder">Ponle nombre</string>
     <string name="item_description">Añade un resumen</string>
     <string name="item_details">Escribe aquí los detalles</string>
+    <string name="item_history">Historial</string>
+    <string name="item_history_former_member">Un antiguo miembro</string>
     <string name="item_add_checklist">Añadir una lista</string>
     <string name="item_delete">Eliminar</string>
     <string name="item_delete_title">¿Eliminar esto?</string>

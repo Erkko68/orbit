@@ -125,6 +125,8 @@
     <string name="item_name_placeholder">Dagli un nome</string>
     <string name="item_description">Aggiungi un riepilogo</string>
     <string name="item_details">Scrivi qui i dettagli</string>
+    <string name="item_history">Cronologia</string>
+    <string name="item_history_former_member">Un ex membro</string>
     <string name="item_add_checklist">Aggiungi una lista</string>
     <string name="item_delete">Elimina</string>
     <string name="item_delete_title">Eliminare questo?</string>

@@ -1,5 +1,6 @@
 package com.orbit.app.testing
 
+import com.orbit.app.domain.model.Completion
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
@@ -41,6 +42,8 @@ internal class FailingItemRepository(
         throw failure
 
     override suspend fun removeEntry(spaceId: String, itemId: String, entryId: String) = throw failure
+
+    override fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>> = flowOf(emptyList())
 
     override suspend fun complete(spaceId: String, itemId: String) = throw failure
 

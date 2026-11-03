@@ -125,6 +125,8 @@
     <string name="item_name_placeholder">Posa-li nom</string>
     <string name="item_description">Afegeix un resum</string>
     <string name="item_details">Escriu aquí els detalls</string>
+    <string name="item_history">Historial</string>
+    <string name="item_history_former_member">Un antic membre</string>
     <string name="item_add_checklist">Afegeix una llista</string>
     <string name="item_delete">Elimina</string>
     <string name="item_delete_title">Vols eliminar això?</string>

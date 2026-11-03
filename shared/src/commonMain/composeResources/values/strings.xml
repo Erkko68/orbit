@@ -125,6 +125,8 @@
     <string name="item_name_placeholder">Name it</string>
     <string name="item_description">Add a summary</string>
     <string name="item_details">Write the details here</string>
+    <string name="item_history">History</string>
+    <string name="item_history_former_member">A former member</string>
     <string name="item_add_checklist">Add a checklist</string>
     <string name="item_delete">Delete</string>
     <string name="item_delete_title">Delete this?</string>
