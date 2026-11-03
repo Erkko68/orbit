@@ -36,6 +36,7 @@ class SpaceSettingsTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
     private val spaces = InMemorySpaceRepository(auth)
     private var gone = 0
+    private val opened = mutableListOf<String>()
 
     /** Ana owns Flat 4B, in the second colour (Coral). Ben is an admin of it and Cy a plain member. */
     private fun ComposeUiTest.showSettingsAs(email: String, repository: SpaceRepository = spaces) {
@@ -52,6 +53,7 @@ class SpaceSettingsTest : ComposeTest() {
                 SpaceSettings(
                     "space-1",
                     onGone = { gone++ },
+                    onOpenMember = { opened += it },
                     viewModel = SpaceSettingsViewModel("space-1", repository, auth),
                     membersViewModel = SpaceMembersViewModel("space-1", repository, auth),
                     inviteViewModel = InviteViewModel("space-1", InMemoryInvitationRepository(auth), repository, auth),
@@ -62,8 +64,6 @@ class SpaceSettingsTest : ComposeTest() {
     }
 
     private fun spaceNow() = runBlocking { spaces.observeSpaces().first().single() }
-
-    private fun roleOf(userId: String) = runBlocking { spaces.observeMembers("space-1").first().single { it.userId == userId }.role }
 
     private fun ComposeUiTest.openSettings() = onNodeWithContentDescription("Space settings").performClick()
 
@@ -150,109 +150,25 @@ class SpaceSettingsTest : ComposeTest() {
     }
 
     @Test
-    fun aPlainMemberCannotOpenAnotherMember() = runComposeUiTest {
+    fun tappingAMemberOpensTheirPage() = runComposeUiTest {
         showSettingsAs("cy@orbit.app")
-        openSettings()
-        onNodeWithText("Members and roles").performClick()
-
-        onNodeWithText("Ben").assertHasNoClickAction()
-    }
-
-    @Test
-    fun theUserSeesThemselvesAsYouAndCannotOpenThemselves() = runComposeUiTest {
-        showSettingsAs("ana@orbit.app")
-        openSettings()
-        onNodeWithText("Members and roles").performClick()
-
-        onNodeWithText("You").assertHasNoClickAction()
-        onNodeWithText("Owner").assertIsDisplayed()
-    }
-
-    @Test
-    fun theOwnerOffersTheRolesAMemberCanBeGivenAndOwnership() = runComposeUiTest {
-        showSettingsAs("ana@orbit.app")
         openSettings()
         onNodeWithText("Members and roles").performClick()
 
         onNodeWithText("Ben").performScrollTo().performClick()
 
-        onNodeWithText("Role of Ben").assertIsDisplayed()
-        onNodeWithText("Make admin").assertIsNotEnabled()
-        onNodeWithText("Make member").assertIsEnabled()
-        onNodeWithText("Make owner").assertIsEnabled()
+        assertEquals(listOf("ben@orbit.app"), opened)
+        onNodeWithText("Ben").assertDoesNotExist()
     }
 
     @Test
-    fun anAdminCannotHandTheSpaceOver() = runComposeUiTest {
-        showSettingsAs("ben@orbit.app")
-        openSettings()
-        onNodeWithText("Members and roles").performClick()
-
-        onNodeWithText("Cy").performScrollTo().performClick()
-
-        onNodeWithText("Make admin").assertIsEnabled()
-        onNodeWithText("Make owner").assertDoesNotExist()
-    }
-
-    @Test
-    fun givesTheMemberTheRoleChosen() = runComposeUiTest {
+    fun theUserSeesThemselvesAsYou() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
         openSettings()
         onNodeWithText("Members and roles").performClick()
 
-        onNodeWithText("Cy").performScrollTo().performClick()
-        onNodeWithText("Make admin").performClick()
-
-        onNodeWithText("Role of Cy").assertDoesNotExist()
-        assertEquals(Role.ADMIN, roleOf("cy@orbit.app"))
-    }
-
-    @Test
-    fun handsTheSpaceOverAndTheOwnerBecomesAnAdmin() = runComposeUiTest {
-        showSettingsAs("ana@orbit.app")
-        openSettings()
-        onNodeWithText("Members and roles").performClick()
-
-        onNodeWithText("Cy").performScrollTo().performClick()
-        onNodeWithText("Make owner").performClick()
-        onNodeWithText("Hand Flat 4B to Cy?").assertIsDisplayed()
-        onNodeWithText("Hand it over").assertIsNotEnabled()
-        onNodeWithContentDescription("I understand only Cy can give it back").performClick()
-        onNodeWithText("Hand it over").assertIsEnabled().performClick()
-
-        onNodeWithText("Role of Cy").assertDoesNotExist()
-        assertEquals(Role.OWNER, roleOf("cy@orbit.app"))
-        assertEquals(Role.ADMIN, roleOf("ana@orbit.app"))
-    }
-
-    @Test
-    fun cancelClosesThePickerAndChangesNothing() = runComposeUiTest {
-        showSettingsAs("ana@orbit.app")
-        openSettings()
-        onNodeWithText("Members and roles").performClick()
-        onNodeWithText("Cy").performScrollTo().performClick()
-
-        onNodeWithContentDescription("Back").performClick()
-
-        onNodeWithText("Role of Cy").assertDoesNotExist()
-        assertEquals(Role.MEMBER, roleOf("cy@orbit.app"))
-    }
-
-    @Test
-    fun saysWhenTheRoleCouldNotBeChanged() = runComposeUiTest {
-        val offline = object : SpaceRepository by spaces {
-            override suspend fun changeRole(spaceId: String, userId: String, role: Role) =
-                error("Could not reach the server")
-        }
-        showSettingsAs("ana@orbit.app", offline)
-        openSettings()
-        onNodeWithText("Members and roles").performClick()
-        onNodeWithText("Cy").performScrollTo().performClick()
-
-        onNodeWithText("Make admin").performClick()
-
-        onNodeWithText("Could not change the role. Try again.").assertIsDisplayed()
-        onNodeWithText("Role of Cy").assertIsDisplayed()
+        onNodeWithText("You").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Owner").assertIsDisplayed()
     }
 
     @Test

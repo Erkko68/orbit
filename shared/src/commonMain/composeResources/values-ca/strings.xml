@@ -236,6 +236,14 @@
     <string name="transfer_acknowledge">Entenc que només %1$s me l&apos;hi pot tornar</string>
     <string name="transfer_confirm">Passa-l&apos;hi</string>
     <string name="transfer_cancel">Cancel·la</string>
+    <string name="member_loading">S&apos;està carregant…</string>
+    <string name="member_load_failed">No s&apos;ha pogut carregar aquest membre</string>
+    <string name="member_not_found">Ja no és en aquest espai</string>
+    <string name="member_not_found_body">Se n&apos;ha anat o l&apos;han tret.</string>
+    <string name="member_empty_title">Encara no hi ha res</string>
+    <string name="member_empty_body">Aquí veuràs el que té i el que acaba.</string>
+    <string name="member_has">Té</string>
+    <string name="member_lately">Darrerament</string>
     <string name="leave_title">Vols sortir d&apos;aquest espai?</string>
     <string name="leave_body">Deixaràs de veure els seus elements. Podràs tornar-hi amb una invitació nova.</string>
     <string name="leave_confirm">Surt</string>

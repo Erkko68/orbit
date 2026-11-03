@@ -131,6 +131,14 @@ class FirestoreItemRepository(
             .snapshots.map { snapshot -> snapshot.documents.mapNotNull(::toCompletion) }
             .retryWhileRefused()
 
+    override fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>> =
+        completions(spaceId)
+            .where { COMPLETED_BY equalTo userId }
+            .orderBy(COMPLETED_AT, Direction.DESCENDING)
+            .limit(LATEST_COMPLETIONS)
+            .snapshots.map { snapshot -> snapshot.documents.mapNotNull(::toCompletion) }
+            .retryWhileRefused()
+
     /** The item and its completion go in one batch, so the history never misses one nor has one too many. */
     override suspend fun complete(spaceId: String, itemId: String) {
         val userId = auth.requireUser().id

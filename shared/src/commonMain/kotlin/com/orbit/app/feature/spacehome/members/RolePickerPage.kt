@@ -21,7 +21,7 @@ import org.jetbrains.compose.resources.stringResource
 private val AssignableRoles = listOf(Role.ADMIN, Role.MEMBER)
 
 /**
- * A page of the settings that picks the role of [member]: one button per role they can be given, the one they have being
+ * What picks the role of [member], in a sheet over their page: one button per role they can be given, the one they have being
  * disabled, and for the owner "Make owner", which hands the space over. [onPick] runs with the role, [onTransfer] for
  * the handover. While it is [busy] the choices wait, and [failed] says the last one did not go through.
  */

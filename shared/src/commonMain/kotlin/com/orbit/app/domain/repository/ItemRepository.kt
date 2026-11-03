@@ -50,6 +50,9 @@ interface ItemRepository {
     /** The latest times the item was completed, newest first. */
     fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>>
 
+    /** The latest items [userId] completed in the space, newest first. */
+    fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>>
+
     /** Also records the completion, which reopening keeps. */
     suspend fun complete(spaceId: String, itemId: String)
 

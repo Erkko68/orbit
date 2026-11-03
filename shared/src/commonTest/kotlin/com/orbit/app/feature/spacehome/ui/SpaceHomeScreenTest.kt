@@ -48,7 +48,7 @@ class SpaceHomeScreenTest : ComposeTest() {
 
     private fun ComposeUiTest.showTheSpace() = setContent {
         OrbitTheme {
-            SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, onNewItem = {}, viewModel = viewModel)
+            SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, onNewItem = {}, onOpenMember = {}, viewModel = viewModel)
         }
     }
 
@@ -124,6 +124,7 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenAccount = { accounts++ },
                     onOpenItem = {},
                     onNewItem = {},
+                    onOpenMember = {},
                     viewModel = viewModel,
                 )
             }
@@ -148,6 +149,7 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenAccount = {},
                     onOpenItem = {},
                     onNewItem = {},
+                    onOpenMember = {},
                     viewModel = viewModel,
                 )
             }
@@ -181,6 +183,7 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenAccount = {},
                     onOpenItem = {},
                     onNewItem = { added++ },
+                    onOpenMember = {},
                     viewModel = viewModel,
                 )
             }

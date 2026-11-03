@@ -23,6 +23,7 @@ import com.orbit.app.feature.auth.SessionViewModel
 import com.orbit.app.feature.auth.SignInViewModel
 import com.orbit.app.feature.item.ItemViewModel
 import com.orbit.app.feature.item.history.ItemHistoryViewModel
+import com.orbit.app.feature.member.MemberViewModel
 import com.orbit.app.feature.newspace.NewSpaceViewModel
 import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.feature.space.card.SpaceCardViewModel
@@ -77,6 +78,7 @@ val featureModule = module {
     viewModelOf(::CreateAccountViewModel)
     viewModelOf(::ItemViewModel)
     viewModelOf(::ItemHistoryViewModel)
+    viewModelOf(::MemberViewModel)
     viewModelOf(::NewSpaceViewModel)
     viewModelOf(::NotificationPermissionViewModel)
     viewModelOf(::SpaceViewModel)

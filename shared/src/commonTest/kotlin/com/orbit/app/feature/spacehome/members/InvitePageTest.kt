@@ -44,6 +44,7 @@ class InvitePageTest : ComposeTest() {
                 SpaceSettings(
                     spaceId = "space-1",
                     onGone = {},
+                    onOpenMember = {},
                     viewModel = SpaceSettingsViewModel("space-1", spaces, auth),
                     membersViewModel = SpaceMembersViewModel("space-1", spaces, auth),
                     inviteViewModel = InviteViewModel("space-1", invitations, spaces, auth),

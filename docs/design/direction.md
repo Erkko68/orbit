@@ -71,7 +71,8 @@ Over the bar: item, list, expense form, interview, review board
 | Add | Type a title, done. Dates and people can wait |
 | Expenses | The amount is the headline, with Settle up beside it. Balances as sentences, then the ledger |
 | Expense form | Amount first. Everyone in one line, with their share under their name. Tap to leave someone out |
-| Settings | A sheet: invite, members and roles, name and colour, leave or delete. Roles move here from the member row |
+| Settings | A sheet: invite, members grouped by role, name and colour, leave or delete. A member opens their page (#262) |
+| Member | A page in the member's colour: their face, name and role in the header (whoever may taps the role to change it or hand the space over, after a dialog), what they have and what they did lately (#261, #260) |
 | Interview | One question per screen in violet, and "Do it by hand instead" is always there |
 | Review board | Proposals grouped by kind, all kept by default. Tap to leave one out, pencil to edit, one button to add. "Nothing is saved until you confirm" |
 

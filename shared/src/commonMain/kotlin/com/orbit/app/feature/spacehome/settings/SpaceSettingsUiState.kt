@@ -6,7 +6,7 @@ import com.orbit.app.domain.model.Role
 enum class SpaceSettingsPage { MENU, IDENTITY, MEMBERS }
 
 /** Every step of the one sheet of the settings, including the ones other view models hold open. */
-internal enum class SpaceSettingsStep { MENU, IDENTITY, MEMBERS, ROLE, INVITE, EXIT }
+internal enum class SpaceSettingsStep { MENU, IDENTITY, MEMBERS, INVITE, EXIT }
 
 /**
  * The settings of a space, in a sheet that holds everything the user can do with it: an owner or admin invites and

@@ -236,6 +236,14 @@
     <string name="transfer_acknowledge">Capisco che solo %1$s può restituirmelo</string>
     <string name="transfer_confirm">Passalo</string>
     <string name="transfer_cancel">Annulla</string>
+    <string name="member_loading">Caricamento…</string>
+    <string name="member_load_failed">Impossibile caricare questo membro</string>
+    <string name="member_not_found">Non è più in questo spazio</string>
+    <string name="member_not_found_body">È uscito o è stato rimosso.</string>
+    <string name="member_empty_title">Ancora niente</string>
+    <string name="member_empty_body">Qui vedrai cosa ha e cosa completa.</string>
+    <string name="member_has">Ha</string>
+    <string name="member_lately">Di recente</string>
     <string name="leave_title">Vuoi lasciare questo spazio?</string>
     <string name="leave_body">Non vedrai più i suoi elementi. Potrai tornare con un nuovo invito.</string>
     <string name="leave_confirm">Lascia</string>

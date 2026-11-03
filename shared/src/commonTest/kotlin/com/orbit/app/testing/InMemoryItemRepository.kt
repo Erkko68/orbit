@@ -97,6 +97,9 @@ class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository 
     override fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>> =
         completions.map { all -> all[spaceId].orEmpty().filter { it.itemId == itemId }.take(LATEST_COMPLETIONS) }
 
+    override fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>> =
+        completions.map { all -> all[spaceId].orEmpty().filter { it.completedBy == userId }.take(LATEST_COMPLETIONS) }
+
     override suspend fun complete(spaceId: String, itemId: String) {
         val done = ItemStatus.Done(by = auth.requireUser().id, at = Clock.System.now())
         edit(spaceId, itemId) { it.copy(status = done) }
