@@ -67,4 +67,4 @@ Each `describe` block seeds the documents it needs with the rules disabled, then
 
 ## Coverage
 
-Kover measures the Android host tests (`./gradlew :shared:koverXmlReport`), and SonarCloud requires 80% coverage on new code. The Cloud Functions report their own coverage with pytest-cov (see [Cloud Functions](../backend/cloud-functions.md#tests-and-coverage)). `.github/scripts/**` is excluded until it has its own report.
+Kover measures the Android host tests (`./gradlew :shared:koverXmlReport`), and SonarCloud requires 80% coverage on new code. The assistant server reports its own coverage with pytest-cov (see [Assistant server](../backend/assistant-server.md#tests-and-coverage)). `.github/scripts/**` is excluded until it has its own report.

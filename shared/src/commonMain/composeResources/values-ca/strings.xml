@@ -217,6 +217,18 @@
     <string name="dictation_unavailable">Aquest telèfon no pot dictar en el seu idioma. Pots escriure la resposta.</string>
     <string name="dictation_no_speech">Orbit no ha entès res. Torna-ho a provar o escriu la resposta.</string>
     <string name="dictation_error">El dictat s&apos;ha aturat. Torna-ho a provar o escriu la resposta.</string>
+    <!-- Assistant interview -->
+    <string name="interview_title">Configura amb l&apos;assistent</string>
+    <string name="interview_loading">Pensant la pregunta següent…</string>
+    <string name="interview_answer_placeholder">O respon amb les teves paraules</string>
+    <string name="interview_send">Envia</string>
+    <string name="interview_manual">Configura-ho a mà</string>
+    <string name="interview_error_title">L&apos;assistent s&apos;ha aturat</string>
+    <string name="interview_error_network">Sense connexió. Revisa internet i torna-ho a provar.</string>
+    <string name="interview_error_quota">Has fet servir l&apos;assistent tot el que es pot per ara. Pots configurar-ho a mà.</string>
+    <string name="interview_error_disabled">L&apos;assistent està desactivat per ara. Pots configurar-ho a mà.</string>
+    <string name="interview_error_unavailable">L&apos;assistent no respon ara mateix. Torna-ho a provar o configura-ho a mà.</string>
+    <string name="interview_error_unknown">Alguna cosa ha fallat. Torna-ho a provar o configura-ho a mà.</string>
     <!-- AI consent -->
     <string name="ai_consent_title">Abans que comenci l&apos;assistent</string>
     <string name="ai_consent_body">Per suggerir un pla, Orbit envia les teves respostes, els títols dels elements de l&apos;espai i els noms dels seus membres a un proveïdor d&apos;IA (Google Gemini).</string>

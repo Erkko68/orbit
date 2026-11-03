@@ -1,0 +1,31 @@
+# The assistant on our own server (ADR 0007): this backend and the model it asks, side by side.
+#   docker compose up -d --build
+#   docker compose exec ollama ollama pull gemma4   # once: the model tag set in ASSISTANT_MODEL
+# Put HTTPS in front of port 8080 (a reverse proxy); the app only talks HTTPS.
+services:
+  assistant:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    # Keys come from a .env file next to this one, never committed.
+    environment:
+      # An orbit-app-dev API key allowed to call the Identity Toolkit API: checks the callers' ID tokens.
+      FIREBASE_API_KEY: ${FIREBASE_API_KEY:?set FIREBASE_API_KEY in .env}
+      ASSISTANT_PROVIDER: ${ASSISTANT_PROVIDER:-local}
+      ASSISTANT_MODEL: ${ASSISTANT_MODEL:-gemma4}
+      MODEL_URL: http://ollama:11434/v1
+      # Only for ASSISTANT_PROVIDER=gemini.
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama
+    restart: unless-stopped
+    # Not published: only the assistant reaches the model, over the compose network.
+    volumes:
+      - ollama:/root/.ollama
+
+volumes:
+  ollama:

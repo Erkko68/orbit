@@ -13,6 +13,7 @@ import androidx.navigation.toRoute
 import com.orbit.app.core.PendingInvitation
 import com.orbit.app.core.designsystem.component.OrbitStartup
 import com.orbit.app.feature.account.ui.AccountScreen
+import com.orbit.app.feature.assistant.ui.InterviewScreen
 import com.orbit.app.feature.auth.SessionStart
 import com.orbit.app.feature.auth.SessionViewModel
 import com.orbit.app.feature.auth.ui.CreateAccountScreen
@@ -90,6 +91,14 @@ fun OrbitNavHost(
                     spaceId = route.spaceId,
                     itemId = route.itemId,
                     onBack = { navController.popBackStack() },
+                )
+            }
+            composable<InterviewRoute> {
+                // The manual path is wherever the assistant was opened from; the review board (#75) follows a plan.
+                InterviewScreen(
+                    onClose = { navController.popBackStack() },
+                    onManual = { navController.popBackStack() },
+                    onPlanReady = { navController.popBackStack() },
                 )
             }
         }

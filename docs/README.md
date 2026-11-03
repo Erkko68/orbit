@@ -7,7 +7,7 @@ Orbit is a Kotlin Multiplatform app (Android and iOS) for groups that share resp
 | **Product** | Know what Orbit does, for whom, and the words the code uses | [Overview and glossary](product/overview.md) |
 | **Architecture** | Find your way around the code and add a feature the way the others are built | [Overview](architecture/overview.md) · [State and ViewModels](architecture/state-and-viewmodels.md) · [Offline and sync](architecture/offline-and-sync.md) · [Authentication](architecture/authentication.md) · [Design system](architecture/design-system.md) |
 | **Data** | Read or change what is stored, and who may change it | [Firestore schema](data/firestore-schema.md) · [Security rules and roles](data/security-rules.md) |
-| **Backend** | Work on the Cloud Functions | [Cloud Functions](backend/cloud-functions.md) |
+| **Backend** | Work on the assistant server | [Assistant server](backend/assistant-server.md) |
 | **Process** | Take an issue to a merged pull request | [Workflow](process/workflow.md) · [Testing](process/testing.md) · [Builds and deployment](process/builds-and-deployment.md) · [Project automation](process/project-automation.md) |
 | **Decisions** | See why something is the way it is, and what was rejected | [Architecture decision records](adr/README.md) |
 | **Design** | See where the look comes from | [Visual direction](design/direction.md) |

@@ -217,6 +217,18 @@
     <string name="dictation_unavailable">Questo telefono non può dettare nella sua lingua. Puoi scrivere la risposta.</string>
     <string name="dictation_no_speech">Orbit non ha sentito nulla. Riprova o scrivi la risposta.</string>
     <string name="dictation_error">La dettatura si è interrotta. Riprova o scrivi la risposta.</string>
+    <!-- Assistant interview -->
+    <string name="interview_title">Configura con l&apos;assistente</string>
+    <string name="interview_loading">Sto pensando alla prossima domanda…</string>
+    <string name="interview_answer_placeholder">Oppure rispondi con parole tue</string>
+    <string name="interview_send">Invia</string>
+    <string name="interview_manual">Configura a mano</string>
+    <string name="interview_error_title">L&apos;assistente si è fermato</string>
+    <string name="interview_error_network">Nessuna connessione. Controlla internet e riprova.</string>
+    <string name="interview_error_quota">Hai usato l&apos;assistente quanto possibile per ora. Puoi configurare a mano.</string>
+    <string name="interview_error_disabled">L&apos;assistente è disattivato per ora. Puoi configurare a mano.</string>
+    <string name="interview_error_unavailable">L&apos;assistente non risponde in questo momento. Riprova o configura a mano.</string>
+    <string name="interview_error_unknown">Qualcosa è andato storto. Riprova o configura a mano.</string>
     <!-- AI consent -->
     <string name="ai_consent_title">Prima che l&apos;assistente inizi</string>
     <string name="ai_consent_body">Per suggerire un piano, Orbit invia le tue risposte, i titoli degli elementi dello spazio e i nomi dei suoi membri a un fornitore di IA (Google Gemini).</string>

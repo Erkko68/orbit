@@ -1,9 +1,8 @@
 import pytest
-from firebase_functions.https_fn import FunctionsErrorCode, HttpsError
 
-from assistant import FIRST_QUESTION_PROMPT, QUESTION_BUDGET, QUESTION_SCHEMA, first_question, parse_question
+from assistant import FIRST_QUESTION_PROMPT, QUESTION_BUDGET, QUESTION_SCHEMA, AssistantError, first_question, parse_question
 
-SIGNED_IN = object()
+SIGNED_IN = "ana"
 
 
 def valid(**changes):
@@ -61,10 +60,10 @@ def test_asks_the_model_the_first_question_for_a_signed_in_caller():
 def test_rejects_an_unauthenticated_call_without_reaching_the_model():
     calls = []
 
-    with pytest.raises(HttpsError) as error:
+    with pytest.raises(AssistantError) as error:
         first_question(None, lambda *args: calls.append(args))
 
-    assert error.value.code == FunctionsErrorCode.UNAUTHENTICATED
+    assert error.value.status == "UNAUTHENTICATED"
     assert calls == []
 
 
@@ -74,8 +73,8 @@ def fail(*args):
 
 @pytest.mark.parametrize("generate", [fail, lambda *args: valid(text="")])
 def test_a_failed_or_invalid_answer_is_unavailable_and_never_passed_on(generate):
-    with pytest.raises(HttpsError) as error:
+    with pytest.raises(AssistantError) as error:
         first_question(SIGNED_IN, generate)
 
-    assert error.value.code == FunctionsErrorCode.UNAVAILABLE
+    assert error.value.status == "UNAVAILABLE"
     assert error.value.details == {"reason": "unavailable"}
