@@ -46,7 +46,7 @@ internal fun TransferDialog(
             )
             Text(acknowledge, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
         }
-        if (members.failed) {
+        if (members.roleFailed(member.id)) {
             OrbitErrorText(stringResource(Res.string.member_role_failed))
         }
     }

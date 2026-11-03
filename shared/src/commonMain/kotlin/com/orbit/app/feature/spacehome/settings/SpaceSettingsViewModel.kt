@@ -48,6 +48,7 @@ class SpaceSettingsViewModel(
         SpaceSettingsUiState(
             role = role,
             page = edit?.page,
+            memberId = edit?.memberId,
             spaceName = edit?.spaceName.orEmpty(),
             name = edit?.name.orEmpty(),
             accent = edit?.accent ?: 0,
@@ -71,6 +72,9 @@ class SpaceSettingsViewModel(
     fun openIdentity() = edit.update { it?.copy(page = SpaceSettingsPage.IDENTITY) }
 
     fun openMembers() = edit.update { it?.copy(page = SpaceSettingsPage.MEMBERS) }
+
+    /** Opens the page of one member, back from which is the list of members. */
+    fun openMember(memberId: String) = edit.update { it?.copy(page = SpaceSettingsPage.MEMBER, memberId = memberId) }
 
     /** Steps back from a page to the menu, forgetting what was typed and picked there. */
     fun backToMenu() {
@@ -143,6 +147,7 @@ class SpaceSettingsViewModel(
         val name: String,
         val accent: Int,
         val page: SpaceSettingsPage = SpaceSettingsPage.MENU,
+        val memberId: String? = null,
         val saving: Boolean = false,
         val failed: Boolean = false,
         val confirmingExit: Boolean = false,

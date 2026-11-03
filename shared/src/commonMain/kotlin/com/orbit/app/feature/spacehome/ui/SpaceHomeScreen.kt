@@ -43,8 +43,8 @@ import org.koin.core.parameter.parametersOf
  * A space (ADR 0005), painted in its colour: its name in the top bar, which opens the list of spaces through [onBack],
  * as does leaving the space, and its destinations in the bottom bar. Beside the name its members float around the
  * settings. Calendar says where the user stands, with the agenda (#38) under it. Tasks has the items, and Expenses waits
- * for #54. The members and the items load themselves. The add button opens a new item through [onNewItem], a member in
- * the settings opens their page through [onOpenMember], and the account avatar calls [onOpenAccount].
+ * for #54. The members and the items load themselves. The add button opens a new item through [onNewItem], and the account
+ * avatar calls [onOpenAccount].
  */
 @Composable
 fun SpaceHomeScreen(
@@ -53,7 +53,6 @@ fun SpaceHomeScreen(
     onOpenAccount: () -> Unit,
     onOpenItem: (String) -> Unit,
     onNewItem: () -> Unit,
-    onOpenMember: (String) -> Unit,
     viewModel: SpaceHomeViewModel = koinViewModel { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -65,7 +64,7 @@ fun SpaceHomeScreen(
                     onTitleClick = onBack,
                     onTitleClickLabel = stringResource(Res.string.space_back),
                     actions = {
-                        SpaceSettings(spaceId, onGone = onBack, onOpenMember = onOpenMember)
+                        SpaceSettings(spaceId, onGone = onBack, onOpenItem = onOpenItem)
                         OrbitAvatarButton(
                             initials = state.userInitials,
                             photoUrl = state.userPhotoUrl,

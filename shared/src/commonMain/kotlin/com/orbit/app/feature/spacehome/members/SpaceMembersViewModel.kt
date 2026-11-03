@@ -21,7 +21,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** The members of a space, and for an owner or admin the way to change their roles or hand the space over. */
+/**
+ * The members of a space, and for the owner the way to change their roles: a member becomes an admin, an admin goes back
+ * to member or takes the space over, after a dialog.
+ */
 class SpaceMembersViewModel(
     private val spaceId: String,
     private val spaces: SpaceRepository,
@@ -29,35 +32,35 @@ class SpaceMembersViewModel(
 ) : ViewModel() {
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
-    /** The role picker: which member it is for, and whether its write is under way or failed. */
-    private val picker = MutableStateFlow(Picker())
+    /** The last role change: whose it is, and whether it is under way or failed, with the handover dialog. */
+    private val change = MutableStateFlow(RoleChange())
 
     val uiState: StateFlow<SpaceMembersUiState> = combine(
         spaces.observeMembers(spaceId).asLoad("Loading the members of $spaceId", retries),
         auth.session,
-        picker,
-    ) { load, user, picker ->
+        change,
+    ) { load, user, change ->
         val members = load.valueOrNull.orEmpty()
-        val myRole = members.firstOrNull { it.userId == user?.id }?.role
+        val owns = members.firstOrNull { it.userId == user?.id }?.role == Role.OWNER
         val shown = members.mapIndexed { index, member ->
             val other = member.userId != user?.id
             toSpaceMember(
                 member,
                 index,
                 isYou = !other,
-                canChangeRole = myRole?.managesSpace == true && member.role != Role.OWNER && other,
-                canTakeOwnership = myRole == Role.OWNER && other,
+                canChangeRole = owns && other && member.role != Role.OWNER,
+                canTakeOwnership = owns && other && member.role == Role.ADMIN,
             )
         }
         SpaceMembersUiState(
             loading = load == Load.Loading,
             loadFailed = load == Load.Failed,
             members = shown,
-            rolePicker = shown.firstOrNull { it.id == picker.memberId && (it.canChangeRole || it.canTakeOwnership) },
-            busy = picker.busy,
-            failed = picker.failed,
-            confirmingTransfer = picker.confirmingTransfer,
-            transferAcknowledged = picker.acknowledged,
+            changing = change.memberId,
+            busy = change.busy,
+            failed = change.failed,
+            transferTo = shown.firstOrNull { it.id == change.memberId && it.canTakeOwnership }?.takeIf { change.confirmingTransfer },
+            transferAcknowledged = change.acknowledged,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceMembersUiState(loading = true))
 
@@ -65,48 +68,42 @@ class SpaceMembersViewModel(
         if (uiState.value.loadFailed) retries.trySend(Unit)
     }
 
-    /** Opens the picker for a member whose role the user can change or who can take the space over. */
-    fun openRolePicker(memberId: String) {
-        picker.value = Picker(memberId)
+    /** Gives [memberId] [role], when the user may and it is not the one they have. A failure says so on their page. */
+    fun changeRole(memberId: String, role: Role) {
+        val member = uiState.value.members.firstOrNull { it.id == memberId && it.canChangeRole } ?: return
+        if (role == member.currentRole || role == Role.OWNER) return
+        submit(memberId, "Changing the role of $memberId") { spaces.changeRole(spaceId, memberId, role) }
     }
 
-    fun closeRolePicker() {
-        picker.value = Picker()
+    /** Asks before handing the space to [memberId], an admin: the user cannot take it back. */
+    fun askTransfer(memberId: String) {
+        if (change.value.busy || uiState.value.members.none { it.id == memberId && it.canTakeOwnership }) return
+        change.value = RoleChange(memberId, confirmingTransfer = true)
     }
 
-    /** Gives the member in the picker [role] and closes it. It stays open, saying so, if that fails. */
-    fun changeRole(role: Role) {
-        val member = uiState.value.rolePicker?.takeIf { it.canChangeRole } ?: return
-        submit("Changing the role of ${member.id}") { spaces.changeRole(spaceId, member.id, role) }
+    fun acknowledgeTransfer(acknowledged: Boolean) = change.update { it.copy(acknowledged = acknowledged, failed = false) }
+
+    fun cancelTransfer() {
+        if (!change.value.busy) change.value = RoleChange()
     }
 
-    /** Asks before handing the space to the member in the picker: the user cannot take it back. */
-    fun askTransfer() {
-        if (uiState.value.rolePicker?.canTakeOwnership != true) return
-        picker.update { it.copy(confirmingTransfer = true, acknowledged = false, failed = false) }
-    }
-
-    fun acknowledgeTransfer(acknowledged: Boolean) = picker.update { it.copy(acknowledged = acknowledged, failed = false) }
-
-    fun cancelTransfer() = picker.update { it.copy(confirmingTransfer = false, acknowledged = false, failed = false) }
-
-    /** Once acknowledged, makes the member in the picker the owner and the user an admin. */
+    /** Once acknowledged, makes the member in the dialog the owner and the user an admin. */
     fun transferOwnership() {
         if (!uiState.value.canTransfer) return
-        val member = uiState.value.rolePicker?.takeIf { it.canTakeOwnership } ?: return
-        submit("Handing space $spaceId to ${member.id}") { spaces.transferOwnership(spaceId, member.id) }
+        val member = uiState.value.transferTo ?: return
+        submit(member.id, "Handing space $spaceId to ${member.id}") { spaces.transferOwnership(spaceId, member.id) }
     }
 
-    private fun submit(what: String, write: suspend () -> Unit) {
-        if (picker.value.busy) return
-        picker.update { it.copy(busy = true, failed = false) }
+    private fun submit(memberId: String, what: String, write: suspend () -> Unit) {
+        if (change.value.busy) return
+        change.update { it.copy(memberId = memberId, busy = true, failed = false) }
         viewModelScope.launch {
             val result = attempt(what) { write() }
-            picker.value = if (result.isSuccess) Picker() else picker.value.copy(busy = false, failed = true)
+            change.value = if (result.isSuccess) RoleChange() else change.value.copy(busy = false, failed = true)
         }
     }
 
-    private data class Picker(
+    private data class RoleChange(
         val memberId: String? = null,
         val busy: Boolean = false,
         val failed: Boolean = false,

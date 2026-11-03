@@ -18,7 +18,6 @@ import com.orbit.app.feature.auth.SessionViewModel
 import com.orbit.app.feature.auth.ui.CreateAccountScreen
 import com.orbit.app.feature.auth.ui.SignInScreen
 import com.orbit.app.feature.item.ui.ItemScreen
-import com.orbit.app.feature.member.ui.MemberScreen
 import com.orbit.app.feature.newspace.ui.NewSpaceScreen
 import com.orbit.app.feature.space.ui.SpaceScreen
 import com.orbit.app.feature.spacehome.ui.SpaceHomeScreen
@@ -83,16 +82,6 @@ fun OrbitNavHost(
                     onOpenAccount = { navController.navigate(AccountRoute) },
                     onOpenItem = { itemId -> navController.navigate(ItemRoute(spaceId = spaceId, itemId = itemId)) },
                     onNewItem = { navController.navigate(ItemRoute(spaceId = spaceId)) },
-                    onOpenMember = { userId -> navController.navigate(MemberRoute(spaceId = spaceId, userId = userId)) },
-                )
-            }
-            composable<MemberRoute> { entry ->
-                val route = entry.toRoute<MemberRoute>()
-                MemberScreen(
-                    spaceId = route.spaceId,
-                    userId = route.userId,
-                    onBack = { navController.popBackStack() },
-                    onOpenItem = { itemId -> navController.navigate(ItemRoute(spaceId = route.spaceId, itemId = itemId)) },
                 )
             }
             composable<ItemRoute> { entry ->

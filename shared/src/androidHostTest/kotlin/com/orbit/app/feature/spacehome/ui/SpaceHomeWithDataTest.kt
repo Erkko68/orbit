@@ -72,7 +72,6 @@ class SpaceHomeWithDataTest : ComposeTest() {
                     onOpenAccount = {},
                     onOpenItem = {},
                     onNewItem = {},
-                    onOpenMember = {},
                     viewModel = viewModel,
                 )
             }
@@ -82,7 +81,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
 
         onAllNodes(hasClickLabel("Space settings")).onFirst().performClick()
         onNodeWithText("6 members").assertIsDisplayed()
-        onNodeWithText("Members and roles").performClick()
+        onNodeWithText("Manage space").performClick()
         onNodeWithText("You").assertExists()
         onNodeWithText("Owner").assertExists()
         onNodeWithText("Admins").assertExists()
@@ -107,7 +106,6 @@ class SpaceHomeWithDataTest : ComposeTest() {
                     onOpenAccount = {},
                     onOpenItem = { opened += it },
                     onNewItem = {},
-                    onOpenMember = {},
                     viewModel = viewModel,
                 )
             }

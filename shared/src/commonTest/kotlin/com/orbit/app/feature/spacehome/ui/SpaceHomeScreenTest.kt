@@ -50,7 +50,7 @@ class SpaceHomeScreenTest : ComposeTest() {
 
     private fun ComposeUiTest.showTheSpace() = setContent {
         OrbitTheme {
-            SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, onNewItem = {}, onOpenMember = {}, viewModel = viewModel)
+            SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, onNewItem = {}, viewModel = viewModel)
         }
     }
 
@@ -78,7 +78,7 @@ class SpaceHomeScreenTest : ComposeTest() {
 
         onNodeWithContentDescription("Ana López").performClick()
 
-        onNodeWithText("Members and roles").assertIsDisplayed()
+        onNodeWithText("Manage space").assertIsDisplayed()
     }
 
     @Test
@@ -126,7 +126,6 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenAccount = { accounts++ },
                     onOpenItem = {},
                     onNewItem = {},
-                    onOpenMember = {},
                     viewModel = viewModel,
                 )
             }
@@ -151,7 +150,6 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenAccount = {},
                     onOpenItem = {},
                     onNewItem = {},
-                    onOpenMember = {},
                     viewModel = viewModel,
                 )
             }
@@ -185,7 +183,6 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenAccount = {},
                     onOpenItem = {},
                     onNewItem = { added++ },
-                    onOpenMember = {},
                     viewModel = viewModel,
                 )
             }
