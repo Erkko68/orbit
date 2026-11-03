@@ -8,7 +8,9 @@ import com.orbit.app.data.repository.FirestoreExpenseRepository
 import com.orbit.app.data.repository.FirestoreInvitationRepository
 import com.orbit.app.data.repository.FirestoreItemRepository
 import com.orbit.app.data.repository.FirestoreSpaceRepository
+import com.orbit.app.data.repository.ServerAssistantRepository
 import com.orbit.app.data.repository.SettingsLastSpaceRepository
+import com.orbit.app.domain.repository.AssistantRepository
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ExpenseRepository
 import com.orbit.app.domain.repository.InvitationRepository
@@ -16,6 +18,7 @@ import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.account.AccountViewModel
+import com.orbit.app.feature.assistant.InterviewViewModel
 import com.orbit.app.feature.assistant.dictation.DictationViewModel
 import com.orbit.app.feature.assistant.consent.AiConsentViewModel
 import com.orbit.app.feature.auth.CreateAccountViewModel
@@ -62,6 +65,7 @@ val dataModule = module {
     singleOf(::FirestoreItemRepository) bind ItemRepository::class
     singleOf(::FirestoreExpenseRepository) bind ExpenseRepository::class
     singleOf(::FirestoreInvitationRepository) bind InvitationRepository::class
+    singleOf(::ServerAssistantRepository) bind AssistantRepository::class
     single { Settings() }
     singleOf(::SettingsLastSpaceRepository) bind LastSpaceRepository::class
     singleOf(::ReminderSync)
@@ -70,6 +74,7 @@ val dataModule = module {
 val featureModule = module {
     single { PendingInvitation() }
     viewModelOf(::AccountViewModel)
+    viewModelOf(::InterviewViewModel)
     viewModelOf(::DictationViewModel)
     viewModelOf(::AiConsentViewModel)
     viewModelOf(::SessionViewModel)
