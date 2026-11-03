@@ -92,7 +92,7 @@ class FirebaseAuthRepository(
     override suspend fun updateDisplayName(displayName: String) {
         val trimmed = displayName.trim()
         require(trimmed.isNotBlank()) { "A display name is required" }
-        val user = checkNotNull(auth.currentUser) { "Not signed in" }
+        val user = signedInUser()
 
         val spacesSnapshot = firestore.collection(SPACES).where { "memberIds" contains user.uid }.get()
 
@@ -174,17 +174,20 @@ class FirebaseAuthRepository(
     }
 
     override suspend fun idToken(): String {
-        val user = checkNotNull(auth.currentUser) { "Not signed in" }
+        val user = signedInUser()
         return checkNotNull(user.getIdToken(false)) { "No ID token for ${user.uid}" }
     }
 
     override suspend fun acceptAiConsent() {
-        val user = checkNotNull(auth.currentUser) { "Not signed in" }
+        val user = signedInUser()
         writeLocally("Record the AI consent of ${user.uid}") {
             firestore.collection(USERS).document(user.uid)
                 .set(mapOf("aiConsentAt" to FieldValue.serverTimestamp), merge = true)
         }
     }
+
+    /** The signed-in Firebase account, for a write or a token made as them. Throws when signed out. */
+    private fun signedInUser(): FirebaseUser = checkNotNull(auth.currentUser) { "Not signed in" }
 
     /** The user from their profile document, or from the Firebase account alone when [profile] is null. */
     private fun FirebaseUser.toUser(profile: DocumentSnapshot?) = mapUser(
