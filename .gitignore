@@ -27,10 +27,10 @@ DerivedData/
 # Firebase
 .firebase/
 *-debug.log
-firebase/functions/venv/
+server/venv/
 __pycache__/
 .pytest_cache/
-firebase/functions/coverage.xml
-firebase/functions/.coverage
+server/coverage.xml
+server/.coverage
 # Dashboard build output (.github/scripts/dashboard.py)
 /site/

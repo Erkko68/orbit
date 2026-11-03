@@ -42,7 +42,7 @@ Ids are made on the device (`collection.document.id`), so creating a space, an i
 
 Firestore merges concurrent writes per field path, last write wins. The item repository never saves a whole item: it writes one core field, one module (`modules.schedule`) or one checklist entry (`modules.checklist.entries.{id}`). Two members changing different parts of the same item offline both keep their change. See [ADR 0002](../adr/0002-firestore-data-model.md).
 
-What needs more than last-write-wins (claiming a task, settling an expense) uses a transaction or a Cloud Function, which needs a connection.
+What needs more than last-write-wins (claiming a task, settling an expense) uses a transaction, which needs a connection.
 
 ## A space made a moment ago
 
@@ -61,5 +61,5 @@ A new space shows in the list from the local write before the server has it. Its
 
 - Signing in, registering and Google sign-in.
 - Joining a space from an invitation, since the server has to check the invitation (#25).
-- Anything that runs in a Cloud Function, such as the assistant.
+- Anything that runs on the assistant server, such as the assistant.
 - A first read of something never read before on this device.

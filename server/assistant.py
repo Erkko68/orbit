@@ -1,30 +1,40 @@
-"""The AI assistant, without the Firebase wiring so it can be tested with a fake model."""
+"""The AI assistant, without the HTTP server around it so it can be tested with a fake model."""
 
 import logging
 from collections.abc import Callable
 from pathlib import Path
-
-from firebase_functions.https_fn import FunctionsErrorCode, HttpsError
 
 FIRST_QUESTION_PROMPT = (Path(__file__).parent / "prompts" / "first_question.md").read_text(encoding="utf-8")
 
 # How many questions an interview may ask. #74 makes it the real budget.
 QUESTION_BUDGET = 8
 
-# What the model writes. The function adds the id, the position and the budget, which are not the model's to decide.
+# What the model writes, as JSON Schema. The server adds the id, the position and the budget, which are not the
+# model's to decide.
 QUESTION_SCHEMA = {
-    "type": "OBJECT",
+    "type": "object",
     "properties": {
-        "text": {"type": "STRING"},
-        "options": {"type": "ARRAY", "items": {"type": "STRING"}},
-        "multiSelect": {"type": "BOOLEAN"},
-        "freeText": {"type": "BOOLEAN"},
+        "text": {"type": "string"},
+        "options": {"type": "array", "items": {"type": "string"}},
+        "multiSelect": {"type": "boolean"},
+        "freeText": {"type": "boolean"},
     },
     "required": ["text", "options", "multiSelect", "freeText"],
+    "additionalProperties": False,
 }
 
 # The model's answer to a prompt, as JSON that follows a schema.
 Generate = Callable[[str, dict], object]
+
+
+class AssistantError(Exception):
+    """Why the assistant did not answer, with a callable error status: UNAUTHENTICATED or UNAVAILABLE."""
+
+    def __init__(self, status: str, message: str, details: dict | None = None):
+        super().__init__(message)
+        self.status = status
+        self.message = message
+        self.details = details
 
 
 def parse_question(answer: object, position: int) -> dict:
@@ -54,16 +64,12 @@ def parse_question(answer: object, position: int) -> dict:
     }
 
 
-def first_question(auth: object | None, generate: Generate) -> dict:
-    """The interview's first question for a signed-in caller; a rejected call never reaches the AI. #66 turns this into the whole interview."""
-    if auth is None:
-        raise HttpsError(FunctionsErrorCode.UNAUTHENTICATED, "Sign in to use the assistant.")
+def first_question(uid: str | None, generate: Generate) -> dict:
+    """The interview's first question for the signed-in caller [uid]; a rejected call never reaches the AI. #66 turns this into the whole interview."""
+    if uid is None:
+        raise AssistantError("UNAUTHENTICATED", "Sign in to use the assistant.")
     try:
         return parse_question(generate(FIRST_QUESTION_PROMPT, QUESTION_SCHEMA), position=1)
     except Exception as e:
         logging.exception("The assistant could not ask its first question")
-        raise HttpsError(
-            FunctionsErrorCode.UNAVAILABLE,
-            "The assistant could not answer.",
-            details={"reason": "unavailable"},
-        ) from e
+        raise AssistantError("UNAVAILABLE", "The assistant could not answer.", details={"reason": "unavailable"}) from e

@@ -10,6 +10,7 @@ An ADR records one decision that shapes the code: the context, what was decided,
 | [0004](0004-leaving-and-handing-over-a-space.md) | The space names its owner in `ownerId`; the owner hands over or deletes, never leaves | Accepted |
 | [0005](0005-bottom-bar-inside-a-space.md) | Only a space has a bottom bar, and its title switches spaces | Accepted |
 | [0006](0006-dictation-through-the-platform-recognisers.md) | Voice dictation uses each platform's own speech recogniser, not ML Kit | Accepted |
+| [0007](0007-assistant-on-our-own-server.md) | The assistant runs on our own server in Docker, next to its model (Gemma 4, Gemini as fallback) | Accepted |
 | [0007](0007-one-item.md) | There is one item, and it can have several people | Accepted |
 | [0008](0008-summary-details-and-checklists.md) | An item has a summary and details, and a checklist finishes it | Accepted |
 

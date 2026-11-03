@@ -6,9 +6,10 @@
 flowchart LR
     android["androidApp<br/>Application, Activity"] --> shared
     ios["iosApp<br/>SwiftUI entry, Xcode project"] --> shared
-    shared["shared<br/>all app code: UI, ViewModels,<br/>domain, data, DI"] --> firebase[("Firebase<br/>Auth · Firestore · Functions")]
-    functions["firebase/functions<br/>Cloud Functions (Python)"] --> firebase
-    shared -. "callable functions (Sprint 2)" .-> functions
+    shared["shared<br/>all app code: UI, ViewModels,<br/>domain, data, DI"] --> firebase[("Firebase<br/>Auth · Firestore")]
+    server["server<br/>assistant (Python, Docker)"] --> model[("Gemma 4 on Ollama,<br/>or Gemini")]
+    server -. "checks ID tokens" .-> firebase
+    shared -. "POST /interview (Sprint 2)" .-> server
 ```
 
 | Module | Holds |
@@ -16,7 +17,8 @@ flowchart LR
 | `shared/` | Everything the app does, in Kotlin Multiplatform with Compose Multiplatform UI. `commonMain` by default; `androidMain`/`iosMain` only for what the platforms do differently. |
 | `androidApp/` | The Android entry point: starts Koin with the Android context and shows `OrbitNavHost`. |
 | `iosApp/` | The Xcode project and SwiftUI entry point, which hosts `MainViewController`. |
-| `firebase/` | What is deployed to Firebase: `firestore.rules`, `firebase.json`, the Cloud Functions in `functions/`, and the rules tests in `tests/`. |
+| `firebase/` | What is deployed to Firebase: `firestore.rules`, `firebase.json`, and the rules tests in `tests/`. |
+| `server/` | The assistant's backend, in Docker on our own server next to its model ([Assistant server](../backend/assistant-server.md), [ADR 0007](../adr/0007-assistant-on-our-own-server.md)). |
 
 ## Layers
 
