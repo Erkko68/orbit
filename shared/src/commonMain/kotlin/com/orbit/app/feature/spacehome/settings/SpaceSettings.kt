@@ -25,6 +25,7 @@ import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.core.designsystem.component.OrbitTextField
 import com.orbit.app.core.designsystem.component.memberShape
 import com.orbit.app.core.designsystem.theme.OrbitShape
+import com.orbit.app.core.designsystem.theme.Ink
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.share.TextSharer
 import com.orbit.app.feature.spacehome.members.InvitePage
@@ -97,10 +98,11 @@ internal fun SpaceSettings(
             OrbitFloatingFace(
                 id = member.id,
                 initials = member.initials,
-                color = OrbitTheme.colors.spaceAccent(member.index),
+                color = Ink,
                 shape = memberShape(member.index),
                 description = member.name,
                 photoUrl = member.photoUrl,
+                contentColor = OrbitTheme.accent.vivid,
             )
         },
         openLabel = stringResource(Res.string.space_settings),

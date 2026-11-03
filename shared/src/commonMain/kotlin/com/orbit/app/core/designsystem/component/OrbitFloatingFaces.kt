@@ -38,6 +38,7 @@ import com.orbit.app.core.designsystem.theme.OrbitMotion
 import com.orbit.app.core.designsystem.theme.OrbitShape
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 import org.jetbrains.compose.resources.DrawableResource
 
 private val LargestFace = 24.dp
@@ -47,19 +48,33 @@ private const val NANOS_PER_SECOND = 1_000_000_000f
 private const val EMPHASIS = 1.4f
 private const val SPAWN_SPREAD = 8f
 
+/** How much of the stage's short side a cluster takes, so it has room to turn. */
+private const val STAGE_FILL = 0.56f
+private const val SMALLEST_VARIETY = 0.8f
+private const val VARIETY_STEPS = 31
+
 /** How big a space's pool of faces is in a sheet. */
 val OrbitFacePoolHeight = 300.dp
 
 /** How big a face gets in that pool. */
 val OrbitFacePoolLargest = 56.dp
 
-/** The radius that leaves room for [count] faces, the largest of them [largest]. */
-private fun radiusFor(count: Int, largest: Dp): Float = largest.value * when {
-    count <= 1 -> 1f
-    count <= 3 -> 0.8f
-    count <= 6 -> 0.66f
-    else -> 0.5f
+/**
+ * The radius that leaves room for [count] faces, the largest of them [largest], on a [width] by [height] stage. The
+ * cluster also has to fit the stage's short side with room to spare, or it jams against the walls and stops turning.
+ */
+internal fun radiusFor(count: Int, largest: Float, width: Float, height: Float): Float {
+    val wanted = largest * when {
+        count <= 1 -> 1f
+        count <= 3 -> 0.8f
+        count <= 6 -> 0.66f
+        else -> 0.5f
+    }
+    return minOf(wanted, minOf(width, height) / 2 * STAGE_FILL / sqrt(count.coerceAtLeast(1).toFloat()))
 }
+
+/** How much bigger or smaller than the rest the face of [id] is, so a cluster looks alive. The same for them every time. */
+internal fun sizeVariety(id: String): Float = SMALLEST_VARIETY + id.hashCode().mod(VARIETY_STEPS) / 100f
 
 /**
  * A person among [OrbitFloatingFaces]. [selected] makes them bigger, shoves the rest aside and puts a border in the
@@ -105,9 +120,10 @@ fun OrbitFloatingFaces(
     LaunchedEffect(shown, width, height) {
         if (width == 0f) return@LaunchedEffect
         bodies.removeAll { body -> shown.none { it.id == body.id } }
-        val radius = radiusFor(shown.size, largest)
+        val radius = radiusFor(shown.size, largest.value, width, height)
         shown.forEachIndexed { index, face ->
-            val target = if (face.selected) radius * EMPHASIS else radius
+            val sized = if (shown.size > 1) radius * sizeVariety(face.id) else radius
+            val target = if (face.selected) sized * EMPHASIS else sized
             val body = bodies.firstOrNull { it.id == face.id }
             if (body == null) {
                 val spread = (index - shown.size / 2f) * SPAWN_SPREAD
