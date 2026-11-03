@@ -64,6 +64,7 @@ The project needs the Blaze plan and the Vertex AI API enabled (`gcloud services
 ```sh
 cd firebase
 npx firebase deploy --only firestore:rules   # rules
+npx firebase deploy --only firestore:indexes # indexes
 npx firebase deploy --only functions         # functions (needs the Blaze plan)
 ```
 

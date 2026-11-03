@@ -249,6 +249,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | Method | Path | Operation |
 |---|---|---|
 | `observeItems` | `spaces/{id}/items` ordered by `createdAt` | Listener, retried for a few seconds while refused |
+| `observeAgenda` | `spaces/{id}/items` where `status == open` and `modules.schedule.date <=` a date | Listener, retried the same way. `agendaOf` sorts the result into overdue, today and this week |
 | `create` | `spaces/{id}/items/{itemId}` | `set` of the whole new item |
 | `delete` | same | `delete`. The rules allow its creator, an admin or the owner |
 | `rename` | same | `update` of `title` |
@@ -296,7 +297,7 @@ No method saves a whole existing item: every update writes only its field paths,
 | Items | `spaces/{id}/items` ordered by `createdAt` | automatic |
 | Ledger | `spaces/{id}/expenses` | automatic |
 | Invitations (owner, admin) | `invitations` where `spaceId ==` id | automatic |
-| Agenda (#37) | `spaces/{id}/items` where `status == open` and `modules.schedule.date <=` end of week | composite: `status` asc, `modules.schedule.date` asc, in `firebase/firestore.indexes.json` with #37 |
+| Agenda | `spaces/{id}/items` where `status == open` and `modules.schedule.date <=` end of week | composite: `status` asc, `modules.schedule.date` asc, in `firebase/firestore.indexes.json` |
 
 ## Coming next
 

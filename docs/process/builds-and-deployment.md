@@ -40,6 +40,7 @@ From `firebase/`, by someone with access to the project:
 
 ```sh
 npx firebase deploy --only firestore:rules   # after a rules change has merged
+npx firebase deploy --only firestore:indexes # after an index change has merged
 npx firebase deploy --only functions         # once there are functions (needs the Blaze plan)
 ```
 
