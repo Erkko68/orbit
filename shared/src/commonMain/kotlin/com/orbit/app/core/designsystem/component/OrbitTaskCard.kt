@@ -27,13 +27,14 @@ private const val TITLE_LINES = 2
  * A task as a card of its own, where the [title] does the talking: it always comes first, so a card with nothing else is
  * a clean line of big type. Under it, when there is any, a line of [summary], then a footer with [label] (when it is due)
  * and the [faces] of who has it. The [OrbitCheck] stands on the right, and [checkDescription] says what it does for screen
- * readers. A card that is done is tinted and its title goes quiet.
+ * readers. Without [onCheckedChange] there is no check, for what is finished some other way, such as a list. A card that
+ * is done is tinted and its title goes quiet.
  */
 @Composable
 fun OrbitTaskCard(
     title: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
+    onCheckedChange: ((Boolean) -> Unit)?,
     checkDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -53,7 +54,9 @@ fun OrbitTaskCard(
         contentColor = scheme.onSurface,
     ) {
         Row(
-            modifier = Modifier.padding(start = OrbitSpacing.md, end = OrbitSpacing.xs).padding(vertical = OrbitSpacing.md),
+            modifier = Modifier
+                .padding(start = OrbitSpacing.md, end = if (onCheckedChange == null) OrbitSpacing.md else OrbitSpacing.xs)
+                .padding(vertical = OrbitSpacing.md),
             horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -76,7 +79,7 @@ fun OrbitTaskCard(
                 }
                 if (label != null || faces.isNotEmpty()) TaskFooter(label, faces)
             }
-            OrbitCheck(checked, onCheckedChange, checkDescription, enabled = enabled)
+            if (onCheckedChange != null) OrbitCheck(checked, onCheckedChange, checkDescription, enabled = enabled)
         }
     }
 }

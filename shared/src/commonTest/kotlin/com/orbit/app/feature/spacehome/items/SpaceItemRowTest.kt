@@ -103,4 +103,12 @@ class SpaceItemRowTest : ComposeTest() {
 
         onNodeWithText("1 OF 3").assertIsDisplayed()
     }
+
+    @Test
+    fun aListHasNoCheckOfItsOwn() = runComposeUiTest {
+        showRow(SpaceItem("list", "Pack", done = true, checklist = SpaceItemChecklist(3, 3)))
+
+        onNodeWithContentDescription("Reopen Pack").assertDoesNotExist()
+        onNodeWithContentDescription("Complete Pack").assertDoesNotExist()
+    }
 }

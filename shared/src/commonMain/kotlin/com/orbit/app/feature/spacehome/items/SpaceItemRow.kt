@@ -13,7 +13,7 @@ import orbit.shared.generated.resources.module_schedule_time
 import orbit.shared.generated.resources.space_item_entry_count
 import org.jetbrains.compose.resources.stringResource
 
-/** An item as a card: what, its summary, when it is due and who has it, and the check that completes or reopens it. */
+/** An item as a card: what, its summary, when it is due and who has it, and the check that completes or reopens it, unless it is a list. */
 @Composable
 internal fun SpaceItemRow(
     item: SpaceItem,
@@ -26,7 +26,8 @@ internal fun SpaceItemRow(
     OrbitTaskCard(
         title = item.title,
         checked = item.done,
-        onCheckedChange = onDoneChange,
+        // A list is finished by ticking its entries, so its card has no check of its own.
+        onCheckedChange = onDoneChange.takeIf { item.checklist == null },
         checkDescription = stringResource(
             if (item.done) Res.string.item_reopen_named else Res.string.item_complete_named,
             item.title,
