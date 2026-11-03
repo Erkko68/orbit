@@ -105,7 +105,7 @@ This file holds the rules. The background to them (architecture, schema, roles, 
     - Tests opt in to `ExperimentalTestApi`, because `runComposeUiTest` is the only multiplatform Compose test entry point.
     - M3's `DatePickerDialog`, which is stable on Android and only marked experimental on iOS. `TimePicker` stays out.
 - No hardcoded strings in composables: use `composeResources/values/strings.xml`.
-  - English is the default. Every new or changed string and plural ships in Spanish (`values-es`), Catalan (`values-ca`) and Italian (`values-it`) too, with matching keys and format placeholders. Run `python3 .github/scripts/check_translations.py`; CI enforces it. Android-only user-facing resources follow the same rule.
+  - English is the default. A new or changed string ships in `values-es`, `values-ca` and `values-it` in the same change, with the same key, placeholders and place in the file as in `values/`. Android-only resources (`androidMain/res`) follow the same rule.
 - One public composable per file.
 - Immutable UI state (`data class` + `StateFlow`), no mutable collections in state.
 - Kotlin official code style.

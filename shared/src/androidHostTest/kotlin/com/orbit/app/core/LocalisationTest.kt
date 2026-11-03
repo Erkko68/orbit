@@ -12,8 +12,8 @@ import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.feature.item.ui.itemDateLabel
 import kotlinx.datetime.LocalDate
 import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.duration_days
 import orbit.shared.generated.resources.sign_in
-import orbit.shared.generated.resources.spaces_count
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import org.robolectric.annotation.Config
@@ -24,23 +24,23 @@ import kotlin.test.assertEquals
 class LocalisationTest : ComposeTest() {
     @Test
     @Config(qualifiers = "en-rUS")
-    fun english() = assertLanguage("Sign in", "1 space", "2 spaces", "en", "Jan")
+    fun english() = assertLanguage("Sign in", "1 day", "2 days", "en", "Jan")
 
     @Test
     @Config(qualifiers = "es-rES")
-    fun spanish() = assertLanguage("Iniciar sesión", "1 espacio", "2 espacios", "es", "ene")
+    fun spanish() = assertLanguage("Iniciar sesión", "1 día", "2 días", "es", "ene")
 
     @Test
     @Config(qualifiers = "ca-rES")
-    fun catalan() = assertLanguage("Inicia la sessió", "1 espai", "2 espais", "ca", "gen")
+    fun catalan() = assertLanguage("Inicia la sessió", "1 dia", "2 dies", "ca", "gen")
 
     @Test
     @Config(qualifiers = "it-rIT")
-    fun italian() = assertLanguage("Accedi", "1 spazio", "2 spazi", "it", "gen")
+    fun italian() = assertLanguage("Accedi", "1 giorno", "2 giorni", "it", "gen")
 
     @Test
     @Config(qualifiers = "fr-rFR")
-    fun unsupportedLanguageUsesEnglish() = assertLanguage("Sign in", "1 space", "2 spaces", "en", "janv")
+    fun unsupportedLanguageUsesEnglish() = assertLanguage("Sign in", "1 day", "2 days", "en", "janv")
 
     private fun assertLanguage(action: String, one: String, two: String, language: String, month: String) =
         runComposeUiTest {
@@ -49,8 +49,8 @@ class LocalisationTest : ComposeTest() {
                 OrbitTheme {
                     Column {
                         Text(stringResource(Res.string.sign_in))
-                        Text(pluralStringResource(Res.plurals.spaces_count, 1, 1))
-                        Text(pluralStringResource(Res.plurals.spaces_count, 2, 2))
+                        Text(pluralStringResource(Res.plurals.duration_days, 1, 1))
+                        Text(pluralStringResource(Res.plurals.duration_days, 2, 2))
                         Text(itemDateLabel(LocalDate(2026, 1, 12)))
                     }
                 }

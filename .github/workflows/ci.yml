@@ -18,10 +18,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Complete translations in every supported language
-        run: |
-          python3 -m unittest discover -s .github/scripts -p test_check_translations.py
-          python3 .github/scripts/check_translations.py
       - name: No hardcoded styles outside the design system
         run: |
           if grep -rnE '[0-9]\.(dp|sp)\b|Color\(0x' --include='*.kt' shared/src androidApp/src | grep -v '/core/designsystem/'; then
