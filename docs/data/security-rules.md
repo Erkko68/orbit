@@ -1,6 +1,6 @@
 # Security rules and roles
 
-Who may read and write what. [`firebase/firestore.rules`](../../firebase/firestore.rules) enforces it on the server, and [`firebase/tests/rules.test.js`](../../firebase/tests/rules.test.js) checks every rule against the emulator. The app hides what the rules would refuse, but never relies on that.
+Who may read and write what. [`firebase/firestore.rules`](../../firebase/firestore.rules) enforces it on the server, and the tests in [`firebase/tests/`](../../firebase/tests/), a file per collection, check every rule against the emulator. The app hides what the rules would refuse, but never relies on that.
 
 ## Roles
 
