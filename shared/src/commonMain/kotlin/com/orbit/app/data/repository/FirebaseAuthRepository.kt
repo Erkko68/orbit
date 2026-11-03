@@ -173,6 +173,11 @@ class FirebaseAuthRepository(
         auth.signOut()
     }
 
+    override suspend fun idToken(): String {
+        val user = checkNotNull(auth.currentUser) { "Not signed in" }
+        return checkNotNull(user.getIdToken(false)) { "No ID token for ${user.uid}" }
+    }
+
     override suspend fun acceptAiConsent() {
         val user = checkNotNull(auth.currentUser) { "Not signed in" }
         writeLocally("Record the AI consent of ${user.uid}") {

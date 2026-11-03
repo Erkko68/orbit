@@ -58,6 +58,18 @@ Entitlements (#117, #120) and push notices to other members (#102) need a server
 
 `GET /health` answers `{"ok": true}`.
 
+The request's `data` carries every answer so far, `{"answers": [{questionId, selected, text}]}`: the server keeps no state between calls (#64). A plan comes back as `{"result": {"plan": …}}` once #66 builds one. The refusals still to come use these statuses, which the app already reads:
+
+| Status | The app shows |
+|---|---|
+| `RESOURCE_EXHAUSTED` | The quota is spent (#67): the manual path only |
+| `FAILED_PRECONDITION` | The assistant is switched off (#68): the manual path only |
+| `UNAVAILABLE` | Not answering: try again, or the manual path |
+
+### The app's side
+
+`ServerAssistantRepository` (`shared/…/data/repository/`) posts to `ASSISTANT_SERVER_URL` with the user's ID token, through Ktor, and waits up to three minutes for a small model. No connection reads as a network error, and a reply that is not the callable shape (a proxy's error page) as `UNAVAILABLE`. `ASSISTANT_SERVER_URL` is a placeholder (`https://assistant.orbit.invalid`) until the server has its domain; set it there.
+
 ## Configuration
 
 | Variable | Default | |

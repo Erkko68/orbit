@@ -48,7 +48,7 @@ class SpaceHomeScreenTest : ComposeTest() {
 
     private fun ComposeUiTest.showTheSpace() = setContent {
         OrbitTheme {
-            SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, onNewItem = {}, viewModel = viewModel)
+            SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, onNewItem = {}, onOpenAssistant = {}, viewModel = viewModel)
         }
     }
 
@@ -124,6 +124,7 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenAccount = { accounts++ },
                     onOpenItem = {},
                     onNewItem = {},
+                    onOpenAssistant = {},
                     viewModel = viewModel,
                 )
             }
@@ -148,6 +149,7 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenAccount = {},
                     onOpenItem = {},
                     onNewItem = {},
+                    onOpenAssistant = {},
                     viewModel = viewModel,
                 )
             }
@@ -181,6 +183,7 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenAccount = {},
                     onOpenItem = {},
                     onNewItem = { added++ },
+                    onOpenAssistant = {},
                     viewModel = viewModel,
                 )
             }
@@ -188,5 +191,26 @@ class SpaceHomeScreenTest : ComposeTest() {
         onNodeWithContentDescription("Add").performClick()
 
         assertEquals(1, added)
+    }
+
+    @Test
+    fun theCalendarOpensTheAssistant() = runComposeUiTest {
+        var opened = 0
+        setContent {
+            OrbitTheme {
+                SpaceHomeScreen(
+                    "space-1",
+                    onBack = {},
+                    onOpenAccount = {},
+                    onOpenItem = {},
+                    onNewItem = {},
+                    onOpenAssistant = { opened++ },
+                    viewModel = viewModel,
+                )
+            }
+        }
+        onNodeWithText("Plan with the assistant").performScrollTo().performClick()
+
+        assertEquals(1, opened)
     }
 }
