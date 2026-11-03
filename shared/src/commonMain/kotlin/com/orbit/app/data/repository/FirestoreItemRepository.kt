@@ -36,7 +36,9 @@ import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FieldsAndValuesUpdateDSL
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import dev.gitlive.firebase.firestore.Timestamp
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
 
@@ -53,7 +55,7 @@ class FirestoreItemRepository(
     override fun observeItems(spaceId: String): Flow<List<Item>> =
         items(spaceId).orderBy(CREATED_AT).snapshots.map { snapshot ->
             snapshot.documents.mapNotNull(::toItem)
-        }.retryWhileRefused()
+        }.flowOn(Dispatchers.Default).retryWhileRefused()
 
     /** ISO dates sort as text, so "up to [until]" is a range on the stored string (ADR 0002). */
     override fun observeAgenda(spaceId: String, until: LocalDate): Flow<List<Item>> =
@@ -64,7 +66,7 @@ class FirestoreItemRepository(
             )
         }.snapshots.map { snapshot ->
             snapshot.documents.mapNotNull(::toItem)
-        }.retryWhileRefused()
+        }.flowOn(Dispatchers.Default).retryWhileRefused()
 
     override suspend fun create(spaceId: String, item: NewItem): String {
         val document = items(spaceId).document
@@ -129,6 +131,7 @@ class FirestoreItemRepository(
             .orderBy(COMPLETED_AT, Direction.DESCENDING)
             .limit(LATEST_COMPLETIONS)
             .snapshots.map { snapshot -> snapshot.documents.mapNotNull(::toCompletion) }
+            .flowOn(Dispatchers.Default)
             .retryWhileRefused()
 
     override fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>> =
@@ -137,6 +140,7 @@ class FirestoreItemRepository(
             .orderBy(COMPLETED_AT, Direction.DESCENDING)
             .limit(LATEST_COMPLETIONS)
             .snapshots.map { snapshot -> snapshot.documents.mapNotNull(::toCompletion) }
+            .flowOn(Dispatchers.Default)
             .retryWhileRefused()
 
     /** The item and its completion go in one batch, so the history never misses one nor has one too many. */
