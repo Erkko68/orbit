@@ -222,6 +222,23 @@ An entry of the ledger. Balances are derived from these on the device and never 
 
 A document without a required field, with an empty `split` or with a malformed `date` is skipped when read.
 
+`domain/usecase/CalculateBalances.kt` derives `Balances` from the ledger and the current member ids (#56).
+Each stored share credits its payer and debits the member who owes it; the payer's own share cancels out.
+Settlements use exactly the same calculation. Amounts remain `Long` cents, with no new rounding or stored
+total. An accumulation outside the `Long` range fails explicitly rather than wrapping the balance.
+
+Current members remain in the result at zero; other ledger participants remain only while their balance is
+non-zero. Results use uid order, and names are resolved from member documents or `Space.formerMembers`.
+The use case also returns a minimum-count list of direct debtor-to-creditor `SuggestedPayment`s. An exact,
+memoised search tries transfers that close at least one endpoint, so the plan has at most n - 1 payments for
+n non-zero balances (zero for an empty or settled ledger). Equal amounts are interchangeable for the count;
+uid order makes ties deterministic. Worst-case search time and memory grow exponentially with the number
+of non-zero balances; this targets small shared spaces, not large financial networks.
+
+These are proposals only. The Expenses UI and confirmation that records one as a settlement belong to #57.
+The split that distributes leftover cents in uid order is created before saving an expense (#54); balance
+calculation consumes those exact stored shares and never splits them again.
+
 ### `invitations/{code}`
 
 | Field | Type | Required | Notes |
