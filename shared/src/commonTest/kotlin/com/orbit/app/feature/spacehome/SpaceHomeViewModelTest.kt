@@ -111,17 +111,17 @@ class SpaceHomeViewModelTest {
     }
 
     @Test
-    fun opensOnHomeAndSwitchesDestination() = runTest {
+    fun opensOnCalendarAndSwitchesDestination() = runTest {
         val viewModel = SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-        assertEquals(SpaceHomeTab.HOME, viewModel.uiState.value.tab)
+        assertEquals(SpaceHomeTab.CALENDAR, viewModel.uiState.value.tab)
 
         viewModel.selectTab(SpaceHomeTab.EXPENSES)
 
         assertEquals(SpaceHomeTab.EXPENSES, viewModel.uiState.value.tab)
         assertFalse(viewModel.uiState.value.canAddItem)
 
-        viewModel.selectTab(SpaceHomeTab.HOME)
+        viewModel.selectTab(SpaceHomeTab.CALENDAR)
         assertTrue(viewModel.uiState.value.canAddItem)
     }
 

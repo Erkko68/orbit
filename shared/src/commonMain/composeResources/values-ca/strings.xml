@@ -91,7 +91,7 @@
     <string name="filter_mine">Meus</string>
     <string name="filter_tasks">Tasques</string>
     <string name="filter_lists">Llistes</string>
-    <string name="space_tab_home">Inici</string>
+    <string name="space_tab_calendar">Calendari</string>
     <string name="space_tab_tasks">Tasques</string>
     <string name="space_tab_expenses">Despeses</string>
     <plurals name="space_items_open">
@@ -100,8 +100,6 @@
     </plurals>
     <string name="space_items_loading">S&apos;estan carregant els elements…</string>
     <string name="space_items_load_failed">No s&apos;han pogut carregar els elements</string>
-    <string name="space_members_loading">S&apos;estan carregant els membres…</string>
-    <string name="space_members_load_failed">No s&apos;han pogut carregar els membres</string>
     <string name="space_items_empty_title">Encara no hi ha elements</string>
     <string name="space_items_empty_body">El que afegeixis apareixerà aquí.</string>
     <string name="space_item_entry_count">%1$d de %2$d</string>

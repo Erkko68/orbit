@@ -91,7 +91,7 @@
     <string name="filter_mine">Mine</string>
     <string name="filter_tasks">Tasks</string>
     <string name="filter_lists">Lists</string>
-    <string name="space_tab_home">Home</string>
+    <string name="space_tab_calendar">Calendar</string>
     <string name="space_tab_tasks">Tasks</string>
     <string name="space_tab_expenses">Expenses</string>
     <plurals name="space_items_open">
@@ -100,8 +100,6 @@
     </plurals>
     <string name="space_items_loading">Loading the items…</string>
     <string name="space_items_load_failed">Could not load the items</string>
-    <string name="space_members_loading">Loading the members…</string>
-    <string name="space_members_load_failed">Could not load the members</string>
     <string name="space_items_empty_title">No items yet</string>
     <string name="space_items_empty_body">What you add will show up here.</string>
     <string name="space_item_entry_count">%1$d of %2$d</string>

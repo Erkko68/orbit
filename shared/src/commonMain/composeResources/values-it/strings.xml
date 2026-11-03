@@ -91,7 +91,7 @@
     <string name="filter_mine">Miei</string>
     <string name="filter_tasks">Attività</string>
     <string name="filter_lists">Liste</string>
-    <string name="space_tab_home">Home</string>
+    <string name="space_tab_calendar">Calendario</string>
     <string name="space_tab_tasks">Attività</string>
     <string name="space_tab_expenses">Spese</string>
     <plurals name="space_items_open">
@@ -100,8 +100,6 @@
     </plurals>
     <string name="space_items_loading">Caricamento degli elementi…</string>
     <string name="space_items_load_failed">Impossibile caricare gli elementi</string>
-    <string name="space_members_loading">Caricamento dei membri…</string>
-    <string name="space_members_load_failed">Impossibile caricare i membri</string>
     <string name="space_items_empty_title">Non ci sono ancora elementi</string>
     <string name="space_items_empty_body">Quello che aggiungi apparirà qui.</string>
     <string name="space_item_entry_count">%1$d di %2$d</string>

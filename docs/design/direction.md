@@ -41,7 +41,7 @@ Lists and chores also follow Material 3 Expressive: the [launch post](https://m3
 - **One add.** A floating button in the space's colour, in the same place everywhere. It opens the item screen on a new item. On Expenses it goes straight to the form.
 - **One row of controls.** A destination has one row of filters on the page and no more. No section header repeats it.
 - **Dashed means proposed.** What the assistant suggests has a dashed ring until someone confirms it.
-- **One check.** A circle that morphs into a cookie when done, the same in Home, Tasks and lists.
+- **One check.** A circle that morphs into a cookie when done, the same in Calendar, Tasks and lists.
 - **Accents are decorative on the light canvas** (under 3:1 there). A selected tab or a done row also changes ink or shows a tick, so colour never carries the meaning alone.
 
 ## Layout
@@ -50,7 +50,7 @@ Lists and chores also follow Material 3 Expressive: the [launch post](https://m3
 Spaces (from the title)
   └── New space  create one or join with an invite
 Last space opened
-  ├── Home      headline, members + settings, agenda, what you owe, assistant
+  ├── Calendar  headline, agenda, what you owe, assistant (members + settings in the top bar)
   ├── Tasks     filters, lists, chores, bills, events, tasks
   └── Expenses  what you owe, who owes what, ledger
 
@@ -63,7 +63,7 @@ Over the bar: item, list, expense form, interview, review board
 | Opening | The last space, not the list. The list is one tap away on the title |
 | Spaces | Each row says what matters: "2 for you today · you owe €18.40" |
 | New space | A page of its own: the mark, a big title, then a panel to name a space and pick its colour, which the page takes on as a preview, and a panel to join with a code or link. Either way lands in the space. The guided setup comes later |
-| Home | Headline counts what is yours today. Members sit under it, and tapping one filters the agenda. Settings is to their right. Overdue, Today and Tomorrow are panels |
+| Calendar | Headline counts what is yours today. Overdue, Today and This week are panels. The members float in the top bar around a small settings shape, and any of them opens the settings (#259) |
 | Empty space | The assistant is the first thing, "Add something yourself" is one tap away |
 | Tasks | Filters on the page. Your turn on top, then lists as tiles and every task as a card with a big title |
 | List | An item with a checklist: a colour block with the name and a wavy progress line. One list with what is left first and a row at the top that adds. Ticking the last entry finishes it |

@@ -17,7 +17,8 @@ import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitGroup
 import com.orbit.app.core.designsystem.component.OrbitGroupRow
 import com.orbit.app.core.designsystem.component.OrbitHeading
-import com.orbit.app.core.designsystem.component.OrbitIconButton
+import com.orbit.app.core.designsystem.component.OrbitCrew
+import com.orbit.app.core.designsystem.component.OrbitFloatingFace
 import com.orbit.app.core.designsystem.component.OrbitSheet
 import com.orbit.app.core.designsystem.component.OrbitSheetPages
 import com.orbit.app.core.designsystem.component.OrbitSpaceColorPicker
@@ -43,7 +44,6 @@ import orbit.shared.generated.resources.ic_edit
 import orbit.shared.generated.resources.ic_group
 import orbit.shared.generated.resources.ic_home
 import orbit.shared.generated.resources.ic_person_add
-import orbit.shared.generated.resources.ic_tune
 import orbit.shared.generated.resources.invite_title
 import orbit.shared.generated.resources.leave_body
 import orbit.shared.generated.resources.leave_confirm
@@ -71,7 +71,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * The button that opens the settings of a space, and everything behind it: one sheet that changes in place, with what
+ * The members of a space floating around the settings in the top bar, any of them opening everything behind it: one sheet that changes in place, with what
  * the user can do with the space. An owner or admin invites people and edits the name and colour, anyone sees the
  * members and their roles, and at the bottom the owner deletes the space and anyone else leaves it, after confirming.
  * [onGone] runs once the user has left or deleted the space.
@@ -93,12 +93,20 @@ internal fun SpaceSettings(
         if (state.gone) onGone()
     }
     if (!state.visible) return
-    OrbitIconButton(
-        icon = Res.drawable.ic_tune,
-        contentDescription = stringResource(Res.string.space_settings),
+    OrbitCrew(
+        faces = members.members.mapIndexed { index, member ->
+            OrbitFloatingFace(
+                id = member.id,
+                initials = member.initials,
+                color = OrbitTheme.colors.spaceAccent(index),
+                shape = memberShape(index),
+                description = member.name,
+                photoUrl = member.photoUrl,
+            )
+        },
+        settingsDescription = stringResource(Res.string.space_settings),
         onClick = viewModel::open,
         modifier = modifier,
-        raised = true,
     )
     val page = state.page ?: return
     val step = when {
