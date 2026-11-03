@@ -72,6 +72,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
                     onOpenAccount = {},
                     onOpenItem = {},
                     onNewItem = {},
+                    onOpenAssistant = {},
                     viewModel = viewModel,
                 )
             }
@@ -106,6 +107,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
                     onOpenAccount = {},
                     onOpenItem = { opened += it },
                     onNewItem = {},
+                    onOpenAssistant = {},
                     viewModel = viewModel,
                 )
             }

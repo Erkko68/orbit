@@ -109,6 +109,7 @@
     <string name="space_expenses_empty_title">Encara no hi ha despeses</string>
     <string name="space_expenses_empty_body">El que comparteixi l&apos;espai apareixerà aquí.</string>
     <string name="space_agenda_empty_title">No hi ha res programat per a avui</string>
+    <string name="space_assistant">Planifica amb l&apos;assistent</string>
     <string name="space_agenda_empty_body">Els elements que vencen avui apareixeran aquí.</string>
     <string name="role_owner">Propietari</string>
     <string name="role_admin">Administrador</string>

@@ -12,6 +12,7 @@ import com.orbit.app.core.designsystem.component.OrbitHero
 import com.orbit.app.core.designsystem.component.OrbitNavigationBar
 import com.orbit.app.core.designsystem.component.OrbitNavigationDestination
 import com.orbit.app.core.designsystem.component.OrbitScreen
+import com.orbit.app.core.designsystem.component.OrbitTonalButton
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpaceColor
 import com.orbit.app.core.designsystem.theme.OrbitTheme
@@ -26,6 +27,7 @@ import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.account_title
 import orbit.shared.generated.resources.space_agenda_empty_body
 import orbit.shared.generated.resources.space_agenda_empty_title
+import orbit.shared.generated.resources.space_assistant
 import orbit.shared.generated.resources.space_back
 import orbit.shared.generated.resources.space_expenses_empty_body
 import orbit.shared.generated.resources.space_expenses_empty_title
@@ -43,8 +45,8 @@ import org.koin.core.parameter.parametersOf
  * A space (ADR 0005), painted in its colour: its name in the top bar, which opens the list of spaces through [onBack],
  * as does leaving the space, and its destinations in the bottom bar. Beside the name its members float around the
  * settings. Calendar says where the user stands, with the agenda (#38) under it. Tasks has the items, and Expenses waits
- * for #54. The members and the items load themselves. The add button opens a new item through [onNewItem], and the account
- * avatar calls [onOpenAccount].
+ * for #54. The members and the items load themselves. The add button opens a new item through [onNewItem]. The account avatar calls
+ * [onOpenAccount]. The assistant opens over the bar through [onOpenAssistant], from the calendar.
  */
 @Composable
 fun SpaceHomeScreen(
@@ -53,6 +55,7 @@ fun SpaceHomeScreen(
     onOpenAccount: () -> Unit,
     onOpenItem: (String) -> Unit,
     onNewItem: () -> Unit,
+    onOpenAssistant: () -> Unit,
     viewModel: SpaceHomeViewModel = koinViewModel { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -98,6 +101,7 @@ fun SpaceHomeScreen(
                         datum = state.today?.let { itemDateLabel(it) },
                         modifier = Modifier.fillMaxWidth(),
                     )
+                    OrbitTonalButton(stringResource(Res.string.space_assistant), onOpenAssistant, Modifier.fillMaxWidth())
                     OrbitEmptyState(
                         title = stringResource(Res.string.space_agenda_empty_title),
                         body = stringResource(Res.string.space_agenda_empty_body),

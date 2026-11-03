@@ -48,6 +48,9 @@ flowchart TB
 - **UI** only draws a `UiState` and forwards user actions to its ViewModel. It holds no state of its own ([State and ViewModels](state-and-viewmodels.md)).
 - **ViewModels** combine repository flows with what the user typed into one `uiState`, and turn every failure into state.
 - **Domain** is plain Kotlin: models, validation (`validateItem`, `validateSignIn`) and the repository interfaces. It knows nothing of Compose, Firebase or Koin.
+- `domain/usecase/CalculateBalances.kt` is a pure computation of member balances and minimum-count payment
+  proposals from the ledger (#56, [ledger calculation](../data/firestore-schema.md#spacesspaceidexpensesexpenseid)).
+  It neither loads nor saves expenses; the Expenses screen consumes it in #57.
 - **Data** implements the interfaces against Firestore and maps documents to models. The in-memory fakes that tests use live in `commonTest/…/testing/`, not here.
 
 A dependency only points down: a ViewModel never sees a Firestore class, and the domain never sees a ViewModel.
@@ -65,6 +68,7 @@ Everything is under `shared/src/commonMain/kotlin/com/orbit/app/`.
 | `core/share/` | `TextSharer`, the system share sheet |
 | `domain/model/` | `Space`, `Member`, `Role`, `Item`, `ItemModules` and the modules, `Invitation`, `User`, validation |
 | `domain/repository/` | `AuthRepository`, `SpaceRepository`, `ItemRepository`, `InvitationRepository`, `LastSpaceRepository` |
+| `domain/usecase/` | Pure calculations: `calculateBalances` derives balances and payment proposals from expenses and current member ids |
 | `data/repository/` | `Firebase…`/`Firestore…` implementations, `Firestore.kt` (collection names, field readers, `requireUser`), `WriteLocally.kt`, `RetryWhileRefused.kt` |
 | `data/mapper/` | Document classes (`…Documents.kt`) and the functions that map them to and from models |
 | `data/auth/` | `GoogleAuthClient`, the platform account picker |

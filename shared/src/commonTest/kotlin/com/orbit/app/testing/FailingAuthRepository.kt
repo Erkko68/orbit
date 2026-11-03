@@ -24,6 +24,8 @@ internal class FailingAuthRepository(
 
     override suspend fun acceptAiConsent() = throw failure
 
+    override suspend fun idToken(): String = throw failure
+
     override suspend fun signInWithGoogle() = throw failure
 
     override suspend fun signOut() = error("No connection")

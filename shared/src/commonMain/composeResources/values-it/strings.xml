@@ -109,6 +109,7 @@
     <string name="space_expenses_empty_title">Non ci sono ancora spese</string>
     <string name="space_expenses_empty_body">Ciò che lo spazio condivide apparirà qui.</string>
     <string name="space_agenda_empty_title">Non c&apos;è nulla in programma per oggi</string>
+    <string name="space_assistant">Pianifica con l&apos;assistente</string>
     <string name="space_agenda_empty_body">Gli elementi in scadenza oggi appariranno qui.</string>
     <string name="role_owner">Proprietario</string>
     <string name="role_admin">Amministratore</string>

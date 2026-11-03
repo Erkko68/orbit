@@ -83,6 +83,7 @@ fun OrbitNavHost(
                     onOpenAccount = { navController.navigate(AccountRoute) },
                     onOpenItem = { itemId -> navController.navigate(ItemRoute(spaceId = spaceId, itemId = itemId)) },
                     onNewItem = { navController.navigate(ItemRoute(spaceId = spaceId)) },
+                    onOpenAssistant = { navController.navigate(InterviewRoute) },
                 )
             }
             composable<ItemRoute> { entry ->

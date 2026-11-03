@@ -46,6 +46,8 @@ class InMemoryAuthRepository : AuthRepository {
         password = newPassword
     }
 
+    override suspend fun idToken(): String = "token-${requireUser().id}"
+
     override suspend fun acceptAiConsent() {
         user.value = requireUser().copy(aiConsent = true)
     }

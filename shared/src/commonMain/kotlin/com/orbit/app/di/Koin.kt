@@ -37,6 +37,8 @@ import com.orbit.app.feature.spacehome.members.SpaceMembersViewModel
 import com.orbit.app.feature.spacehome.settings.SpaceSettingsViewModel
 import com.russhwolf.settings.Settings
 import dev.gitlive.firebase.Firebase
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpTimeout
 import dev.gitlive.firebase.auth.auth
 import dev.gitlive.firebase.firestore.firestore
 import org.koin.core.context.startKoin
@@ -66,7 +68,11 @@ val dataModule = module {
     singleOf(::FirestoreItemRepository) bind ItemRepository::class
     singleOf(::FirestoreExpenseRepository) bind ExpenseRepository::class
     singleOf(::FirestoreInvitationRepository) bind InvitationRepository::class
-    singleOf(::ServerAssistantRepository) bind AssistantRepository::class
+    single<AssistantRepository> {
+        // A small model on a CPU can take a while to answer a question.
+        val client = HttpClient { install(HttpTimeout) { requestTimeoutMillis = 180_000 } }
+        ServerAssistantRepository(client, get())
+    }
     single { Settings() }
     singleOf(::SettingsLastSpaceRepository) bind LastSpaceRepository::class
     singleOf(::ReminderSync)
