@@ -15,15 +15,15 @@ A space is shared, so its items are too: every member creates, edits and complet
 | Delete an expense | any | any | only their own |
 | Edit the space (name, colour) | ✓ | ✓ | |
 | Create, list and revoke invitations | ✓ | ✓ | |
-| Change a role between member and admin (never the owner's, never to owner) | ✓ | ✓ | |
+| Change a role between member and admin (never the owner's, never to owner) | ✓ | | |
 | Join with an invitation (#25) | anyone signed in who has a valid invitation, as a plain member | | |
 | Remove a member | anyone but the owner | plain members only | |
-| Hand ownership to another member (#27) | ✓ (becoming an admin) | | |
+| Hand ownership to an admin (#27, ADR 0009) | ✓ (becoming an admin) | | |
 | Delete the space | ✓ | | |
 | Leave the space (#27) | never: deletes it, or hands it over first | ✓ | ✓ |
 | Edit their own profile copy | ✓ | ✓ | ✓ |
 
-In the app, `Role.managesSpace` (`domain/model/Member.kt`) is the owner-or-admin column: the invitation chip and the name and colour settings show only when it is true. The space settings offer the owner "Delete space" and everyone else "Leave space". A child profile (#109) will be a fourth role with less than a member.
+In the app, `Role.managesSpace` (`domain/model/Member.kt`) is the owner-or-admin column: the invitation chip and the name and colour settings show only when it is true. Changing a role and handing the space over are the owner's alone: their buttons sit in a member's header, shown to the owner. "Manage space" in the settings lists the members and offers the owner "Delete space" and everyone else "Leave space". A child profile (#109) will be a fourth role with less than a member.
 
 ## How the rules are organised
 
@@ -95,14 +95,14 @@ Also one batch, accepted only whole (ADR 0004). The caller takes themselves out 
 
 One batch of three writes by the owner (ADR 0004), each refused on its own:
 
-- **The space update** (`transfersOwnership`) changes only `ownerId`, to another uid in `memberIds`, and after the batch that member is `owner` and the caller `admin`.
-- **The member updates** (`handsOwnership`) change only `role`: the member the space now names in `ownerId` becomes `owner`, and the caller becomes `admin`. Each checks the other through `getAfter`, so neither the promotion nor the demotion stands alone, and a space never has two owners or none.
+- **The space update** (`transfersOwnership`) changes only `ownerId`, to another uid in `memberIds` who is an `admin` before the batch, and after it that member is `owner` and the caller `admin`.
+- **The member updates** (`handsOwnership`) change only `role`: the admin the space now names in `ownerId` becomes `owner`, and the caller becomes `admin`. Each checks the other through `getAfter`, so neither the promotion nor the demotion stands alone, and a space never has two owners or none.
 
 ### `spaces/{spaceId}/members/{uid}`
 
 - **Read:** a member.
 - **Create:** the space's creator making their own `owner` membership (in the batch that creates the space), or someone joining (below). An owner or admin cannot add a member directly.
-- **Update:** a member changing their own document without changing their role; an owner or admin changing a non-owner between `admin` and `member`; or the member half of a transfer (above). Outside a transfer nobody sets `owner` and the role of the owner never changes. Never the `invitationCode` or `joinedAt`, which are set once with the join.
+- **Update:** a member changing their own document without changing their role; the owner changing anyone else between `admin` and `member`; or the member half of a transfer (above). Outside a transfer nobody sets `owner` and the role of the owner never changes. Never the `invitationCode` or `joinedAt`, which are set once with the join.
 - **Delete:** a member leaving (above, not the owner); the owner removing anyone else; an admin removing a plain member.
 
 ### `spaces/{spaceId}/items/{itemId}`

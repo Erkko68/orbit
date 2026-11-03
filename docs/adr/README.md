@@ -7,11 +7,12 @@ An ADR records one decision that shapes the code: the context, what was decided,
 | [0001](0001-local-persistence.md) | Firestore's offline cache is the only local store: no local database | Accepted |
 | [0002](0002-firestore-data-model.md) | The Firestore data model for users, spaces, memberships, items and invitations, and the roles | Accepted, `ownerId` superseded by 0004 |
 | [0003](0003-balances-on-device.md) | Balances are derived on the device, in the domain, never stored | Accepted |
-| [0004](0004-leaving-and-handing-over-a-space.md) | The space names its owner in `ownerId`; the owner hands over or deletes, never leaves | Accepted |
+| [0004](0004-leaving-and-handing-over-a-space.md) | The space names its owner in `ownerId`; the owner hands over or deletes, never leaves | Accepted, who receives it narrowed by 0009 |
 | [0005](0005-bottom-bar-inside-a-space.md) | Only a space has a bottom bar, and its title switches spaces | Accepted |
 | [0006](0006-dictation-through-the-platform-recognisers.md) | Voice dictation uses each platform's own speech recogniser, not ML Kit | Accepted |
 | [0007](0007-one-item.md) | There is one item, and it can have several people | Accepted |
 | [0008](0008-summary-details-and-checklists.md) | An item has a summary and details, and a checklist finishes it | Accepted |
+| [0009](0009-only-the-owner-changes-roles.md) | Only the owner changes roles, and the space goes only to an admin | Accepted |
 
 ## Writing one
 

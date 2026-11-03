@@ -1,6 +1,6 @@
 # ADR 0004: The space names its owner, and the owner hands over or deletes, never leaves
 
-- Status: Accepted
+- Status: Accepted, who receives the space narrowed to an admin by ADR 0009
 - Date: 2026-10-24
 - Issue: #27
 
