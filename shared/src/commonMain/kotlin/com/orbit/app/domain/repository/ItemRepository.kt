@@ -19,7 +19,15 @@ interface ItemRepository {
     /** Returns the new item's id. */
     suspend fun create(spaceId: String, item: NewItem): String
 
+    /** Only its creator, an admin or the owner may. */
+    suspend fun delete(spaceId: String, itemId: String)
+
     suspend fun rename(spaceId: String, itemId: String, title: String)
+
+    /** Null takes the description off. */
+    suspend fun setDescription(spaceId: String, itemId: String, description: String?)
+
+    suspend fun setDetails(spaceId: String, itemId: String, details: String?)
 
     /** Adds the module, or replaces the one of the same type. */
     suspend fun setModule(spaceId: String, itemId: String, module: Module)

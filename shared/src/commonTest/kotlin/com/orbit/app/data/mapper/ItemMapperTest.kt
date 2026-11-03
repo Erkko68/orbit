@@ -8,7 +8,6 @@ import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
-import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import dev.gitlive.firebase.firestore.Timestamp
@@ -27,7 +26,7 @@ class ItemMapperTest {
 
     private val modules = ItemModules(
         schedule = Schedule(LocalDate(2026, 10, 9), time = LocalTime(20, 0), duration = 90.minutes),
-        assignment = Assignment.ToMember("ben"),
+        assignment = Assignment.ToMembers(setOf("ben")),
         checklist = Checklist(
             listOf(ChecklistEntry("e2", "Milk", quantity = 2, order = 0), ChecklistEntry("e1", "Bread", true, order = 1)),
         ),
@@ -45,13 +44,13 @@ class ItemMapperTest {
 
     @Test
     fun aNewItemIsOpenAndMadeByItsCreator() {
-        val document = itemDocument("space-1", NewItem("Buy milk", "Semi-skimmed", Preset.SHOPPING_LIST), "ana")
+        val document = itemDocument("space-1", NewItem("Buy milk", "Semi-skimmed", details = "The blue one"), "ana")
 
         assertEquals("space-1", document.spaceId)
         assertEquals("Buy milk", document.title)
         assertEquals("Semi-skimmed", document.description)
+        assertEquals("The blue one", document.details)
         assertEquals("open", document.status)
-        assertEquals("shopping_list", document.preset)
         assertEquals("ana", document.createdBy)
         assertEquals(Timestamp.ServerTimestamp, document.createdAt)
         assertNull(document.modules.schedule)
@@ -67,7 +66,7 @@ class ItemMapperTest {
         assertNull(schedule.endDate)
         assertEquals(90, schedule.durationMinutes)
         assertEquals("member", document.assignment!!.mode)
-        assertEquals("ben", document.assignment.assigneeId)
+        assertEquals(listOf("ben"), document.assignment.assigneeIds)
         val milk = document.checklist!!.entries.getValue("e2")
         assertEquals(listOf("Milk", false, 2, 0), listOf(milk.text, milk.checked, milk.quantity, milk.order))
         assertEquals(1, document.checklist.entries.getValue("e1").order)
@@ -83,8 +82,7 @@ class ItemMapperTest {
 
     @Test
     fun everyAssignmentModeReadsBackAsWritten() {
-        val assignments =
-            listOf(Assignment.ToMember("ben"), Assignment.Anyone, Assignment.Claim(), Assignment.Claim("ben"))
+        val assignments = listOf(Assignment.ToMembers(setOf("ben", "ana")), Assignment.Anyone)
 
         val read = assignments.map {
             mapItem("item-1", storedModules(ItemModules(assignment = it)))?.modules?.assignment
@@ -102,10 +100,10 @@ class ItemMapperTest {
 
     @Test
     fun mapsTheCoreFields() {
-        val item = mapItem("item-1", stored.copy(description = "Semi-skimmed", preset = "event"))
+        val item = mapItem("item-1", stored.copy(description = "Semi-skimmed", details = "The blue one"))
 
         assertEquals(
-            Item("item-1", "Buy milk", "Semi-skimmed", ItemStatus.Open, Preset.EVENT, "ana", createdAt),
+            Item("item-1", "Buy milk", "Semi-skimmed", ItemStatus.Open, "ana", createdAt, details = "The blue one"),
             item,
         )
     }
@@ -137,17 +135,15 @@ class ItemMapperTest {
     @Test
     fun whatANewerBuildWroteIsSkippedAndTheRestStillReads() {
         val newer = stored.copy(
-            preset = "chore",
             moduleKeys = setOf("schedule", "assignment", "cost"),
             modules = ModulesDocument(
                 schedule = ScheduleDocument("2026-10-09"),
-                assignment = AssignmentDocument("rotation", "ben"),
+                assignment = AssignmentDocument("rotation", assigneeId = "ben"),
             ),
         )
 
         val item = mapItem("item-1", newer)
 
-        assertNull(item?.preset)
         assertEquals(ItemModules(schedule = Schedule(LocalDate(2026, 10, 9))), item?.modules)
     }
 

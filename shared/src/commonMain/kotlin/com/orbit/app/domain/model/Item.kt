@@ -1,8 +1,7 @@
 package com.orbit.app.domain.model
 
 import kotlin.time.Instant
-
-enum class Preset { TASK, SHOPPING_LIST, EVENT }
+import kotlinx.datetime.LocalDate
 
 sealed interface ItemStatus {
     data object Open : ItemStatus
@@ -15,16 +14,23 @@ data class Item(
     val title: String,
     val description: String?,
     val status: ItemStatus,
-    val preset: Preset?,
     val createdBy: String,
     val createdAt: Instant,
     val modules: ItemModules = ItemModules(),
+    /** The long text, under the short [description]. */
+    val details: String? = null,
 )
 
-/** What a person, a preset or the assistant fills in. The repository adds id, creator and timestamps. */
+/** The item is still to do, it is [userId]'s, and it is due by [today]. */
+fun Item.isDueFor(userId: String, today: LocalDate): Boolean {
+    val deadline = modules.schedule?.deadline ?: return false
+    return status is ItemStatus.Open && modules.isAssignedTo(userId) && deadline <= today
+}
+
+/** What a person or the assistant fills in. The repository adds id, creator and timestamps. */
 data class NewItem(
     val title: String,
     val description: String? = null,
-    val preset: Preset? = null,
     val modules: ItemModules = ItemModules(),
+    val details: String? = null,
 )

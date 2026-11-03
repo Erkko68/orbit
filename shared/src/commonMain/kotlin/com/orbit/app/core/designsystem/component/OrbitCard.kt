@@ -11,58 +11,46 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
+import com.orbit.app.core.designsystem.theme.OrbitTheme
 
-/** True inside an [OrbitCard], so components on it can stand out from the card fill (see [OrbitTextField]). */
+/** True inside a panel or a dialog, where a chip cannot be selected by being brighter than what it sits on. */
 internal val LocalInsideCard = staticCompositionLocalOf { false }
 
-/** True inside an elevated [OrbitCard] or a dialog, whose fill is the bright one. */
-internal val LocalCardElevated = staticCompositionLocalOf { false }
+private val PanelElevation = 2.dp
+private const val AMBIENT_ALPHA = 0.08f
+private const val SPOT_ALPHA = 0.16f
 
-/**
- * The fill of something set into its container, such as a row or a badge: the tonal fill on a bright
- * card, the brightest fill on a tonal card (darker in dark, so it reads as recessed), the card fill on the canvas.
- */
+/** The shadow you only just see: what lifts a panel, a control or the bar off the page, with no outline. */
 @Composable
-internal fun insetFill(): Color {
-    val scheme = MaterialTheme.colorScheme
-    return when {
-        LocalCardElevated.current -> scheme.surfaceContainerLow
-        LocalInsideCard.current -> scheme.surfaceContainerLowest
-        else -> scheme.surfaceContainer
-    }
+internal fun Modifier.panelShadow(shape: Shape): Modifier {
+    val shadow = OrbitTheme.colors.shadow
+    return shadow(
+        elevation = PanelElevation,
+        shape = shape,
+        ambientColor = shadow.copy(alpha = AMBIENT_ALPHA),
+        spotColor = shadow.copy(alpha = SPOT_ALPHA),
+    )
 }
 
-private val ElevatedCardElevation = 4.dp
-
-/**
- * Container for a group of content, with 24dp corners. Tonal by default: the card fill and no shadow,
- * for secondary content and groups. [elevated] lifts it off the canvas with a bright fill and a soft
- * shadow: use it for the main content of a screen, such as the cards of a list. Tappable when
- * [onClick] is set.
- */
+/** A panel: a soft fill with 24dp corners and no outline, on the page's tint. */
 @Composable
-fun OrbitCard(
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-    elevated: Boolean = false,
-    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(OrbitSpacing.md),
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    val scheme = MaterialTheme.colorScheme
+fun OrbitCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     val shape = MaterialTheme.shapes.large
-    val colors = CardDefaults.cardColors(containerColor = if (elevated) scheme.surfaceBright else scheme.surfaceContainer)
-    val elevation = CardDefaults.cardElevation(defaultElevation = if (elevated) ElevatedCardElevation else 0.dp)
-    val body: @Composable ColumnScope.() -> Unit = {
-        CompositionLocalProvider(LocalInsideCard provides true, LocalCardElevated provides elevated) {
-            Column(Modifier.padding(OrbitSpacing.md), verticalArrangement = verticalArrangement, content = content)
+    Card(
+        modifier = modifier.panelShadow(shape),
+        shape = shape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceBright),
+    ) {
+        CompositionLocalProvider(LocalInsideCard provides true) {
+            Column(
+                modifier = Modifier.padding(OrbitSpacing.md),
+                verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
+                content = content,
+            )
         }
-    }
-    if (onClick == null) {
-        Card(modifier = modifier, shape = shape, colors = colors, elevation = elevation, content = body)
-    } else {
-        Card(onClick = onClick, modifier = modifier, shape = shape, colors = colors, elevation = elevation, content = body)
     }
 }

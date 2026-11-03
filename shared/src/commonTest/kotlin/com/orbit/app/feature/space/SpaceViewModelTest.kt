@@ -1,7 +1,6 @@
 package com.orbit.app.feature.space
 
 import com.orbit.app.core.PendingInvitation
-import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.FlakySpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemorySpaceRepository
@@ -65,85 +64,29 @@ class SpaceViewModelTest {
     }
 
     @Test
-    fun aFailedLoadKeepsTheAvatarAndTheOpenDialog() = runTest {
+    fun aFailedLoadKeepsTheAvatar() = runTest {
         val auth = InMemoryAuthRepository()
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
         val viewModel = SpaceViewModel(FlakySpaceRepository(spaceFailures = 1), auth, PendingInvitation())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
-        viewModel.openCreate()
-
         val failed = viewModel.uiState.value
         assertTrue(failed.loadFailed)
         assertEquals("AL", failed.userInitials)
-        assertTrue(failed.createOpen)
     }
 
     @Test
-    fun createsASpaceForTheSignedInUser() = runTest {
+    fun saysWhileAnOpenedLinkWaitsToBeTaken() = runTest {
+        val pending = PendingInvitation()
         val auth = InMemoryAuthRepository()
-        auth.signIn("ana@orbit.app", "secret")
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
-
-        viewModel.openCreate()
-        viewModel.onNewSpaceNameChange("  Flat 4B ")
-        viewModel.createSpace()
-
-        val state = viewModel.uiState.first { it.spaceIds.isNotEmpty() }
-        assertEquals(1, state.spaceIds.size)
-        assertEquals("A", state.userInitials)
-        // The dialog is closed and ready for the next space.
-        assertFalse(state.createOpen)
-        assertEquals("", state.newSpaceName)
-        assertFalse(state.canCreate)
-    }
-
-    @Test
-    fun opensTheCreateDialogAndForgetsItsNameWhenDismissed() = runTest {
-        val auth = InMemoryAuthRepository()
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, pending)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        assertFalse(viewModel.uiState.value.invitationWaiting)
 
-        viewModel.openCreate()
-        viewModel.onNewSpaceNameChange("Flat 4B")
-        assertTrue(viewModel.uiState.value.createOpen)
+        pending.offer("orbit://join/ABCD2345")
+        assertTrue(viewModel.uiState.value.invitationWaiting)
 
-        viewModel.dismissCreate()
-
-        assertEquals(SpaceUiState(), viewModel.uiState.value)
-    }
-
-    @Test
-    fun createsOnlyWithAName() = runTest {
-        val auth = InMemoryAuthRepository()
-        auth.signIn("ana@orbit.app", "secret")
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-
-        viewModel.onNewSpaceNameChange("   ")
-        viewModel.createSpace()
-
-        assertFalse(viewModel.uiState.value.canCreate)
-        assertEquals(emptyList(), viewModel.uiState.value.spaceIds)
-    }
-
-    @Test
-    fun aFailedCreateKeepsTheNameAndIsFlaggedUntilTheNextEdit() = runTest {
-        // This fake's createSpace always throws.
-        val viewModel = SpaceViewModel(FakeSpaceRepository.withMembers(), InMemoryAuthRepository(), PendingInvitation())
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-
-        viewModel.openCreate()
-        viewModel.onNewSpaceNameChange("Flat 4B")
-        viewModel.createSpace()
-
-        val failed = viewModel.uiState.value
-        assertTrue(failed.createOpen)
-        assertEquals("Flat 4B", failed.newSpaceName)
-        assertTrue(failed.createFailed)
-        assertTrue(failed.canCreate)
-
-        viewModel.onNewSpaceNameChange("Flat 4C")
-        assertFalse(viewModel.uiState.value.createFailed)
+        pending.consume()
+        assertFalse(viewModel.uiState.value.invitationWaiting)
     }
 }

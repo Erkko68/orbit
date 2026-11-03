@@ -47,7 +47,8 @@ class SpaceSettingsViewModel(
     val uiState: StateFlow<SpaceSettingsUiState> = combine(role, edit, gone) { role, edit, gone ->
         SpaceSettingsUiState(
             role = role,
-            open = edit != null,
+            page = edit?.page,
+            spaceName = edit?.spaceName.orEmpty(),
             name = edit?.name.orEmpty(),
             accent = edit?.accent ?: 0,
             saving = edit?.saving == true,
@@ -59,15 +60,30 @@ class SpaceSettingsViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceSettingsUiState())
 
-    /**
-     * Opens the dialog with the name and colour the space has now. A plain member has nothing to edit, so it opens
-     * straight on leaving.
-     */
+    /** Opens the menu of the settings, with the name and colour the space has now. */
     fun open() {
-        val canEdit = uiState.value.canEdit
         viewModelScope.launch {
             val current = space.first() ?: return@launch
-            edit.value = Edit(current.name, current.accent, confirmingExit = !canEdit)
+            edit.value = Edit(current.name, current.name, current.accent)
+        }
+    }
+
+    fun openIdentity() = edit.update { it?.copy(page = SpaceSettingsPage.IDENTITY) }
+
+    fun openMembers() = edit.update { it?.copy(page = SpaceSettingsPage.MEMBERS) }
+
+    /** Steps back from a page to the menu, forgetting what was typed and picked there. */
+    fun backToMenu() {
+        viewModelScope.launch {
+            val current = space.first()
+            edit.update {
+                it?.copy(
+                    page = SpaceSettingsPage.MENU,
+                    name = current?.name ?: it.name,
+                    accent = current?.accent ?: it.accent,
+                    failed = false,
+                )
+            }
         }
     }
 
@@ -78,12 +94,10 @@ class SpaceSettingsViewModel(
     /** Asks to confirm leaving the space, or deleting it for the owner. */
     fun confirmExit() = edit.update { it?.copy(confirmingExit = true, exitFailed = false) }
 
-    /** Backs out of the confirmation: to the settings for an owner or admin, closed for anyone else. */
-    fun cancelExit() {
-        edit.value = if (uiState.value.canEdit) edit.value?.copy(confirmingExit = false, exitFailed = false) else null
-    }
+    /** Backs out of the confirmation, to the menu. */
+    fun cancelExit() = edit.update { it?.copy(confirmingExit = false, exitFailed = false) }
 
-    /** Deletes the space as its owner, or leaves it. The dialog stays open, saying so, if that fails. */
+    /** Deletes the space as its owner, or leaves it. The confirmation stays open, saying so, if that fails. */
     fun exit() {
         val editing = edit.value ?: return
         if (!editing.confirmingExit || editing.exiting) return
@@ -105,7 +119,7 @@ class SpaceSettingsViewModel(
 
     fun onAccentChange(accent: Int) = edit.update { it?.copy(accent = accent, failed = false) }
 
-    /** Saves what changed, and only that, then closes the dialog. It stays open, saying so, if that fails. */
+    /** Saves what changed, and only that, then closes the settings. They stay open, saying so, if that fails. */
     fun save() {
         val editing = edit.value ?: return
         if (editing.saving || editing.name.isBlank()) return
@@ -125,8 +139,10 @@ class SpaceSettingsViewModel(
     }
 
     private data class Edit(
+        val spaceName: String,
         val name: String,
         val accent: Int,
+        val page: SpaceSettingsPage = SpaceSettingsPage.MENU,
         val saving: Boolean = false,
         val failed: Boolean = false,
         val confirmingExit: Boolean = false,

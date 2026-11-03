@@ -1,38 +1,27 @@
 package com.orbit.app.feature.space.card
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.orbit.app.core.designsystem.component.OrbitAvatarStack
-import com.orbit.app.core.designsystem.component.OrbitCard
-import com.orbit.app.core.designsystem.component.OrbitIconBadge
-import com.orbit.app.core.designsystem.component.OrbitPill
-import com.orbit.app.core.designsystem.theme.OrbitSpacing
+import com.orbit.app.core.designsystem.component.OrbitFloatingFace
+import com.orbit.app.core.designsystem.component.OrbitSpaceTile
+import com.orbit.app.core.designsystem.component.memberShape
+import com.orbit.app.core.designsystem.theme.Ink
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.ic_chevron_right
+import orbit.shared.generated.resources.space_headline_due
+import orbit.shared.generated.resources.space_items_open
+import orbit.shared.generated.resources.spaces_all_clear
 import orbit.shared.generated.resources.spaces_members
 import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
-private const val VISIBLE_AVATARS = 3
-
 /**
- * One of the user's spaces, loaded by its own view model: an entity card with a line about the space (its
- * accent and size, for now) over its name, an arrow to open it, and its members' avatars.
+ * One of the user's spaces as a block of its own colour, loaded by its own view model: its members float on its shape
+ * beside its big name and what the user has to do there. A row of an `OrbitGroup`, so the spaces read as one.
  */
 @Composable
 internal fun SpaceCard(
@@ -42,30 +31,48 @@ internal fun SpaceCard(
     viewModel: SpaceCardViewModel = koinViewModel(key = "space-card-$spaceId") { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    OrbitCard(modifier, onClick = onClick, elevated = true) {
-        Row(horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs)) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // The space's accent, as a dot.
-                    val accent = OrbitTheme.colors.spaceAccent(state.accent)
-                    Box(Modifier.size(OrbitSpacing.sm).background(accent, CircleShape))
-                    OrbitPill(pluralStringResource(Res.plurals.spaces_members, state.memberCount, state.memberCount))
-                }
-                Text(
-                    text = state.name,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            OrbitIconBadge(Res.drawable.ic_chevron_right)
-        }
-        if (state.memberInitials.isNotEmpty()) {
-            OrbitAvatarStack(state.memberInitials, max = VISIBLE_AVATARS)
-        }
+    val accent = OrbitTheme.colors.accent(state.accent)
+    OrbitSpaceTile(
+        name = state.name,
+        line = spaceLine(state),
+        detail = spaceDetail(state),
+        color = accent.vivid,
+        partner = accent.partner,
+        shape = memberShape(state.accent),
+        faces = state.faces.mapIndexed { index, face ->
+            OrbitFloatingFace(
+                id = face.id,
+                initials = face.initials,
+                color = Ink,
+                shape = memberShape(index),
+                description = face.initials,
+                photoUrl = face.photoUrl,
+                contentColor = accent.vivid,
+            )
+        },
+        onClick = onClick,
+        modifier = modifier,
+    )
+}
+
+/** What is the user's today, what is open, or the size of the space until the items arrive. */
+@Composable
+private fun spaceLine(state: SpaceCardUiState): String {
+    val due = state.dueToday
+    val open = state.openCount
+    return when {
+        due == null || open == null ->
+            pluralStringResource(Res.plurals.spaces_members, state.memberCount, state.memberCount)
+        due > 0 -> pluralStringResource(Res.plurals.space_headline_due, due, due)
+        open > 0 -> pluralStringResource(Res.plurals.space_items_open, open, open)
+        else -> stringResource(Res.string.spaces_all_clear)
     }
+}
+
+/** What is open in the whole space, when the line above is about the user. */
+@Composable
+private fun spaceDetail(state: SpaceCardUiState): String? {
+    val open = state.openCount ?: return null
+    if ((state.dueToday ?: 0) == 0 || open == 0) return null
+    return pluralStringResource(Res.plurals.space_items_open, open, open).uppercase()
 }

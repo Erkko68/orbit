@@ -6,12 +6,12 @@ import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.NewItem
-import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.ControlledItemRepository
+import com.orbit.app.testing.FailingItemRepository
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
@@ -27,21 +27,18 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.LocalDate
-import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.item_type_event
-import orbit.shared.generated.resources.item_type_list
-import orbit.shared.generated.resources.item_type_other
-import orbit.shared.generated.resources.item_type_task
-import orbit.shared.generated.resources.item_unknown_member
-import orbit.shared.generated.resources.module_assignment_anyone
-import orbit.shared.generated.resources.module_assignment_unassigned
+import kotlinx.datetime.LocalTime
 
+
+/** The in-memory user's id is their email. */
+private const val ANA = "ana@orbit.app"
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SpaceItemsViewModelTest {
@@ -60,35 +57,26 @@ class SpaceItemsViewModelTest {
     }
 
     @Test
-    fun listsItemsByType() = runTest {
+    fun whatHasAnOpenChecklistIsAListAndTheRestAreRows() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
-        items.create(id, NewItem("Book plumber", preset = Preset.TASK))
-        items.create(id, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
-        items.create(id, NewItem("Dinner at 20:00", preset = Preset.EVENT))
-        items.create(id, NewItem("Take out recycling"))
+        items.create(id, NewItem("Book plumber"))
+        items.create(id, NewItem("Groceries", modules = ItemModules(checklist = Checklist(emptyList()))))
+        items.create(id, NewItem("Dinner at 20:00"))
 
-        val state = SpaceItemsViewModel(id, items, spaces).uiState.first { it.items.size == 4 }
+        val state = SpaceItemsViewModel(id, items, spaces, auth).uiState.first { it.items.size == 3 }
 
-        assertEquals(
-            listOf(
-                Res.string.item_type_task,
-                Res.string.item_type_list,
-                Res.string.item_type_event,
-                Res.string.item_type_other
-            ),
-            state.items.map { it.label },
-        )
+        assertEquals(listOf("Groceries"), state.lists.map { it.title })
+        assertEquals(listOf("Book plumber", "Dinner at 20:00"), state.rows.map { it.title })
     }
 
     @Test
     fun filtersItemsWithTheSelectedChip() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
-        items.create(id, NewItem("Book plumber", preset = Preset.TASK))
-        items.create(id, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
-        items.create(id, NewItem("Dinner at 20:00", preset = Preset.EVENT))
-        val viewModel = SpaceItemsViewModel(id, items, spaces)
+        items.create(id, NewItem("Book plumber"))
+        items.create(id, NewItem("Groceries", modules = ItemModules(checklist = Checklist(emptyList()))))
+        val viewModel = SpaceItemsViewModel(id, items, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         val titlesByFilter = ItemFilter.entries.associateWith { filter ->
@@ -98,10 +86,9 @@ class SpaceItemsViewModelTest {
 
         assertEquals(
             mapOf(
-                ItemFilter.ALL to listOf("Book plumber", "Groceries", "Dinner at 20:00"),
-                ItemFilter.TASKS to listOf("Book plumber"),
+                ItemFilter.ALL to listOf("Book plumber", "Groceries"),
+                ItemFilter.MINE to emptyList(),
                 ItemFilter.LISTS to listOf("Groceries"),
-                ItemFilter.EVENTS to listOf("Dinner at 20:00"),
             ),
             titlesByFilter,
         )
@@ -111,9 +98,9 @@ class SpaceItemsViewModelTest {
     fun saysWhenTheItemsFailToLoadAndLoadsThemOnRetry() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
-        items.create(id, NewItem("Book plumber", preset = Preset.TASK))
+        items.create(id, NewItem("Book plumber"))
         val controlled = ControlledItemRepository(items).apply { beforeRead = { error("Could not reach the server") } }
-        val viewModel = SpaceItemsViewModel(id, controlled, spaces)
+        val viewModel = SpaceItemsViewModel(id, controlled, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         assertTrue(viewModel.uiState.value.loadFailed)
 
@@ -128,8 +115,8 @@ class SpaceItemsViewModelTest {
     fun completesAndReopensItem() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
-        val itemId = items.create(id, NewItem("Book plumber", preset = Preset.TASK))
-        val viewModel = SpaceItemsViewModel(id, items, spaces)
+        val itemId = items.create(id, NewItem("Book plumber"))
+        val viewModel = SpaceItemsViewModel(id, items, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         val initial = viewModel.uiState.first { it.items.isNotEmpty() }
@@ -148,10 +135,10 @@ class SpaceItemsViewModelTest {
     fun movesDoneItemsUnderOpenItems() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
-        val firstId = items.create(id, NewItem("First task", preset = Preset.TASK))
-        items.create(id, NewItem("Second task", preset = Preset.TASK))
-        items.create(id, NewItem("Third task", preset = Preset.TASK))
-        val viewModel = SpaceItemsViewModel(id, items, spaces)
+        val firstId = items.create(id, NewItem("First task"))
+        items.create(id, NewItem("Second task"))
+        items.create(id, NewItem("Third task"))
+        val viewModel = SpaceItemsViewModel(id, items, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.complete(firstId)
@@ -165,9 +152,9 @@ class SpaceItemsViewModelTest {
     fun flagsFailureWhenCompleteFails() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
-        val itemId = items.create(id, NewItem("Book plumber", preset = Preset.TASK))
+        val itemId = items.create(id, NewItem("Book plumber"))
         val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write failed") } }
-        val viewModel = SpaceItemsViewModel(id, controlled, spaces)
+        val viewModel = SpaceItemsViewModel(id, controlled, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.complete(itemId)
@@ -180,9 +167,9 @@ class SpaceItemsViewModelTest {
     fun flagsFailureWhenReopenFails() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
-        val itemId = items.create(id, NewItem("Book plumber", preset = Preset.TASK))
+        val itemId = items.create(id, NewItem("Book plumber"))
         val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write failed") } }
-        val viewModel = SpaceItemsViewModel(id, controlled, spaces)
+        val viewModel = SpaceItemsViewModel(id, controlled, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.reopen(itemId)
@@ -195,12 +182,12 @@ class SpaceItemsViewModelTest {
     fun cannotSubmitWhileAlreadySubmitting() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
-        val itemId = items.create(id, NewItem("Book plumber", preset = Preset.TASK))
+        val itemId = items.create(id, NewItem("Book plumber"))
         var writeCalls = 0
         val controlled = ControlledItemRepository(items).apply {
             beforeWrite = { writeCalls++ }
         }
-        val viewModel = SpaceItemsViewModel(id, controlled, spaces)
+        val viewModel = SpaceItemsViewModel(id, controlled, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.complete(itemId)
@@ -220,9 +207,8 @@ class SpaceItemsViewModelTest {
             "space-1",
             NewItem(
                 "Groceries",
-                preset = Preset.SHOPPING_LIST,
                 modules = ItemModules(
-                    assignment = Assignment.ToMember("ana"),
+                    assignment = Assignment.ToMembers(setOf("ana")),
                     schedule = Schedule(date = LocalDate(2026, 10, 24), endDate = deadline),
                     checklist = Checklist(
                         listOf(ChecklistEntry("milk", "Milk", checked = true), ChecklistEntry("bread", "Bread")),
@@ -230,16 +216,13 @@ class SpaceItemsViewModelTest {
                 ),
             ),
         )
-        val viewModel = SpaceItemsViewModel("space-1", items, members)
+        val viewModel = SpaceItemsViewModel("space-1", items, members, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         val card = viewModel.uiState.value.items.single()
-        assertEquals(Res.string.item_type_list, card.label)
-        assertEquals("Ana López", card.assigneeName)
-        assertEquals("AL", card.assigneeInitials)
+        assertEquals(listOf("Ana López"), card.faces.map { it.name })
         assertEquals(deadline, card.dueDate)
-        assertTrue(card.hasFooter)
-        assertEquals(SpaceItemChecklist(1, 2), card.checklist)
+        assertEquals(SpaceItemChecklist(1, 2, SpaceItemPeek(listOf("Bread"))), card.checklist)
         assertEquals(0.5f, card.checklist?.progress)
 
         items.setEntryChecked("space-1", itemId, "bread", checked = true)
@@ -252,40 +235,45 @@ class SpaceItemsViewModelTest {
         auth.signIn("ana@orbit.app", "secret")
         items.create("space-1", NewItem("Plain item"))
         items.create("space-1", NewItem("Empty list", modules = ItemModules(checklist = Checklist(emptyList()))))
-        val state = SpaceItemsViewModel("space-1", items, spaces).uiState.first { it.items.size == 2 }
+        val state = SpaceItemsViewModel("space-1", items, spaces, auth).uiState.first { it.items.size == 2 }
 
         val plain = state.items.first()
-        assertNull(plain.assignmentLabel)
-        assertNull(plain.assigneeName)
-        assertNull(plain.assigneeInitials)
+        assertTrue(plain.faces.isEmpty())
+        assertNull(plain.summary)
         assertNull(plain.dueDate)
         assertNull(plain.checklist)
-        assertFalse(plain.hasFooter)
         assertEquals(SpaceItemChecklist(0, 0), state.items.last().checklist)
         assertEquals(0f, state.items.last().checklist?.progress)
     }
 
     @Test
-    fun distinguishesAnyoneUnclaimedAndUnknownAssignees() = runTest {
+    fun anyonesItemShowsEveryoneAndAnUnknownAssigneeNobody() = runTest {
         auth.signIn("ana@orbit.app", "secret")
-        for (assignment in listOf(Assignment.Anyone, Assignment.Claim(), Assignment.ToMember("missing"))) {
+        val everyone = object : SpaceRepository by spaces {
+            override fun observeMembers(spaceId: String) = flowOf(listOf(Member("ana", "Ana", null, Role.OWNER), Member("mika", "Mika", null, Role.MEMBER)))
+        }
+        for (assignment in listOf(Assignment.Anyone, Assignment.ToMembers(setOf("missing")))) {
             items.create("space-1", NewItem("Assigned item", modules = ItemModules(assignment = assignment)))
         }
-        val state = SpaceItemsViewModel("space-1", items, spaces).uiState.first { it.items.size == 3 }
+        val state = SpaceItemsViewModel("space-1", items, everyone, auth).uiState.first { it.items.size == 2 && it.items.first().faces.isNotEmpty() }
 
-        assertEquals(
-            listOf(
-                Res.string.module_assignment_anyone,
-                Res.string.module_assignment_unassigned,
-                Res.string.item_unknown_member,
-            ),
-            state.items.map { it.assignmentLabel },
-        )
-        assertTrue(state.items.all { it.hasFooter && it.assigneeName == null })
+        assertEquals(listOf(listOf("Ana", "Mika"), emptyList()), state.items.map { card -> card.faces.map { it.name } })
     }
 
     @Test
-    fun updatesNamesAndFallsBackWhenAMemberDisappears() = runTest {
+    fun aCardCarriesTheSummaryAndTheTime() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val time = LocalTime(18, 0)
+        items.create("space-1", NewItem("Task", "Sink leaking", ItemModules(schedule = Schedule(LocalDate(2026, 10, 26), time = time))))
+
+        val card = SpaceItemsViewModel("space-1", items, spaces, auth).uiState.first { it.items.isNotEmpty() }.items.single()
+
+        assertEquals("Sink leaking", card.summary)
+        assertEquals(time, card.dueTime)
+    }
+
+    @Test
+    fun followsTheMembersWhenTheyChangeOrLeave() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val member = Member("ana", "Ana López", null, Role.OWNER)
         val memberFlow = MutableStateFlow(listOf(member))
@@ -297,39 +285,155 @@ class SpaceItemsViewModelTest {
             "space-1",
             NewItem(
                 "Book plumber",
-                modules = ItemModules(assignment = Assignment.Claim("ana"), schedule = Schedule(dueDate)),
+                modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")), schedule = Schedule(dueDate)),
             ),
         )
-        val viewModel = SpaceItemsViewModel("space-1", items, members)
+        val viewModel = SpaceItemsViewModel("space-1", items, members, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-        assertEquals("Ana López", viewModel.uiState.value.items.single().assigneeName)
+        assertEquals(listOf("Ana López"), viewModel.uiState.value.items.single().faces.map { it.name })
         assertEquals(dueDate, viewModel.uiState.value.items.single().dueDate)
 
         memberFlow.value = listOf(member.copy(displayName = "Ana García"))
-        assertEquals("AG", viewModel.uiState.value.items.single().assigneeInitials)
+        assertEquals(listOf("Ana García"), viewModel.uiState.value.items.single().faces.map { it.name })
 
-        memberFlow.value = listOf(member.copy(displayName = " "))
-        assertNull(viewModel.uiState.value.items.single().assigneeName)
         memberFlow.value = emptyList()
-        assertEquals(Res.string.item_unknown_member, viewModel.uiState.value.items.single().assignmentLabel)
-        assertNull(viewModel.uiState.value.items.single().assigneeInitials)
+        assertTrue(viewModel.uiState.value.items.single().faces.isEmpty())
     }
 
     @Test
     fun stillListsItemsWhenOpeningTheMemberStreamFails() = runTest {
         auth.signIn("ana@orbit.app", "secret")
-        items.create("space-1", NewItem("Book plumber", modules = ItemModules(assignment = Assignment.ToMember("ana"))))
+        items.create("space-1", NewItem("Book plumber", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")))))
         val failingMembers = object : SpaceRepository by spaces {
             override fun observeMembers(spaceId: String): kotlinx.coroutines.flow.Flow<List<Member>> =
                 error("Member read failed")
         }
 
-        val viewModel = SpaceItemsViewModel("space-1", items, failingMembers)
+        val viewModel = SpaceItemsViewModel("space-1", items, failingMembers, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         val state = viewModel.uiState.value
 
         assertEquals("Book plumber", state.items.single().title)
-        assertNull(state.items.single().assigneeName)
-        assertEquals(Res.string.item_unknown_member, state.items.single().assignmentLabel)
+        assertTrue(state.items.single().faces.isEmpty())
+    }
+
+    private suspend fun assignedTask(title: String, userId: String, due: LocalDate? = null) = items.create(
+        "space-1",
+        NewItem(
+            title,
+            modules = ItemModules(assignment = Assignment.ToMembers(setOf(userId)), schedule = due?.let { Schedule(it) }),
+        ),
+    )
+
+    @Test
+    fun theMineFilterKeepsWhatIsAssignedToTheUser() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        assignedTask("Mine", ANA)
+        assignedTask("Theirs", "ben")
+        val viewModel = SpaceItemsViewModel("space-1", items, spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.selectFilter(ItemFilter.MINE)
+
+        assertEquals("Mine", viewModel.uiState.value.turn?.title)
+        assertEquals(emptyList(), viewModel.uiState.value.items)
+    }
+
+    @Test
+    fun theTurnIsTheOpenItemOfTheUserThatIsDueFirstAndLeavesTheRows() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        assignedTask("No date", ANA)
+        assignedTask("Later", ANA, LocalDate(2026, 11, 20))
+        assignedTask("Soon", ANA, LocalDate(2026, 11, 3))
+        assignedTask("Not mine", "ben", LocalDate(2026, 11, 1))
+        val viewModel = SpaceItemsViewModel("space-1", items, spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        val state = viewModel.uiState.value
+
+        assertEquals("Soon", state.turn?.title)
+        assertEquals(listOf("No date", "Later", "Not mine"), state.items.map { it.title })
+    }
+
+    @Test
+    fun aListIsNeverATurn() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        items.create(
+            "space-1",
+            NewItem(
+                "Groceries",
+                modules = ItemModules(
+                    assignment = Assignment.ToMembers(setOf(ANA)),
+                    checklist = Checklist(emptyList()),
+                ),
+            ),
+        )
+        val viewModel = SpaceItemsViewModel("space-1", items, spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        assertNull(viewModel.uiState.value.turn)
+    }
+
+    @Test
+    fun finishingTheTurnKeepsItOnTheCardUntilItIsUndone() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        assignedTask("First", ANA, LocalDate(2026, 11, 3))
+        assignedTask("Next", ANA, LocalDate(2026, 11, 4))
+        val viewModel = SpaceItemsViewModel("space-1", items, spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.toggleTurn()
+
+        assertEquals("First", viewModel.uiState.value.turn?.title)
+        assertEquals(true, viewModel.uiState.value.turn?.done)
+        assertEquals(listOf("Next"), viewModel.uiState.value.items.map { it.title })
+
+        viewModel.toggleTurn()
+
+        assertEquals("First", viewModel.uiState.value.turn?.title)
+        assertEquals(false, viewModel.uiState.value.turn?.done)
+    }
+
+    @Test
+    fun aFailedTurnStaysOpenAndSaysSo() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        assignedTask("First", ANA)
+        val open = items.observeItems("space-1").first()
+        val viewModel = SpaceItemsViewModel("space-1", FailingItemRepository(items = open), spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.toggleTurn()
+
+        assertEquals(false, viewModel.uiState.value.turn?.done)
+        assertTrue(viewModel.uiState.value.failed)
+    }
+
+    @Test
+    fun givesEachAssigneeTheirPlaceAmongTheMembers() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val id = spaces.createSpace("Flat 4B", accent = 0)
+        spaces.addMember(id, Member("ben", "Ben", photoUrl = null, role = Role.MEMBER))
+        items.create(id, NewItem("Theirs", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ben")))))
+        items.create(id, NewItem("Everyone's", modules = ItemModules(assignment = Assignment.Anyone)))
+        items.create(id, NewItem("Nobody's"))
+        val viewModel = SpaceItemsViewModel(id, items, spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        val faces = viewModel.uiState.value.items.associate { it.title to it.faces.map { face -> face.index } }
+        assertEquals(mapOf("Theirs" to listOf(1), "Everyone's" to listOf(0, 1), "Nobody's" to emptyList()), faces)
+    }
+
+    @Test
+    fun aListPeeksAtWhatIsLeft() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val entries = listOf("Eggs", "Pasta", "Rice", "Tea").mapIndexed { index, text -> ChecklistEntry("e$index", text) }
+        items.create(
+            "space-1",
+            NewItem("Groceries", modules = ItemModules(checklist = Checklist(entries))),
+        )
+        val viewModel = SpaceItemsViewModel("space-1", items, spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        assertEquals(SpaceItemPeek(listOf("Eggs", "Pasta"), more = 2), viewModel.uiState.value.lists.single().checklist?.peek)
     }
 }

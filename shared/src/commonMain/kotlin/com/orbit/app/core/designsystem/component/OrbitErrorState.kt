@@ -20,6 +20,6 @@ fun OrbitErrorState(
 ) {
     OrbitCard(modifier) {
         OrbitHeading(title, body, titleColor = MaterialTheme.colorScheme.error)
-        OrbitOutlinedButton(retryText, onRetry, Modifier.fillMaxWidth())
+        OrbitTonalButton(retryText, onRetry, Modifier.fillMaxWidth())
     }
 }

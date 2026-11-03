@@ -8,16 +8,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.orbit.app.core.designsystem.component.OrbitDialog
 import com.orbit.app.core.designsystem.component.OrbitIconButton
+import com.orbit.app.core.designsystem.component.OrbitSheet
 import com.orbit.app.core.speech.DictationFailure
 import com.orbit.app.core.speech.rememberDictationPermissionPrompt
 import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.close
 import orbit.shared.generated.resources.dictation_error
 import orbit.shared.generated.resources.dictation_failed_title
 import orbit.shared.generated.resources.dictation_no_permission
 import orbit.shared.generated.resources.dictation_no_speech
-import orbit.shared.generated.resources.dictation_ok
 import orbit.shared.generated.resources.dictation_start
 import orbit.shared.generated.resources.dictation_stop
 import orbit.shared.generated.resources.dictation_unavailable
@@ -30,7 +30,7 @@ import org.koin.compose.viewmodel.koinViewModel
 /**
  * The microphone of a text answer, for its field's trailing icon. [onStart] runs when a dictation begins and
  * [onTranscript] with everything heard since, each time it grows: the field adds it after what was typed.
- * When the phone cannot dictate, a dialog says why and typing still works. [prompt] is the system one;
+ * When the phone cannot dictate, a sheet says why and typing still works. [prompt] is the system one;
  * tests, which have no system to ask, replace it.
  */
 @Composable
@@ -61,12 +61,16 @@ fun DictationButton(
     }
 
     state.failure?.let { failure ->
-        OrbitDialog(
+        OrbitSheet(
             title = stringResource(Res.string.dictation_failed_title),
-            dismissText = stringResource(Res.string.dictation_ok),
+            closeDescription = stringResource(Res.string.close),
             onDismiss = viewModel::dismissFailure,
         ) {
-            Text(stringResource(failure.message()), style = MaterialTheme.typography.bodyMedium)
+            Text(
+                text = stringResource(failure.message()),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

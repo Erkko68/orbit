@@ -9,22 +9,20 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.ic_task
 import kotlin.test.Test
 
 @OptIn(ExperimentalTestApi::class)
 class OrbitSectionHeaderTest : ComposeTest() {
     @Test
     fun isAHeadingWithItsCount() = runComposeUiTest {
-        setContent { OrbitTheme { OrbitSectionHeader("Active chores", Res.drawable.ic_task, count = "3 active") } }
+        setContent { OrbitTheme { OrbitSectionHeader("Active chores", count = "3 active") } }
         onNodeWithText("Active chores").assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
         onNodeWithText("3 active").assertIsDisplayed()
     }
 
     @Test
     fun showsNoCountWhenThereIsNone() = runComposeUiTest {
-        setContent { OrbitTheme { OrbitSectionHeader("Payments", Res.drawable.ic_task) } }
+        setContent { OrbitTheme { OrbitSectionHeader("Payments") } }
         onNodeWithText("Payments").assertIsDisplayed()
     }
 }

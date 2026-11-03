@@ -2,12 +2,15 @@ package com.orbit.app.feature.spacehome.settings
 
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -16,10 +19,14 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.core.share.TextSharer
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.repository.SpaceRepository
+import com.orbit.app.feature.spacehome.members.InviteViewModel
+import com.orbit.app.feature.spacehome.members.SpaceMembersViewModel
 import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryInvitationRepository
 import com.orbit.app.testing.InMemorySpaceRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -48,6 +55,9 @@ class SpaceSettingsTest : ComposeTest() {
                     "space-1",
                     onGone = { gone++ },
                     viewModel = SpaceSettingsViewModel("space-1", repository, auth),
+                    membersViewModel = SpaceMembersViewModel("space-1", repository, auth),
+                    inviteViewModel = InviteViewModel("space-1", InMemoryInvitationRepository(auth), repository, auth),
+                    sharer = TextSharer {},
                 )
             }
         }
@@ -55,31 +65,57 @@ class SpaceSettingsTest : ComposeTest() {
 
     private fun spaceNow() = runBlocking { spaces.observeSpaces().first().single() }
 
-    @Test
-    fun theOwnerAndAnAdminSeeTheButton() = runComposeUiTest {
-        showSettingsAs("ana@orbit.app")
-        onNodeWithContentDescription("Space settings").assertIsDisplayed()
+    private fun ComposeUiTest.openSettings() = onNodeWithContentDescription("Space settings").performClick()
+
+    private fun ComposeUiTest.openIdentity() {
+        openSettings()
+        onNodeWithText("Name and colour").performScrollTo().performClick()
     }
 
     @Test
-    fun anAdminSeesTheButtonToo() = runComposeUiTest {
-        showSettingsAs("ben@orbit.app")
-        onNodeWithContentDescription("Space settings").assertIsDisplayed()
-    }
-
-    @Test
-    fun aPlainMemberOnlySeesLeaveSpace() = runComposeUiTest {
+    fun everyMemberSeesTheButton() = runComposeUiTest {
         showSettingsAs("cy@orbit.app")
+        onNodeWithContentDescription("Space settings").assertIsDisplayed()
+    }
 
-        onNodeWithContentDescription("Space settings").assertDoesNotExist()
-        onNodeWithContentDescription("Leave space").performClick()
-        onNodeWithText("Leave this space?").assertIsDisplayed()
+    @Test
+    fun theOwnerSeesEverythingTheyCanDo() = runComposeUiTest {
+        showSettingsAs("ana@orbit.app")
+        openSettings()
+
+        onNodeWithText("Invite people").assertIsDisplayed()
+        onNodeWithText("Members and roles").assertIsDisplayed()
+        onNodeWithText("3 members").assertIsDisplayed()
+        onNodeWithText("Name and colour").assertIsDisplayed()
+        onNodeWithText("Delete space").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun aPlainMemberSeesTheMembersAndLeavingOnly() = runComposeUiTest {
+        showSettingsAs("cy@orbit.app")
+        openSettings()
+
+        onNodeWithText("Members and roles").assertIsDisplayed()
+        onNodeWithText("Invite people").assertDoesNotExist()
+        onNodeWithText("Name and colour").assertDoesNotExist()
+        onNodeWithText("Leave space").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun invitesFromTheMenu() = runComposeUiTest {
+        showSettingsAs("ana@orbit.app")
+        openSettings()
+
+        onNodeWithText("Invite people").performClick()
+
+        onNodeWithText("Create invitation").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun aMemberLeavesAfterConfirming() = runComposeUiTest {
         showSettingsAs("cy@orbit.app")
-        onNodeWithContentDescription("Leave space").performClick()
+        openSettings()
+        onNodeWithText("Leave space").performScrollTo().performClick()
 
         onNodeWithText("Leave").performClick()
 
@@ -92,13 +128,116 @@ class SpaceSettingsTest : ComposeTest() {
     @Test
     fun anAdminLeavesFromTheSettings() = runComposeUiTest {
         showSettingsAs("ben@orbit.app")
-        onNodeWithContentDescription("Space settings").performClick()
+        openSettings()
 
         onNodeWithText("Leave space").performScrollTo().performClick()
         onNodeWithText("Leave").performClick()
 
         waitForIdle()
         assertEquals(1, gone)
+    }
+
+    @Test
+    fun aPlainMemberCannotOpenAnotherMember() = runComposeUiTest {
+        showSettingsAs("cy@orbit.app")
+        openSettings()
+        onNodeWithText("Members and roles").performClick()
+
+        onNodeWithText("Ben").assertHasNoClickAction()
+    }
+
+    @Test
+    fun theUserSeesThemselvesAsYouAndCannotOpenThemselves() = runComposeUiTest {
+        showSettingsAs("ana@orbit.app")
+        openSettings()
+        onNodeWithText("Members and roles").performClick()
+
+        onNodeWithText("You").assertHasNoClickAction()
+        onNodeWithText("Owner").assertIsDisplayed()
+    }
+
+    @Test
+    fun theOwnerOffersTheRolesAMemberCanBeGivenAndOwnership() = runComposeUiTest {
+        showSettingsAs("ana@orbit.app")
+        openSettings()
+        onNodeWithText("Members and roles").performClick()
+
+        onNodeWithText("Ben").performClick()
+
+        onNodeWithText("Role of Ben").assertIsDisplayed()
+        onNodeWithText("Make admin").assertIsNotEnabled()
+        onNodeWithText("Make member").assertIsEnabled()
+        onNodeWithText("Make owner").assertIsEnabled()
+    }
+
+    @Test
+    fun anAdminCannotHandTheSpaceOver() = runComposeUiTest {
+        showSettingsAs("ben@orbit.app")
+        openSettings()
+        onNodeWithText("Members and roles").performClick()
+
+        onNodeWithText("Cy").performClick()
+
+        onNodeWithText("Make admin").assertIsEnabled()
+        onNodeWithText("Make owner").assertDoesNotExist()
+    }
+
+    @Test
+    fun givesTheMemberTheRoleChosen() = runComposeUiTest {
+        showSettingsAs("ana@orbit.app")
+        openSettings()
+        onNodeWithText("Members and roles").performClick()
+        onAllNodesWithText("Admin").assertCountEquals(1)
+
+        onNodeWithText("Cy").performClick()
+        onNodeWithText("Make admin").performClick()
+
+        onNodeWithText("Role of Cy").assertDoesNotExist()
+        onAllNodesWithText("Admin").assertCountEquals(2)
+    }
+
+    @Test
+    fun handsTheSpaceOverAndTheOwnerBecomesAnAdmin() = runComposeUiTest {
+        showSettingsAs("ana@orbit.app")
+        openSettings()
+        onNodeWithText("Members and roles").performClick()
+
+        onNodeWithText("Cy").performClick()
+        onNodeWithText("Make owner").performClick()
+
+        onNodeWithText("Role of Cy").assertDoesNotExist()
+        onAllNodesWithText("Owner").assertCountEquals(1)
+        onAllNodesWithText("Admin").assertCountEquals(2)
+    }
+
+    @Test
+    fun cancelClosesThePickerAndChangesNothing() = runComposeUiTest {
+        showSettingsAs("ana@orbit.app")
+        openSettings()
+        onNodeWithText("Members and roles").performClick()
+        onNodeWithText("Cy").performClick()
+
+        onNodeWithContentDescription("Back").performClick()
+
+        onNodeWithText("Role of Cy").assertDoesNotExist()
+        onAllNodesWithText("Admin").assertCountEquals(1)
+    }
+
+    @Test
+    fun saysWhenTheRoleCouldNotBeChanged() = runComposeUiTest {
+        val offline = object : SpaceRepository by spaces {
+            override suspend fun changeRole(spaceId: String, userId: String, role: Role) =
+                error("Could not reach the server")
+        }
+        showSettingsAs("ana@orbit.app", offline)
+        openSettings()
+        onNodeWithText("Members and roles").performClick()
+        onNodeWithText("Cy").performClick()
+
+        onNodeWithText("Make admin").performClick()
+
+        onNodeWithText("Could not change the role. Try again.").assertIsDisplayed()
+        onNodeWithText("Role of Cy").assertIsDisplayed()
     }
 
     @Test
@@ -122,10 +261,10 @@ class SpaceSettingsTest : ComposeTest() {
         onNodeWithContentDescription("Space settings").performClick()
         onNodeWithText("Delete space").performScrollTo().performClick()
 
-        onNodeWithText("Cancel").performClick()
+        onNodeWithContentDescription("Back").performClick()
 
         onNodeWithText("Delete this space?").assertDoesNotExist()
-        onNodeWithText("Space settings").assertIsDisplayed()
+        onNodeWithText("Name and colour").assertIsDisplayed()
         assertEquals(0, gone)
     }
 
@@ -135,7 +274,8 @@ class SpaceSettingsTest : ComposeTest() {
             override suspend fun leaveSpace(spaceId: String) = error("Could not reach the server")
         }
         showSettingsAs("cy@orbit.app", failing)
-        onNodeWithContentDescription("Leave space").performClick()
+        openSettings()
+        onNodeWithText("Leave space").performScrollTo().performClick()
 
         onNodeWithText("Leave").performClick()
 
@@ -147,7 +287,7 @@ class SpaceSettingsTest : ComposeTest() {
     fun opensWithTheCurrentNameAndColourPicked() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
 
-        onNodeWithContentDescription("Space settings").performClick()
+        openIdentity()
 
         onNodeWithText("Flat 4B").assertIsDisplayed()
         onNodeWithContentDescription("Coral").assertIsSelected()
@@ -158,7 +298,7 @@ class SpaceSettingsTest : ComposeTest() {
     @Test
     fun savesTheNewNameAndColour() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
-        onNodeWithContentDescription("Space settings").performClick()
+        openIdentity()
 
         onNode(hasSetTextAction()).performTextReplacement("Flat 4C")
         onNodeWithContentDescription("Teal").performClick()
@@ -174,7 +314,7 @@ class SpaceSettingsTest : ComposeTest() {
     @Test
     fun cannotSaveABlankName() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
-        onNodeWithContentDescription("Space settings").performClick()
+        openIdentity()
 
         onNode(hasSetTextAction()).performTextReplacement("   ")
 
@@ -182,14 +322,15 @@ class SpaceSettingsTest : ComposeTest() {
     }
 
     @Test
-    fun cancelClosesTheDialogAndChangesNothing() = runComposeUiTest {
+    fun cancelGoesBackToTheMenuAndChangesNothing() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
-        onNodeWithContentDescription("Space settings").performClick()
+        openIdentity()
         onNode(hasSetTextAction()).performTextReplacement("Flat 4C")
 
-        onNodeWithText("Cancel").performClick()
+        onNodeWithContentDescription("Back").performClick()
 
         onNodeWithText("Colour").assertDoesNotExist()
+        onNodeWithText("Name and colour").assertIsDisplayed()
         assertEquals("Flat 4B", spaceNow().name)
     }
 
@@ -200,7 +341,7 @@ class SpaceSettingsTest : ComposeTest() {
                 error("Could not reach the server")
         }
         showSettingsAs("ana@orbit.app", offline)
-        onNodeWithContentDescription("Space settings").performClick()
+        openIdentity()
         onNode(hasSetTextAction()).performTextReplacement("Flat 4C")
 
         onNodeWithText("Save").performClick()

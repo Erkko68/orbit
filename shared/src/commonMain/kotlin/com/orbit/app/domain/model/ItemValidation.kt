@@ -52,8 +52,8 @@ fun scheduleErrors(schedule: Schedule?): List<ItemError> {
 }
 
 private fun assignmentErrors(assignment: Assignment?, memberIds: Collection<String>): List<ItemError> {
-    val assigneeId = assignment?.assigneeId ?: return emptyList()
-    return listOfNotNull(ItemError.AssigneeNotMember.takeIf { assigneeId !in memberIds })
+    val outsiders = assignment?.assigneeIds.orEmpty() - memberIds.toSet()
+    return listOfNotNull(ItemError.AssigneeNotMember.takeIf { outsiders.isNotEmpty() })
 }
 
 private fun checklistErrors(checklist: Checklist?): List<ItemError> =

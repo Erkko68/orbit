@@ -31,6 +31,9 @@ data class ItemModules(
     /** Present modules in card order. */
     val all: List<Module> get() = ModuleType.entries.mapNotNull(::get)
 
+    /** The item is [userId]'s by name, not just because it is anyone's. Backs the "mine" filter. */
+    fun isAssignedTo(userId: String): Boolean = assignment?.assigneeIds.orEmpty().contains(userId)
+
     fun with(module: Module): ItemModules = when (module) {
         is Schedule -> copy(schedule = module)
         is Assignment -> copy(assignment = module)
@@ -65,17 +68,15 @@ data class Schedule(
 sealed interface Assignment : Module {
     override val type get() = ModuleType.ASSIGNMENT
 
-    /** Who is responsible right now, whatever the mode. Backs the "mine" filter. */
-    val assigneeId: String?
+    /** The members who have it by name: nobody in particular when it is anyone's. */
+    val assigneeIds: Set<String>
 
-    data class ToMember(override val assigneeId: String) : Assignment
+    /** One or more members. Whoever of them completes it completes it for all of them. */
+    data class ToMembers(override val assigneeIds: Set<String>) : Assignment
 
     data object Anyone : Assignment {
-        override val assigneeId: String? get() = null
+        override val assigneeIds: Set<String> get() = emptySet()
     }
-
-    /** Unassigned until a member claims it. */
-    data class Claim(override val assigneeId: String? = null) : Assignment
 }
 
 data class Checklist(val entries: List<ChecklistEntry>) : Module {

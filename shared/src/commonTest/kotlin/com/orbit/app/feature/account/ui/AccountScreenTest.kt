@@ -4,11 +4,10 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isDialog
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -37,9 +36,9 @@ class AccountScreenTest : ComposeTest() {
     private fun ComposeUiTest.show(repository: AuthRepository = auth) =
         setContent { OrbitTheme { AccountScreen(onBack = {}, viewModel = AccountViewModel(repository)) } }
 
-    /** The button of the open dialog that reads [text]. */
+    /** The button of the open sheet that reads [text]: the last one, as a row of the screen may read the same. */
     private fun ComposeUiTest.dialogButton(text: String): SemanticsNodeInteraction =
-        onNode(hasText(text) and hasClickAction() and hasAnyAncestor(isDialog()))
+        onAllNodes(hasText(text) and hasClickAction()).onLast()
 
     @Test
     fun showsWhoIsSignedInAndTheirActions() = runComposeUiTest {
@@ -56,11 +55,11 @@ class AccountScreenTest : ComposeTest() {
     fun renamesFromItsDialog() = runComposeUiTest {
         show()
 
-        onNodeWithContentDescription("Edit name").performClick()
-        onNode(hasSetTextAction() and hasAnyAncestor(isDialog())).performTextReplacement("Ana")
+        onNodeWithText("Edit name").performScrollTo().performClick()
+        onNode(hasSetTextAction()).performTextReplacement("Ana")
         dialogButton("Save").performClick()
 
-        onNode(isDialog()).assertDoesNotExist()
+        onNode(hasSetTextAction()).assertDoesNotExist()
         onNodeWithText("Ana").assertIsDisplayed()
         assertEquals("Ana", runBlocking { auth.session.first() }?.displayName)
     }
@@ -105,9 +104,9 @@ class AccountScreenTest : ComposeTest() {
         show()
 
         onNodeWithText("Sign out").performScrollTo().performClick()
-        dialogButton("Cancel").performClick()
+        onNodeWithContentDescription("Close").performClick()
 
-        onNode(isDialog()).assertDoesNotExist()
+        onNodeWithText("Sign out?").assertDoesNotExist()
         assertEquals("Ana López", runBlocking { auth.session.first() }?.displayName)
     }
 

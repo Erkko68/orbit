@@ -12,6 +12,6 @@ data class DictationUiState(
     val started: Int = 0,
     /** What the current dictation has heard so far. */
     val transcript: String = "",
-    /** Why the last dictation gave no text, said in a dialog until dismissed. Typing still works. */
+    /** Why the last dictation gave no text, said in a sheet until dismissed. Typing still works. */
     val failure: DictationFailure? = null,
 )

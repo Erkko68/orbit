@@ -21,7 +21,7 @@ class ItemValidationTest {
     fun validItemHasNoErrors() {
         val modules = ItemModules(
             schedule = Schedule(friday, time = LocalTime(20, 0), duration = 30.minutes),
-            assignment = Assignment.ToMember("ana"),
+            assignment = Assignment.ToMembers(setOf("ana")),
             checklist = Checklist(listOf(ChecklistEntry("1", "Milk", quantity = 2))),
             reminder = Reminder(listOf(Duration.ZERO)),
         )
@@ -55,14 +55,14 @@ class ItemValidationTest {
     @Test
     fun assigneeMustBeAMember() {
         assertEquals(emptyList(), errors(modules = ItemModules(assignment = Assignment.Anyone)))
-        assertEquals(emptyList(), errors(modules = ItemModules(assignment = Assignment.Claim())))
+        assertEquals(emptyList(), errors(modules = ItemModules(assignment = Assignment.Anyone)))
         assertEquals(
             listOf(ItemError.AssigneeNotMember),
-            errors(modules = ItemModules(assignment = Assignment.ToMember("zoe"))),
+            errors(modules = ItemModules(assignment = Assignment.ToMembers(setOf("zoe")))),
         )
         assertEquals(
             listOf(ItemError.AssigneeNotMember),
-            errors(modules = ItemModules(assignment = Assignment.Claim("zoe"))),
+            errors(modules = ItemModules(assignment = Assignment.ToMembers(setOf("zoe")))),
         )
     }
 

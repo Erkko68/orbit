@@ -2,13 +2,10 @@ package com.orbit.app.feature.space.ui
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
@@ -23,6 +20,7 @@ import com.orbit.app.testing.startTestKoin
 import org.koin.core.context.stopKoin
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class SpaceScreenTest : ComposeTest() {
@@ -38,13 +36,12 @@ class SpaceScreenTest : ComposeTest() {
         val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
+                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, onNewSpace = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("Orbit").assertIsDisplayed()
         onNodeWithText("No spaces yet").assertIsDisplayed()
-        onNodeWithText("Your spaces").assertDoesNotExist()
-        onNodeWithText("New space").assertIsDisplayed()
+        onNodeWithContentDescription("New space").assertIsDisplayed()
     }
 
     @Test
@@ -55,7 +52,7 @@ class SpaceScreenTest : ComposeTest() {
         val viewModel = SpaceViewModel(spaces, auth, PendingInvitation())
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
+                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, onNewSpace = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("Could not load your spaces").assertIsDisplayed()
@@ -68,31 +65,26 @@ class SpaceScreenTest : ComposeTest() {
     }
 
     @Test
-    fun newSpaceOpensADialogThatCreatesOnlyWithAName() = runComposeUiTest {
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
+    fun theAddButtonAndAnOpenedLinkBothAskForTheNewSpaceScreen() = runComposeUiTest {
+        val pending = PendingInvitation()
+        var asked = 0
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, pending)
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
+                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, onNewSpace = { asked++ }, viewModel = viewModel)
             }
         }
-        onNodeWithText("Create space").assertDoesNotExist()
+        onNodeWithContentDescription("New space").performClick()
+        assertEquals(1, asked)
 
-        onNodeWithText("New space").performClick()
+        pending.offer("orbit://join/ABCD2345")
+        waitForIdle()
 
-        onNodeWithText("Create space").assertIsNotEnabled()
-        onAllNodes(hasSetTextAction())[0].performTextInput("Flat 4B")
-        onNodeWithText("Create space").assertIsEnabled()
-        // Joining waits for a code of its own.
-        onNodeWithText("Invite code or link").assertIsEnabled()
-        onNodeWithText("Join space").assertIsNotEnabled()
-
-        onNodeWithText("Cancel").performClick()
-        onNodeWithText("Create space").assertDoesNotExist()
+        assertEquals(2, asked)
     }
 
     @Test
-    fun showsACardPerSpaceAndSaysWhenCreatingFailed() = runComposeUiTest {
-        // This fake has one space, "Flat 4B", and its createSpace always throws.
+    fun showsACardPerSpace() = runComposeUiTest {
         val spaces = FakeSpaceRepository.withMembers(
             "Ana" to Role.OWNER,
             "Ben" to Role.MEMBER,
@@ -105,21 +97,11 @@ class SpaceScreenTest : ComposeTest() {
         val viewModel = SpaceViewModel(spaces, auth, PendingInvitation())
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, viewModel = viewModel)
+                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, onNewSpace = {}, viewModel = viewModel)
             }
         }
         onNodeWithText("Your spaces").assertIsDisplayed()
-        onNodeWithText("1 space").assertIsDisplayed()
         onNodeWithText("Flat 4B").assertIsDisplayed()
-        onNodeWithText("5 members").assertIsDisplayed()
-        // Three avatars, then the rest as a count.
-        onNodeWithText("C").assertIsDisplayed()
-        onNodeWithText("D").assertDoesNotExist()
-        onNodeWithText("+2").assertIsDisplayed()
-
-        onNodeWithText("New space").performClick()
-        onAllNodes(hasSetTextAction())[0].performTextInput("Flat 4C")
-        onNodeWithText("Create space").performClick()
-        onNodeWithText("Could not create the space. Try again.").assertIsDisplayed()
+        onNodeWithText("All clear").assertIsDisplayed()
     }
 }

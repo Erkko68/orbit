@@ -10,7 +10,7 @@ Orbit is a Kotlin Multiplatform app (Android and iOS) for groups that share resp
 | **Backend** | Work on the Cloud Functions | [Cloud Functions](backend/cloud-functions.md) |
 | **Process** | Take an issue to a merged pull request | [Workflow](process/workflow.md) · [Testing](process/testing.md) · [Builds and deployment](process/builds-and-deployment.md) · [Project automation](process/project-automation.md) |
 | **Decisions** | See why something is the way it is, and what was rejected | [Architecture decision records](adr/README.md) |
-| **Design** | Look up past design deliveries | [Sprint 1 Stitch mockups](design/sprint-1-stitch/handoff.md) (historical) |
+| **Design** | See where the look comes from | [Visual direction](design/direction.md) |
 
 ## Where things are decided
 

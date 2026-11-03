@@ -4,7 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
@@ -40,7 +40,11 @@ fun OrbitColorPicker(
 ) {
     require(colors.size == labels.size) { "Each colour needs a label" }
     val ring = MaterialTheme.colorScheme.onSurface
-    Row(modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
+    FlowRow(
+        modifier = modifier.selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.xs),
+        verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs),
+    ) {
         colors.forEachIndexed { index, color ->
             val selected = index == selectedIndex
             Box(

@@ -64,51 +64,48 @@ This file holds the rules. The background to them (architecture, schema, roles, 
 - Every assistant flow also has a manual path.
 
 ## UI and theme
-- Wrap UI in `OrbitTheme`. Use `MaterialTheme.colorScheme` / `.typography` / `.shapes` and `OrbitTheme.colors` (success, warning, info, `spaceAccents`).
+- Wrap UI in `OrbitTheme`. Use `MaterialTheme.colorScheme` / `.typography` / `.shapes`, `OrbitTheme.colors` (success, warning, info, `spaceAccents`), `OrbitTheme.accent` (what the space's colour paints) and `OrbitTheme.data` (the type of amounts, times and dates).
 - Material3 components, styled only through the theme. Shared wrappers go in `core/designsystem/component/`.
 - Animations use `OrbitMotion.spatial()` / `OrbitMotion.effects()`.
-- Material 3 Expressive, on stable material3: we follow its look through our own tokens and wrappers, not its alpha APIs.
-  - Depth, not flat. A screen has three surface levels, and every element sits one level away from what it is on, so nothing blends into its background:
-    - **Canvas**: `surface`, a faint lavender. Only headers, section headers and cards sit on it.
-    - **Cards**: an *entity card* (`OrbitCard(elevated = true)`: bright fill, soft shadow) is one thing the user opens or acts on, such as a space or an item. A *group card* (`OrbitCard()`, tonal) holds related content, such as a module, a checklist or a settings group. Both kinds can share a screen, but a group card never holds a lone entity and cards never nest.
-    - **Insets**: `OrbitInset` is a row set into a card: the entries of a group card (bright rows on the tonal card) and the strip at the bottom of an entity card (a tonal strip on the bright card). `OrbitIconBadge` and the `OrbitProgress` track work the same way. They take their fill from the card they sit in, so screens never pick a surface color. In dark the insets of a tonal card go darker, recessed instead of raised.
-  - Anatomy of an entity card, top to bottom: the line about it (at most two `OrbitPill`s, or a `labelMedium`) with the card's arrow or options on the right, its name, its content, then the footer strip: who (avatar and name) on the left, when (schedule icon and due date) on the right. Leave out any part that has no data.
-  - A screen with several groups of cards opens each group with an `OrbitSectionHeader`: a primary icon, the title, and a count pill when it helps ("3 active").
-  - Pills (`OrbitPill`) are for short facts, never actions: `Neutral` for plain facts (a type, a size), `Accent` for the one that matters (a count, the current user), `Success` and `Warning` for a state. An action is a chip or a button.
-  - The screen's create action floats in an `OrbitExtendedFab`.
-  - Shape: cards use `shapes.large`, text fields `shapes.medium`, insets `shapes.small`, buttons, chips, pills and the FAB are full pills, avatars and icon badges circles.
-  - Rhythm: buttons, text fields and the FAB are all 56dp tall (`ControlHeight`: the M3 text field and the M3 Expressive medium button), and in a form they all take the full width. Gaps are `md` inside a group and `lg` between groups. Never size a control at the call site.
-  - Type: headlines are bold, titles and labels semibold (set once in `Type.kt`). A section header and the name of a card that is the screen's main content (a space on the spaces list) are `titleLarge`. The name of a card inside a section is `titleMedium`. The line about a card sits above its name.
-  - One primary action per screen (the FAB or one filled button). Everything else is a tonal or text action.
-  - A short task over the screen (adding a space: name a new one, or enter an invite code) is an `OrbitDialog`, not a form in the page. Whether it is open is a field of the `UiState`. Alternatives for the same goal share one dialog, split by an `OrbitLabeledDivider`, instead of one entry point each.
-  - Signed-out screens (sign-in, create account) are one centered column on the canvas: `OrbitScreenHeader`, the fields and their one filled button, then the other ways in. No card around the form: every control has the same width and the groups are told apart by spacing and the labeled divider.
-  - Every signed-in screen has a top bar (`OrbitTopBar` through `OrbitScreen`). The spaces list shows the Orbit mark and name with the user's account avatar on the right.
+- Material 3 Expressive, on stable material3: we follow its look through our own tokens and wrappers, not its alpha APIs. The why is in [docs/design/direction.md](docs/design/direction.md).
+  - Colour: the space's accent is the page (`OrbitSpaceColor`, which sets `OrbitTheme.accent`). Panels stay neutral, so text never depends on the accent.
+  - Depth: soft panels with no outlines, on the page. Everything keeps the gutter to the screen edges: only a top or bottom bar touches them. A panel is an `OrbitCard` or the rows of an `OrbitGroup`, and panels never nest.
+  - Rows: what is listed sits in an `OrbitGroup`: small gaps, tight corners where rows meet, big ones at its ends, and a pressed row rounds off. Rows are `OrbitGroupRow`, `OrbitEntryRow` or `OrbitActionRow`. A task is an `OrbitTaskCard` of its own: big title first, what else it has under it.
+  - Vivid fills are for what is touched every day: `OrbitColorHeader` on a screen about one thing, `OrbitListTile` (as tall as what it says), `OrbitSpaceTile`. `OrbitTurnCard` is the one hero moment: nothing else gets that treatment.
+  - One check: `OrbitCheck`, the same everywhere.
+  - One add: `OrbitAddButton` floats in the same place on every screen. In a space it opens the item screen on a new item ([ADR 0007](docs/adr/0007-one-item.md)).
+  - A screen with several groups opens each with an `OrbitSectionHeader`: the title and a count or an action.
+  - Shape: cards `shapes.large`, controls `shapes.medium`, what is loud (a tile, the turn card) `shapes.extraLarge`, avatars and the add button circles. Badges and faces take a shape from `OrbitShape`.
+  - Rhythm: buttons and text fields are 56dp tall (`ControlHeight`), and in a form they take the full width. Gaps are `md` inside a group and `lg` between groups. Never size a control at the call site.
+  - Type: Jost for everything, big and bold: headlines bold, titles and labels semibold (set once in `Type.kt`). Martian Mono (`OrbitTheme.data`) for amounts, times and dates.
+  - One primary action per screen. Everything else is a tonal or text action.
+  - A short task over the screen (picking who has an item) is an `OrbitSheet`, not a form in the page. `OrbitDialog` is only for a prompt that stops the app, such as turning notifications on. Whether either is open is a field of the `UiState`. Alternatives for the same goal share one sheet, split by an `OrbitLabeledDivider`.
+  - Signed-out screens (sign-in, create account): `OrbitScreenHeader`, then one `OrbitCard` with the fields, their one filled button and the other ways in.
+  - Every signed-in screen has a top: `OrbitTopBar` or `OrbitColorHeader`, through `OrbitScreen`. The spaces list shows the Orbit mark with the user's account avatar on the right.
   - Only a space has a bottom bar (`OrbitNavigationBar`, #239): Home, Tasks and Expenses, selected through `SpaceHomeUiState.tab`. The top bar title is the space's name, and tapping it opens the spaces list. The spaces list, the account and detail screens have no bar. A new section of a space goes in one of these destinations, not in a new tab or route.
   - No control for a feature that does not exist yet, unless the layout was agreed with it (e.g. joining with an invite code).
 - No hardcoded colors: only `core/designsystem/theme/Color.kt` defines colors.
 - Brand palette only: no dynamic (wallpaper) color.
 - Contrast: every text/background pair must pass WCAG AA (4.5:1). Re-check before changing any scheme mapping.
-  - `primary` is a derived violet tone on purpose (`#6159E7` light, `#857EFF` dark), dark enough for text on the canvas and on tonal cards. Don't replace it with raw `Violet`, which fails AA.
-  - No `primary` text on `surfaceContainerHigh` (pills, tracks): it fails in both themes. A pill that needs the brand color uses the `Accent` tone.
-  - Dark `onPrimary` is navy on purpose.
-  - Teal, coral and sun are fills, never text on light backgrounds; text on them is navy.
-  - `spaceAccents` are decorative (avatars, dots, borders), no body text on them.
+  - `primary` is ink (`#0E1230`) in light and paper (`#F3F4F9`) in dark, on purpose: the accent belongs to the space, and text never depends on it.
+  - Text on a vivid or partner fill is always `Ink`. Fills take no other text colour.
+  - `spaceAccents` are decorative on the light canvas (under 3:1): a selected tab or a done row also changes ink or shows a tick, so colour never carries the meaning alone.
 - Spacing and layout: styling decisions live in `core/designsystem/`, screens only compose.
   - Every padding and gap is an `OrbitSpacing` token (`xs` 4, `sm` 8, `md` 16, `lg` 24, `xl` 32). No raw `.dp` / `.sp` or `Color(0x…)` outside `core/designsystem/` (CI-checked in `ci.yml`).
   - Need a value that is not on the scale? Use the nearest token. Add a token only when the design really needs it, never a one-off number.
-  - Every screen is built on `OrbitScreen`, which owns the scaffold, the insets, the screen gutter, the gap between sections and the scrolling. Screens never set their own outer padding or wrap their content in a `verticalScroll`: pass `scrollable = true` (leave it off only when the content scrolls itself, e.g. a lazy list).
+  - Every screen is built on `OrbitScreen`, which owns the scaffold, the insets, the screen gutter, the gap between sections and the scrolling. Screens never set their own outer padding or wrap their content in a `verticalScroll`: pass `scrollable = true`, or `list` for a lazy list.
   - Components have no outer margin: they pad their inside, take a `modifier` parameter, and the parent sets the gaps with `Arrangement.spacedBy(OrbitSpacing.…)`.
   - Typography by role (`titleMedium`, `bodyLarge`…), used as is. No `.copy(fontSize = …)` at the call site: if a role looks wrong, fix it in `Type.kt`.
   - The same styled element on a second screen becomes a wrapper in `core/designsystem/component/`. A screen that needs a visual tweak changes the wrapper or the theme, not itself.
-  - Before writing a private composable in a feature, look in `core/designsystem/component/`. A title over a subtitle is `OrbitHeading`, the opening of a screen without a top bar `OrbitScreenHeader`, a row of a list `OrbitListItem` (an icon row on its own card is `OrbitListCard`), "nothing here yet" `OrbitEmptyState`, an icon-only action `OrbitIconButton`, a password `OrbitPasswordField`, a group's overlapping avatars `OrbitAvatarStack`, a person in a row of chips `OrbitMemberChip`, the destinations of a space `OrbitNavigationBar`, switching between a screen's sections `OrbitSegmentedTabs`, a task over the screen `OrbitDialog`, a short fact `OrbitPill`, the opening of a group of cards `OrbitSectionHeader`, a row set into a card `OrbitInset`, an icon on a circle `OrbitIconBadge`, how far along something is `OrbitProgress`.
+  - Before writing a private composable in a feature, look in `core/designsystem/component/`. A title over a subtitle is `OrbitHeading`, the big opening of a screen `OrbitHero`, the opening of a screen without a top bar `OrbitScreenHeader`, rows `OrbitGroup` and its rows, "nothing here yet" `OrbitEmptyState`, an icon-only action `OrbitIconButton`, a password `OrbitPasswordField`, who has something `OrbitFloatingFaces`, the destinations of a space `OrbitNavigationBar`, a filter `OrbitFilterChip`, a task over the screen `OrbitSheet`, the opening of a group `OrbitSectionHeader`, an icon on a shape `OrbitShapeBadge`, how far along something is `OrbitWavyProgress`, the row that adds to a group `OrbitAddRow`, the long text of something `OrbitDetailsField`, a length of time `OrbitTimeWheel`, the colour of a space `OrbitSpaceColorPicker`.
   - A design-system component's icon parameter is a `DrawableResource`, and the component draws the `Icon`. A composable slot only when it can hold something else, such as an avatar.
-  - A private composable stays in a feature only for a layout that belongs to that one screen (e.g. the new-item dialog of the space home). Anything generic, such as text + icon + text, goes to the design system, takes plain values (`String`, not `StringResource`) and no ViewModel.
+  - A private composable stays in a feature only for a layout that belongs to that one screen (e.g. the schedule sheet of an item). Anything generic, such as text + icon + text, goes to the design system, takes plain values (`String`, not `StringResource`) and no ViewModel.
 - No experimental Compose APIs (e.g. the Styles API, Material 3 Expressive `MotionScheme`). Revisit when stable.
   - Exceptions, each opted in where it is used and nowhere else:
     - Tests opt in to `ExperimentalTestApi`, because `runComposeUiTest` is the only multiplatform Compose test entry point.
     - M3's `DatePickerDialog`, which is stable on Android and only marked experimental on iOS. `TimePicker` stays out.
 - No hardcoded strings in composables: use `composeResources/values/strings.xml`.
-  - English is the default. Every new or changed string and plural ships in Spanish (`values-es`), Catalan (`values-ca`) and Italian (`values-it`) too, with matching keys and format placeholders. Run `python3 .github/scripts/check_translations.py`; CI enforces it. Android-only user-facing resources follow the same rule.
+  - English is the default. A new or changed string ships in `values-es`, `values-ca` and `values-it` in the same change, with the same key, placeholders and place in the file as in `values/`. Android-only resources (`androidMain/res`) follow the same rule.
 - One public composable per file.
 - Immutable UI state (`data class` + `StateFlow`), no mutable collections in state.
 - Kotlin official code style.

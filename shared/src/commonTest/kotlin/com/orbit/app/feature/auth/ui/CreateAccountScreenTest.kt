@@ -69,14 +69,14 @@ class CreateAccountScreenTest : ComposeTest() {
         showCreateAccount()
         onAllNodesWithContentDescription("Show password").assertCountEquals(2)
 
-        onAllNodesWithContentDescription("Show password")[0].performClick()
+        onAllNodesWithContentDescription("Show password")[0].performScrollTo().performClick()
         onAllNodesWithContentDescription("Hide password").assertCountEquals(1)
         onAllNodesWithContentDescription("Show password").assertCountEquals(1)
 
-        onAllNodesWithContentDescription("Show password")[0].performClick()
+        onAllNodesWithContentDescription("Show password")[0].performScrollTo().performClick()
         onAllNodesWithContentDescription("Hide password").assertCountEquals(2)
 
-        onAllNodesWithContentDescription("Hide password")[1].performClick()
+        onAllNodesWithContentDescription("Hide password")[1].performScrollTo().performClick()
         onAllNodesWithContentDescription("Hide password").assertCountEquals(1)
     }
 

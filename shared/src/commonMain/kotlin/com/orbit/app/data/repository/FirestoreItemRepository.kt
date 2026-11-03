@@ -57,8 +57,19 @@ class FirestoreItemRepository(
         return document.id
     }
 
+    override suspend fun delete(spaceId: String, itemId: String) {
+        val document = items(spaceId).document(itemId)
+        writeLocally("Deleting item $itemId") { document.delete() }
+    }
+
     override suspend fun rename(spaceId: String, itemId: String, title: String) =
         update(spaceId, itemId) { FieldPath("title") to title }
+
+    override suspend fun setDescription(spaceId: String, itemId: String, description: String?) =
+        update(spaceId, itemId) { FieldPath("description") to (description ?: FieldValue.delete) }
+
+    override suspend fun setDetails(spaceId: String, itemId: String, details: String?) =
+        update(spaceId, itemId) { FieldPath("details") to (details ?: FieldValue.delete) }
 
     override suspend fun setModule(spaceId: String, itemId: String, module: Module) =
         update(spaceId, itemId) {
@@ -136,8 +147,8 @@ class FirestoreItemRepository(
         val stored = StoredItem(
             title = document.field("title"),
             description = document.field("description"),
+            details = document.field("details"),
             status = document.field(STATUS),
-            preset = document.field("preset"),
             createdBy = document.field("createdBy"),
             createdAt = document.instant(CREATED_AT),
             completedBy = document.field(COMPLETED_BY),

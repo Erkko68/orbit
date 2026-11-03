@@ -9,13 +9,10 @@ firebase/
 ├── firebase.json        rules, functions (Python 3.13) and emulator config
 ├── firestore.rules      see ../data/security-rules.md
 ├── functions/
-│   ├── main.py          the callables and their Firebase wiring (params, the Vertex client)
-│   ├── assistant/       the assistant, testable without Firebase
-│   │   ├── interview.py   the interview callable's logic
-│   │   ├── question.py    the question the app gets, and its check
-│   │   └── provider.py    the AI provider interface and Gemini on Vertex AI
+│   ├── main.py          the callables and their Firebase wiring (params, Gemini on Vertex AI)
+│   ├── assistant.py     the assistant and the check of what the model answers, testable without Firebase
 │   ├── prompts/         the prompts, versioned as files
-│   ├── tests/           pytest, with a fake provider
+│   ├── tests/           pytest, with a fake model
 │   ├── requirements.txt firebase-functions, firebase-admin, google-genai
 │   └── requirements-dev.txt pytest, pytest-cov
 ├── tests/rules.test.js  rules tests (emulator)
@@ -45,7 +42,7 @@ A function is worth it only for what the phone cannot or must not do. Everything
 
 - Callable functions check `request.auth` and reject unauthenticated calls.
 - Provider keys live in the Cloud Functions secret manager, never in the repo or the app. Gemini needs none: it runs on Vertex AI as the function's service account.
-- The provider sits behind `assistant.provider.Provider`, and the model is configuration (`ASSISTANT_MODEL`, `ASSISTANT_LOCATION`), so #70 can change it without touching the callers.
+- The assistant takes the model as a plain function (`generate(prompt, schema)`), and the model is configuration (`ASSISTANT_MODEL`, `ASSISTANT_LOCATION`), so #70 can change it in `main.py` without touching the assistant.
 - What the provider answers is checked before it reaches the app. An answer that is not valid is an `unavailable` error, never passed on.
 
 ## The assistant
@@ -72,7 +69,7 @@ npx firebase deploy --only functions         # functions (needs the Blaze plan)
 
 ## Tests and coverage
 
-pytest covers the functions with a fake provider, so the tests never call an AI. CI runs them in the `Cloud Functions tests` job, and `sonarqube.yml` sends their coverage to SonarCloud, which needs 80% on new code like the Kotlin side.
+pytest covers the functions with a fake model, so the tests never call an AI. CI runs them in the `Cloud Functions tests` job, and `sonarqube.yml` sends their coverage to SonarCloud, which needs 80% on new code like the Kotlin side.
 
 ```sh
 cd firebase/functions

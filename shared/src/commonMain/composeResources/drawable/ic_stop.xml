@@ -1,10 +1,10 @@
-<!-- Material Icons "stop" (Apache 2.0). Filled black, tinted by Icon at runtime. -->
+<!-- Phosphor "stop" bold (MIT). Tinted by Icon at runtime. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:viewportWidth="256"
+    android:viewportHeight="256">
     <path
         android:fillColor="#FF000000"
-        android:pathData="M6,6h12v12H6z" />
+        android:pathData="M200,36H56A20,20,0,0,0,36,56V200a20,20,0,0,0,20,20H200a20,20,0,0,0,20-20V56A20,20,0,0,0,200,36Zm-4,160H60V60H196Z" />
 </vector>

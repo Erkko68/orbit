@@ -70,7 +70,7 @@ class DictationButtonTest : ComposeTest() {
         onNodeWithText(
             "Orbit needs the microphone to dictate. You can allow it in the phone settings, or type your answer.",
         ).assertIsDisplayed()
-        onNodeWithText("OK").performClick()
+        onNodeWithContentDescription("Close").performClick()
         onNodeWithText("Dictation").assertDoesNotExist()
     }
 

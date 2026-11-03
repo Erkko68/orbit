@@ -5,10 +5,10 @@ import orbit.shared.generated.resources.invite_create_failed
 import orbit.shared.generated.resources.invite_revoke_failed
 import org.jetbrains.compose.resources.StringResource
 
-/** The "Invite" chip of the member row and the dialog it opens. It only shows for an owner or admin of the space. */
+/** The invitation page of the settings of a space. It only shows for an owner or admin. */
 data class InviteUiState(
     val canInvite: Boolean = false,
-    /** The invitation dialog is showing. */
+    /** The invitation page is showing. */
     val open: Boolean = false,
     val spaceName: String = "",
     /** The invitations have not arrived yet, so the card cannot say whether there is one to share. */

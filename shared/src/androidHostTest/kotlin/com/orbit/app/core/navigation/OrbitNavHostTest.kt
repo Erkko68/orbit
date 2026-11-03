@@ -1,7 +1,11 @@
 package com.orbit.app.core.navigation
 
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithText
@@ -24,7 +28,6 @@ import com.orbit.app.di.featureModule
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.NewItem
-import com.orbit.app.domain.model.Preset
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.ItemRepository
@@ -88,19 +91,13 @@ class OrbitNavHostTest : ComposeTest() {
         onNodeWithText("Sign in").performScrollTo().performClick()
 
         onNodeWithText("No spaces yet").assertIsDisplayed()
-        onNodeWithText("New space").performClick()
+        onNodeWithContentDescription("New space").performClick()
         onAllNodes(hasSetTextAction())[0].performTextInput("Flat 4B")
-        onNodeWithText("Create space").performClick()
-        onNodeWithText("1 member").assertIsDisplayed()
-        onNodeWithText("Flat 4B").performScrollTo().performClick()
+        onNodeWithText("Create space").performScrollTo().performClick()
 
-        onNodeWithText("No items yet").assertIsDisplayed()
-        onNodeWithText("Home").performClick()
-        onNodeWithText("You").assertIsDisplayed()
-        onNodeWithText("Owner").assertIsDisplayed()
-
+        onNodeWithText("Nothing in orbit yet").assertIsDisplayed()
         onNodeWithText("Flat 4B").performClick()
-        onNodeWithText("New space").assertIsDisplayed()
+        onNodeWithContentDescription("New space").assertIsDisplayed()
     }
 
     @Test
@@ -146,12 +143,12 @@ class OrbitNavHostTest : ComposeTest() {
                 OrbitNavHost()
             }
         }
-        onNodeWithText("New space").assertIsDisplayed()
+        onNodeWithContentDescription("New space").assertIsDisplayed()
 
         auth.signOut()
 
         onNodeWithText("Welcome back").assertIsDisplayed()
-        onNodeWithText("New space").assertDoesNotExist()
+        onNodeWithContentDescription("New space").assertDoesNotExist()
     }
 
     @Test
@@ -161,25 +158,27 @@ class OrbitNavHostTest : ComposeTest() {
             val spaceId = spaces.createSpace("Flat 4B", accent = 0)
             items.create(
                 spaceId, NewItem(
-                    "Book plumber", preset = Preset.TASK,
+                    "Book plumber",
                     modules = ItemModules(checklist = Checklist(emptyList()))
                 )
             )
-            items.create(spaceId, NewItem("Groceries", preset = Preset.SHOPPING_LIST))
+            items.create(spaceId, NewItem("Groceries"))
         }
         setContent { OrbitTheme { OrbitNavHost() } }
         onNodeWithText("Flat 4B").performScrollTo().performClick()
+        onAllNodesWithText("Tasks")[0].performClick()
         onNodeWithText("Book plumber").performScrollTo().performClick()
-        onNodeWithContentDescription("Remove checklist").performScrollTo().performClick()
-        onNodeWithText("+ Checklist").performScrollTo().assertIsDisplayed()
+        onNode(hasScrollAction()).performScrollToNode(hasContentDescription("Remove checklist"))
+        onNodeWithContentDescription("Remove checklist").performClick()
+        onNodeWithText("Add a checklist").assertIsDisplayed()
         // The top bar is outside the scroll container and always remains visible.
         onNodeWithContentDescription("Back to space").performClick()
-        onNodeWithText("New item").assertIsDisplayed()
+        onNodeWithContentDescription("Add").assertIsDisplayed()
         onNodeWithText("Groceries").performScrollTo().performClick()
-        onNodeWithText("+ Checklist").performScrollTo().performClick()
-        onNodeWithText("Checklist").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Add a checklist").performClick()
+        onNode(hasScrollAction()).performScrollToNode(hasContentDescription("Remove checklist"))
         onNodeWithContentDescription("Back to space").performClick()
-        onNodeWithText("New item").assertIsDisplayed()
+        onNodeWithContentDescription("Add").assertIsDisplayed()
     }
 
     @Test
@@ -190,11 +189,11 @@ class OrbitNavHostTest : ComposeTest() {
         }
         setContent { OrbitTheme { OrbitNavHost() } }
 
-        onNodeWithText("No items yet").assertIsDisplayed()
+        onNodeWithText("Nothing in orbit yet").assertIsDisplayed()
         onNodeWithText("Flat 4B").performClick()
 
-        onNodeWithText("New space").assertIsDisplayed()
-        onNodeWithText("No items yet").assertDoesNotExist()
+        onNodeWithContentDescription("New space").assertIsDisplayed()
+        onNodeWithText("Nothing in orbit yet").assertDoesNotExist()
     }
 
     @Test
@@ -206,8 +205,8 @@ class OrbitNavHostTest : ComposeTest() {
         lastSpace.remember("a-space-ana-left")
         setContent { OrbitTheme { OrbitNavHost() } }
 
-        onNodeWithText("New space").assertIsDisplayed()
-        onNodeWithText("No items yet").assertDoesNotExist()
+        onNodeWithContentDescription("New space").assertIsDisplayed()
+        onNodeWithText("Nothing in orbit yet").assertDoesNotExist()
         assertNull(lastSpace.lastSpaceId())
     }
 
@@ -221,40 +220,40 @@ class OrbitNavHostTest : ComposeTest() {
 
         onNodeWithText("Flat 4B").performScrollTo().performClick()
 
-        onNodeWithText("No items yet").assertIsDisplayed()
+        onNodeWithText("Nothing in orbit yet").assertIsDisplayed()
         assertEquals(spaceId, lastSpace.lastSpaceId())
     }
 
     @Test
-    fun anInvitationLinkBringsTheListWithTheDialogToJoin() = runComposeUiTest {
+    fun anInvitationLinkBringsTheNewSpaceScreenToJoin() = runComposeUiTest {
         runBlocking {
             auth.signIn("ana@orbit.app", "secret")
             lastSpace.remember(spaces.createSpace("Flat 4B", accent = 0))
         }
         setContent { OrbitTheme { OrbitNavHost() } }
-        onNodeWithText("No items yet").assertIsDisplayed()
+        onNodeWithText("Nothing in orbit yet").assertIsDisplayed()
 
         KoinPlatform.getKoin().get<PendingInvitation>().offer("orbit://join/ABCD2345")
 
-        onNodeWithText("Create space").assertIsDisplayed()
-        onNodeWithText("ABCD2345").assertIsDisplayed()
-        onNodeWithText("No items yet").assertDoesNotExist()
+        onNodeWithText("Create space").performScrollTo().assertIsDisplayed()
+        onNodeWithText("ABCD2345").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Nothing in orbit yet").assertDoesNotExist()
     }
 
     @Test
-    fun anInvitationLinkOpenedWhileSignedOutWaitsForTheListAfterSigningIn() = runComposeUiTest {
+    fun anInvitationLinkOpenedWhileSignedOutWaitsForTheNewSpaceScreenAfterSigningIn() = runComposeUiTest {
         KoinPlatform.getKoin().get<PendingInvitation>().offer("orbit://join/ABCD2345")
         setContent { OrbitTheme { OrbitNavHost() } }
         onNodeWithText("Welcome back").assertIsDisplayed()
 
         runBlocking { auth.signIn("ana@orbit.app", "secret") }
 
-        onNodeWithText("Create space").assertIsDisplayed()
-        onNodeWithText("ABCD2345").assertIsDisplayed()
+        onNodeWithText("Create space").performScrollTo().assertIsDisplayed()
+        onNodeWithText("ABCD2345").performScrollTo().assertIsDisplayed()
     }
 
     @Test
-    fun anInvitationLinkOpenedInsideASpaceBringsTheListBackWithTheDialog() = runComposeUiTest {
+    fun anInvitationLinkOpenedInsideASpaceBringsTheNewSpaceScreen() = runComposeUiTest {
         runBlocking {
             auth.signIn("ana@orbit.app", "secret")
             spaces.createSpace("Flat 4B", accent = 0)
@@ -262,12 +261,12 @@ class OrbitNavHostTest : ComposeTest() {
         setContent { OrbitTheme { OrbitNavHost() } }
         // Opened from the list, so the list is under the space and keeps its view model.
         onNodeWithText("Flat 4B").performScrollTo().performClick()
-        onNodeWithText("No items yet").assertIsDisplayed()
+        onNodeWithText("Nothing in orbit yet").assertIsDisplayed()
 
         KoinPlatform.getKoin().get<PendingInvitation>().offer("orbit://join/ABCD2345")
 
-        onNodeWithText("Create space").assertIsDisplayed()
-        onNodeWithText("ABCD2345").assertIsDisplayed()
-        onNodeWithText("No items yet").assertDoesNotExist()
+        onNodeWithText("Create space").performScrollTo().assertIsDisplayed()
+        onNodeWithText("ABCD2345").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Nothing in orbit yet").assertDoesNotExist()
     }
 }

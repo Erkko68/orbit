@@ -9,7 +9,7 @@ import orbit.shared.generated.resources.error_current_password_wrong
 import org.jetbrains.compose.resources.StringResource
 
 /** The task over the account screen, one at a time. */
-enum class AccountDialog { EDIT_NAME, CHANGE_PASSWORD, SIGN_OUT, DELETE_ACCOUNT }
+enum class AccountSheetKind { EDIT_NAME, CHANGE_PASSWORD, SIGN_OUT, DELETE_ACCOUNT }
 
 data class AccountUiState(
     /** The signed-in user, from the session. */
@@ -17,7 +17,7 @@ data class AccountUiState(
     val email: String = "",
     val photoUrl: String? = null,
     /** The open dialog, if any. */
-    val dialog: AccountDialog? = null,
+    val dialog: AccountSheetKind? = null,
     /** What is typed in the edit-name dialog. */
     val nameDraft: String = "",
     /** What is typed in the change-password dialog. */

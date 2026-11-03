@@ -15,11 +15,10 @@ import androidx.compose.ui.Modifier
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 
 /**
- * A short task over the screen, such as adding a space: a [title], the [content] (usually one or two
- * fields) and a way out. Give it [confirmText] and [onConfirm] when the task ends with one action;
- * leave them out when the content has its own buttons. Whether it is open is the caller's state:
- * show it while it is, and close it in [onDismiss], which also runs when the user taps outside or
- * goes back.
+ * A prompt that stops the app until it is answered, such as asking to turn notifications on. Material 3 asks to use
+ * dialogs sparingly: anything else over the screen is an [OrbitSheet]. A [title], the [content] and a way out. Give it
+ * [confirmText] and [onConfirm] when the prompt ends with one action. Whether it is open is the caller's state: show it
+ * while it is, and close it in [onDismiss], which also runs when the user taps outside or goes back.
  */
 @Composable
 fun OrbitDialog(
@@ -29,22 +28,20 @@ fun OrbitDialog(
     modifier: Modifier = Modifier,
     confirmText: String? = null,
     onConfirm: () -> Unit = {},
-    confirmEnabled: Boolean = true,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {
             if (confirmText != null) {
-                TextButton(onClick = onConfirm, enabled = confirmEnabled) { Text(confirmText) }
+                TextButton(onClick = onConfirm) { Text(confirmText) }
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(dismissText) } },
         modifier = modifier,
         title = { Text(title) },
         text = {
-            // Fields stand out from the dialog fill the way they do on a card.
-            CompositionLocalProvider(LocalInsideCard provides true, LocalCardElevated provides true) {
+            CompositionLocalProvider(LocalInsideCard provides true) {
                 // Scrolls when the content outgrows a small screen or the open keyboard.
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -53,6 +50,7 @@ fun OrbitDialog(
                 )
             }
         },
+        shape = MaterialTheme.shapes.large,
         containerColor = MaterialTheme.colorScheme.surfaceBright,
     )
 }

@@ -22,6 +22,14 @@ internal class ControlledItemRepository(private val delegate: ItemRepository) : 
         emitAll(delegate.observeItems(spaceId))
     }
 
+    override suspend fun setDescription(spaceId: String, itemId: String, description: String?) {
+        write("description") { delegate.setDescription(spaceId, itemId, description) }
+    }
+
+    override suspend fun setDetails(spaceId: String, itemId: String, details: String?) {
+        write("details") { delegate.setDetails(spaceId, itemId, details) }
+    }
+
     override suspend fun setModule(spaceId: String, itemId: String, module: Module) {
         write("set:${module.type}") { delegate.setModule(spaceId, itemId, module) }
     }
@@ -44,6 +52,14 @@ internal class ControlledItemRepository(private val delegate: ItemRepository) : 
 
     override suspend fun setEntryChecked(spaceId: String, itemId: String, entryId: String, checked: Boolean) {
         write("checkEntry") { delegate.setEntryChecked(spaceId, itemId, entryId, checked) }
+    }
+
+    override suspend fun delete(spaceId: String, itemId: String) {
+        write("delete") { delegate.delete(spaceId, itemId) }
+    }
+
+    override suspend fun rename(spaceId: String, itemId: String, title: String) {
+        write("rename") { delegate.rename(spaceId, itemId, title) }
     }
 
     override suspend fun complete(spaceId: String, itemId: String) {

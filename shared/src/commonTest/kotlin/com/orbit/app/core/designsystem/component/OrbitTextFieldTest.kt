@@ -4,7 +4,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -24,6 +26,7 @@ import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlinx.coroutines.launch
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_lock
 
@@ -74,6 +77,48 @@ class OrbitTextFieldTest : ComposeTest() {
         }
         onNode(hasSetTextAction()).performTextInput("AB12CD")
         assertEquals("AB12CD", value)
+    }
+
+    @Test
+    fun keepsTheCursorAtTheEndWhenTheCallerAnswersAFrameLate() = runComposeUiTest {
+        var value by mutableStateOf("")
+        setContent {
+            OrbitTheme {
+                val scope = rememberCoroutineScope()
+                OrbitTextField(
+                    value = value,
+                    onValueChange = { typed ->
+                        scope.launch {
+                            withFrameNanos {}
+                            value = typed
+                        }
+                    },
+                    placeholder = "Name",
+                )
+            }
+        }
+        for (letter in "hello") {
+            onNode(hasSetTextAction()).performTextInput(letter.toString())
+            waitForIdle()
+        }
+
+        assertEquals("hello", value)
+    }
+
+    @Test
+    fun showsWhatTheCallerKeepsOfWhatWasTyped() = runComposeUiTest {
+        var value by mutableStateOf("12")
+        setContent {
+            OrbitTheme {
+                OrbitTextField(value, onValueChange = { value = it.filter(Char::isDigit) }, placeholder = "How many")
+            }
+        }
+        onNode(hasSetTextAction()).performTextInput("x")
+        waitForIdle()
+
+        assertEquals("12", value)
+        onNodeWithText("12x").assertDoesNotExist()
+        onNodeWithText("12").assertIsDisplayed()
     }
 
     @Test

@@ -92,7 +92,7 @@ class SpaceSettingsViewModelTest {
         viewModel.open()
 
         val state = viewModel.uiState.value
-        assertTrue(state.open)
+        assertTrue(state.page != null)
         assertEquals("Flat 4B", state.name)
         assertEquals(1, state.accent)
         assertTrue(state.canSave)
@@ -111,7 +111,7 @@ class SpaceSettingsViewModelTest {
         assertEquals(listOf<Pair<String?, Int?>>("Flat 4C" to 3), writes)
         assertEquals("Flat 4C", spaceNow().name)
         assertEquals(3, spaceNow().accent)
-        assertFalse(viewModel.uiState.value.open)
+        assertFalse(viewModel.uiState.value.page != null)
         assertFalse(viewModel.uiState.value.saving)
     }
 
@@ -140,7 +140,7 @@ class SpaceSettingsViewModelTest {
         viewModel.save()
 
         assertTrue(writes.isEmpty())
-        assertFalse(viewModel.uiState.value.open)
+        assertFalse(viewModel.uiState.value.page != null)
     }
 
     @Test
@@ -154,7 +154,7 @@ class SpaceSettingsViewModelTest {
         assertFalse(viewModel.uiState.value.canSave)
         viewModel.save()
         assertTrue(writes.isEmpty())
-        assertTrue(viewModel.uiState.value.open)
+        assertTrue(viewModel.uiState.value.page != null)
     }
 
     @Test
@@ -171,7 +171,7 @@ class SpaceSettingsViewModelTest {
         viewModel.save()
 
         val state = viewModel.uiState.value
-        assertTrue(state.open)
+        assertTrue(state.page != null)
         assertTrue(state.failed)
         assertFalse(state.saving)
         assertEquals("Flat 4C", state.name)
@@ -204,7 +204,7 @@ class SpaceSettingsViewModelTest {
         viewModel.onNameChange("Something else")
 
         viewModel.dismiss()
-        assertFalse(viewModel.uiState.value.open)
+        assertFalse(viewModel.uiState.value.page != null)
 
         viewModel.open()
         assertEquals("Flat 4B", viewModel.uiState.value.name)
@@ -218,7 +218,7 @@ class SpaceSettingsViewModelTest {
         viewModel.onNameChange("Flat 4C")
         viewModel.save()
 
-        assertFalse(viewModel.uiState.value.open)
+        assertFalse(viewModel.uiState.value.page != null)
         assertTrue(writes.isEmpty())
     }
 
@@ -248,17 +248,40 @@ class SpaceSettingsViewModelTest {
     }
 
     @Test
-    fun aPlainMemberOpensStraightOnLeavingAndCancellingCloses() = runTest {
+    fun aPlainMemberSeesTheMenuAndBacksOutOfLeavingToIt() = runTest {
         flat()
         auth.signOut()
         auth.signIn("cy@orbit.app", "secret")
         val viewModel = settingsViewModel()
 
         viewModel.open()
+        assertEquals(SpaceSettingsPage.MENU, viewModel.uiState.value.page)
+        assertFalse(viewModel.uiState.value.canEdit)
+
+        viewModel.confirmExit()
         assertTrue(viewModel.uiState.value.confirmingExit)
 
         viewModel.cancelExit()
-        assertFalse(viewModel.uiState.value.open)
+        assertFalse(viewModel.uiState.value.confirmingExit)
+        assertEquals(SpaceSettingsPage.MENU, viewModel.uiState.value.page)
+    }
+
+    @Test
+    fun stepsBetweenTheMenuAndItsPagesForgettingWhatWasTyped() = runTest {
+        flat()
+        val viewModel = settingsViewModel()
+        viewModel.open()
+
+        viewModel.openIdentity()
+        assertEquals(SpaceSettingsPage.IDENTITY, viewModel.uiState.value.page)
+        viewModel.onNameChange("Flat 4C")
+
+        viewModel.backToMenu()
+        assertEquals(SpaceSettingsPage.MENU, viewModel.uiState.value.page)
+        assertEquals("Flat 4B", viewModel.uiState.value.name)
+
+        viewModel.openMembers()
+        assertEquals(SpaceSettingsPage.MEMBERS, viewModel.uiState.value.page)
     }
 
     @Test
@@ -271,7 +294,7 @@ class SpaceSettingsViewModelTest {
         assertTrue(viewModel.uiState.value.confirmingExit)
         viewModel.cancelExit()
 
-        assertTrue(viewModel.uiState.value.open)
+        assertTrue(viewModel.uiState.value.page != null)
         assertFalse(viewModel.uiState.value.confirmingExit)
     }
 
@@ -285,7 +308,7 @@ class SpaceSettingsViewModelTest {
         viewModel.exit()
 
         assertTrue(viewModel.uiState.value.gone)
-        assertFalse(viewModel.uiState.value.open)
+        assertFalse(viewModel.uiState.value.page != null)
         assertEquals(emptyList(), spaces.observeSpaces().first())
     }
 

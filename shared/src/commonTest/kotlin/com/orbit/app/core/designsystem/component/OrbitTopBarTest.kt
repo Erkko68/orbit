@@ -36,7 +36,6 @@ class OrbitTopBarTest : ComposeTest() {
                 OrbitTopBar(
                     title = "Task",
                     modifier = Modifier.testTag("bar"),
-                    subtitle = "Flat 4B",
                     navigationIcon = { IconButton(onClick = { backs++ }) { Text("Back") } },
                     actions = { IconButton(onClick = { edits++ }) { Text("Edit") } },
                 )
@@ -44,7 +43,6 @@ class OrbitTopBarTest : ComposeTest() {
         }
         onNodeWithTag("bar").assertHeightIsAtLeast(64.dp)
         onNodeWithText("Task").assertIsDisplayed()
-        onNodeWithText("Flat 4B").assertIsDisplayed()
 
         onNodeWithText("Back").performClick()
         onNodeWithText("Edit").performClick()
@@ -67,7 +65,7 @@ class OrbitTopBarTest : ComposeTest() {
         var taps = 0
         setContent {
             OrbitTheme {
-                OrbitTopBar("Flat 4B", subtitle = "2 members", onTitleClick = { taps++ }, onTitleClickLabel = "Spaces")
+                OrbitTopBar("Flat 4B", onTitleClick = { taps++ }, onTitleClickLabel = "Spaces")
             }
         }
         onNodeWithText("Flat 4B", useUnmergedTree = false)
@@ -81,7 +79,6 @@ class OrbitTopBarTest : ComposeTest() {
     @Test
     fun followsItsInputsWhenTheCallerRecomposes() = runComposeUiTest {
         var title by mutableStateOf("Items")
-        var subtitle by mutableStateOf<String?>("Flat 4B")
         var other by mutableStateOf("first")
         setContent {
             OrbitTheme {
@@ -89,7 +86,6 @@ class OrbitTopBarTest : ComposeTest() {
                 OrbitTopBar(
                     title = title,
                     modifier = Modifier.testTag("bar"),
-                    subtitle = subtitle,
                     navigationIcon = { Text("Back") },
                     actions = { Text("Edit") },
                 )
@@ -99,8 +95,7 @@ class OrbitTopBarTest : ComposeTest() {
         onNodeWithText("second").assertIsDisplayed()
 
         title = "Task"
-        subtitle = null
         onNodeWithText("Task").assertIsDisplayed()
-        onNodeWithText("Flat 4B").assertDoesNotExist()
+        onNodeWithText("Items").assertDoesNotExist()
     }
 }

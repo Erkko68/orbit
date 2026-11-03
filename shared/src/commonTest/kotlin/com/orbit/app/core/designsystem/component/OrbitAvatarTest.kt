@@ -22,14 +22,14 @@ import kotlin.test.Test
 @OptIn(ExperimentalTestApi::class)
 class OrbitAvatarTest : ComposeTest() {
     @Test
-    fun showsInitialsInA36dpCircle() = runComposeUiTest {
+    fun showsInitialsInA40dpCircle() = runComposeUiTest {
         setContent {
             OrbitTheme {
                 OrbitAvatar("AL", Color.Red, Modifier.testTag("avatar"))
             }
         }
         onNodeWithText("AL").assertIsDisplayed()
-        onNodeWithTag("avatar").assertWidthIsEqualTo(36.dp).assertHeightIsEqualTo(36.dp)
+        onNodeWithTag("avatar").assertWidthIsEqualTo(40.dp).assertHeightIsEqualTo(40.dp)
     }
 
     @Test

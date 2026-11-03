@@ -69,7 +69,7 @@ class AccountViewModelTest {
         val viewModel = observe(auth)
 
         viewModel.openEditName()
-        assertEquals(AccountDialog.EDIT_NAME, viewModel.uiState.value.dialog)
+        assertEquals(AccountSheetKind.EDIT_NAME, viewModel.uiState.value.dialog)
         assertEquals("Ana López", viewModel.uiState.value.nameDraft)
         assertFalse(viewModel.uiState.value.canSaveName)
 
@@ -90,7 +90,7 @@ class AccountViewModelTest {
         viewModel.saveName()
 
         val failed = viewModel.uiState.value
-        assertEquals(AccountDialog.EDIT_NAME, failed.dialog)
+        assertEquals(AccountSheetKind.EDIT_NAME, failed.dialog)
         assertFalse(failed.submitting)
         assertEquals(Res.string.error_unknown, failed.dialogError)
 
@@ -150,7 +150,7 @@ class AccountViewModelTest {
             viewModel.onNewPasswordChange("new-secret")
             viewModel.onConfirmationChange("new-secret")
             viewModel.changePassword()
-            assertEquals(AccountDialog.CHANGE_PASSWORD, viewModel.uiState.value.dialog)
+            assertEquals(AccountSheetKind.CHANGE_PASSWORD, viewModel.uiState.value.dialog)
         }
 
         assertEquals(Res.string.error_weak_password, weak.uiState.value.newPasswordError)
@@ -177,7 +177,7 @@ class AccountViewModelTest {
         val viewModel = observe(auth)
 
         viewModel.openDeleteAccount()
-        assertEquals(AccountDialog.DELETE_ACCOUNT, viewModel.uiState.value.dialog)
+        assertEquals(AccountSheetKind.DELETE_ACCOUNT, viewModel.uiState.value.dialog)
         viewModel.deleteAccount()
 
         assertNull(auth.session.first())
@@ -191,7 +191,7 @@ class AccountViewModelTest {
 
         viewModel.deleteAccount()
 
-        assertEquals(AccountDialog.DELETE_ACCOUNT, viewModel.uiState.value.dialog)
+        assertEquals(AccountSheetKind.DELETE_ACCOUNT, viewModel.uiState.value.dialog)
         assertEquals(Res.string.error_unknown, viewModel.uiState.value.dialogError)
     }
 
@@ -216,7 +216,7 @@ class AccountViewModelTest {
         viewModel.signOut()
 
         assertTrue(viewModel.uiState.value.submitting)
-        assertEquals(AccountDialog.DELETE_ACCOUNT, viewModel.uiState.value.dialog)
+        assertEquals(AccountSheetKind.DELETE_ACCOUNT, viewModel.uiState.value.dialog)
         gate.complete(Unit)
         assertEquals(1, deletes)
         assertNull(auth.session.first())
@@ -240,7 +240,7 @@ class AccountViewModelTest {
         val viewModel = observe(auth)
 
         viewModel.openSignOut()
-        assertEquals(AccountDialog.SIGN_OUT, viewModel.uiState.value.dialog)
+        assertEquals(AccountSheetKind.SIGN_OUT, viewModel.uiState.value.dialog)
         viewModel.signOut()
 
         assertNull(auth.session.first())
@@ -254,7 +254,7 @@ class AccountViewModelTest {
 
         viewModel.signOut()
 
-        assertEquals(AccountDialog.SIGN_OUT, viewModel.uiState.value.dialog)
+        assertEquals(AccountSheetKind.SIGN_OUT, viewModel.uiState.value.dialog)
         assertEquals(Res.string.error_unknown, viewModel.uiState.value.dialogError)
         assertFalse(viewModel.uiState.value.submitting)
     }
