@@ -56,6 +56,8 @@ class SpaceMembersViewModel(
             rolePicker = shown.firstOrNull { it.id == picker.memberId && (it.canChangeRole || it.canTakeOwnership) },
             busy = picker.busy,
             failed = picker.failed,
+            confirmingTransfer = picker.confirmingTransfer,
+            transferAcknowledged = picker.acknowledged,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceMembersUiState(loading = true))
 
@@ -78,8 +80,19 @@ class SpaceMembersViewModel(
         submit("Changing the role of ${member.id}") { spaces.changeRole(spaceId, member.id, role) }
     }
 
-    /** Makes the member in the picker the owner, and the user an admin. */
+    /** Asks before handing the space to the member in the picker: the user cannot take it back. */
+    fun askTransfer() {
+        if (uiState.value.rolePicker?.canTakeOwnership != true) return
+        picker.update { it.copy(confirmingTransfer = true, acknowledged = false, failed = false) }
+    }
+
+    fun acknowledgeTransfer(acknowledged: Boolean) = picker.update { it.copy(acknowledged = acknowledged, failed = false) }
+
+    fun cancelTransfer() = picker.update { it.copy(confirmingTransfer = false, acknowledged = false, failed = false) }
+
+    /** Once acknowledged, makes the member in the picker the owner and the user an admin. */
     fun transferOwnership() {
+        if (!uiState.value.canTransfer) return
         val member = uiState.value.rolePicker?.takeIf { it.canTakeOwnership } ?: return
         submit("Handing space $spaceId to ${member.id}") { spaces.transferOwnership(spaceId, member.id) }
     }
@@ -93,7 +106,13 @@ class SpaceMembersViewModel(
         }
     }
 
-    private data class Picker(val memberId: String? = null, val busy: Boolean = false, val failed: Boolean = false)
+    private data class Picker(
+        val memberId: String? = null,
+        val busy: Boolean = false,
+        val failed: Boolean = false,
+        val confirmingTransfer: Boolean = false,
+        val acknowledged: Boolean = false,
+    )
 }
 
 private fun toSpaceMember(member: Member, index: Int, isYou: Boolean, canChangeRole: Boolean, canTakeOwnership: Boolean) =

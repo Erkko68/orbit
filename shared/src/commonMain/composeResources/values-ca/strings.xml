@@ -231,6 +231,11 @@
     <string name="member_role_failed">No s&apos;ha pogut canviar el rol. Torna-ho a provar.</string>
     <string name="member_role_make_owner">Fes-lo propietari</string>
     <string name="member_role_make_owner_body">Aquesta persona es fa càrrec de l&apos;espai i tu passes a ser administrador.</string>
+    <string name="transfer_title">Vols passar %1$s a %2$s?</string>
+    <string name="transfer_body">%1$s passa a ser propietari: podrà eliminar l&apos;espai i gestionar tothom. Tu passes a ser administrador.</string>
+    <string name="transfer_acknowledge">Entenc que només %1$s me l&apos;hi pot tornar</string>
+    <string name="transfer_confirm">Passa-l&apos;hi</string>
+    <string name="transfer_cancel">Cancel·la</string>
     <string name="leave_title">Vols sortir d&apos;aquest espai?</string>
     <string name="leave_body">Deixaràs de veure els seus elements. Podràs tornar-hi amb una invitació nova.</string>
     <string name="leave_confirm">Surt</string>

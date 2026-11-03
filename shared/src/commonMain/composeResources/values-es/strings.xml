@@ -231,6 +231,11 @@
     <string name="member_role_failed">No se ha podido cambiar el rol. Vuelve a intentarlo.</string>
     <string name="member_role_make_owner">Hacer propietario</string>
     <string name="member_role_make_owner_body">Esa persona se hace cargo del espacio y tú pasas a ser administrador.</string>
+    <string name="transfer_title">¿Pasar %1$s a %2$s?</string>
+    <string name="transfer_body">%1$s pasa a ser propietario: podrá eliminar el espacio y gestionar a todos. Tú pasas a ser administrador.</string>
+    <string name="transfer_acknowledge">Entiendo que solo %1$s me lo puede devolver</string>
+    <string name="transfer_confirm">Pasarlo</string>
+    <string name="transfer_cancel">Cancelar</string>
     <string name="leave_title">¿Salir de este espacio?</string>
     <string name="leave_body">Dejarás de ver sus elementos. Podrás volver con una nueva invitación.</string>
     <string name="leave_confirm">Salir</string>

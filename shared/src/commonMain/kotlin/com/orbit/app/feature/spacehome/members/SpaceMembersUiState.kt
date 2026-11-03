@@ -20,7 +20,13 @@ data class SpaceMembersUiState(
     val busy: Boolean = false,
     /** The last of those failed. Cleared by the next attempt or by closing the picker. */
     val failed: Boolean = false,
+    /** The dialog that asks before handing the space over is open. */
+    val confirmingTransfer: Boolean = false,
+    /** The user ticked that only the new owner can give the space back. */
+    val transferAcknowledged: Boolean = false,
 ) {
+    val canTransfer: Boolean get() = confirmingTransfer && transferAcknowledged && !busy
+
     /** The members under their role, the owner first. Within a role the user comes first, then by name. */
     val byRole: List<RoleSection>
         get() = Role.entries.mapNotNull { role ->

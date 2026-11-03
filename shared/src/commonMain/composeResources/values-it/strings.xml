@@ -231,6 +231,11 @@
     <string name="member_role_failed">Impossibile cambiare il ruolo. Riprova.</string>
     <string name="member_role_make_owner">Rendi proprietario</string>
     <string name="member_role_make_owner_body">Questa persona diventa proprietaria dello spazio e tu diventi amministratore.</string>
+    <string name="transfer_title">Passare %1$s a %2$s?</string>
+    <string name="transfer_body">%1$s diventa proprietario: potrà eliminare lo spazio e gestire tutti. Tu diventi amministratore.</string>
+    <string name="transfer_acknowledge">Capisco che solo %1$s può restituirmelo</string>
+    <string name="transfer_confirm">Passalo</string>
+    <string name="transfer_cancel">Annulla</string>
     <string name="leave_title">Vuoi lasciare questo spazio?</string>
     <string name="leave_body">Non vedrai più i suoi elementi. Potrai tornare con un nuovo invito.</string>
     <string name="leave_confirm">Lascia</string>

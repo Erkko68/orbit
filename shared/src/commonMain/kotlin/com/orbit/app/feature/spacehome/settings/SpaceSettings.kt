@@ -1,23 +1,27 @@
 package com.orbit.app.feature.spacehome.settings
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.orbit.app.core.share.TextSharer
 import com.orbit.app.core.designsystem.component.OrbitActionRow
 import com.orbit.app.core.designsystem.component.OrbitAvatar
 import com.orbit.app.core.designsystem.component.OrbitAvatarSize
 import com.orbit.app.core.designsystem.component.OrbitButton
+import com.orbit.app.core.designsystem.component.OrbitCheck
+import com.orbit.app.core.designsystem.component.OrbitCrew
+import com.orbit.app.core.designsystem.component.OrbitDialog
 import com.orbit.app.core.designsystem.component.OrbitErrorText
+import com.orbit.app.core.designsystem.component.OrbitFloatingFace
 import com.orbit.app.core.designsystem.component.OrbitGroup
 import com.orbit.app.core.designsystem.component.OrbitGroupRow
-import com.orbit.app.core.designsystem.component.OrbitCrew
-import com.orbit.app.core.designsystem.component.OrbitFloatingFace
 import com.orbit.app.core.designsystem.component.OrbitSectionHeader
 import com.orbit.app.core.designsystem.component.OrbitSheet
 import com.orbit.app.core.designsystem.component.OrbitSheetPages
@@ -26,7 +30,9 @@ import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.core.designsystem.component.OrbitTextField
 import com.orbit.app.core.designsystem.component.memberShape
 import com.orbit.app.core.designsystem.theme.OrbitShape
+import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.core.share.TextSharer
 import com.orbit.app.feature.spacehome.members.InvitePage
 import com.orbit.app.feature.spacehome.members.InviteViewModel
 import com.orbit.app.feature.spacehome.members.RolePickerPage
@@ -49,6 +55,7 @@ import orbit.shared.generated.resources.leave_body
 import orbit.shared.generated.resources.leave_confirm
 import orbit.shared.generated.resources.leave_failed
 import orbit.shared.generated.resources.leave_title
+import orbit.shared.generated.resources.member_role_failed
 import orbit.shared.generated.resources.member_role_title
 import orbit.shared.generated.resources.member_you
 import orbit.shared.generated.resources.space_settings
@@ -63,6 +70,11 @@ import orbit.shared.generated.resources.space_settings_members
 import orbit.shared.generated.resources.space_settings_name
 import orbit.shared.generated.resources.space_settings_save
 import orbit.shared.generated.resources.spaces_members
+import orbit.shared.generated.resources.transfer_acknowledge
+import orbit.shared.generated.resources.transfer_body
+import orbit.shared.generated.resources.transfer_cancel
+import orbit.shared.generated.resources.transfer_confirm
+import orbit.shared.generated.resources.transfer_title
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -146,12 +158,48 @@ internal fun SpaceSettings(
                         busy = members.busy,
                         failed = members.failed,
                         onPick = membersViewModel::changeRole,
-                        onTransfer = membersViewModel::transferOwnership,
+                        onTransfer = membersViewModel::askTransfer,
                     )
                 }
                 SpaceSettingsStep.INVITE -> InvitePage(invite, inviteViewModel, sharer)
                 SpaceSettingsStep.EXIT -> ExitPage(state, viewModel)
             }
+        }
+    }
+    val transferTo = members.rolePicker
+    if (members.confirmingTransfer && transferTo != null) {
+        TransferDialog(transferTo, state.spaceName, members, membersViewModel)
+    }
+}
+
+/** Asks before handing the space over, which the user cannot take back: they tick that only [member] can give it back. */
+@Composable
+private fun TransferDialog(
+    member: SpaceMember,
+    spaceName: String,
+    members: SpaceMembersUiState,
+    viewModel: SpaceMembersViewModel,
+) {
+    val acknowledge = stringResource(Res.string.transfer_acknowledge, member.name)
+    OrbitDialog(
+        title = stringResource(Res.string.transfer_title, spaceName, member.name),
+        dismissText = stringResource(Res.string.transfer_cancel),
+        onDismiss = viewModel::cancelTransfer,
+        confirmText = stringResource(Res.string.transfer_confirm),
+        onConfirm = viewModel::transferOwnership,
+        confirmEnabled = members.canTransfer,
+    ) {
+        Text(stringResource(Res.string.transfer_body, member.name), style = MaterialTheme.typography.bodyLarge)
+        Row(horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            OrbitCheck(
+                checked = members.transferAcknowledged,
+                onCheckedChange = viewModel::acknowledgeTransfer,
+                contentDescription = acknowledge,
+            )
+            Text(acknowledge, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+        }
+        if (members.failed) {
+            OrbitErrorText(stringResource(Res.string.member_role_failed))
         }
     }
 }

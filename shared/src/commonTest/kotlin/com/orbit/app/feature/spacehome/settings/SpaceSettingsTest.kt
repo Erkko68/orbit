@@ -215,6 +215,10 @@ class SpaceSettingsTest : ComposeTest() {
 
         onNodeWithText("Cy").performScrollTo().performClick()
         onNodeWithText("Make owner").performClick()
+        onNodeWithText("Hand Flat 4B to Cy?").assertIsDisplayed()
+        onNodeWithText("Hand it over").assertIsNotEnabled()
+        onNodeWithContentDescription("I understand only Cy can give it back").performClick()
+        onNodeWithText("Hand it over").assertIsEnabled().performClick()
 
         onNodeWithText("Role of Cy").assertDoesNotExist()
         assertEquals(Role.OWNER, roleOf("cy@orbit.app"))

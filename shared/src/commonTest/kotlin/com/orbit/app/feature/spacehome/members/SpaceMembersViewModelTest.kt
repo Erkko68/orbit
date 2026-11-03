@@ -238,10 +238,13 @@ class SpaceMembersViewModelTest {
         auth.signIn("ana@orbit.app", "secret")
         val viewModel = membersViewModel(team())
         viewModel.openRolePicker("cy@orbit.app")
+        viewModel.askTransfer()
+        viewModel.acknowledgeTransfer(true)
 
         viewModel.transferOwnership()
 
         val state = viewModel.uiState.value
+        assertFalse(state.confirmingTransfer)
         assertEquals(Role.OWNER, state.members.single { it.id == "cy@orbit.app" }.currentRole)
         assertEquals(Role.ADMIN, state.members.single { it.id == "ana@orbit.app" }.currentRole)
         assertNull(state.rolePicker)
@@ -252,10 +255,13 @@ class SpaceMembersViewModelTest {
         auth.signIn("ana@orbit.app", "secret")
         val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Could not reach the server")))
         viewModel.openRolePicker("cy@orbit.app")
+        viewModel.askTransfer()
+        viewModel.acknowledgeTransfer(true)
 
         viewModel.transferOwnership()
 
         assertTrue(viewModel.uiState.value.failed)
+        assertTrue(viewModel.uiState.value.confirmingTransfer)
         assertNotNull(viewModel.uiState.value.rolePicker)
         assertEquals(Role.OWNER, viewModel.uiState.value.members.single { it.id == "ana@orbit.app" }.currentRole)
     }
@@ -265,9 +271,48 @@ class SpaceMembersViewModelTest {
         auth.signIn("ben@orbit.app", "secret")
         val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Must not be called")))
         viewModel.openRolePicker("cy@orbit.app")
+        viewModel.askTransfer()
+        viewModel.acknowledgeTransfer(true)
 
         viewModel.transferOwnership()
 
+        assertFalse(viewModel.uiState.value.confirmingTransfer)
         assertFalse(viewModel.uiState.value.failed)
+    }
+
+    @Test
+    fun handsNothingOverUntilTheOwnerAcknowledgesIt() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Must not be called")))
+        viewModel.openRolePicker("cy@orbit.app")
+
+        viewModel.transferOwnership()
+        assertFalse(viewModel.uiState.value.failed)
+
+        viewModel.askTransfer()
+        assertTrue(viewModel.uiState.value.confirmingTransfer)
+        assertFalse(viewModel.uiState.value.canTransfer)
+        viewModel.transferOwnership()
+        assertFalse(viewModel.uiState.value.failed)
+
+        viewModel.acknowledgeTransfer(true)
+        assertTrue(viewModel.uiState.value.canTransfer)
+    }
+
+    @Test
+    fun cancellingTheDialogKeepsThePickerAndForgetsTheTick() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val viewModel = membersViewModel(team())
+        viewModel.openRolePicker("cy@orbit.app")
+        viewModel.askTransfer()
+        viewModel.acknowledgeTransfer(true)
+
+        viewModel.cancelTransfer()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.confirmingTransfer)
+        assertFalse(state.transferAcknowledged)
+        assertNotNull(state.rolePicker)
+        assertEquals(Role.OWNER, state.members.single { it.id == "ana@orbit.app" }.currentRole)
     }
 }

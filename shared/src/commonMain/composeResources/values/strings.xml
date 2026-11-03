@@ -231,6 +231,11 @@
     <string name="member_role_failed">Could not change the role. Try again.</string>
     <string name="member_role_make_owner">Make owner</string>
     <string name="member_role_make_owner_body">They take over the space and you become an admin.</string>
+    <string name="transfer_title">Hand %1$s to %2$s?</string>
+    <string name="transfer_body">%1$s becomes the owner: they can delete the space and manage everyone. You become an admin.</string>
+    <string name="transfer_acknowledge">I understand only %1$s can give it back</string>
+    <string name="transfer_confirm">Hand it over</string>
+    <string name="transfer_cancel">Cancel</string>
     <string name="leave_title">Leave this space?</string>
     <string name="leave_body">You will stop seeing its items. A new invitation brings you back.</string>
     <string name="leave_confirm">Leave</string>
