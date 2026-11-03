@@ -51,6 +51,7 @@ class AndroidDictationTest : ComposeTest() {
     fun emitsWhatItHearsUntilTheUserStopsTalking() = listening {
         val text = async { AndroidDictation(app).listen().toList() }
         runCurrent()
+        shadowOf(Looper.getMainLooper()).idle()
         val recognizer = shadowOf(ShadowSpeechRecognizer.getLatestSpeechRecognizer())
 
         recognizer.triggerOnPartialResults(heard("Three"))
@@ -63,6 +64,7 @@ class AndroidDictationTest : ComposeTest() {
     fun aRecogniserErrorEndsItWithTheReason() = listening {
         val text = async { runCatching { AndroidDictation(app).listen().toList() } }
         runCurrent()
+        shadowOf(Looper.getMainLooper()).idle()
 
         shadowOf(ShadowSpeechRecognizer.getLatestSpeechRecognizer()).triggerOnError(SpeechRecognizer.ERROR_NO_MATCH)
 
