@@ -5,6 +5,7 @@ import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.LocalDate
 
 /**
  * Narrow operations only, no `save(item)`: each write touches one field or one module so that
@@ -15,6 +16,9 @@ import kotlinx.coroutines.flow.Flow
 interface ItemRepository {
     /** Items of a space, oldest first. */
     fun observeItems(spaceId: String): Flow<List<Item>>
+
+    /** Open items of a space dated up to [until], overdue ones included, unsorted: `agendaOf` sorts them. */
+    fun observeAgenda(spaceId: String, until: LocalDate): Flow<List<Item>>
 
     /** Returns the new item's id. */
     suspend fun create(spaceId: String, item: NewItem): String

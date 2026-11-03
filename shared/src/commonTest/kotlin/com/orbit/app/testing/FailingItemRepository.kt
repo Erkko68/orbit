@@ -7,6 +7,7 @@ import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.repository.ItemRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.datetime.LocalDate
 
 /** An [ItemRepository] whose writes fail with [failure]. Optionally emits [items]. */
 internal class FailingItemRepository(
@@ -14,6 +15,8 @@ internal class FailingItemRepository(
     private val items: List<Item> = emptyList(),
 ) : ItemRepository {
     override fun observeItems(spaceId: String): Flow<List<Item>> = flowOf(items)
+
+    override fun observeAgenda(spaceId: String, until: LocalDate): Flow<List<Item>> = flowOf(items)
 
     override suspend fun create(spaceId: String, item: NewItem): String = throw failure
 

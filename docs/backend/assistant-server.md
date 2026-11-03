@@ -76,7 +76,7 @@ docker compose exec ollama ollama pull gemma4   # once; the tag in ASSISTANT_MOD
 
 Port 8080 needs HTTPS in front of it (a reverse proxy): the app only talks HTTPS. Ollama is not published, so only the server reaches the model.
 
-The Firestore rules still deploy from `firebase/`: `npx firebase deploy --only firestore:rules`.
+The Firestore rules and indexes still deploy from `firebase/`: `npx firebase deploy --only firestore:rules,firestore:indexes`.
 
 ## Tests and coverage
 

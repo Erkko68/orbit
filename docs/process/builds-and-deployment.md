@@ -42,6 +42,7 @@ From `firebase/`, by someone with access to the project:
 
 ```sh
 npx firebase deploy --only firestore:rules   # after a rules change has merged
+npx firebase deploy --only firestore:indexes # after an index change has merged
 ```
 
 A rules change merges only with its tests passing; deploy it once it is on `main`. The project stays on the free Spark plan.

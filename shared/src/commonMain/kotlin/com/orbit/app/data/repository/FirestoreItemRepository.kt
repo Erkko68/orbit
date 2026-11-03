@@ -34,6 +34,7 @@ import dev.gitlive.firebase.firestore.FieldsAndValuesUpdateDSL
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.datetime.LocalDate
 
 /**
  * Items in Firestore (ADR 0002), read through a live listener that Firestore's offline cache answers
@@ -47,6 +48,17 @@ class FirestoreItemRepository(
     /** Refused while a space made a moment ago is not on the server yet, so asked again for a few seconds. */
     override fun observeItems(spaceId: String): Flow<List<Item>> =
         items(spaceId).orderBy(CREATED_AT).snapshots.map { snapshot ->
+            snapshot.documents.mapNotNull(::toItem)
+        }.retryWhileRefused()
+
+    /** ISO dates sort as text, so "up to [until]" is a range on the stored string (ADR 0002). */
+    override fun observeAgenda(spaceId: String, until: LocalDate): Flow<List<Item>> =
+        items(spaceId).where {
+            all(
+                FieldPath(STATUS) equalTo STATUS_OPEN,
+                FieldPath(MODULES, moduleKey(ModuleType.SCHEDULE), "date") lessThanOrEqualTo until.toString(),
+            )
+        }.snapshots.map { snapshot ->
             snapshot.documents.mapNotNull(::toItem)
         }.retryWhileRefused()
 
