@@ -69,8 +69,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * The members of a space floating around the settings in the top bar, any of them opening everything behind it: one sheet that changes in place, with what
- * the user can do with the space. An owner or admin invites people and edits the name and colour, anyone sees the
+ * The members of a space orbiting in the top bar, any of them opening the settings behind it: one sheet that changes in
+ * place, with what the user can do with the space. An owner or admin invites people and edits the name and colour, anyone sees the
  * members and their roles, and at the bottom the owner deletes the space and anyone else leaves it, after confirming.
  * [onGone] runs once the user has left or deleted the space.
  */
@@ -103,7 +103,7 @@ internal fun SpaceSettings(
                 photoUrl = member.photoUrl,
             )
         },
-        settingsDescription = stringResource(Res.string.space_settings),
+        openLabel = stringResource(Res.string.space_settings),
         onClick = viewModel::open,
         modifier = modifier,
     )

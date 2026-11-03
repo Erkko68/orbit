@@ -8,7 +8,8 @@ import kotlin.math.exp
 import kotlin.math.hypot
 
 private const val PULL = 7f
-private const val DRIFT = 1.1f
+/** How fast the cluster turns around its centre, in radians a second: a lap in about 12 seconds. */
+private const val ORBIT_RATE = 0.5f
 private const val DRAG = 3f
 private const val BOUNCE = 0.6f
 private const val COLLISION = 1.6f
@@ -39,8 +40,8 @@ internal class FaceBody(val id: String, x: Float, y: Float, var targetRadius: Fl
 }
 
 /**
- * One step of [dt] seconds in a [width] by [height] stage. Each face is pulled to the centre and drifts around it, so
- * they keep orbiting, and they bounce off the walls and each other. A held face moves nothing but pushes the rest.
+ * One step of [dt] seconds in a [width] by [height] stage. Each face is pulled to the centre, so they gather in a
+ * cluster, and the cluster keeps turning around it. They bounce off the walls and each other. A held face moves nothing but pushes the rest.
  */
 internal fun stepFaces(bodies: List<FaceBody>, width: Float, height: Float, centerX: Float, centerY: Float, dt: Float) {
     for (body in bodies) {
@@ -56,9 +57,12 @@ internal fun stepFaces(bodies: List<FaceBody>, width: Float, height: Float, cent
 private fun FaceBody.fall(width: Float, height: Float, centerX: Float, centerY: Float, dt: Float) {
     val toX = centerX - x
     val toY = centerY - y
+    // Drag takes away only what differs from turning around the centre, so the cluster keeps orbiting it.
+    val orbitVx = toY * ORBIT_RATE
+    val orbitVy = -toX * ORBIT_RATE
     val drag = exp(-DRAG * dt)
-    vx = (vx + (toX * PULL - toY * DRIFT) * dt) * drag
-    vy = (vy + (toY * PULL + toX * DRIFT) * dt) * drag
+    vx = orbitVx + (vx - orbitVx + toX * PULL * dt) * drag
+    vy = orbitVy + (vy - orbitVy + toY * PULL * dt) * drag
     x += vx * dt
     y += vy * dt
     tilt = (vx * TILT).coerceIn(-MAX_TILT, MAX_TILT)

@@ -63,7 +63,7 @@ Over the bar: item, list, expense form, interview, review board
 | Opening | The last space, not the list. The list is one tap away on the title |
 | Spaces | Each row says what matters: "2 for you today · you owe €18.40" |
 | New space | A page of its own: the mark, a big title, then a panel to name a space and pick its colour, which the page takes on as a preview, and a panel to join with a code or link. Either way lands in the space. The guided setup comes later |
-| Calendar | Headline counts what is yours today. Overdue, Today and This week are panels. The members float in the top bar around a small settings shape, and any of them opens the settings (#259) |
+| Calendar | Headline counts what is yours today. Overdue, Today and This week are panels. The members orbit in a cluster in the top bar, and any of them opens the settings (#259) |
 | Empty space | The assistant is the first thing, "Add something yourself" is one tap away |
 | Tasks | Filters on the page. Your turn on top, then lists as tiles and every task as a card with a big title |
 | List | An item with a checklist: a colour block with the name and a wavy progress line. One list with what is left first and a row at the top that adds. Ticking the last entry finishes it |

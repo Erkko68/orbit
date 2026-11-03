@@ -63,8 +63,7 @@ private fun radiusFor(count: Int, largest: Dp): Float = largest.value * when {
 
 /**
  * A person among [OrbitFloatingFaces]. [selected] makes them bigger, shoves the rest aside and puts a border in the
- * space's colour around them. [icon] replaces the initials on a face that stands for no one yet. [scale] sizes a face
- * against the others, such as a smaller control among the people.
+ * space's colour around them. [icon] replaces the initials on a face that stands for no one yet.
  */
 @Immutable
 data class OrbitFloatingFace(
@@ -77,13 +76,12 @@ data class OrbitFloatingFace(
     val contentColor: Color = Ink,
     val selected: Boolean = false,
     val icon: DrawableResource? = null,
-    val scale: Float = 1f,
 )
 
 /**
  * Faces that float in a cluster, the group avatars of the M3 Expressive promo: they orbit a point at [centerX] and
  * [centerY], fractions of the stage, and push each other around. A face that joins pops in and shoves the others.
- * When [onFaceClick] is set they can be tapped, dragged and thrown. Up to [largest] in radius, less as they get more.
+ * When [onFaceClick] is set they can be tapped, dragged and thrown, a tap named by [clickLabel] for screen readers. Up to [largest] in radius, less as they get more.
  * Shows the first [limit], for the small stages where more would not fit.
  */
 @Composable
@@ -95,6 +93,7 @@ fun OrbitFloatingFaces(
     centerY: Float = 0.5f,
     limit: Int = MAX_FACES,
     onFaceClick: ((String) -> Unit)? = null,
+    clickLabel: String? = null,
 ) {
     val density = LocalDensity.current.density
     val shown = faces.take(limit)
@@ -108,7 +107,7 @@ fun OrbitFloatingFaces(
         bodies.removeAll { body -> shown.none { it.id == body.id } }
         val radius = radiusFor(shown.size, largest)
         shown.forEachIndexed { index, face ->
-            val target = (if (face.selected) radius * EMPHASIS else radius) * face.scale
+            val target = if (face.selected) radius * EMPHASIS else radius
             val body = bodies.firstOrNull { it.id == face.id }
             if (body == null) {
                 val spread = (index - shown.size / 2f) * SPAWN_SPREAD
@@ -137,14 +136,14 @@ fun OrbitFloatingFaces(
     ) {
         for (body in bodies) {
             key(body.id) {
-                shown.firstOrNull { it.id == body.id }?.let { face -> FloatingFace(face, body, onFaceClick) }
+                shown.firstOrNull { it.id == body.id }?.let { face -> FloatingFace(face, body, onFaceClick, clickLabel) }
             }
         }
     }
 }
 
 @Composable
-private fun FloatingFace(face: OrbitFloatingFace, body: FaceBody, onClick: ((String) -> Unit)?) {
+private fun FloatingFace(face: OrbitFloatingFace, body: FaceBody, onClick: ((String) -> Unit)?, clickLabel: String?) {
     val density = LocalDensity.current.density
     val side = OrbitAvatarSize.Hero.size.value
     val tracker = remember { VelocityTracker() }
@@ -180,7 +179,7 @@ private fun FloatingFace(face: OrbitFloatingFace, body: FaceBody, onClick: ((Str
                 selected = face.selected
             }
             // A square ripple would show around a face of any other shape: picking it changes its size and ring instead.
-            .clickable(interactionSource = null, indication = null) { onClick(face.id) }
+            .clickable(interactionSource = null, indication = null, onClickLabel = clickLabel) { onClick(face.id) }
     }
     Box(
         modifier = Modifier

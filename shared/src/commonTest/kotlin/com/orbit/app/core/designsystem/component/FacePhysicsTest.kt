@@ -21,6 +21,20 @@ class FacePhysicsTest {
     }
 
     @Test
+    fun theClusterKeepsTurningAroundTheCentre() {
+        val faces = listOf(FaceBody("a", 120f, 100f, 20f), FaceBody("b", 180f, 100f, 20f))
+        settle(faces)
+        val before = faces.map { it.x to it.y }
+        val spread = hypot(faces[0].x - faces[1].x, faces[0].y - faces[1].y)
+
+        settle(faces, frames = 120)
+
+        assertTrue(hypot(faces[0].x - before[0].first, faces[0].y - before[0].second) > 5f, "the cluster stopped turning")
+        assertEquals(spread, hypot(faces[0].x - faces[1].x, faces[0].y - faces[1].y), 2f)
+        assertTrue(hypot(faces[0].x - WIDTH / 2, faces[0].y - HEIGHT / 2) < 25f)
+    }
+
+    @Test
     fun facesOnTopOfEachOtherPushApart() {
         val first = FaceBody("a", 100f, 100f, 20f)
         val second = FaceBody("b", 100f, 100f, 20f)

@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -26,6 +27,7 @@ import com.orbit.app.feature.spacehome.members.SpaceMembersViewModel
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryInvitationRepository
 import com.orbit.app.testing.InMemorySpaceRepository
+import com.orbit.app.testing.hasClickLabel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -65,7 +67,7 @@ class SpaceSettingsTest : ComposeTest() {
 
     private fun spaceNow() = runBlocking { spaces.observeSpaces().first().single() }
 
-    private fun ComposeUiTest.openSettings() = onNodeWithContentDescription("Space settings").performClick()
+    private fun ComposeUiTest.openSettings() = onAllNodes(hasClickLabel("Space settings")).onFirst().performClick()
 
     private fun ComposeUiTest.openIdentity() {
         openSettings()
@@ -75,7 +77,7 @@ class SpaceSettingsTest : ComposeTest() {
     @Test
     fun everyMemberSeesTheButton() = runComposeUiTest {
         showSettingsAs("cy@orbit.app")
-        onNodeWithContentDescription("Space settings").assertIsDisplayed()
+        onAllNodes(hasClickLabel("Space settings")).onFirst().assertIsDisplayed()
     }
 
     @Test
@@ -174,7 +176,7 @@ class SpaceSettingsTest : ComposeTest() {
     @Test
     fun theOwnerDeletesTheSpaceAfterConfirming() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
-        onNodeWithContentDescription("Space settings").performClick()
+        onAllNodes(hasClickLabel("Space settings")).onFirst().performClick()
         onNodeWithText("Leave space").assertDoesNotExist()
 
         onNodeWithText("Delete space").performScrollTo().performClick()
@@ -189,7 +191,7 @@ class SpaceSettingsTest : ComposeTest() {
     @Test
     fun cancellingTheDeleteGoesBackToTheSettings() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
-        onNodeWithContentDescription("Space settings").performClick()
+        onAllNodes(hasClickLabel("Space settings")).onFirst().performClick()
         onNodeWithText("Delete space").performScrollTo().performClick()
 
         onNodeWithContentDescription("Back").performClick()
