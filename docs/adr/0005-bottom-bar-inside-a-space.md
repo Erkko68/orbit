@@ -10,7 +10,7 @@ Sprint 2 adds expenses and an agenda to a space. Segmented tabs under the member
 
 ## Decision
 
-**Only a space has a bottom bar: Home, Tasks and Expenses. The top bar's title is the space's name, and tapping it opens the spaces list.**
+**Only a space has a bottom bar: Calendar, Tasks and Expenses. The top bar's title is the space's name, and tapping it opens the spaces list.**
 
 - **Everything stays per space.** Items, the agenda and the ledger are read one space at a time, as ADR 0002 and ADR 0003 define them. No destination needs a query across spaces.
 - **The bar is state, not navigation.** The selected destination is `SpaceHomeUiState.tab`, inside one route. The space's component ViewModels live with that route, so a destination keeps its filter when the user comes back.

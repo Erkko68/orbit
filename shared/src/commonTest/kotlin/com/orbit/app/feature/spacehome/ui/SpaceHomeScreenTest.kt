@@ -53,17 +53,30 @@ class SpaceHomeScreenTest : ComposeTest() {
     }
 
     @Test
-    fun opensOnHomeWithItsHeadlineAndTheAgendaAfterTheMembers() = runComposeUiTest {
+    fun opensOnCalendarWithItsHeadlineAndTheAgenda() = runComposeUiTest {
         runBlocking {
             auth.register("ana@orbit.app", "secret", displayName = "Ana López")
             spaces.createSpace("Flat 4B", accent = 0)
         }
         showTheSpace()
 
-        onNodeWithText("Home").assertIsSelected()
+        onNodeWithText("Calendar").assertIsSelected()
         onNodeWithText("Nothing in orbit yet").assertIsDisplayed()
         onNodeWithText("Nothing scheduled for today").assertIsDisplayed()
         onNodeWithContentDescription("Space settings").assertIsDisplayed()
+    }
+
+    @Test
+    fun aMembersFaceInTheTopBarOpensTheSettings() = runComposeUiTest {
+        runBlocking {
+            auth.register("ana@orbit.app", "secret", displayName = "Ana López")
+            spaces.createSpace("Flat 4B", accent = 0)
+        }
+        showTheSpace()
+
+        onNodeWithContentDescription("Ana López").performClick()
+
+        onNodeWithText("Members and roles").assertIsDisplayed()
     }
 
     @Test
@@ -83,7 +96,7 @@ class SpaceHomeScreenTest : ComposeTest() {
         onNodeWithText("No expenses yet").assertIsDisplayed()
         onNodeWithContentDescription("Add").assertDoesNotExist()
 
-        onNodeWithText("Home").performClick().assertIsSelected()
+        onNodeWithText("Calendar").performClick().assertIsSelected()
         onNodeWithText("No expenses yet").assertDoesNotExist()
     }
 

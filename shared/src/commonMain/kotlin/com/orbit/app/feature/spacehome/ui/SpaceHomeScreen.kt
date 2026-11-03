@@ -21,7 +21,7 @@ import com.orbit.app.feature.spacehome.SpaceHomeTab
 import com.orbit.app.feature.spacehome.SpaceHomeUiState
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
-import com.orbit.app.feature.spacehome.members.SpaceMembersRow
+import com.orbit.app.feature.spacehome.settings.SpaceSettings
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.account_title
 import orbit.shared.generated.resources.space_agenda_empty_body
@@ -41,9 +41,9 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * A space (ADR 0005), painted in its colour: its name in the top bar, which opens the list of spaces through [onBack],
- * as does leaving the space, and its destinations in the bottom bar. Home says where the user stands, with the members
- * and the settings under it and the agenda (#38) after. Tasks has the items, and Expenses waits for #54. The member
- * row and the items load themselves. The add button opens a new item through [onNewItem]. The account avatar calls
+ * as does leaving the space, and its destinations in the bottom bar. Beside the name its members float around the
+ * settings. Calendar says where the user stands, with the agenda (#38) under it. Tasks has the items, and Expenses waits
+ * for #54. The members and the items load themselves. The add button opens a new item through [onNewItem]. The account avatar calls
  * [onOpenAccount].
  */
 @Composable
@@ -64,6 +64,7 @@ fun SpaceHomeScreen(
                     onTitleClick = onBack,
                     onTitleClickLabel = stringResource(Res.string.space_back),
                     actions = {
+                        SpaceSettings(spaceId, onGone = onBack)
                         OrbitAvatarButton(
                             initials = state.userInitials,
                             photoUrl = state.userPhotoUrl,
@@ -91,13 +92,12 @@ fun SpaceHomeScreen(
             scrollable = true,
         ) {
             when (state.tab) {
-                SpaceHomeTab.HOME -> {
+                SpaceHomeTab.CALENDAR -> {
                     OrbitHero(
                         title = headlineText(state),
                         datum = state.today?.let { itemDateLabel(it) },
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    SpaceMembersRow(spaceId, onGone = onBack, modifier = Modifier.fillMaxWidth())
                     OrbitEmptyState(
                         title = stringResource(Res.string.space_agenda_empty_title),
                         body = stringResource(Res.string.space_agenda_empty_body),

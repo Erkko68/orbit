@@ -15,7 +15,7 @@ firebase/
 │   ├── tests/           pytest, with a fake model
 │   ├── requirements.txt firebase-functions, firebase-admin, google-genai
 │   └── requirements-dev.txt pytest, pytest-cov
-├── tests/rules.test.js  rules tests (emulator)
+├── tests/               rules tests (emulator), a file per collection
 └── package.json         Node tooling for the rules tests and the Firebase CLI
 ```
 

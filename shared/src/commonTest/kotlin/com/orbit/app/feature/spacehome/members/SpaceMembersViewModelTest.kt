@@ -16,6 +16,7 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.members_members
 import orbit.shared.generated.resources.role_admin
 import orbit.shared.generated.resources.role_member
 import orbit.shared.generated.resources.role_owner
@@ -67,6 +68,7 @@ class SpaceMembersViewModelTest {
 
         val owner = SpaceMember(
             id = "ana@orbit.app",
+            index = 0,
             name = "Ana López",
             initials = "AL",
             photoUrl = null,
@@ -88,6 +90,30 @@ class SpaceMembersViewModelTest {
             state.members.map { it.role },
         )
         assertEquals(listOf(Role.OWNER, Role.ADMIN, Role.MEMBER), state.members.map { it.currentRole })
+    }
+
+    @Test
+    fun groupsTheMembersByRoleWithTheUserFirstThenByName() = runTest {
+        auth.signIn("zoe@orbit.app", "secret")
+        val repository = FakeSpaceRepository.withMembers(
+            "cy@orbit.app" to Role.MEMBER,
+            "ana@orbit.app" to Role.OWNER,
+            "bo@orbit.app" to Role.MEMBER,
+            "zoe@orbit.app" to Role.MEMBER,
+        )
+
+        val state = SpaceMembersViewModel("space-1", repository, auth).uiState.first { it.members.isNotEmpty() }
+
+        assertEquals(listOf(Res.string.role_owner, Res.string.members_members), state.byRole.map { it.title })
+        assertEquals(
+            listOf("zoe@orbit.app", "bo@orbit.app", "cy@orbit.app"),
+            state.byRole.last().members.map { it.id },
+        )
+        // Their place in the space keeps their colour, whichever section lists them.
+        assertEquals(
+            mapOf("cy@orbit.app" to 0, "ana@orbit.app" to 1, "bo@orbit.app" to 2, "zoe@orbit.app" to 3),
+            state.members.associate { it.id to it.index },
+        )
     }
 
     @Test

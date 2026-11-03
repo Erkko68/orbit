@@ -1,6 +1,6 @@
 # Security rules and roles
 
-Who may read and write what. [`firebase/firestore.rules`](../../firebase/firestore.rules) enforces it on the server, and [`firebase/tests/rules.test.js`](../../firebase/tests/rules.test.js) checks every rule against the emulator. The app hides what the rules would refuse, but never relies on that.
+Who may read and write what. [`firebase/firestore.rules`](../../firebase/firestore.rules) enforces it on the server, and the tests in [`firebase/tests/`](../../firebase/tests/), a file per collection, check every rule against the emulator. The app hides what the rules would refuse, but never relies on that.
 
 ## Roles
 
@@ -58,6 +58,7 @@ Firebase deploys one rules file and the language has no imports, so the file is 
 | `isSpaceCreator`, `joinsAsMember`, `keepsJoin` | members | The creator's own owner document; the member half of a join; `invitationCode` and `joinedAt` unchanged |
 | `handsOwnership`, `leaves` | members | The member half of a transfer or a leave |
 | `completesAsSelf` | items | `completedBy` set only to the caller |
+| `completesItem(itemId)` | completions | The same batch leaves the item `done` |
 | `isExpense(data)` | expenses | The fields of an expense have the right types |
 
 ## What each collection checks
@@ -110,6 +111,12 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 - **Create:** a member, with `createdBy` the caller, `createdAt` the server time, `spaceId` the path's, a valid title and `status: open`.
 - **Update:** a member, keeping the creation fields, a valid title and `status` `open` or `done`; `completedBy` can only become the caller.
 - **Delete:** the item's creator, an admin or the owner.
+
+### `spaces/{spaceId}/completions/{completionId}`
+
+- **Read:** a member.
+- **Create:** a member, with only `itemId`, `completedBy` the caller and `completedAt` the server time, in a batch that leaves the item `done` (`completesItem`).
+- **Update, delete:** nobody, the owner included. The history is append-only.
 
 ### `spaces/{spaceId}/expenses/{expenseId}`
 

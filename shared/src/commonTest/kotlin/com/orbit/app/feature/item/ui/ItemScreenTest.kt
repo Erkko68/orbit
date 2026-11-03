@@ -37,12 +37,15 @@ import com.orbit.app.testing.ControlledItemRepository
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
+import com.orbit.app.testing.startTestKoin
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import org.koin.core.context.stopKoin
 import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertEquals
@@ -65,9 +68,37 @@ class ItemScreenTest : ComposeTest() {
     )
     private val viewModels = ViewModelStore()
 
+    @BeforeTest
+    fun setUp() {
+        startTestKoin(auth, spaces, items)
+    }
+
     @AfterTest
     fun tearDown() {
         viewModels.clear()
+        stopKoin()
+    }
+
+    @Test
+    fun listsWhoCompletedTheItemUnderIt() = runComposeUiTest {
+        val id = createItem(NewItem("Take the bins out"))
+        runBlocking {
+            items.complete("space-1", id)
+            items.reopen("space-1", id)
+        }
+        val viewModel = model(id, items)
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+
+        list().performScrollToNode(hasText("History"))
+        onNodeWithText("History").assertIsDisplayed()
+        onNodeWithText("You").assertIsDisplayed()
+    }
+
+    @Test
+    fun aNewItemHasNoHistory() = runComposeUiTest {
+        setContent { OrbitTheme { ItemScreen("space-1", "", {}, model("", items)) } }
+
+        onNodeWithText("History").assertDoesNotExist()
     }
 
     @Test

@@ -2,14 +2,14 @@ package com.orbit.app.feature.spacehome
 
 import kotlinx.datetime.LocalDate
 import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.ic_home
-import orbit.shared.generated.resources.ic_home_selected
+import orbit.shared.generated.resources.ic_calendar_selected
+import orbit.shared.generated.resources.ic_event
 import orbit.shared.generated.resources.ic_task
 import orbit.shared.generated.resources.ic_task_selected
 import orbit.shared.generated.resources.ic_wallet
 import orbit.shared.generated.resources.ic_wallet_selected
+import orbit.shared.generated.resources.space_tab_calendar
 import orbit.shared.generated.resources.space_tab_expenses
-import orbit.shared.generated.resources.space_tab_home
 import orbit.shared.generated.resources.space_tab_tasks
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
@@ -22,16 +22,16 @@ data class SpaceHomeUiState(
     /** The signed-in user, for the account avatar in the top bar. */
     val userInitials: String = "",
     val userPhotoUrl: String? = null,
-    val tab: SpaceHomeTab = SpaceHomeTab.HOME,
+    val tab: SpaceHomeTab = SpaceHomeTab.CALENDAR,
     val today: LocalDate? = null,
-    /** What Home opens with. Null until the items load, or if they could not. */
+    /** What Calendar opens with. Null until the items load, or if they could not. */
     val headline: SpaceHeadline? = null,
 ) {
     /** Expenses will add expenses instead (#54). */
     val canAddItem: Boolean get() = tab != SpaceHomeTab.EXPENSES
 }
 
-/** What Home says first, so a member knows where they stand without reading the agenda. */
+/** What Calendar says first, so a member knows where they stand without reading the agenda. */
 sealed interface SpaceHeadline {
     /** The space has no items at all. */
     data object Empty : SpaceHeadline
@@ -44,7 +44,7 @@ sealed interface SpaceHeadline {
 
 /** The destinations of a space's bottom bar (ADR 0005). */
 enum class SpaceHomeTab(val label: StringResource, val icon: DrawableResource, val selectedIcon: DrawableResource) {
-    HOME(Res.string.space_tab_home, Res.drawable.ic_home, Res.drawable.ic_home_selected),
+    CALENDAR(Res.string.space_tab_calendar, Res.drawable.ic_event, Res.drawable.ic_calendar_selected),
     TASKS(Res.string.space_tab_tasks, Res.drawable.ic_task, Res.drawable.ic_task_selected),
     EXPENSES(Res.string.space_tab_expenses, Res.drawable.ic_wallet, Res.drawable.ic_wallet_selected),
 }
