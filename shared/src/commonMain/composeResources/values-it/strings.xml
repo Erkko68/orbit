@@ -91,7 +91,7 @@
     <string name="filter_mine">Miei</string>
     <string name="filter_tasks">Attività</string>
     <string name="filter_lists">Liste</string>
-    <string name="space_tab_home">Home</string>
+    <string name="space_tab_calendar">Calendario</string>
     <string name="space_tab_tasks">Attività</string>
     <string name="space_tab_expenses">Spese</string>
     <plurals name="space_items_open">
@@ -100,8 +100,6 @@
     </plurals>
     <string name="space_items_loading">Caricamento degli elementi…</string>
     <string name="space_items_load_failed">Impossibile caricare gli elementi</string>
-    <string name="space_members_loading">Caricamento dei membri…</string>
-    <string name="space_members_load_failed">Impossibile caricare i membri</string>
     <string name="space_items_empty_title">Non ci sono ancora elementi</string>
     <string name="space_items_empty_body">Quello che aggiungi apparirà qui.</string>
     <string name="space_item_entry_count">%1$d di %2$d</string>
@@ -115,6 +113,8 @@
     <string name="role_owner">Proprietario</string>
     <string name="role_admin">Amministratore</string>
     <string name="role_member">Membro</string>
+    <string name="members_admins">Amministratori</string>
+    <string name="members_members">Membri</string>
     <string name="spaces_empty">Non ci sono ancora spazi</string>
     <string name="spaces_loading">Caricamento dei tuoi spazi…</string>
     <string name="spaces_load_failed">Impossibile caricare i tuoi spazi</string>
@@ -125,6 +125,8 @@
     <string name="item_name_placeholder">Dagli un nome</string>
     <string name="item_description">Aggiungi un riepilogo</string>
     <string name="item_details">Scrivi qui i dettagli</string>
+    <string name="item_history">Cronologia</string>
+    <string name="item_history_former_member">Un ex membro</string>
     <string name="item_add_checklist">Aggiungi una lista</string>
     <string name="item_delete">Elimina</string>
     <string name="item_delete_title">Eliminare questo?</string>

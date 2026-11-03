@@ -39,10 +39,11 @@ class SpaceMembersViewModel(
     ) { load, user, picker ->
         val members = load.valueOrNull.orEmpty()
         val myRole = members.firstOrNull { it.userId == user?.id }?.role
-        val shown = members.map { member ->
+        val shown = members.mapIndexed { index, member ->
             val other = member.userId != user?.id
             toSpaceMember(
                 member,
+                index,
                 isYou = !other,
                 canChangeRole = myRole?.managesSpace == true && member.role != Role.OWNER && other,
                 canTakeOwnership = myRole == Role.OWNER && other,
@@ -95,9 +96,10 @@ class SpaceMembersViewModel(
     private data class Picker(val memberId: String? = null, val busy: Boolean = false, val failed: Boolean = false)
 }
 
-private fun toSpaceMember(member: Member, isYou: Boolean, canChangeRole: Boolean, canTakeOwnership: Boolean) =
+private fun toSpaceMember(member: Member, index: Int, isYou: Boolean, canChangeRole: Boolean, canTakeOwnership: Boolean) =
     SpaceMember(
         id = member.userId,
+        index = index,
         name = member.displayName,
         initials = initialsOf(member.displayName),
         photoUrl = member.photoUrl,

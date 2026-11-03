@@ -78,3 +78,11 @@ internal data class StoredItem(
     val moduleKeys: Set<String> = emptySet(),
     val modules: ModulesDocument = ModulesDocument(),
 )
+
+/** `spaces/{spaceId}/completions/{completionId}`, written with the item it completes. The server sets [completedAt]. */
+@Serializable
+internal class CompletionDocument(
+    val itemId: String,
+    val completedBy: String,
+    val completedAt: Timestamp.ServerTimestamp,
+)

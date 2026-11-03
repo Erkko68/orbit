@@ -8,7 +8,7 @@
 | UI tests: screens and design-system components | `shared/src/commonTest` | Android host through Robolectric, and iOS | Same |
 | Android-only code: notifications, Google sign-in, navigation | `shared/src/androidHostTest` | Android host | `./gradlew :shared:testAndroidHostTest` |
 | iOS-only code | `shared/src/iosTest` | iOS simulator | `./gradlew :shared:iosSimulatorArm64Test` |
-| Firestore rules | `firebase/tests/rules.test.js` | Firestore emulator | See [below](#firestore-rules) |
+| Firestore rules | `firebase/tests/*.test.js` | Firestore emulator | See [below](#firestore-rules) |
 
 The Firebase repositories call the live SDK and cannot run in host tests. ViewModels and screens are tested against fakes instead.
 

@@ -1,5 +1,6 @@
 package com.orbit.app.domain.repository
 
+import com.orbit.app.domain.model.Completion
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
@@ -46,6 +47,10 @@ interface ItemRepository {
 
     suspend fun removeEntry(spaceId: String, itemId: String, entryId: String)
 
+    /** The latest times the item was completed, newest first. */
+    fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>>
+
+    /** Also records the completion, which reopening keeps. */
     suspend fun complete(spaceId: String, itemId: String)
 
     suspend fun reopen(spaceId: String, itemId: String)

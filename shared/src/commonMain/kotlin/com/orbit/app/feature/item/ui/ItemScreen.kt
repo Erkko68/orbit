@@ -42,6 +42,7 @@ import com.orbit.app.core.notification.permission.RequireNotificationPermission
 import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.feature.item.ItemUiState
 import com.orbit.app.feature.item.ItemViewModel
+import com.orbit.app.feature.item.history.ItemHistory
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.assignment_pick_member
 import orbit.shared.generated.resources.checklist_check_entry
@@ -128,7 +129,7 @@ fun ItemScreen(
                     )
                 }
             },
-            list = { itemBody(state, viewModel) },
+            list = { itemBody(state, viewModel, spaceId, itemId) },
         )
         state.scheduleEditor?.let { editor -> ScheduleEditorSheet(editor, state, viewModel) }
         state.checklistEditor?.let { editor -> ChecklistEditorSheet(editor, state, viewModel) }
@@ -233,7 +234,7 @@ private fun headerFaces(state: ItemUiState): List<OrbitFloatingFace> =
         )
     }
 
-private fun LazyListScope.itemBody(state: ItemUiState, viewModel: ItemViewModel) {
+private fun LazyListScope.itemBody(state: ItemUiState, viewModel: ItemViewModel, spaceId: String, itemId: String) {
     when {
         state.loading -> item {
             OrbitLoadingState(stringResource(Res.string.item_loading), Modifier.fillMaxWidth())
@@ -280,6 +281,9 @@ private fun LazyListScope.itemBody(state: ItemUiState, viewModel: ItemViewModel)
                         enabled = !state.unnamed,
                     )
                 }
+            }
+            if (itemId.isNotEmpty()) {
+                item(key = "history") { ItemHistory(spaceId, itemId, orbitItem(Modifier.fillMaxWidth())) }
             }
         }
     }

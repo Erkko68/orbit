@@ -82,7 +82,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         onNodeWithText("Members and roles").performClick()
         onNodeWithText("You").assertExists()
         onNodeWithText("Owner").assertExists()
-        onNodeWithText("Admin").assertExists()
+        onNodeWithText("Admins").assertExists()
     }
 
     @Test

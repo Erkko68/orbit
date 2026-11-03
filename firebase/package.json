@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Firestore security rules unit tests for Orbit",
   "scripts": {
-    "test": "node --test tests/**/*.test.js",
+    "test": "node --test --test-concurrency=1 tests/*.test.js",
     "test:emulator": "firebase emulators:exec --only firestore \"npm test\""
   },
   "devDependencies": {

@@ -63,7 +63,8 @@ private fun radiusFor(count: Int, largest: Dp): Float = largest.value * when {
 
 /**
  * A person among [OrbitFloatingFaces]. [selected] makes them bigger, shoves the rest aside and puts a border in the
- * space's colour around them. [icon] replaces the initials on a face that stands for no one yet.
+ * space's colour around them. [icon] replaces the initials on a face that stands for no one yet. [scale] sizes a face
+ * against the others, such as a smaller control among the people.
  */
 @Immutable
 data class OrbitFloatingFace(
@@ -76,6 +77,7 @@ data class OrbitFloatingFace(
     val contentColor: Color = Ink,
     val selected: Boolean = false,
     val icon: DrawableResource? = null,
+    val scale: Float = 1f,
 )
 
 /**
@@ -106,7 +108,7 @@ fun OrbitFloatingFaces(
         bodies.removeAll { body -> shown.none { it.id == body.id } }
         val radius = radiusFor(shown.size, largest)
         shown.forEachIndexed { index, face ->
-            val target = if (face.selected) radius * EMPHASIS else radius
+            val target = (if (face.selected) radius * EMPHASIS else radius) * face.scale
             val body = bodies.firstOrNull { it.id == face.id }
             if (body == null) {
                 val spread = (index - shown.size / 2f) * SPAWN_SPREAD
