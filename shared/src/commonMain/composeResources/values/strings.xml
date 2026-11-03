@@ -211,7 +211,6 @@
     <string name="dictation_start">Dictate</string>
     <string name="dictation_stop">Stop dictating</string>
     <string name="dictation_failed_title">Dictation</string>
-    <string name="dictation_ok">OK</string>
     <string name="dictation_no_permission">Orbit needs the microphone to dictate. You can allow it in the phone settings, or type your answer.</string>
     <string name="dictation_unavailable">This phone cannot dictate in its language. You can type your answer.</string>
     <string name="dictation_no_speech">Orbit did not catch anything. Try again, or type your answer.</string>
