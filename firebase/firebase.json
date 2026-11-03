@@ -2,14 +2,6 @@
   "firestore": {
     "rules": "firestore.rules"
   },
-  "functions": [
-    {
-      "source": "functions",
-      "codebase": "default",
-      "runtime": "python313",
-      "ignore": ["venv", "__pycache__", ".pytest_cache", "tests", "pytest.ini", ".coveragerc", "coverage.xml", "requirements-dev.txt"]
-    }
-  ],
   "emulators": {
     "firestore": {
       "port": 8080,

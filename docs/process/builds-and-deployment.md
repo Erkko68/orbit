@@ -1,6 +1,6 @@
 # Builds and deployment
 
-The backend is Firebase and nothing else: Authentication, Firestore with its security rules, and Cloud Functions (empty until the assistant lands, #43). There is no app server, and no database on the phones: Firestore's offline cache is the only local copy ([ADR 0001](../adr/0001-local-persistence.md)). So "deploying" means two different things: building the apps, and pushing the rules (and later the functions) to Firebase.
+The backend is Firebase (Authentication, Firestore with its security rules) plus the assistant server, which runs in Docker on our own server ([ADR 0007](../adr/0007-assistant-on-our-own-server.md)). There is no other app server, and no database on the phones: Firestore's offline cache is the only local copy ([ADR 0001](../adr/0001-local-persistence.md)). So "deploying" means three things: building the apps, pushing the rules to Firebase, and running the assistant server.
 
 ```mermaid
 flowchart LR
@@ -9,6 +9,7 @@ flowchart LR
     review --> main["Squash merge<br/>to main"]
     main --> pages["Dashboard on<br/>GitHub Pages"]
     main -. "by hand, from firebase/" .-> fb[("Firebase<br/>orbit-app-dev")]
+    main -. "docker compose, from server/" .-> srv[("Assistant server<br/>with its model")]
     main -. "local build" .-> apps["Debug app on an<br/>Android phone or iOS simulator"]
 ```
 
@@ -21,6 +22,7 @@ Every pull request and every push to `main` runs [`ci.yml`](../../.github/workfl
 | Android build + tests | The style check (no raw `dp`, `sp` or colors outside the design system), `:androidApp:assembleDebug` and the host tests |
 | iOS compile + tests | The shared framework and its tests on the simulator, then `xcodebuild` of the Xcode app without signing |
 | Firestore rules | The rules tests against the emulator |
+| Assistant server tests | pytest in `server/`, with a fake model |
 | SonarCloud | Kover coverage and the quality gate (80% on new code) |
 
 [`pr-conventions.yml`](../../.github/workflows/pr-conventions.yml) also checks the PR title, the branch name and the `Actual` hours. The required checks and merge rules are in [AGENTS.md](../../AGENTS.md#merge-rules-main-ruleset-enforced-by-github).
@@ -40,10 +42,13 @@ From `firebase/`, by someone with access to the project:
 
 ```sh
 npx firebase deploy --only firestore:rules   # after a rules change has merged
-npx firebase deploy --only functions         # once there are functions (needs the Blaze plan)
 ```
 
-A rules change merges only with its tests passing; deploy it once it is on `main`. More on the functions in [Cloud Functions](../backend/cloud-functions.md).
+A rules change merges only with its tests passing; deploy it once it is on `main`. The project stays on the free Spark plan.
+
+## The assistant server
+
+On the server, from `server/`: `docker compose up -d --build`, and once `docker compose exec ollama ollama pull gemma4`. HTTPS goes in front of port 8080. More in [Assistant server](../backend/assistant-server.md#deploying).
 
 ## The dashboard
 

@@ -42,12 +42,13 @@ Firestore rules and their tests live in `firebase/`; see [Security rules](docs/d
 | `shared` | All app code in Kotlin Multiplatform: Compose UI, ViewModels, domain, Firestore repositories, Koin. Platform code only where Android and iOS differ. |
 | `androidApp` | The Android entry point. |
 | `iosApp` | The Xcode project and SwiftUI entry point. |
-| `firebase` | Firestore security rules and their emulator tests, Cloud Functions in Python. |
+| `firebase` | Firestore security rules and their emulator tests. |
+| `server` | The assistant's backend in Python, in Docker next to its model (Gemma 4 on Ollama). |
 | `docs` | Architecture, schema, roles, workflow and decision records. |
 
 Inside `shared`, code is split into `feature/` (screens and their ViewModels), `domain/` (pure Kotlin models and rules), `data/` (Firestore) and `core/` (design system, navigation, shared helpers). See the [architecture overview](docs/architecture/overview.md).
 
-**Built with** Kotlin 2.4, Compose Multiplatform 1.12 with Material 3, Navigation Compose, Koin, Firebase (Authentication, Firestore, Cloud Functions) through GitLive, kotlinx coroutines, serialization and datetime, Multiplatform Settings, Coil and Kermit. Versions are in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).
+**Built with** Kotlin 2.4, Compose Multiplatform 1.12 with Material 3, Navigation Compose, Koin, Firebase (Authentication, Firestore) through GitLive, kotlinx coroutines, serialization and datetime, Multiplatform Settings, Coil and Kermit. Versions are in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).
 
 ## Documentation
 

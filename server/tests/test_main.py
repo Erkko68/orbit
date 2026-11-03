@@ -1,33 +1,63 @@
-from types import SimpleNamespace
+import pytest
 
 import main
 
-
-class FakeModels:
-    def __init__(self):
-        self.calls = []
-
-    def generate_content(self, **kwargs):
-        self.calls.append(kwargs)
-        return SimpleNamespace(text='{"text": "Who lives there?"}')
+QUESTION = {"text": "Who lives there?", "options": ["Roommates", "Family"], "multiSelect": False, "freeText": True}
 
 
-def test_asks_one_vertex_client_for_json_that_follows_the_schema(monkeypatch):
-    made, models = [], FakeModels()
-    monkeypatch.setenv("GCLOUD_PROJECT", "orbit-test")
-    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "orbit-test")
-    monkeypatch.setattr("google.genai.Client", lambda **kwargs: made.append(kwargs) or SimpleNamespace(models=models))
-    main._client.cache_clear()
+def verify(token):
+    if token != "valid":
+        raise ValueError("not a Firebase ID token")
+    return {"uid": "ana"}
 
-    first = main._gemini("Ask something", {"type": "OBJECT"})
-    main._gemini("Ask again", {"type": "OBJECT"})
 
-    assert first == {"text": "Who lives there?"}
-    assert len(made) == 1
-    assert made[0]["vertexai"] is True
-    assert made[0]["location"] == "global"
-    call = models.calls[0]
-    assert call["model"] == "gemini-3.5-flash"
-    assert call["contents"] == "Ask something"
-    assert call["config"].response_mime_type == "application/json"
-    assert call["config"].response_schema is not None
+def client(generate=lambda prompt, schema: QUESTION):
+    return main.create_app(verify_token=verify, generate=generate).test_client()
+
+
+def test_answers_a_signed_in_caller_with_the_first_question():
+    response = client().post("/interview", json={"data": {}}, headers={"Authorization": "Bearer valid"})
+
+    assert response.status_code == 200
+    assert response.get_json()["result"]["text"] == "Who lives there?"
+    assert response.get_json()["result"]["id"] == "q1"
+
+
+@pytest.mark.parametrize("headers", [{}, {"Authorization": "Bearer forged"}, {"Authorization": "Basic valid"}])
+def test_rejects_a_caller_without_a_valid_token_before_the_model(headers):
+    calls = []
+
+    response = client(lambda *args: calls.append(args)).post("/interview", json={"data": {}}, headers=headers)
+
+    assert response.status_code == 401
+    assert response.get_json()["error"]["status"] == "UNAUTHENTICATED"
+    assert calls == []
+
+
+def test_a_model_that_fails_is_unavailable():
+    def down(prompt, schema):
+        raise OSError("connection refused")
+
+    response = client(down).post("/interview", json={"data": {}}, headers={"Authorization": "Bearer valid"})
+
+    assert response.status_code == 503
+    assert response.get_json()["error"] == {
+        "status": "UNAVAILABLE",
+        "message": "The assistant could not answer.",
+        "details": {"reason": "unavailable"},
+    }
+
+
+def test_says_it_is_up():
+    assert client().get("/health").get_json() == {"ok": True}
+
+
+def test_uses_firebase_and_the_configured_model_by_default(monkeypatch):
+    made = []
+    monkeypatch.setattr("firebase_admin.initialize_app", lambda **kwargs: made.append(kwargs))
+    monkeypatch.setenv("FIREBASE_PROJECT_ID", "orbit-test")
+    monkeypatch.setenv("ASSISTANT_PROVIDER", "local")
+
+    main.create_app()
+
+    assert made == [{"options": {"projectId": "orbit-test"}}]

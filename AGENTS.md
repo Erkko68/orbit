@@ -5,11 +5,12 @@ Orbit is a Kotlin Multiplatform (Android + iOS, Compose Multiplatform) organizer
 This file holds the rules. The background to them (architecture, schema, roles, workflow, testing) is in [docs/](docs/README.md), and why a choice was made is in an [ADR](docs/adr/README.md).
 
 ## Architecture
-- Modules: `shared/` (all app code), `androidApp/` (Android entry), `iosApp/` (Xcode entry), `firebase/` (backend).
-- `firebase/`: everything deployed to Firebase. `firestore.rules`, `firebase.json` and `functions/` (Cloud Functions in Python, `firebase-functions`). Run the Firebase CLI from this folder.
+- Modules: `shared/` (all app code), `androidApp/` (Android entry), `iosApp/` (Xcode entry), `firebase/` (backend), `server/` (the assistant).
+- `firebase/`: everything deployed to Firebase. `firestore.rules`, `firebase.json` and the rules tests. Run the Firebase CLI from this folder.
+- `server/`: the assistant's backend, a small Python HTTP server (Flask) in Docker on our own server, next to its model ([ADR 0007](docs/adr/0007-assistant-on-our-own-server.md)).
 - Package root: `com.orbit.app`. Code lives in `shared/src/commonMain` by default.
 - `expect`/`actual` only where platforms really differ (camera, notifications, text recognition, file paths). Actuals go in `androidMain`/`iosMain` under the same package path.
-- `domain/`: models, validation, repository **interfaces**, use cases. Pure Kotlin only (kotlinx coroutines/datetime allowed). No Compose, Room, Firebase or Koin. A computation that is a pure function of stored data (balances, the agenda's sorting) is a domain use case on the device, not a Cloud Function ([ADR 0003](docs/adr/0003-balances-on-device.md)).
+- `domain/`: models, validation, repository **interfaces**, use cases. Pure Kotlin only (kotlinx coroutines/datetime allowed). No Compose, Room, Firebase or Koin. A computation that is a pure function of stored data (balances, the agenda's sorting) is a domain use case on the device, not server code ([ADR 0003](docs/adr/0003-balances-on-device.md)).
 - `data/`: repository **implementations** and Firestore document mappers. Collection names, field readers and `requireUser` live once, in `data/repository/Firestore.kt`.
 - `feature/<name>/`: `ui/` (screen + components), `<Name>ViewModel.kt`, `<Name>UiState.kt`. `feature/space` is the reference.
   - A component with its own ViewModel gets a subfolder, `feature/<name>/<component>/`, holding its composable, `<Component>ViewModel.kt` and `<Component>UiState.kt`. E.g. `feature/space/card/`, `feature/spacehome/items/`. See "State and ViewModels".
@@ -48,7 +49,7 @@ This file holds the rules. The background to them (architecture, schema, roles, 
 ## Libraries (use these, don't add alternatives)
 - DI: Koin. Register in `di/Koin.kt` (`dataModule`, `featureModule`) or the `platformModule` actuals. Add a `domainModule` with the first use case that needs injecting. ViewModels: `viewModelOf(::X)` + `koinViewModel()` in the screen, or `koinViewModel(key = id) { parametersOf(id) }` in a component with its own ViewModel.
 - Navigation: Navigation Compose with `@Serializable` routes in `core/navigation/Routes.kt`, wired in `OrbitNavHost`.
-- Backend: Firebase only (Authentication, Firestore, Cloud Functions). No other servers or REST APIs. The app calls Cloud Functions, never an AI provider directly.
+- Backend: Firebase (Authentication, Firestore), plus the assistant's own server (`server/`, ADR 0007). No other servers or REST APIs. The app calls the assistant server, never an AI provider directly.
 - Local persistence: Firestore's offline cache only, no local database (Room, SQLDelight). Repositories read and write Firestore and work offline through its cache. See [ADR 0001](docs/adr/0001-local-persistence.md).
 - Firestore schema: [docs/data/firestore-schema.md](docs/data/firestore-schema.md) is the source of truth for collections, fields, queries, writes and indexes, and [docs/data/security-rules.md](docs/data/security-rules.md) for roles and access. A schema or rules change updates those pages (and the rules tests) in the same PR; a new decision about the model gets an ADR. [ADR 0002](docs/adr/0002-firestore-data-model.md) records why the model has its shape.
 - Roles: every member creates, edits and completes any item; owner and admin manage the space, its members and invitations, and delete any item; a member deletes only their own; only the owner deletes the space. The UI checks `Role.managesSpace`, never a list of roles, and `firestore.rules` enforces the same table.
@@ -58,9 +59,10 @@ This file holds the rules. The background to them (architecture, schema, roles, 
 - Money: `Long` minor units (cents), never `Double`.
 
 ## AI
-- The assistant runs in the cloud, behind Cloud Functions in `firebase/functions/`. No on-device LLM.
+- The assistant runs on our own server, behind `server/` in Docker, next to its model: Gemma 4 on Ollama by default, Gemini's API by configuration ([ADR 0007](docs/adr/0007-assistant-on-our-own-server.md)). No on-device LLM.
+- The server checks the caller's Firebase ID token on every request, and enforces the quota and the kill switch.
 - AI output is always a proposal shown for review; only a user confirmation persists it.
-- Provider keys live only in the Cloud Functions secret manager, never in the repo or the app. Gemini runs on Vertex AI as the function's service account, so it needs no key at all.
+- Provider keys live only in the server's environment (a `.env` next to `server/compose.yaml`), never in the repo or the app.
 - Every assistant flow also has a manual path.
 
 ## UI and theme
@@ -155,7 +157,7 @@ This file holds the rules. The background to them (architecture, schema, roles, 
 - Required checks: `Android build + tests`, `iOS compile + tests` (`ci.yml`), `PR title`, `Branch name`, `Actual hours` (`pr-conventions.yml`), `SonarCloud Code Analysis` (quality gate).
 - `sonarqube.yml` runs SonarQube Cloud on every PR (`sonar-project.properties`). A failed quality gate blocks the merge, so fix what it reports before asking for review.
   - Kotlin coverage comes from Kover: the workflow runs `./gradlew :shared:koverXmlReport` (Android host tests) and Sonar reads `shared/build/reports/kover/report.xml`. The gate needs 80% coverage on new code, so new logic ships with tests.
-  - Python coverage comes from pytest-cov: the workflow runs `pytest --cov` in `firebase/functions/` and Sonar reads its `coverage.xml`. New function code ships with pytest tests too.
+  - Python coverage comes from pytest-cov: the workflow runs `pytest --cov` in `server/` and Sonar reads its `coverage.xml`. New server code ships with pytest tests too.
   - Temporary: `sonar.coverage.exclusions` skips `.github/scripts/**` because the scripts have no coverage report yet.
   - The Firebase repositories call the live SDK and cannot run in host tests (repositories are faked).
 - Squash merge only: the squash commit is the PR title + description. The branch is deleted after merge.

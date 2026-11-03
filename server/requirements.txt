@@ -1,3 +1,4 @@
-firebase-functions
+flask
+gunicorn
 firebase-admin
 google-genai
