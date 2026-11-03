@@ -18,7 +18,7 @@ erDiagram
         string uid PK "Firebase Auth uid"
         string displayName
         string photoUrl "optional"
-        string language "es, ca or en"
+        string language "es, ca, it or en"
         string timeZone "IANA id"
         timestamp createdAt
     }
@@ -106,7 +106,7 @@ The signed-in user's private profile. Only its owner reads or writes it.
 |---|---|---|---|
 | `displayName` | string | yes | |
 | `photoUrl` | string | no | From Google sign-in |
-| `language` | string | yes | `es`, `ca` or `en`, from the phone. Refreshed on every sign-in. For the server only: the app reads the phone's. |
+| `language` | string | yes | `es`, `ca`, `it` or `en`, from the phone. Refreshed on every sign-in. For the server only: the app reads the phone's. |
 | `timeZone` | string | yes | IANA id, from the phone. Same as `language`. |
 | `createdAt` | timestamp | yes | Server time |
 | `aiConsentAt` | timestamp | no | Server time when the user accepted what the assistant sends to the AI provider (#71). Missing until then, so the notice is asked once per account, on any device. Withdrawing it is #112. |

@@ -1,7 +1,5 @@
 package com.orbit.app.core
 
-import platform.Foundation.NSLocale
-import platform.Foundation.currentLocale
-import platform.Foundation.languageCode
+import platform.Foundation.NSBundle
 
-actual fun deviceLanguageCode(): String? = NSLocale.currentLocale.languageCode
+actual fun deviceLanguageCode(): String? = NSBundle.mainBundle.preferredLocalizations.firstOrNull() as? String

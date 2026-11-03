@@ -1,12 +1,12 @@
 package com.orbit.app.core
 
 /**
- * The device's current ISO language code (e.g. "en", "es", "ca"), or null if unavailable.
+ * The app's effective ISO language code, following the device or its per-app language setting.
  */
 expect fun deviceLanguageCode(): String?
 
 /**
- * Supported app language per ADR 0002 ("es", "ca", or fallback "en").
+ * Supported app language ("es", "ca", "it", or fallback "en").
  */
 fun deviceLanguage(): String = normalizeLanguage(deviceLanguageCode())
 
@@ -15,6 +15,7 @@ internal fun normalizeLanguage(code: String?): String {
     return when (lang) {
         "es" -> "es"
         "ca" -> "ca"
+        "it" -> "it"
         else -> "en"
     }
 }

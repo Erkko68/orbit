@@ -23,7 +23,7 @@ Each sprint is a GitHub milestone; the [project board](https://github.com/users/
 | Sprint | Goal | Main pieces |
 |---|---|---|
 | 1 | A shared space that works on two phones | Accounts (email, Google), spaces and members with roles, invitations, items with Schedule, Assignment, Checklist and Reminder modules, presets, local reminders, security rules |
-| 2 | Planning help and money | The assistant interview and plan review, agenda and month view, recurrence and rotating chores, expenses and balances, bills, localisation in Spanish, Catalan and English |
+| 2 | Planning help and money | The assistant interview and plan review, agenda and month view, recurrence and rotating chores, expenses and balances, bills, localisation in Spanish, Catalan, Italian and English |
 | 3 | A product people could pay for | Plans and paywall, ads with consent, receipt scanner, activity history and undo, templates and custom presets, child profiles, accessibility and performance passes |
 | 4 | Delivery | Pitch, demo, landing page, final documentation and retrospective |
 
