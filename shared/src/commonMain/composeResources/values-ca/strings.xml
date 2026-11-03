@@ -113,6 +113,8 @@
     <string name="role_owner">Propietari</string>
     <string name="role_admin">Administrador</string>
     <string name="role_member">Membre</string>
+    <string name="members_admins">Administradors</string>
+    <string name="members_members">Membres</string>
     <string name="spaces_empty">Encara no hi ha espais</string>
     <string name="spaces_loading">S&apos;estan carregant els teus espais…</string>
     <string name="spaces_load_failed">No s&apos;han pogut carregar els teus espais</string>

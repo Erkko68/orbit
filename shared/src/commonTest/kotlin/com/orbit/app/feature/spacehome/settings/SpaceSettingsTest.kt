@@ -2,7 +2,6 @@ package com.orbit.app.feature.spacehome.settings
 
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -10,7 +9,6 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -64,6 +62,8 @@ class SpaceSettingsTest : ComposeTest() {
     }
 
     private fun spaceNow() = runBlocking { spaces.observeSpaces().first().single() }
+
+    private fun roleOf(userId: String) = runBlocking { spaces.observeMembers("space-1").first().single { it.userId == userId }.role }
 
     private fun ComposeUiTest.openSettings() = onNodeWithContentDescription("Space settings").performClick()
 
@@ -138,6 +138,18 @@ class SpaceSettingsTest : ComposeTest() {
     }
 
     @Test
+    fun theMembersAreGroupedByRole() = runComposeUiTest {
+        showSettingsAs("cy@orbit.app")
+        openSettings()
+        onNodeWithText("Members and roles").performClick()
+
+        onNodeWithText("Owner").assertIsDisplayed()
+        onNodeWithText("Admins").assertIsDisplayed()
+        onNodeWithText("Members").assertIsDisplayed()
+        onNodeWithText("You").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
     fun aPlainMemberCannotOpenAnotherMember() = runComposeUiTest {
         showSettingsAs("cy@orbit.app")
         openSettings()
@@ -162,7 +174,7 @@ class SpaceSettingsTest : ComposeTest() {
         openSettings()
         onNodeWithText("Members and roles").performClick()
 
-        onNodeWithText("Ben").performClick()
+        onNodeWithText("Ben").performScrollTo().performClick()
 
         onNodeWithText("Role of Ben").assertIsDisplayed()
         onNodeWithText("Make admin").assertIsNotEnabled()
@@ -176,7 +188,7 @@ class SpaceSettingsTest : ComposeTest() {
         openSettings()
         onNodeWithText("Members and roles").performClick()
 
-        onNodeWithText("Cy").performClick()
+        onNodeWithText("Cy").performScrollTo().performClick()
 
         onNodeWithText("Make admin").assertIsEnabled()
         onNodeWithText("Make owner").assertDoesNotExist()
@@ -187,13 +199,12 @@ class SpaceSettingsTest : ComposeTest() {
         showSettingsAs("ana@orbit.app")
         openSettings()
         onNodeWithText("Members and roles").performClick()
-        onAllNodesWithText("Admin").assertCountEquals(1)
 
-        onNodeWithText("Cy").performClick()
+        onNodeWithText("Cy").performScrollTo().performClick()
         onNodeWithText("Make admin").performClick()
 
         onNodeWithText("Role of Cy").assertDoesNotExist()
-        onAllNodesWithText("Admin").assertCountEquals(2)
+        assertEquals(Role.ADMIN, roleOf("cy@orbit.app"))
     }
 
     @Test
@@ -202,12 +213,12 @@ class SpaceSettingsTest : ComposeTest() {
         openSettings()
         onNodeWithText("Members and roles").performClick()
 
-        onNodeWithText("Cy").performClick()
+        onNodeWithText("Cy").performScrollTo().performClick()
         onNodeWithText("Make owner").performClick()
 
         onNodeWithText("Role of Cy").assertDoesNotExist()
-        onAllNodesWithText("Owner").assertCountEquals(1)
-        onAllNodesWithText("Admin").assertCountEquals(2)
+        assertEquals(Role.OWNER, roleOf("cy@orbit.app"))
+        assertEquals(Role.ADMIN, roleOf("ana@orbit.app"))
     }
 
     @Test
@@ -215,12 +226,12 @@ class SpaceSettingsTest : ComposeTest() {
         showSettingsAs("ana@orbit.app")
         openSettings()
         onNodeWithText("Members and roles").performClick()
-        onNodeWithText("Cy").performClick()
+        onNodeWithText("Cy").performScrollTo().performClick()
 
         onNodeWithContentDescription("Back").performClick()
 
         onNodeWithText("Role of Cy").assertDoesNotExist()
-        onAllNodesWithText("Admin").assertCountEquals(1)
+        assertEquals(Role.MEMBER, roleOf("cy@orbit.app"))
     }
 
     @Test
@@ -232,7 +243,7 @@ class SpaceSettingsTest : ComposeTest() {
         showSettingsAs("ana@orbit.app", offline)
         openSettings()
         onNodeWithText("Members and roles").performClick()
-        onNodeWithText("Cy").performClick()
+        onNodeWithText("Cy").performScrollTo().performClick()
 
         onNodeWithText("Make admin").performClick()
 

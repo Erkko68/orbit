@@ -113,6 +113,8 @@
     <string name="role_owner">Proprietario</string>
     <string name="role_admin">Amministratore</string>
     <string name="role_member">Membro</string>
+    <string name="members_admins">Amministratori</string>
+    <string name="members_members">Membri</string>
     <string name="spaces_empty">Non ci sono ancora spazi</string>
     <string name="spaces_loading">Caricamento dei tuoi spazi…</string>
     <string name="spaces_load_failed">Impossibile caricare i tuoi spazi</string>

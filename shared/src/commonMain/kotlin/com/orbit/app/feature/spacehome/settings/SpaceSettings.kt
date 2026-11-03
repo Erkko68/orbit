@@ -16,9 +16,9 @@ import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitGroup
 import com.orbit.app.core.designsystem.component.OrbitGroupRow
-import com.orbit.app.core.designsystem.component.OrbitHeading
 import com.orbit.app.core.designsystem.component.OrbitCrew
 import com.orbit.app.core.designsystem.component.OrbitFloatingFace
+import com.orbit.app.core.designsystem.component.OrbitSectionHeader
 import com.orbit.app.core.designsystem.component.OrbitSheet
 import com.orbit.app.core.designsystem.component.OrbitSheetPages
 import com.orbit.app.core.designsystem.component.OrbitSpaceColorPicker
@@ -94,12 +94,12 @@ internal fun SpaceSettings(
     }
     if (!state.visible) return
     OrbitCrew(
-        faces = members.members.mapIndexed { index, member ->
+        faces = members.members.map { member ->
             OrbitFloatingFace(
                 id = member.id,
                 initials = member.initials,
-                color = OrbitTheme.colors.spaceAccent(index),
-                shape = memberShape(index),
+                color = OrbitTheme.colors.spaceAccent(member.index),
+                shape = memberShape(member.index),
                 description = member.name,
                 photoUrl = member.photoUrl,
             )
@@ -227,33 +227,39 @@ private fun SettingsMenu(
     )
 }
 
-/** Who is in the space. Tapping another member opens their role picker when the user may change it or hand them the space. */
+/**
+ * Who is in the space, a section per role. Tapping another member opens their role picker when the user may change it
+ * or hand them the space.
+ */
 @Composable
 private fun MembersPage(members: SpaceMembersUiState, onOpenRole: (String) -> Unit) {
-    OrbitGroup(
-        items = members.members.withIndex().toList(),
-        key = { it.value.id },
-        modifier = Modifier.fillMaxWidth(),
-    ) { (index, member) ->
-        MemberRow(member, index, onOpenRole)
+    for (section in members.byRole) {
+        OrbitSectionHeader(
+            title = stringResource(section.title),
+            modifier = Modifier.fillMaxWidth(),
+            count = section.members.size.toString(),
+        )
+        OrbitGroup(items = section.members, key = { it.id }, modifier = Modifier.fillMaxWidth()) { member ->
+            MemberRow(member, onOpenRole)
+        }
     }
 }
 
 @Composable
-private fun MemberRow(member: SpaceMember, index: Int, onOpenRole: (String) -> Unit) {
+private fun MemberRow(member: SpaceMember, onOpenRole: (String) -> Unit) {
     val tappable = member.canChangeRole || member.canTakeOwnership
     OrbitGroupRow(Modifier.fillMaxWidth(), onClick = if (tappable) ({ onOpenRole(member.id) }) else null) {
         OrbitAvatar(
             initials = member.initials,
-            accent = OrbitTheme.colors.spaceAccent(index),
+            accent = OrbitTheme.colors.spaceAccent(member.index),
             photoUrl = member.photoUrl,
-            shape = memberShape(index),
+            shape = memberShape(member.index),
             size = OrbitAvatarSize.Large,
         )
-        OrbitHeading(
-            title = if (member.isYou) stringResource(Res.string.member_you) else member.name,
-            subtitle = stringResource(member.role),
+        Text(
+            text = if (member.isYou) stringResource(Res.string.member_you) else member.name,
             modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.titleMedium,
         )
     }
 }
