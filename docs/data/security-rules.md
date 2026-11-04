@@ -58,7 +58,7 @@ Firebase deploys one rules file and the language has no imports, so the file is 
 | `isSpaceCreator`, `joinsAsMember`, `keepsJoin` | members | The creator's own owner document; the member half of a join; `invitationCode` and `joinedAt` unchanged |
 | `handsOwnership`, `leaves` | members | The member half of a transfer or a leave |
 | `completesAsSelf` | items | `completedBy` set only to the caller |
-| `completesItem(itemId)` | completions | The same batch leaves the item `done` |
+| `matchesItem(entry)` | completions | A completion: the same batch leaves the item `done`. A reopening (`action: 'reopen'`): the item was `done` and the batch leaves it `open` |
 | `isExpense(data)` | expenses | The fields of an expense have the right types |
 
 ## What each collection checks
@@ -115,7 +115,7 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 ### `spaces/{spaceId}/completions/{completionId}`
 
 - **Read:** a member.
-- **Create:** a member, with only `itemId`, `completedBy` the caller and `completedAt` the server time, in a batch that leaves the item `done` (`completesItem`).
+- **Create:** a member, with only `itemId`, `completedBy` the caller, `completedAt` the server time and, for a reopening, `action: 'reopen'`, in the batch that changes the item to match (`matchesItem`).
 - **Update, delete:** nobody, the owner included. The history is append-only.
 
 ### `spaces/{spaceId}/expenses/{expenseId}`

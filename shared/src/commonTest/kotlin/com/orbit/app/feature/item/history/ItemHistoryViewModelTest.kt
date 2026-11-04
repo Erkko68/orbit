@@ -71,8 +71,11 @@ class ItemHistoryViewModelTest {
         auth.signIn("ana@orbit.app", "secret")
         val viewModel = historyViewModel(completions(completion("c2", "ben@orbit.app"), completion("c1", "ana@orbit.app")))
 
-        val (ben, ana) = viewModel.uiState.value.completions
-        assertEquals(ItemCompletion("c2", "Ben", false, "B", "https://photo", 1, evening.date, LocalTime(19, 45)), ben)
+        val (ben, ana) = viewModel.uiState.value.entries
+        assertEquals(
+            ItemHistoryEntry("c2", ItemHistoryAction.COMPLETED, "Ben", false, "B", "https://photo", 1, evening.date, LocalTime(19, 45)),
+            ben,
+        )
         assertTrue(ana.isYou)
         assertEquals("AL", ana.initials)
         assertEquals(0, ana.index)
@@ -82,29 +85,36 @@ class ItemHistoryViewModelTest {
     fun someoneWhoLeftTheSpaceHasNoName() = runTest {
         val viewModel = historyViewModel(completions(completion("c1", "cy@orbit.app")))
 
-        val cy = viewModel.uiState.value.completions.single()
+        val cy = viewModel.uiState.value.entries.single()
         assertEquals(null, cy.name)
         assertEquals(0, cy.index)
     }
 
     @Test
-    fun completingTheItemAddsToItsHistory() = runTest {
+    fun saysWhoCreatedCompletedAndReopenedItNewestFirst() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = items.create("space-1", NewItem("Bins"))
         val viewModel = historyViewModel(items, id)
-        assertFalse(viewModel.uiState.value.hasHistory)
+        assertEquals(listOf(ItemHistoryAction.CREATED), viewModel.uiState.value.entries.map { it.action })
 
         items.complete("space-1", id)
         items.reopen("space-1", id)
         items.complete("space-1", id)
 
-        assertEquals(2, viewModel.uiState.value.completions.size)
+        assertEquals(
+            listOf(ItemHistoryAction.COMPLETED, ItemHistoryAction.REOPENED, ItemHistoryAction.COMPLETED, ItemHistoryAction.CREATED),
+            viewModel.uiState.value.entries.map { it.action },
+        )
+        assertTrue(viewModel.uiState.value.entries.all { it.isYou })
     }
 
     @Test
     fun aFailedReadShowsNoHistory() = runTest {
         val failing = object : ItemRepository by items {
             override fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>> =
+                flow { throw IllegalStateException("Read failed") }
+
+            override fun observeItems(spaceId: String): Flow<List<com.orbit.app.domain.model.Item>> =
                 flow { throw IllegalStateException("Read failed") }
         }
 

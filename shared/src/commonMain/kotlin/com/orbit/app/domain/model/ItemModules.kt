@@ -34,6 +34,9 @@ data class ItemModules(
     /** The item is [userId]'s by name, not just because it is anyone's. Backs the "mine" filter. */
     fun isAssignedTo(userId: String): Boolean = assignment?.assigneeIds.orEmpty().contains(userId)
 
+    /** A checklist with something on it: a list, which finishes by ticking its entries (ADR 0008). */
+    val hasEntries: Boolean get() = checklist?.entries.orEmpty().isNotEmpty()
+
     fun with(module: Module): ItemModules = when (module) {
         is Schedule -> copy(schedule = module)
         is Assignment -> copy(assignment = module)

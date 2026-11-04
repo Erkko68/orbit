@@ -12,4 +12,4 @@ data class SpaceCardUiState(
 )
 
 /** A member on the card: their photo, or their initials until it loads or when there is none. */
-data class SpaceCardFace(val id: String, val initials: String, val photoUrl: String?)
+data class SpaceCardFace(val id: String, val name: String, val initials: String, val photoUrl: String?)

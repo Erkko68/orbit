@@ -44,12 +44,11 @@ class ItemMapperTest {
 
     @Test
     fun aNewItemIsOpenAndMadeByItsCreator() {
-        val document = itemDocument("space-1", NewItem("Buy milk", "Semi-skimmed", details = "The blue one"), "ana")
+        val document = itemDocument("space-1", NewItem("Buy milk", "Semi-skimmed"), "ana")
 
         assertEquals("space-1", document.spaceId)
         assertEquals("Buy milk", document.title)
         assertEquals("Semi-skimmed", document.description)
-        assertEquals("The blue one", document.details)
         assertEquals("open", document.status)
         assertEquals("ana", document.createdBy)
         assertEquals(Timestamp.ServerTimestamp, document.createdAt)
@@ -100,12 +99,16 @@ class ItemMapperTest {
 
     @Test
     fun mapsTheCoreFields() {
-        val item = mapItem("item-1", stored.copy(description = "Semi-skimmed", details = "The blue one"))
+        val item = mapItem("item-1", stored.copy(description = "Semi-skimmed"))
 
-        assertEquals(
-            Item("item-1", "Buy milk", "Semi-skimmed", ItemStatus.Open, "ana", createdAt, details = "The blue one"),
-            item,
-        )
+        assertEquals(Item("item-1", "Buy milk", "Semi-skimmed", ItemStatus.Open, "ana", createdAt), item)
+    }
+
+    @Test
+    fun theRetiredDetailsReadAsTheEndOfTheDescription() {
+        assertEquals("Semi-skimmed\n\nThe blue one", mapItem("i", stored.copy(description = "Semi-skimmed", details = "The blue one"))?.description)
+        assertEquals("The blue one", mapItem("i", stored.copy(details = "The blue one"))?.description)
+        assertEquals(null, mapItem("i", stored.copy(description = " ", details = ""))?.description)
     }
 
     @Test

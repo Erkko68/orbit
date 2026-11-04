@@ -2,7 +2,12 @@ package com.orbit.app.feature.spacehome.items
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orbit.app.core.*
+import com.orbit.app.core.Load
+import com.orbit.app.core.asLoad
+import com.orbit.app.core.attempt
+import com.orbit.app.core.initialsOf
+import com.orbit.app.core.orOnFailure
+import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemStatus
@@ -12,13 +17,19 @@ import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.item.ItemFace
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import kotlin.time.Clock
-
-private const val PEEK_ENTRIES = 2
 
 /** The Tasks destination of a space: its items, the filter over them and what is the user's to do next. */
 class SpaceItemsViewModel(
@@ -30,6 +41,7 @@ class SpaceItemsViewModel(
     private val filter = MutableStateFlow(ItemFilter.ALL)
     private val actionFailed = MutableStateFlow(false)
     private val submitting = MutableStateFlow(false)
+    private val showingDone = MutableStateFlow(false)
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
     /** The item the user just finished from the turn card, which stays there so they can undo it. */
@@ -40,8 +52,8 @@ class SpaceItemsViewModel(
         .onStart { emit(emptyList()) }
         .orOnFailure("Loading assignees for items in space $spaceId", emptyList())
 
-    private val request = combine(filter, finishedTurn, actionFailed, submitting) { filter, finished, failed, busy ->
-        Request(filter, finished, failed, busy)
+    private val request = combine(filter, finishedTurn, actionFailed, submitting, showingDone) { filter, finished, failed, busy, done ->
+        Request(filter, finished, failed, busy, done)
     }
 
     val uiState: StateFlow<SpaceItemsUiState> = combine(
@@ -52,24 +64,27 @@ class SpaceItemsViewModel(
     ) { load, request, members, user ->
         val visible = load.valueOrNull.orEmpty().filter { request.filter.matches(it, user?.id) }
         val turn = visible.firstOrNull { it.id == request.finishedTurn } ?: visible.nextTurn(user?.id)
-        val (open, done) = visible.filter { it.id != turn?.id }.partition { it.status is ItemStatus.Open }
         SpaceItemsUiState(
             filter = request.filter,
             loading = load == Load.Loading,
             loadFailed = load == Load.Failed,
-            items = (open + done).map { toSpaceItem(it, members) },
+            items = visible.filter { it.id != turn?.id }.map { toSpaceItem(it, members) },
             turn = turn?.let { toSpaceItem(it, members) },
             userInitials = initialsOf(user?.displayName.orEmpty()),
             userPhotoUrl = user?.photoUrl,
             today = Clock.System.todayIn(TimeZone.currentSystemDefault()),
             failed = request.failed,
             submitting = request.submitting,
+            showingDone = request.showingDone,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceItemsUiState(loading = true))
 
     fun selectFilter(filter: ItemFilter) {
         this.filter.value = filter
     }
+
+    /** Folds the Done section away, or unfolds it. */
+    fun toggleDoneSection() = showingDone.update { !it }
 
     fun complete(itemId: String) = submit("Completing item $itemId in space $spaceId") {
         items.complete(spaceId, itemId)
@@ -118,12 +133,13 @@ class SpaceItemsViewModel(
         val finishedTurn: String?,
         val failed: Boolean,
         val submitting: Boolean,
+        val showingDone: Boolean,
     )
 }
 
-/** The open item assigned to [userId] that is due first. An item without a date comes after any with one. A checklist is finished by ticking it, so it has no turn. */
+/** The open item assigned to [userId] that is due first. An item without a date comes after any with one. A list is finished by ticking it, so it has no turn. */
 private fun List<Item>.nextTurn(userId: String?): Item? = filter {
-    userId != null && it.status is ItemStatus.Open && it.modules.checklist == null && it.modules.isAssignedTo(userId)
+    userId != null && it.status is ItemStatus.Open && !it.modules.hasEntries && it.modules.isAssignedTo(userId)
 }.minWithOrNull(compareBy(nullsLast()) { it.modules.schedule?.deadline })
 
 private fun toSpaceItem(item: Item, members: List<Member>): SpaceItem {
@@ -134,17 +150,12 @@ private fun toSpaceItem(item: Item, members: List<Member>): SpaceItem {
         id = item.id,
         title = item.title,
         done = item.status is ItemStatus.Done,
-        summary = item.description,
+        summary = item.description?.lineSequence()?.firstOrNull { it.isNotBlank() },
         faces = if (assignment == Assignment.Anyone) faces else faces.filter { it.id in assigneeIds },
         dueDate = item.modules.schedule?.deadline,
         dueTime = item.modules.schedule?.time,
-        checklist = item.modules.checklist?.let { checklist ->
-            val left = checklist.entries.filterNot { it.checked }.map { it.text }
-            SpaceItemChecklist(
-                done = checklist.entries.count { it.checked },
-                total = checklist.entries.size,
-                peek = SpaceItemPeek(left.take(PEEK_ENTRIES), (left.size - PEEK_ENTRIES).coerceAtLeast(0)),
-            )
+        checklist = item.modules.checklist?.entries?.takeIf { it.isNotEmpty() }?.let { entries ->
+            SpaceItemChecklist(done = entries.count { it.checked }, total = entries.size)
         },
     )
 }

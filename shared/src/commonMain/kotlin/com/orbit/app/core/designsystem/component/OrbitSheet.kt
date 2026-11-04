@@ -28,11 +28,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.orbit.app.core.designsystem.theme.Ink
 import com.orbit.app.core.designsystem.theme.OrbitMotion
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.PanelTopShape
@@ -45,10 +43,9 @@ import orbit.shared.generated.resources.ic_close
  * A task over the screen, the way Material 3 does it on a phone: a sheet that rises from the bottom edge, as tall as its
  * content, and closes with a swipe, a tap outside, back or the close button. Whether it is open is the caller's state:
  * show it while it is, and close it in [onDismiss]. With [confirmText] it ends in one action, in red when [danger].
- * A task of several steps stays in one sheet: pass [onBack] on the steps after the first, and show them in
- * [OrbitSheetPages], so the sheet changes in place and never opens a second one on top. A [header], such as an
- * [OrbitSheetColorHeader], takes the place of the title row, flush with the sheet's top edge, and gets what closes the
- * sheet. Going between a step with one and a step without fades one into the other.
+ * A short task of several steps, such as picking a date and then a time, stays in one sheet: pass [onBack] on the
+ * steps after the first, and show them in [OrbitSheetPages], so the sheet changes in place and never opens a second
+ * one on top. A section of the app is a screen of its own, never a sheet with pages.
  */
 // M3's ModalBottomSheet is experimental in material3 1.9.0: an exception AGENTS.md allows, here and nowhere else.
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +61,6 @@ fun OrbitSheet(
     onConfirm: () -> Unit = {},
     confirmEnabled: Boolean = true,
     danger: Boolean = false,
-    header: (@Composable (close: () -> Unit) -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -82,18 +78,8 @@ fun OrbitSheet(
         CompositionLocalProvider(LocalInsideCard provides true) {
             Column(Modifier.imePadding().verticalScroll(rememberScrollState())) {
                 Box {
-                    AnimatedContent(
-                        targetState = header,
-                        transitionSpec = { fadeIn(OrbitMotion.effects()) togetherWith fadeOut(OrbitMotion.effects()) },
-                        contentKey = { it != null },
-                    ) { shown ->
-                        if (shown != null) {
-                            shown(close)
-                        } else {
-                            SheetTitle(title, closeDescription, close, backDescription, onBack)
-                        }
-                    }
-                    SheetHandle(if (header != null) Ink else MaterialTheme.colorScheme.onSurfaceVariant, Modifier.align(Alignment.TopCenter))
+                    SheetTitle(title, closeDescription, close, backDescription, onBack)
+                    SheetHandle(Modifier.align(Alignment.TopCenter))
                 }
                 Column(
                     modifier = Modifier.padding(OrbitSpacing.md),
@@ -109,14 +95,14 @@ fun OrbitSheet(
     }
 }
 
-/** What says the sheet can be swiped, on its top edge: over the colour of a [OrbitSheetColorHeader] too. */
+/** What says the sheet can be swiped, on its top edge. */
 @Composable
-private fun SheetHandle(color: Color, modifier: Modifier) {
+private fun SheetHandle(modifier: Modifier) {
     Box(
         modifier
             .padding(top = OrbitSpacing.sm)
             .size(HandleWidth, HandleHeight)
-            .background(color.copy(alpha = HANDLE_ALPHA), CircleShape),
+            .background(MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = HANDLE_ALPHA), CircleShape),
     )
 }
 

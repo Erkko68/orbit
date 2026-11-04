@@ -1,6 +1,6 @@
 # ADR 0008: An item has a summary and details, and a checklist finishes it
 
-- Status: Accepted
+- Status: Accepted, two texts and the checklist mode superseded by [ADR 0010](0010-standard-navigation-and-one-item-form.md)
 - Date: 2026-11-02
 - Issue: #242
 

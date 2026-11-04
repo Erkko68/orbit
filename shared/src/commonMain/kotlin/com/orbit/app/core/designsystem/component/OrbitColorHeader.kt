@@ -3,9 +3,7 @@ package com.orbit.app.core.designsystem.component
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -14,8 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -56,7 +54,7 @@ import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.ic_edit
 import org.jetbrains.compose.resources.painterResource
 
-internal val HeaderCorner = 32.dp
+private val HeaderCorner = 32.dp
 private val PlanetRadius = 180.dp
 private val PlanetRight = 150.dp
 private val PlanetTop = 130.dp
@@ -68,12 +66,12 @@ private val EditHintSize = 20.dp
 private const val EDIT_HINT_ALPHA = 0.6f
 
 /**
- * The top of a screen about one thing, such as a list or a chore: a block of the space's vivid colour under the system
- * bar, with a way back, [label], a [trailing] action, a [leading] face, a big [title] and, when set, a [summary] under
- * it, a wave for [progress], a [detail] line and a row of [actions]. With [onTitleChange] the title is typed in place, [titleDescription] names
- * it, [titlePlaceholder] stands in while it is empty, [focusTitle] puts the cursor there at once and [onTitleDone] says
- * when the user is through. [floating] sits over all of it, for things that move around the block. Pass it to
- * [OrbitScreen]'s `topBar`. Text on it is always ink.
+ * The top of a screen about one thing, such as a member or the user's account: a block of the space's vivid colour
+ * under the system bar, with a way back, [label], a [trailing] action, a [leading] face, a big [title] and a [detail]
+ * line. With [onTitleChange] the title is typed in place, with a pencil that says so: [titleDescription] names it,
+ * [titlePlaceholder] stands in while it is empty, [focusTitle] puts the cursor there at once and [onTitleDone] says when
+ * the user is through. Everything else that can be changed is a field or a row in the body. Pass it to [OrbitScreen]'s
+ * `topBar`. Text on it is always ink.
  */
 @Composable
 fun OrbitColorHeader(
@@ -82,9 +80,7 @@ fun OrbitColorHeader(
     backDescription: String,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    summary: (@Composable () -> Unit)? = null,
     detail: String? = null,
-    progress: Float? = null,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable () -> Unit)? = null,
     onTitleChange: ((String) -> Unit)? = null,
@@ -92,8 +88,6 @@ fun OrbitColorHeader(
     titleDescription: String = title,
     titlePlaceholder: String = titleDescription,
     focusTitle: Boolean = false,
-    actions: (@Composable () -> Unit)? = null,
-    floating: (@Composable BoxScope.() -> Unit)? = null,
 ) {
     val insets = WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
     Surface(
@@ -102,56 +96,40 @@ fun OrbitColorHeader(
         color = OrbitTheme.accent.vivid,
         contentColor = Ink,
     ) {
-        Box {
-            Column(
-                modifier = Modifier
-                    .headerPlanet()
-                    .windowInsetsPadding(insets)
-                    .padding(start = OrbitSpacing.xs, end = OrbitSpacing.md, bottom = OrbitSpacing.lg),
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.xs),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    OrbitIconButton(Res.drawable.ic_arrow_back, backDescription, onBack)
-                    Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, maxLines = 1)
-                    trailing?.invoke()
-                }
-                Column(
-                    modifier = Modifier.padding(start = OrbitSpacing.sm + OrbitSpacing.xs),
-                    verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs),
-                ) {
-                    leading?.invoke()
-                    if (onTitleChange == null) {
-                        Text(
-                            text = title,
-                            modifier = Modifier.semantics { heading() },
-                            style = MaterialTheme.typography.displayLarge,
-                            maxLines = TITLE_LINES,
-                        )
-                    } else {
-                        HeaderTitleField(title, onTitleChange, onTitleDone, titleDescription, titlePlaceholder, focusTitle)
-                    }
-                    summary?.invoke()
-                    progress?.let { OrbitWavyProgress(it, Modifier.fillMaxWidth().padding(top = OrbitSpacing.sm)) }
-                    detail?.let { Text(it, style = OrbitTheme.data.small) }
-                    actions?.let {
-                        FlowRow(
-                            modifier = Modifier.padding(top = OrbitSpacing.sm),
-                            horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
-                            verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
-                            content = { it() },
-                        )
-                    }
-                }
+        Column(
+            modifier = Modifier
+                .headerPlanet()
+                .windowInsetsPadding(insets)
+                .padding(start = OrbitSpacing.xs, end = OrbitSpacing.md, bottom = OrbitSpacing.lg),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                OrbitIconButton(Res.drawable.ic_arrow_back, backDescription, onBack)
+                Text(label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                trailing?.invoke()
             }
-            floating?.let { Box(Modifier.matchParentSize(), content = it) }
+            Column(
+                modifier = Modifier.padding(start = OrbitSpacing.sm + OrbitSpacing.xs),
+                verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs),
+            ) {
+                leading?.invoke()
+                if (onTitleChange == null) {
+                    Text(
+                        text = title,
+                        modifier = Modifier.semantics { heading() },
+                        style = MaterialTheme.typography.displayLarge,
+                        maxLines = TITLE_LINES,
+                    )
+                } else {
+                    HeaderTitleField(title, onTitleChange, onTitleDone, titleDescription, titlePlaceholder, focusTitle)
+                }
+                detail?.let { Text(it, style = OrbitTheme.data.small) }
+            }
         }
     }
 }
 
 /** The faint planet that rises past the top right corner of a block of colour, with its halo. */
-internal fun Modifier.headerPlanet(): Modifier = drawBehind {
+private fun Modifier.headerPlanet(): Modifier = drawBehind {
     val radius = PlanetRadius.toPx()
     val center = Offset(size.width + PlanetRight.toPx() - radius, radius - PlanetTop.toPx())
     drawCircle(Ink.copy(alpha = HALO_ALPHA), radius + HaloWidth.toPx(), center)

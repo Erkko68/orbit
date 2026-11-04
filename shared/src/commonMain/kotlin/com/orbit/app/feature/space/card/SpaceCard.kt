@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.orbit.app.core.designsystem.component.OrbitFloatingFace
+import com.orbit.app.core.designsystem.component.OrbitFace
 import com.orbit.app.core.designsystem.component.OrbitSpaceTile
 import com.orbit.app.core.designsystem.component.memberShape
 import com.orbit.app.core.designsystem.theme.Ink
@@ -20,8 +20,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * One of the user's spaces as a block of its own colour, loaded by its own view model: its members float on its shape
- * beside its big name and what the user has to do there. A row of an `OrbitGroup`, so the spaces read as one.
+ * One of the user's spaces as a card of its own colour, loaded by its own view model: its name, what the user has to do
+ * there and its members' faces.
  */
 @Composable
 internal fun SpaceCard(
@@ -40,15 +40,7 @@ internal fun SpaceCard(
         partner = accent.partner,
         shape = memberShape(state.accent),
         faces = state.faces.mapIndexed { index, face ->
-            OrbitFloatingFace(
-                id = face.id,
-                initials = face.initials,
-                color = Ink,
-                shape = memberShape(index),
-                description = face.initials,
-                photoUrl = face.photoUrl,
-                contentColor = accent.vivid,
-            )
+            OrbitFace(face.id, face.name, face.initials, Ink, memberShape(index), face.photoUrl, accent.vivid)
         },
         onClick = onClick,
         modifier = modifier,

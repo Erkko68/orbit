@@ -5,7 +5,6 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
@@ -37,17 +36,5 @@ class OrbitAddRowTest : ComposeTest() {
         setContent { OrbitTheme { OrbitAddRow("", {}, "Add to the list", {}, canAdd = false) } }
 
         onNode(hasClickAction() and !hasSetTextAction() and hasContentDescription("Add to the list")).assertIsNotEnabled()
-    }
-
-    @Test
-    fun offersToDropTheListWhenItCan() = runComposeUiTest {
-        var removed = 0
-        setContent {
-            OrbitTheme { OrbitAddRow("", {}, "Add to the list", {}, onRemove = { removed++ }, removeDescription = "Remove") }
-        }
-
-        onNodeWithContentDescription("Remove").performClick()
-
-        assertEquals(1, removed)
     }
 }

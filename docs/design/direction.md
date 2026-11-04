@@ -1,6 +1,6 @@
 # Visual direction
 
-Status: applied by #242. Where this page and [ADR 0007](../adr/0007-one-item.md) differ, the ADR wins. The [prototype](https://claude.ai/artifact/1XjocjcaXPPbmwpz3Zxoma) shows every screen below in light and dark, and you can tap through it.
+Status: applied by #242, simplified by #241 ([ADR 0010](../adr/0010-standard-navigation-and-one-item-form.md)). Where this page and an ADR differ, the ADR wins. The [prototype](https://claude.ai/artifact/1XjocjcaXPPbmwpz3Zxoma) shows every screen below in light and dark, and you can tap through it.
 
 **In one line:** the space's colour is the page, soft panels sit on it inside a screen gutter, and type is big and bold.
 
@@ -44,6 +44,17 @@ Lists and chores also follow Material 3 Expressive: the [launch post](https://m3
 - **One check.** A circle that morphs into a cookie when done, the same in Calendar, Tasks and lists.
 - **Accents are decorative on the light canvas** (under 3:1 there). A selected tab or a done row also changes ink or shows a tick, so colour never carries the meaning alone.
 
+### Rules from #241
+
+The look stays; these keep the structure plain, the way phone apps people already know work.
+
+- **Standard navigation.** A place the user goes is a screen on the stack, with a back arrow, and system back and swipe-back do the same. Sheets are only for a short task (who, when, the reminder, an invitation, a role) and dialogs for what cannot be undone.
+- **Edit in the body.** A colour header shows. The one exception is an item's title, typed in place with a pencil beside it. Everything else that changes is a labelled row or field in the body.
+- **One text per idea.** An item has a title and a description.
+- **Lists are lists.** Things of the same kind are rows in one vertical list. No tiles, carousels or sideways scrollers for content.
+- **One layout per screen.** A screen does not change shape with what it holds. Sections keep their order, and an empty one shows its add row.
+- **Still, not animated.** Motion only for feedback: a press, a check, a page change. Faces and shapes never drift on their own.
+
 ## Layout
 
 ```
@@ -61,18 +72,17 @@ Over the bar: item, list, expense form, interview, review board
 | Screen | How it works |
 |---|---|
 | Opening | The last space, not the list. The list is one tap away on the title |
-| Spaces | Each row says what matters: "2 for you today · you owe €18.40" |
+| Spaces | A card per space in its colour, with its shape at the top right: the name, what matters ("2 for you today"), then the members' faces, still |
 | New space | A page of its own: the mark, a big title, then a panel to name a space and pick its colour, which the page takes on as a preview, and a panel to join with a code or link. Either way lands in the space. The guided setup comes later |
-| Calendar | Headline counts what is yours today. Overdue, Today and This week are panels. The members orbit in a cluster in the top bar, and any of them opens the settings (#259) |
+| Calendar | Headline counts what is yours today. Overdue, Today and This week are panels. The members' faces and a settings button in the top bar open the settings |
 | Empty space | The assistant is the first thing, "Add something yourself" is one tap away |
-| Tasks | Filters on the page. Your turn on top, then lists as tiles and every task as a card with a big title |
-| List | An item with a checklist: a colour block with the name and a wavy progress line. One list with what is left first and a row at the top that adds. Ticking the last entry finishes it |
-| Item | A colour block with the title, a small summary and "Mark as done". Under it, rows for the date and the reminder, then the details filling the screen ([ADR 0008](../adr/0008-summary-details-and-checklists.md)) |
-| Add | Type a title, done. Dates and people can wait |
+| Tasks | Filters in one row. Your turn on top, then To do and Done (folded to its count) as one list: every item is the same row, the check, the title, a line of its description, when and how far along, and the faces at the end. The check of a list opens it |
+| Item | The same form for every item: a colour block with the title typed in place (the pencil says so), then Who, When and Reminder rows, the description as tall as its text, the checklist with its add row last, and the history: "Ana marked it done", "You reopened it". One button at the bottom: Create, or Mark done on an item without entries; ticking the last entry finishes a list. The header slides away on scroll and comes back on the way up |
+| Add | Type a title and Create. Who, when and the checklist can be filled first or later; nothing is written before Create |
 | Expenses | The amount is the headline, with Settle up beside it. Balances as sentences, then the ledger |
 | Expense form | Amount first. Everyone in one line, with their share under their name. Tap to leave someone out |
-| Settings | A sheet: invite, manage the space (members grouped by role, then leave or delete), name and colour. A member opens their page in the same sheet (#262) |
-| Member | A step of the settings sheet whose top edge turns their colour, the way a screen's colour header grows from the top: their face, name and role, then what they have and did lately, which fill in under it. The owner changes the role from there: "Make admin", "Make member", and "Make owner" for an admin, after a dialog (#261, #260) |
+| Settings | A screen: name and colour with Save for an owner or admin, the members with their roles, Invite people (a sheet), then Leave or Delete space, after a dialog |
+| Member | A screen with a colour header in their colour: their face, name and role, then what they have and did lately. For the owner a Role row opens a sheet: Member or Admin, and "Make owner" for an admin, after a dialog |
 | Interview | One question per screen in violet, and "Do it by hand instead" is always there |
 | Review board | Proposals grouped by kind, all kept by default. Tap to leave one out, pencil to edit, one button to add. "Nothing is saved until you confirm" |
 
@@ -82,12 +92,12 @@ This is the part of the app that gets touched every day, so it is where the look
 
 | Tactic | What Orbit does |
 |---|---|
-| Hero moment | "Your turn" is the one card that breaks the pattern: inverse colour, a burst, big type and one big Done button. Done becomes Undo and says who is next. The post asks for one or two of these in a product, so nothing else gets this treatment |
-| Rich colour | Lists are solid fills, not white cards: the space's vivid colour and a partner colour next to it. Text on them is always navy, at least 4.5:1 |
-| Containment | Tiles that touch have tight corners (10) where they meet and big ones (32) outside, so a pair reads as one thing. Rows do the same: 3dp gaps, 8 inside, 28 at the ends of a group |
-| Variety of shapes | A list's icon sits on a cookie or a clover. Each member has a shape as well as a colour, so people can be told apart without relying on colour |
-| Motion | A pressed row or tile rounds off. The check goes circle, squircle while pressed, cookie when done. Springs, not fades |
-| Typography | Section heads at 24, a list's name at 46 in its own screen |
+| Hero moment | "Your turn" is the one card that breaks the pattern: inverse colour, a burst in the partner colour, big type and one big Done button in the vivid one. Done becomes Undo. The post asks for one or two of these in a product, so nothing else gets this treatment |
+| Rich colour | The space card and the item's header are solid fills: the space's vivid colour, and a partner colour for the shape beside it. Text on them is always navy, at least 4.5:1 |
+| Containment | Rows of a group have 3dp gaps, tight corners (8) where they meet and big ones (28) at the ends. A ticked entry stays a tinted panel |
+| Variety of shapes | A row's icon sits on a cookie, a clover or a sunny. Each member has a shape as well as a colour, so people can be told apart without relying on colour |
+| Motion | A pressed row rounds off. The check goes circle, squircle while pressed, cookie when done. Springs, not fades |
+| Typography | Section heads at 24, an item's name big in its header |
 
 The list keeps a plain vertical list on purpose. The research behind Expressive found that replacing a familiar list with something more unusual hurt usability, so the personality goes around the rows and not into how they work.
 
@@ -97,3 +107,4 @@ The list keeps a plain vertical list on purpose. The research behind Expressive 
 - **Flat rows with hairlines only:** integrated but too flat, and it looked like any clean web app.
 - **A curved horizon** between header and list, and thin orbit lines in the header: dropped, the disc does the job.
 - **Deep Field** (always dark, glow) and **Star Chart** (one blue ink, serif): both narrower than what the app needs.
+- **Faces that float with physics**, lists as staggered tiles and settings as a sheet with pages (#242 to #262): distinctive, but each taught its own rule. Replaced by #241.

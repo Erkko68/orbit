@@ -15,7 +15,7 @@ import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 
 /**
- * Opens a group of panels or rows on the page, such as "Lists": a bold [title] and, when set, a [count] ("3 open"). In a
+ * Opens a group of panels or rows on the page, such as "Lists": a bold [title] and, when set, a [count] ("3 open") and an [action], such as showing what is folded away. In a
  * sheet or a card it is smaller and sits closer to what it opens.
  */
 @Composable
@@ -23,6 +23,8 @@ fun OrbitSectionHeader(
     title: String,
     modifier: Modifier = Modifier,
     count: String? = null,
+    action: String? = null,
+    onAction: () -> Unit = {},
 ) {
     val inside = LocalInsideCard.current
     Row(
@@ -39,5 +41,6 @@ fun OrbitSectionHeader(
         count?.let {
             Text(it, style = OrbitTheme.data.small, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
         }
+        action?.let { OrbitTextButton(it, onAction) }
     }
 }

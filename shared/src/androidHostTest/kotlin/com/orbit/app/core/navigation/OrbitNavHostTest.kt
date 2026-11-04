@@ -1,9 +1,6 @@
 package com.orbit.app.core.navigation
 
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -25,8 +22,6 @@ import com.orbit.app.testing.InMemoryLastSpaceRepository
 import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.testing.RecordingNotificationScheduler
 import com.orbit.app.di.featureModule
-import com.orbit.app.domain.model.Checklist
-import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.InvitationRepository
@@ -156,29 +151,18 @@ class OrbitNavHostTest : ComposeTest() {
         runBlocking {
             auth.signIn("ana@orbit.app", "secret")
             val spaceId = spaces.createSpace("Flat 4B", accent = 0)
-            items.create(
-                spaceId, NewItem(
-                    "Book plumber",
-                    modules = ItemModules(checklist = Checklist(emptyList()))
-                )
-            )
-            items.create(spaceId, NewItem("Groceries"))
+            items.create(spaceId, NewItem("Book plumber"))
         }
         setContent { OrbitTheme { OrbitNavHost() } }
         onNodeWithText("Flat 4B").performScrollTo().performClick()
         onAllNodesWithText("Tasks")[0].performClick()
         onNodeWithText("Book plumber").performScrollTo().performClick()
-        onNode(hasScrollAction()).performScrollToNode(hasContentDescription("Remove checklist"))
-        onNodeWithContentDescription("Remove checklist").performClick()
-        onNodeWithText("Add a checklist").assertIsDisplayed()
-        // The top bar is outside the scroll container and always remains visible.
+        onNodeWithText("Mark as done").performClick()
+        onNodeWithText("Reopen").assertIsDisplayed()
         onNodeWithContentDescription("Back to space").performClick()
         onNodeWithContentDescription("Add").assertIsDisplayed()
-        onNodeWithText("Groceries").performScrollTo().performClick()
-        onNodeWithText("Add a checklist").performClick()
-        onNode(hasScrollAction()).performScrollToNode(hasContentDescription("Remove checklist"))
-        onNodeWithContentDescription("Back to space").performClick()
-        onNodeWithContentDescription("Add").assertIsDisplayed()
+        onNodeWithText("Show").performScrollTo().performClick()
+        onNodeWithText("Book plumber").assertIsDisplayed()
     }
 
     @Test

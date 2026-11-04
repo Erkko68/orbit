@@ -12,8 +12,9 @@ An ADR records one decision that shapes the code: the context, what was decided,
 | [0006](0006-dictation-through-the-platform-recognisers.md) | Voice dictation uses each platform's own speech recogniser, not ML Kit | Accepted |
 | [0007](0007-assistant-on-our-own-server.md) | The assistant runs on our own server in Docker, next to its model (Gemma 4, Gemini as fallback) | Accepted |
 | [0007](0007-one-item.md) | There is one item, and it can have several people | Accepted |
-| [0008](0008-summary-details-and-checklists.md) | An item has a summary and details, and a checklist finishes it | Accepted |
+| [0008](0008-summary-details-and-checklists.md) | An item has a summary and details, and a checklist finishes it | Accepted, two texts superseded by 0010 |
 | [0009](0009-only-the-owner-changes-roles.md) | Only the owner changes roles, and the space goes only to an admin | Accepted |
+| [0010](0010-standard-navigation-and-one-item-form.md) | Places are screens on the stack, and an item is one fixed form | Accepted |
 
 ## Writing one
 

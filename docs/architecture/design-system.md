@@ -28,15 +28,15 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 
 | Component | Use it for |
 |---|---|
-| `OrbitScreen` | Every screen: the page, scaffold, insets, gutter, gaps and scrolling (`scrollable = true`, or `list` for a lazy list) |
+| `OrbitScreen` | Every screen: the page, scaffold, insets, gutter, gaps and scrolling (`scrollable = true`, or `list` for a lazy list). `primaryAction` pins a form's one button at the bottom, `collapsingTopBar` slides the top away on scroll |
 | `OrbitTopBar` | The top of a signed-in screen, on the page. The title can be a button, as a space's opens the list of spaces |
-| `OrbitColorHeader`, `OrbitHeaderAction` | The top of a screen about one thing: a vivid block with its title, a summary and its one action as a pill |
+| `OrbitColorHeader` | The top of a screen about one thing: a vivid block with its title, a face and a detail line. It shows; only an item's title is typed in it, with a pencil |
 | `OrbitHero` | The big bold opening of a screen, on the page |
 | `OrbitScreenHeader` | The opening of a screen without a top bar (sign-in) |
 | `OrbitSectionHeader` | The opening of a group: title, and a count or an action |
 | `OrbitCard` | A panel |
 | `OrbitGroup`, `orbitGroup` | Rows that read as one thing, in a column or a lazy list |
-| `OrbitSheet` | A task over the screen. Whether it is open is `UiState`. |
+| `OrbitSheet` | A short task over the screen. Whether it is open is `UiState`. A section of the app is a route, never a sheet |
 | `OrbitDialog` | A prompt that stops the app, such as turning notifications on |
 | `OrbitLabeledDivider` | "or" between two ways to the same goal |
 | `OrbitStartup` | The logo on navy while the session is read |
@@ -47,22 +47,20 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 |---|---|
 | `OrbitHeading` | A title over a line of secondary text |
 | `OrbitGroupRow` | One row of a group, with anything in it |
-| `OrbitTaskCard` | A task as its own card: big title, summary, when and who, and the check |
+| `OrbitTaskRow` | An item in a list, a task or a list alike: the check, the title, a line of description, when and how far along, and the faces at the end |
 | `OrbitEntryRow` | One entry of a checklist, lighter than a check row |
-| `OrbitActionRow` | A row that does something: an icon on a shape, a title and an arrow |
+| `OrbitActionRow` | A row that does something: an icon on a shape, a title over its value, faces or another `trailing`, and an arrow |
 | `OrbitNoteField` | Text of several lines typed where it is read |
-| `OrbitDetailsField` | The long text of something, on a panel that takes the room left on the screen |
+| `OrbitDetailsField` | The long text of something, on a panel as tall as its text |
 | `OrbitTimeWheel` | A length of time on two small wheels, 0 to 99 hours and minutes. Scroll one, or tap a number to type it. What is picked is `UiState`. It fits at the end of an `OrbitGroupRow` |
 | `OrbitSpaceColorPicker` | The colour of a space, under its label |
-| `OrbitListTile` | A list as a solid tile, with a peek at what is left |
-| `OrbitSpaceTile` | A space in its own colour |
+| `OrbitSpaceTile` | A space as a card in its own colour, with its shape at the top right and its members' faces |
 | `OrbitTurnCard` | The one hero moment: what is the user's to do now |
 | `OrbitQuestionCard` | A question with answer chips (the assistant) |
 | `OrbitAvatar` | A member's photo or initials |
-| `OrbitFloatingFaces` | Who has something: faces that float and can be thrown |
+| `OrbitFaceStack` | Who has something: up to four still faces and "+N". Tappable as one button, as in a space's top bar |
 | `OrbitShapeBadge` | An icon or the mark on an expressive shape |
 | `OrbitMark` | The Orbit logo in the space's colour |
-| `OrbitWavyProgress` | How far along something is |
 
 ### States
 

@@ -26,12 +26,22 @@ class ItemUiStateTest {
     }
 
     @Test
-    fun aNewItemWaitsForItsName() {
+    fun aNewItemFillsInAnyOrderAndCreatesOnceNamed() {
         val new = ItemUiState(loading = false, isNew = true)
-        assertTrue(new.unnamed)
-        assertFalse(new.canEdit)
-        assertFalse(new.copy(titleDraft = "  ").canEdit)
-        assertTrue(new.copy(titleDraft = "Groceries").canSubmit)
+        assertTrue(new.canEdit)
+        assertFalse(new.canCreate)
+        assertFalse(new.copy(titleDraft = "  ").canCreate)
+        assertTrue(new.copy(titleDraft = "Groceries").canCreate)
+        assertFalse(new.copy(titleDraft = "Groceries", submitting = true).canCreate)
+        assertFalse(new.showsDone)
+    }
+
+    @Test
+    fun markDoneShowsOnAWrittenItemWithoutEntries() {
+        val written = ItemUiState(loading = false)
+        assertTrue(written.showsDone)
+        assertFalse(written.copy(modules = listOf(Checklist(listOf(ChecklistEntry("a", "Milk"))))).showsDone)
+        assertTrue(written.copy(modules = listOf(Checklist(emptyList()))).showsDone)
     }
 
     @Test
@@ -50,10 +60,10 @@ class ItemUiStateTest {
         val entries = listOf(ChecklistEntry("a", "Milk", checked = true), ChecklistEntry("b", "Bread"))
         val state = ItemUiState(modules = listOf(Checklist(entries)))
 
-        assertTrue(state.hasChecklist)
+        assertTrue(state.hasEntries)
         assertEquals(listOf("b", "a"), state.shownEntries.map { it.id })
-        assertEquals(0.5f, state.entryProgress)
-        assertEquals(0f, ItemUiState().entryProgress)
+        assertEquals(1, state.checkedCount)
+        assertEquals(2, state.entryCount)
     }
 
     @Test

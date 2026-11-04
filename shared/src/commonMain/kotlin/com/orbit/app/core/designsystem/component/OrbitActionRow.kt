@@ -19,7 +19,8 @@ import org.jetbrains.compose.resources.painterResource
 
 /**
  * A row of an [OrbitGroup] that does something, such as changing a password: its [icon] on a [shape] in the space's
- * colour, [title] over [supporting] and a way on. [danger] is for what cannot be undone: the fill and the title go red.
+ * colour, [title] over [supporting], what it holds in [trailing], such as faces, and a way on. [danger] is for what
+ * cannot be undone: the fill and the title go red.
  */
 @Composable
 fun OrbitActionRow(
@@ -30,6 +31,7 @@ fun OrbitActionRow(
     supporting: String? = null,
     shape: OrbitShape = OrbitShape.Cookie,
     danger: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     OrbitGroupRow(modifier, onClick = onClick) {
@@ -54,6 +56,7 @@ fun OrbitActionRow(
                 )
             }
         }
+        trailing?.invoke()
         Icon(
             painter = painterResource(Res.drawable.ic_chevron_right),
             contentDescription = null,

@@ -44,7 +44,6 @@ class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository 
             id = id,
             title = item.title,
             description = item.description,
-            details = item.details,
             status = ItemStatus.Open,
             createdBy = auth.requireUser().id,
             createdAt = Clock.System.now(),
@@ -64,8 +63,6 @@ class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository 
     override suspend fun setDescription(spaceId: String, itemId: String, description: String?) =
         edit(spaceId, itemId) { it.copy(description = description) }
 
-    override suspend fun setDetails(spaceId: String, itemId: String, details: String?) =
-        edit(spaceId, itemId) { it.copy(details = details) }
 
     override suspend fun setModule(spaceId: String, itemId: String, module: Module) =
         edit(spaceId, itemId) { it.copy(modules = it.modules.with(module)) }
@@ -103,14 +100,18 @@ class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository 
     override suspend fun complete(spaceId: String, itemId: String) {
         val done = ItemStatus.Done(by = auth.requireUser().id, at = Clock.System.now())
         edit(spaceId, itemId) { it.copy(status = done) }
-        completions.update { all ->
-            val completion = Completion("completion-${all.values.sumOf { it.size } + 1}", itemId, done.by, done.at)
-            all + (spaceId to listOf(completion) + all[spaceId].orEmpty())
-        }
+        record(spaceId, itemId, done.by, reopened = false)
     }
 
-    override suspend fun reopen(spaceId: String, itemId: String) =
+    override suspend fun reopen(spaceId: String, itemId: String) {
         edit(spaceId, itemId) { it.copy(status = ItemStatus.Open) }
+        record(spaceId, itemId, auth.requireUser().id, reopened = true)
+    }
+
+    private fun record(spaceId: String, itemId: String, userId: String, reopened: Boolean) = completions.update { all ->
+        val entry = Completion("completion-${all.values.sumOf { it.size } + 1}", itemId, userId, Clock.System.now(), reopened)
+        all + (spaceId to listOf(entry) + all[spaceId].orEmpty())
+    }
 
     private fun edit(spaceId: String, itemId: String, change: (Item) -> Item) = items.update { all ->
         val space = all[spaceId].orEmpty()

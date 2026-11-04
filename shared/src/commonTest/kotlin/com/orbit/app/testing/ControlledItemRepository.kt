@@ -26,9 +26,6 @@ internal class ControlledItemRepository(private val delegate: ItemRepository) : 
         write("description") { delegate.setDescription(spaceId, itemId, description) }
     }
 
-    override suspend fun setDetails(spaceId: String, itemId: String, details: String?) {
-        write("details") { delegate.setDetails(spaceId, itemId, details) }
-    }
 
     override suspend fun setModule(spaceId: String, itemId: String, module: Module) {
         write("set:${module.type}") { delegate.setModule(spaceId, itemId, module) }

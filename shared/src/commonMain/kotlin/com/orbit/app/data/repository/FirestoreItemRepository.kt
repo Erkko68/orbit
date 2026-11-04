@@ -3,6 +3,7 @@ package com.orbit.app.data.repository
 import co.touchlab.kermit.Logger
 import com.orbit.app.data.mapper.AssignmentDocument
 import com.orbit.app.data.mapper.ChecklistDocument
+import com.orbit.app.data.mapper.ACTION_REOPEN
 import com.orbit.app.data.mapper.CompletionDocument
 import com.orbit.app.data.mapper.EntryDocument
 import com.orbit.app.data.mapper.ModulesDocument
@@ -84,10 +85,10 @@ class FirestoreItemRepository(
         update(spaceId, itemId) { FieldPath("title") to title }
 
     override suspend fun setDescription(spaceId: String, itemId: String, description: String?) =
-        update(spaceId, itemId) { FieldPath("description") to (description ?: FieldValue.delete) }
-
-    override suspend fun setDetails(spaceId: String, itemId: String, details: String?) =
-        update(spaceId, itemId) { FieldPath("details") to (details ?: FieldValue.delete) }
+        update(spaceId, itemId) {
+            FieldPath("description") to (description ?: FieldValue.delete)
+            FieldPath("details") to FieldValue.delete
+        }
 
     override suspend fun setModule(spaceId: String, itemId: String, module: Module) =
         update(spaceId, itemId) {
@@ -152,16 +153,25 @@ class FirestoreItemRepository(
             FieldPath(COMPLETED_BY) to userId
             FieldPath(COMPLETED_AT) to FieldValue.serverTimestamp
         }
-        batch.set(completions(spaceId).document, CompletionDocument(itemId, userId, Timestamp.ServerTimestamp))
+        batch.set(completions(spaceId).document, CompletionDocument(itemId, userId, Timestamp.ServerTimestamp)) {
+            encodeDefaults = false
+        }
         writeLocally("Completing item $itemId") { batch.commit() }
     }
 
-    override suspend fun reopen(spaceId: String, itemId: String) =
-        update(spaceId, itemId) {
+    /** Like [complete], the item and the entry in its history go in one batch. */
+    override suspend fun reopen(spaceId: String, itemId: String) {
+        val userId = auth.requireUser().id
+        val batch = firestore.batch()
+        batch.updateFields(items(spaceId).document(itemId)) {
             FieldPath(STATUS) to STATUS_OPEN
             FieldPath(COMPLETED_BY) to FieldValue.delete
             FieldPath(COMPLETED_AT) to FieldValue.delete
         }
+        val entry = CompletionDocument(itemId, userId, Timestamp.ServerTimestamp, ACTION_REOPEN)
+        batch.set(completions(spaceId).document, entry) { encodeDefaults = false }
+        writeLocally("Reopening item $itemId") { batch.commit() }
+    }
 
     private fun items(spaceId: String) = firestore.collection(SPACES).document(spaceId).collection(ITEMS)
 
@@ -175,7 +185,7 @@ class FirestoreItemRepository(
             Logger.w { "Skipping the malformed completion ${document.id}" }
             return null
         }
-        return Completion(document.id, itemId, completedBy, completedAt)
+        return Completion(document.id, itemId, completedBy, completedAt, document.field<String>("action") == ACTION_REOPEN)
     }
 
     private fun entryPath(entryId: String) = FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId)

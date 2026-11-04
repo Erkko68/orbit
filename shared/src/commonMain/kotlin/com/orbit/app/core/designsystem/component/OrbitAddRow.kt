@@ -1,7 +1,6 @@
 package com.orbit.app.core.designsystem.component
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
@@ -24,15 +23,13 @@ import com.orbit.app.core.designsystem.theme.Ink
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_add
-import orbit.shared.generated.resources.ic_close
 import org.jetbrains.compose.resources.painterResource
 
 private val AddSize = 36.dp
 
 /**
  * The row of an [OrbitGroup] that adds to it, typed in place: the round button and the keyboard's Done both call [onAdd],
- * which [placeholder] names, and the cursor stays for the next one. [onRemove] puts a way to drop the whole list at the
- * end, named by [removeDescription]. What is typed is the caller's state.
+ * which [placeholder] names, and the cursor stays for the next one. What is typed is the caller's state.
  */
 @Composable
 fun OrbitAddRow(
@@ -42,8 +39,6 @@ fun OrbitAddRow(
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
     canAdd: Boolean = true,
-    onRemove: (() -> Unit)? = null,
-    removeDescription: String = "",
 ) {
     val scheme = MaterialTheme.colorScheme
     val field = rememberFieldValue(value)
@@ -86,6 +81,5 @@ fun OrbitAddRow(
                 }
             },
         )
-        onRemove?.let { OrbitIconButton(Res.drawable.ic_close, removeDescription, it) }
     }
 }
