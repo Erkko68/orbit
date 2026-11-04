@@ -51,7 +51,16 @@ class SpaceHomeScreenTest : ComposeTest() {
 
     private fun ComposeUiTest.showTheSpace() = setContent {
         OrbitTheme {
-            SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, onNewItem = {}, onOpenAssistant = {}, onOpenSettings = { settingsOpened++ }, viewModel = viewModel)
+            SpaceHomeScreen(
+                "space-1",
+                onBack = {},
+                onOpenAccount = {},
+                onOpenItem = {},
+                onNewItem = {},
+                onOpenAssistant = {},
+                onOpenSettings = { settingsOpened++ },
+                viewModel = viewModel,
+            )
         }
     }
 
@@ -98,7 +107,7 @@ class SpaceHomeScreenTest : ComposeTest() {
 
         onNode(hasText("Expenses") and hasClickAction()).performClick().assertIsSelected()
         onNodeWithText("No expenses yet").assertIsDisplayed()
-        onNodeWithContentDescription("Add").assertDoesNotExist()
+        onNodeWithContentDescription("Add expense").assertIsDisplayed()
 
         onNodeWithText("Calendar").performClick().assertIsSelected()
         onNodeWithText("No expenses yet").assertDoesNotExist()

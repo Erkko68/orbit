@@ -49,6 +49,7 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | `OrbitGroupRow` | One row of a group, with anything in it |
 | `OrbitTaskRow` | An item in a list, a task or a list alike: the check, the title, a line of description, when and how far along, and the faces at the end |
 | `OrbitEntryRow` | One entry of a checklist, lighter than a check row |
+| `OrbitAmountRow` | A ledger entry: title, payer, regional date and amount, with monetary data in Martian Mono |
 | `OrbitActionRow` | A row that does something: an icon on a shape, a title over its value, faces or another `trailing`, and an arrow |
 | `OrbitNoteField` | Text of several lines typed where it is read |
 | `OrbitDetailsField` | The long text of something, on a panel as tall as its text |

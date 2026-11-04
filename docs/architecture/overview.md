@@ -51,6 +51,9 @@ flowchart TB
 - `domain/usecase/CalculateBalances.kt` is a pure computation of member balances and minimum-count payment
   proposals from the ledger (#56, [ledger calculation](../data/firestore-schema.md#spacesspaceidexpensesexpenseid)).
   It neither loads nor saves expenses; the Expenses screen consumes it in #57.
+- `domain/usecase/SplitExpense.kt` creates equal shares in uid order or validates exact shares against the
+  typed total without overflow (#54). `core/Money.kt` parses regional amounts directly into Long cents;
+  platform formatters display euros from exact decimal values, without a floating-point conversion.
 - **Data** implements the interfaces against Firestore and maps documents to models. The in-memory fakes that tests use live in `commonTest/…/testing/`, not here.
 
 A dependency only points down: a ViewModel never sees a Firestore class, and the domain never sees a ViewModel.
@@ -84,6 +87,20 @@ Everything is under `shared/src/commonMain/kotlin/com/orbit/app/`.
 | `space` | The list of spaces, with one `card/` component per space, and the new-space dialog |
 | `spacehome` | One space: its header and tabs, with `items/`, `members/` (the member chips, a member's header and activity, the handover and invitation dialogs) and `settings/` (edit, leave or delete the space) components |
 | `item` | One item: its modules as cards, "Add detail", and the schedule editor |
+| `expense` | A full-screen create/edit form: payer, date, equal or exact shares, explicit Save, and role-checked deletion |
+
+`spacehome/expenses/` owns the live ledger in the space's Expenses destination, latest date first, showing each entry's title, labelled total, payer and regional date through `OrbitAmountRow`.
+The shared add button opens `ExpenseRoute(spaceId)` there; selecting an entry opens the same form with its id.
+The expense form places amount and title first, then payer and date, and shows participants in a row with each person's share under their name so tapping a member includes or excludes them. It defaults to the signed-in payer, today's date and all current members. An edit starts from
+the saved exact shares, including former participants, so opening it never redistributes money. Inputs live
+in `ExpenseUiState`; no write happens before Save. Reads expose retry, and writes expose failure and an
+in-flight flag. The ledger and form use the existing offline-capable `ExpenseRepository`.
+Balances and recording a proposed settlement remain #57.
+
+The exact-share mode is labelled "Custom amounts" in the form. It explains that each amount is what that
+person owes and shows the assigned total, how much remains, or the excess. `ExpenseUiState.splitProgress`
+derives this preview from the selected shares using Long cents with an overflow check. It never adjusts
+shares automatically or persists a second total. Save still requires the existing exact-sum validation.
 
 ## Dependency injection
 
@@ -106,6 +123,7 @@ stateDiagram-v2
     Spaces --> Space: open a space
     Spaces --> Account
     Space --> Item: open an item
+    Space --> Expense: add or edit an expense
     Space --> Spaces: switch space
 ```
 

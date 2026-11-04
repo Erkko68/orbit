@@ -30,7 +30,7 @@ data class SpaceHomeUiState(
     /** What Calendar opens with. Null until the items load, or if they could not. */
     val headline: SpaceHeadline? = null,
 ) {
-    /** Expenses will add expenses instead (#54). */
+    /** The shared add button creates an expense on Expenses, an item elsewhere. */
     val canAddItem: Boolean get() = tab != SpaceHomeTab.EXPENSES
 }
 

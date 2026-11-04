@@ -18,6 +18,7 @@ import com.orbit.app.feature.auth.SessionStart
 import com.orbit.app.feature.auth.SessionViewModel
 import com.orbit.app.feature.auth.ui.CreateAccountScreen
 import com.orbit.app.feature.auth.ui.SignInScreen
+import com.orbit.app.feature.expense.ui.ExpenseScreen
 import com.orbit.app.feature.item.ui.ItemScreen
 import com.orbit.app.feature.member.ui.MemberScreen
 import com.orbit.app.feature.newspace.ui.NewSpaceScreen
@@ -87,6 +88,8 @@ fun OrbitNavHost(
                     onNewItem = { navController.navigate(ItemRoute(spaceId = spaceId)) },
                     onOpenAssistant = { navController.navigate(InterviewRoute) },
                     onOpenSettings = { navController.navigate(SpaceSettingsRoute(spaceId)) },
+                    onOpenExpense = { id -> navController.navigate(ExpenseRoute(spaceId, id)) },
+                    onNewExpense = { navController.navigate(ExpenseRoute(spaceId)) },
                 )
             }
             composable<SpaceSettingsRoute> { entry ->
@@ -114,6 +117,10 @@ fun OrbitNavHost(
                     itemId = route.itemId,
                     onBack = { navController.popBackStack() },
                 )
+            }
+            composable<ExpenseRoute> { entry ->
+                val route = entry.toRoute<ExpenseRoute>()
+                ExpenseScreen(route.spaceId, route.expenseId, onBack = { navController.popBackStack() })
             }
             composable<InterviewRoute> {
                 // The manual path is wherever the assistant was opened from; the review board (#75) follows a plan.
