@@ -10,6 +10,11 @@ sealed interface ItemError {
     data object TimeWithEndDate : ItemError
     data object EndNotAfterStart : ItemError
     data object NonPositiveDuration : ItemError
+    data object RecurrenceWithoutSchedule : ItemError
+    data object NonPositiveInterval : ItemError
+    data object NoWeekdays : ItemError
+    data object DayOfMonthOutOfRange : ItemError
+    data object RecurrenceEndsBeforeStart : ItemError
     data object AssigneeNotMember : ItemError
     data class BlankChecklistEntry(val entryId: String) : ItemError
     data class NonPositiveQuantity(val entryId: String) : ItemError
@@ -27,6 +32,7 @@ fun validateItem(
     memberIds: Collection<String>,
 ): List<ItemError> = titleErrors(title) +
     scheduleErrors(modules.schedule) +
+    recurrenceErrors(modules.recurrence, modules.schedule) +
     assignmentErrors(modules.assignment, memberIds) +
     checklistErrors(modules.checklist) +
     reminderErrors(modules.reminder, hasSchedule = modules.schedule != null)
@@ -48,6 +54,18 @@ fun scheduleErrors(schedule: Schedule?): List<ItemError> {
         ItemError.TimeWithEndDate.takeIf { endDate != null && schedule.time != null },
         ItemError.EndNotAfterStart.takeIf { endDate != null && endDate <= schedule.date },
         ItemError.NonPositiveDuration.takeIf { duration != null && duration <= Duration.ZERO },
+    )
+}
+
+private fun recurrenceErrors(recurrence: Recurrence?, schedule: Schedule?): List<ItemError> {
+    if (recurrence == null) return emptyList()
+    val until = recurrence.until
+    return listOfNotNull(
+        ItemError.RecurrenceWithoutSchedule.takeIf { schedule == null },
+        ItemError.NonPositiveInterval.takeIf { recurrence.every < 1 },
+        ItemError.NoWeekdays.takeIf { recurrence is Recurrence.Weeks && recurrence.weekdays.isEmpty() },
+        ItemError.DayOfMonthOutOfRange.takeIf { recurrence is Recurrence.Months && recurrence.dayOfMonth !in 1..31 },
+        ItemError.RecurrenceEndsBeforeStart.takeIf { until != null && schedule != null && until < schedule.date },
     )
 }
 

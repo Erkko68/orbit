@@ -7,6 +7,7 @@ import com.orbit.app.data.mapper.ACTION_REOPEN
 import com.orbit.app.data.mapper.CompletionDocument
 import com.orbit.app.data.mapper.EntryDocument
 import com.orbit.app.data.mapper.ModulesDocument
+import com.orbit.app.data.mapper.RecurrenceDocument
 import com.orbit.app.data.mapper.ReminderDocument
 import com.orbit.app.data.mapper.STATUS_DONE
 import com.orbit.app.data.mapper.STATUS_OPEN
@@ -17,6 +18,7 @@ import com.orbit.app.data.mapper.checklistDocument
 import com.orbit.app.data.mapper.itemDocument
 import com.orbit.app.data.mapper.mapItem
 import com.orbit.app.data.mapper.moduleKey
+import com.orbit.app.data.mapper.recurrenceDocument
 import com.orbit.app.data.mapper.reminderDocument
 import com.orbit.app.data.mapper.scheduleDocument
 import com.orbit.app.domain.model.Assignment
@@ -26,6 +28,7 @@ import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.repository.AuthRepository
@@ -95,6 +98,7 @@ class FirestoreItemRepository(
             val path = FieldPath(MODULES, moduleKey(module.type))
             when (module) {
                 is Schedule -> path.to(ScheduleDocument.serializer(), scheduleDocument(module))
+                is Recurrence -> path.to(RecurrenceDocument.serializer(), recurrenceDocument(module))
                 is Assignment -> path.to(AssignmentDocument.serializer(), assignmentDocument(module))
                 is Checklist -> path.to(ChecklistDocument.serializer(), checklistDocument(module))
                 is Reminder -> path.to(ReminderDocument.serializer(), reminderDocument(module))
@@ -203,6 +207,7 @@ class FirestoreItemRepository(
     private fun toItem(document: DocumentSnapshot): Item? {
         val modules = ModulesDocument(
             schedule = document.field("$MODULES.${moduleKey(ModuleType.SCHEDULE)}"),
+            recurrence = document.field("$MODULES.${moduleKey(ModuleType.RECURRENCE)}"),
             assignment = document.field("$MODULES.${moduleKey(ModuleType.ASSIGNMENT)}"),
             checklist = document.field("$MODULES.${moduleKey(ModuleType.CHECKLIST)}"),
             reminder = document.field("$MODULES.${moduleKey(ModuleType.REMINDER)}"),

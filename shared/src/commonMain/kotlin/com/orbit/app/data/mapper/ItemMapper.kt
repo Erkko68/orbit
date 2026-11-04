@@ -9,13 +9,16 @@ import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import dev.gitlive.firebase.firestore.Timestamp
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.format
 import kotlinx.datetime.format.char
+import kotlinx.datetime.isoDayNumber
 import kotlin.time.Duration.Companion.minutes
 
 internal const val STATUS_OPEN = "open"
@@ -40,6 +43,7 @@ internal fun itemDocument(spaceId: String, item: NewItem, creatorId: String) = I
     createdAt = Timestamp.ServerTimestamp,
     modules = ModulesDocument(
         schedule = item.modules.schedule?.let(::scheduleDocument),
+        recurrence = item.modules.recurrence?.let(::recurrenceDocument),
         assignment = item.modules.assignment?.let(::assignmentDocument),
         checklist = item.modules.checklist?.let(::checklistDocument),
         reminder = item.modules.reminder?.let(::reminderDocument),
@@ -52,6 +56,20 @@ internal fun scheduleDocument(schedule: Schedule) = ScheduleDocument(
     endDate = schedule.endDate?.toString(),
     durationMinutes = schedule.duration?.inWholeMinutes?.toInt(),
 )
+
+internal fun recurrenceDocument(recurrence: Recurrence): RecurrenceDocument {
+    val until = recurrence.until?.toString()
+    return when (recurrence) {
+        is Recurrence.Days -> RecurrenceDocument("day", recurrence.every, until = until)
+        is Recurrence.Weeks -> RecurrenceDocument(
+            "week",
+            recurrence.every,
+            weekdays = recurrence.weekdays.map { it.isoDayNumber }.sorted(),
+            until = until,
+        )
+        is Recurrence.Months -> RecurrenceDocument("month", recurrence.every, dayOfMonth = recurrence.dayOfMonth, until = until)
+    }
+}
 
 internal fun assignmentDocument(assignment: Assignment) = when (assignment) {
     is Assignment.ToMembers -> AssignmentDocument("member", assignment.assigneeIds.toList())
@@ -102,6 +120,7 @@ private fun modulesOf(id: String, stored: StoredItem): ItemModules {
     val modules = stored.modules
     val read = ItemModules(
         schedule = modules.schedule?.let(::scheduleOf),
+        recurrence = modules.recurrence?.let(::recurrenceOf),
         assignment = modules.assignment?.let(::assignmentOf),
         checklist = modules.checklist?.let(::checklistOf),
         reminder = modules.reminder?.let(::reminderOf),
@@ -121,6 +140,25 @@ private fun scheduleOf(document: ScheduleDocument): Schedule? = try {
     )
 } catch (_: IllegalArgumentException) {
     null
+}
+
+/** An unknown unit, or a rule that could never repeat, is skipped. */
+private fun recurrenceOf(document: RecurrenceDocument): Recurrence? {
+    if (document.every < 1) return null
+    val until = try {
+        document.until?.let(LocalDate::parse)
+    } catch (_: IllegalArgumentException) {
+        return null
+    }
+    return when (document.unit) {
+        "day" -> Recurrence.Days(document.every, until)
+        "week" -> document.weekdays.orEmpty()
+            .takeIf { days -> days.isNotEmpty() && days.all { it in 1..7 } }
+            ?.let { days -> Recurrence.Weeks(document.every, days.map(::DayOfWeek).toSet(), until) }
+        "month" -> document.dayOfMonth?.takeIf { it in 1..31 }
+            ?.let { Recurrence.Months(document.every, it, until) }
+        else -> null
+    }
 }
 
 /** Older items have one `assigneeId`, and first to claim is gone: a claimed item is that member's, the rest anyone's. */
