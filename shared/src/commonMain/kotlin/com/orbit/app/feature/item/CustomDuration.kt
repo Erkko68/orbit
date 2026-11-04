@@ -10,17 +10,13 @@ import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
-private const val AMOUNT_DIGITS = 3
-
 enum class DurationUnit(val label: StringResource, val length: Duration) {
     MINUTES(Res.string.duration_unit_minutes, 1.minutes),
     HOURS(Res.string.duration_unit_hours, 1.hours),
     DAYS(Res.string.duration_unit_days, 1.days),
 }
 
-/** A length of time typed by hand, such as how long before to remind or how long something takes. */
-data class CustomDuration(val amount: String = "", val unit: DurationUnit = DurationUnit.MINUTES) {
-    val length: Duration? get() = amount.toIntOrNull()?.takeIf { it > 0 }?.let { unit.length * it }
-
-    fun withAmount(text: String) = copy(amount = text.filter(Char::isDigit).take(AMOUNT_DIGITS))
+/** A length of time picked on the wheels, such as how long before to remind: none while [amount] is 0. */
+data class CustomDuration(val amount: Int = 2, val unit: DurationUnit = DurationUnit.HOURS) {
+    val length: Duration? get() = amount.takeIf { it > 0 }?.let { unit.length * it }
 }
