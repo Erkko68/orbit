@@ -34,7 +34,18 @@ class InterviewMapperTest {
 
     @Test
     fun readsThatThereIsAPlan() {
-        assertEquals(InterviewStep.PlanReady, interviewStep("""{"result":{"plan":{"items":[]}}}"""))
+        assertEquals(InterviewStep.PlanReady, interviewStep("""{"result":{"plan":{"version":1,"items":[]}}}"""))
+    }
+
+    @Test
+    fun aPlanInAnotherVersionOrShapeIsNotUsed() {
+        assertEquals(AssistantError.UNAVAILABLE, failure("""{"result":{"plan":{"version":2,"items":[]}}}"""))
+        assertEquals(AssistantError.UNAVAILABLE, failure("""{"result":{"plan":{"items":[]}}}"""))
+        assertEquals(AssistantError.UNAVAILABLE, failure("""{"result":{"plan":{"version":1,"items":[{"modules":{}}]}}}"""))
+        assertEquals(
+            AssistantError.UNAVAILABLE,
+            failure("""{"result":{"plan":{"version":1,"items":[{"title":"Bins","modules":{"schedule":{}}}]}}}"""),
+        )
     }
 
     @Test
