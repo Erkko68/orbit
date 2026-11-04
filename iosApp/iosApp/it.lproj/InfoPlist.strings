@@ -1,0 +1,3 @@
+/* Dictation (ADR 0006): the permission prompts. English is in Info.plist. */
+"NSMicrophoneUsageDescription" = "Orbit usa il microfono quando detti una risposta.";
+"NSSpeechRecognitionUsageDescription" = "Orbit trasforma in testo quello che detti.";
