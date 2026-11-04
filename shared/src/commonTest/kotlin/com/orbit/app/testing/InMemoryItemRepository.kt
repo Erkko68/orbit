@@ -8,6 +8,7 @@ import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import kotlinx.coroutines.flow.Flow
@@ -97,9 +98,9 @@ class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository 
     override fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>> =
         completions.map { all -> all[spaceId].orEmpty().filter { it.completedBy == userId }.take(LATEST_COMPLETIONS) }
 
-    override suspend fun complete(spaceId: String, itemId: String) {
+    override suspend fun complete(spaceId: String, itemId: String, next: Schedule?) {
         val done = ItemStatus.Done(by = auth.requireUser().id, at = Clock.System.now())
-        edit(spaceId, itemId) { it.copy(status = done) }
+        edit(spaceId, itemId) { if (next != null) it.copy(modules = it.modules.with(next)) else it.copy(status = done) }
         record(spaceId, itemId, done.by, reopened = false)
     }
 

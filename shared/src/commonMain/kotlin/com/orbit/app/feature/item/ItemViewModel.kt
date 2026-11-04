@@ -16,9 +16,11 @@ import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.repository.AuthRepository
+import com.orbit.app.domain.usecase.rolledForward
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlinx.coroutines.channels.Channel
@@ -34,6 +36,7 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
@@ -117,7 +120,8 @@ class ItemViewModel(
         submit(onSuccess = { form.update { it.copy(created = true) } }) { items.create(spaceId, item) }
     }
 
-    fun complete() = submit { items.complete(spaceId, itemId) }
+    /** A recurring item moves to its next date and stays open (ADR 0011). */
+    fun complete() = submit { items.complete(spaceId, itemId, modules().rolledForward(today())) }
 
     fun reopen() = submit { items.reopen(spaceId, itemId) }
 
@@ -166,41 +170,32 @@ class ItemViewModel(
         submit(onSuccess = { form.update { it.copy(deleted = true) } }) { items.delete(spaceId, itemId) }
     }
 
-    /** A reminder counts back from a date, so without one the date comes first. */
+    /** A reminder counts back from a date, so there is nothing to open without one. */
     fun openReminder() {
-        if (uiState.value.schedule == null) {
-            editSchedule()
-        } else {
-            form.update { it.copy(editingReminder = true, failed = false) }
-        }
+        if (uiState.value.showsReminder) form.update { it.copy(editingReminder = true, addingReminder = false, failed = false) }
     }
 
-    fun dismissReminder() = form.update { it.copy(editingReminder = false, customReminder = null) }
+    fun dismissReminder() = form.update { it.copy(editingReminder = false, addingReminder = false, customReminder = CustomDuration()) }
 
-    /** Adds the moment, or takes it off. */
-    fun toggleReminderOffset(offset: Duration) {
-        val current = uiState.value.reminderOffsets
-        setReminderOffsets(if (offset in current) current - offset else current + offset)
+    fun openAddReminder() = form.update { it.copy(addingReminder = true, customReminder = CustomDuration(), failed = false) }
+
+    fun closeAddReminder() = form.update { it.copy(addingReminder = false) }
+
+    /** Adds the moment to the list, which the sheet then shows again. */
+    fun addReminderOffset(offset: Duration) {
+        form.update { it.copy(addingReminder = false) }
+        setReminderOffsets(uiState.value.reminderOffsets + offset)
     }
 
-    /** Leaves the item without a reminder. */
-    fun clearReminder() = setReminderOffsets(emptyList())
+    /** Takes the moment off the list. Without any left the reminder goes. */
+    fun removeReminderOffset(offset: Duration) = setReminderOffsets(uiState.value.reminderOffsets - offset)
 
-    /** Shows the fields for a moment of the user's own, or hides them. */
-    fun toggleCustomReminder() = form.update {
-        it.copy(customReminder = if (it.customReminder == null) CustomDuration() else null)
-    }
-
-    fun onCustomReminderAmountChange(text: String) = updateCustomReminder { it.withAmount(text) }
+    fun onCustomReminderAmountChange(amount: Int) = updateCustomReminder { it.copy(amount = amount) }
 
     fun selectCustomReminderUnit(unit: DurationUnit) = updateCustomReminder { it.copy(unit = unit) }
 
-    /** Adds the moment typed, which then shows with the others. */
-    fun addCustomReminder() {
-        val offset = form.value.customReminder?.length ?: return
-        form.update { it.copy(customReminder = null) }
-        setReminderOffsets(uiState.value.reminderOffsets + offset)
-    }
+    /** Adds the moment on the wheels. */
+    fun addCustomReminder() = form.value.customReminder.length?.let(::addReminderOffset)
 
     /** Without any moments the reminder goes. The first one asks for notifications. */
     private fun setReminderOffsets(offsets: List<Duration>) {
@@ -252,17 +247,20 @@ class ItemViewModel(
     /** Opens the schedule's editor on what it holds now, or on today for an item without one. */
     fun editSchedule() {
         if (!uiState.value.canEdit) return
-        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-        val schedule = uiState.value.schedule ?: Schedule(date = today)
-        form.update { it.copy(scheduleEditor = ScheduleEditor.of(schedule, today), failed = false) }
+        val today = today()
+        val state = uiState.value
+        val schedule = state.schedule ?: Schedule(date = today)
+        form.update { it.copy(scheduleEditor = ScheduleEditor.of(schedule, state.recurrence, today), failed = false) }
     }
 
-    /** Takes the date off the item, and with it the reminder that needs one. */
+    /** Takes the date off the item, and with it the reminder and the repeat that need one. */
     fun removeSchedule() {
         val hasReminder = uiState.value.reminder != null
+        val hasRecurrence = uiState.value.recurrence != null
         form.update { it.copy(scheduleEditor = null) }
-        edit(local = { it.without(ModuleType.REMINDER).without(ModuleType.SCHEDULE) }) {
+        edit(local = { it.without(ModuleType.REMINDER).without(ModuleType.RECURRENCE).without(ModuleType.SCHEDULE) }) {
             if (hasReminder) items.removeModule(spaceId, itemId, ModuleType.REMINDER)
+            if (hasRecurrence) items.removeModule(spaceId, itemId, ModuleType.RECURRENCE)
             items.removeModule(spaceId, itemId, ModuleType.SCHEDULE)
         }
     }
@@ -286,6 +284,30 @@ class ItemViewModel(
     /** Leaves the item without a time, so it is due at any point of its day. */
     fun clearScheduleTime() = updateEditor { it.copy(time = "", pickingTime = false) }
 
+    fun openRepeat() = updateEditor { it.copy(editingRepeat = true) }
+
+    fun closeRepeat() = updateEditor { it.copy(editingRepeat = false) }
+
+    /** Repeats in one of the usual ways, or not at all, and goes back to the schedule. */
+    fun pickRepeat(recurrence: Recurrence?) = updateEditor { it.withRecurrence(recurrence).copy(editingRepeat = false) }
+
+    /** Opens the wheels, on weeks when it does not repeat yet. */
+    fun openCustomRepeat() = updateEditor { it.copy(customRepeat = true, repeat = it.repeat ?: RepeatUnit.WEEKS) }
+
+    fun closeCustomRepeat() = updateEditor { it.copy(customRepeat = false) }
+
+    /** Keeps the repeat on the wheels and goes back to the schedule. */
+    fun finishCustomRepeat() = updateEditor { it.copy(customRepeat = false, editingRepeat = false) }
+
+    fun selectRepeatUnit(unit: RepeatUnit) = updateEditor { it.copy(repeat = unit) }
+
+    fun onRepeatEveryChange(every: Int) = updateEditor { it.copy(repeatEvery = every.coerceAtLeast(1)) }
+
+    fun toggleRepeatWeekday(day: DayOfWeek) = updateEditor { it.withWeekdayToggled(day) }
+
+    /** Repeats for good, with no last day, and leaves the calendar. */
+    fun clearRepeatUntil() = updateEditor { it.copy(repeatUntil = null, picking = null) }
+
     fun onDurationHoursChange(hours: Int) = updateEditor { it.copy(durationHours = hours) }
 
     fun onDurationMinutesChange(minutes: Int) = updateEditor { it.copy(durationMinutes = minutes) }
@@ -295,12 +317,25 @@ class ItemViewModel(
         editor.withPicked(Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date)
     }
 
-    /** Keeps the edited schedule and closes the editor; a failure keeps it open with what was typed. */
+    /** Keeps the edited schedule and its repeat and closes the editor; a failure keeps it open with what was typed. */
     fun saveSchedule() {
         if (!uiState.value.canSaveSchedule) return
-        val schedule = form.value.scheduleEditor?.schedule ?: return
-        edit(local = { it.with(schedule) }, onSuccess = { form.update { it.copy(scheduleEditor = null) } }) {
+        val editor = form.value.scheduleEditor ?: return
+        val schedule = editor.schedule ?: return
+        val recurrence = editor.recurrence
+        val hadRecurrence = uiState.value.recurrence != null
+        edit(
+            local = { modules ->
+                modules.with(schedule).let { if (recurrence == null) it.without(ModuleType.RECURRENCE) else it.with(recurrence) }
+            },
+            onSuccess = { form.update { it.copy(scheduleEditor = null) } },
+        ) {
             items.setModule(spaceId, itemId, schedule)
+            if (recurrence != null) {
+                items.setModule(spaceId, itemId, recurrence)
+            } else if (hadRecurrence) {
+                items.removeModule(spaceId, itemId, ModuleType.RECURRENCE)
+            }
         }
     }
 
@@ -381,9 +416,14 @@ class ItemViewModel(
     private suspend fun settleStatus(entries: List<ChecklistEntry>) {
         val finished = entries.isNotEmpty() && entries.all { it.checked }
         val done = uiState.value.isDone
-        if (finished && !done) items.complete(spaceId, itemId)
+        // ponytail: a finished list closes even when it recurs; rolling it forward needs its entries unticked too.
+        if (finished && !done) items.complete(spaceId, itemId, null)
         if (!finished && done) items.reopen(spaceId, itemId)
     }
+
+    private fun modules(): ItemModules = uiState.value.modules.fold(ItemModules(), ItemModules::with)
+
+    private fun today() = Clock.System.todayIn(TimeZone.currentSystemDefault())
 
     private fun entries(): List<ChecklistEntry> =
         uiState.value.modules.filterIsInstance<Checklist>().firstOrNull()?.entries.orEmpty()
@@ -397,7 +437,7 @@ class ItemViewModel(
         mapIndexed { index, entry -> entry.order ?: index }.maxOrNull()?.plus(1) ?: 0
 
     private fun updateCustomReminder(change: (CustomDuration) -> CustomDuration) = form.update {
-        it.copy(customReminder = it.customReminder?.let(change), failed = false)
+        it.copy(customReminder = change(it.customReminder), failed = false)
     }
 
     private fun updateChecklistEditor(change: (ChecklistEditor) -> ChecklistEditor) = form.update {

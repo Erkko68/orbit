@@ -57,7 +57,8 @@ fun scheduleErrors(schedule: Schedule?): List<ItemError> {
     )
 }
 
-private fun recurrenceErrors(recurrence: Recurrence?, schedule: Schedule?): List<ItemError> {
+/** The rules of a recurrence over its [schedule], for the same editor. */
+fun recurrenceErrors(recurrence: Recurrence?, schedule: Schedule?): List<ItemError> {
     if (recurrence == null) return emptyList()
     val until = recurrence.until
     return listOfNotNull(

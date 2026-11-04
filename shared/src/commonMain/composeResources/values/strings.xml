@@ -166,6 +166,52 @@
     <string name="schedule_how_long">How long it takes</string>
     <string name="schedule_tap_to_change">Tap to change</string>
     <string name="schedule_tap_to_set">Optional</string>
+    <string name="schedule_repeat">Repeat</string>
+    <string name="repeat_none">Doesn\'t repeat</string>
+    <string name="repeat_every">Every</string>
+    <string name="repeat_ends">Ends</string>
+    <string name="repeat_never">Never</string>
+    <plurals name="repeat_every_days">
+        <item quantity="one">Every day</item>
+        <item quantity="other">Every %1$d days</item>
+    </plurals>
+    <plurals name="repeat_every_weeks">
+        <item quantity="one">Every week</item>
+        <item quantity="other">Every %1$d weeks</item>
+    </plurals>
+    <plurals name="repeat_every_months">
+        <item quantity="one">Every month</item>
+        <item quantity="other">Every %1$d months</item>
+    </plurals>
+    <plurals name="repeat_every_years">
+        <item quantity="one">Every year</item>
+        <item quantity="other">Every %1$d years</item>
+    </plurals>
+    <plurals name="repeat_unit_days">
+        <item quantity="one">day</item>
+        <item quantity="other">days</item>
+    </plurals>
+    <plurals name="repeat_unit_weeks">
+        <item quantity="one">week</item>
+        <item quantity="other">weeks</item>
+    </plurals>
+    <plurals name="repeat_unit_months">
+        <item quantity="one">month</item>
+        <item quantity="other">months</item>
+    </plurals>
+    <plurals name="repeat_unit_years">
+        <item quantity="one">year</item>
+        <item quantity="other">years</item>
+    </plurals>
+    <string name="repeat_month_day">On day %1$d</string>
+    <string name="repeat_done">Done</string>
+    <string name="weekday_mon">Mon</string>
+    <string name="weekday_tue">Tue</string>
+    <string name="weekday_wed">Wed</string>
+    <string name="weekday_thu">Thu</string>
+    <string name="weekday_fri">Fri</string>
+    <string name="weekday_sat">Sat</string>
+    <string name="weekday_sun">Sun</string>
     <string name="module_assignment_anyone">Anyone</string>
     <string name="assignment_pick_member">Who has it?</string>
     <string name="module_checklist_quantity">× %1$d</string>
@@ -187,12 +233,12 @@
     <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <string name="module_reminder_at_time">At the due time</string>
     <string name="module_reminder_before">%1$s before</string>
-    <string name="reminder_none">No reminder</string>
     <string name="duration_custom">Custom</string>
     <string name="duration_amount">How many</string>
     <string name="duration_unit_minutes">Min</string>
     <string name="duration_unit_hours">Hours</string>
     <string name="duration_unit_days">Days</string>
+    <string name="reminder_remove">Remove %1$s</string>
     <string name="reminder_add">Add reminder</string>
     <string name="invite_title">Invite people</string>
     <string name="invite_none">Create a link and a code. Anyone who has them can join this space for a week, or until you revoke them.</string>

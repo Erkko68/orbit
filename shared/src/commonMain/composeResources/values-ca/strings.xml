@@ -166,6 +166,52 @@
     <string name="schedule_how_long">Quant dura</string>
     <string name="schedule_tap_to_change">Toca per canviar</string>
     <string name="schedule_tap_to_set">Opcional</string>
+    <string name="schedule_repeat">Repetir</string>
+    <string name="repeat_none">No es repeteix</string>
+    <string name="repeat_every">Cada</string>
+    <string name="repeat_ends">Acaba</string>
+    <string name="repeat_never">Mai</string>
+    <plurals name="repeat_every_days">
+        <item quantity="one">Cada dia</item>
+        <item quantity="other">Cada %1$d dies</item>
+    </plurals>
+    <plurals name="repeat_every_weeks">
+        <item quantity="one">Cada setmana</item>
+        <item quantity="other">Cada %1$d setmanes</item>
+    </plurals>
+    <plurals name="repeat_every_months">
+        <item quantity="one">Cada mes</item>
+        <item quantity="other">Cada %1$d mesos</item>
+    </plurals>
+    <plurals name="repeat_every_years">
+        <item quantity="one">Cada any</item>
+        <item quantity="other">Cada %1$d anys</item>
+    </plurals>
+    <plurals name="repeat_unit_days">
+        <item quantity="one">dia</item>
+        <item quantity="other">dies</item>
+    </plurals>
+    <plurals name="repeat_unit_weeks">
+        <item quantity="one">setmana</item>
+        <item quantity="other">setmanes</item>
+    </plurals>
+    <plurals name="repeat_unit_months">
+        <item quantity="one">mes</item>
+        <item quantity="other">mesos</item>
+    </plurals>
+    <plurals name="repeat_unit_years">
+        <item quantity="one">any</item>
+        <item quantity="other">anys</item>
+    </plurals>
+    <string name="repeat_month_day">El dia %1$d</string>
+    <string name="repeat_done">Fet</string>
+    <string name="weekday_mon">dl.</string>
+    <string name="weekday_tue">dt.</string>
+    <string name="weekday_wed">dc.</string>
+    <string name="weekday_thu">dj.</string>
+    <string name="weekday_fri">dv.</string>
+    <string name="weekday_sat">ds.</string>
+    <string name="weekday_sun">dg.</string>
     <string name="module_assignment_anyone">Qualsevol membre</string>
     <string name="assignment_pick_member">Qui el té?</string>
     <string name="module_checklist_quantity">× %1$d</string>
@@ -187,12 +233,12 @@
     <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <string name="module_reminder_at_time">A l&apos;hora límit</string>
     <string name="module_reminder_before">%1$s abans</string>
-    <string name="reminder_none">Sense recordatori</string>
     <string name="duration_custom">Personalitzat</string>
     <string name="duration_amount">Quants</string>
     <string name="duration_unit_minutes">Min</string>
     <string name="duration_unit_hours">Hores</string>
     <string name="duration_unit_days">Dies</string>
+    <string name="reminder_remove">Treure %1$s</string>
     <string name="reminder_add">Afegeix un recordatori</string>
     <string name="invite_title">Convida persones</string>
     <string name="invite_none">Crea un enllaç i un codi. Qualsevol persona que els tingui es podrà unir a aquest espai durant una setmana o fins que els revoquis.</string>

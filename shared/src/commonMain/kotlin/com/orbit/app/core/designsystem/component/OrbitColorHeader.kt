@@ -68,7 +68,8 @@ private const val EDIT_HINT_ALPHA = 0.6f
 /**
  * The top of a screen about one thing, such as a member or the user's account: a block of the space's vivid colour
  * under the system bar, with a way back, [label], a [trailing] action, a [leading] face, a big [title] and a [detail]
- * line. With [onTitleChange] the title is typed in place, with a pencil that says so: [titleDescription] names it,
+ * line. On a screen whose top bar collapses, the face, the title and the detail shrink away and the row with the way back
+ * stays. With [onTitleChange] the title is typed in place, with a pencil that says so: [titleDescription] names it,
  * [titlePlaceholder] stands in while it is empty, [focusTitle] puts the cursor there at once and [onTitleDone] says when
  * the user is through. Everything else that can be changed is a field or a row in the body. Pass it to [OrbitScreen]'s
  * `topBar`. Text on it is always ink.
@@ -108,7 +109,7 @@ fun OrbitColorHeader(
                 trailing?.invoke()
             }
             Column(
-                modifier = Modifier.padding(start = OrbitSpacing.sm + OrbitSpacing.xs),
+                modifier = Modifier.topBarCollapsible().padding(start = OrbitSpacing.sm + OrbitSpacing.xs),
                 verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs),
             ) {
                 leading?.invoke()

@@ -53,6 +53,35 @@ describe('Completions subcollection', () => {
     await assertFails(completions.add({ ...completion('charlie'), itemId: 'missing' }));
   });
 
+  // Moves a recurring item1 to its next date and records the completion in one batch, the way the app rolls it forward.
+  const rollForward = (db, record, date = '2026-11-13') => {
+    const space = db.collection('spaces').doc('s1');
+    const batch = db.batch();
+    batch.update(space.collection('items').doc('item1'), { 'modules.schedule': { date } });
+    batch.set(space.collection('completions').doc(), record);
+    return batch.commit();
+  };
+
+  const makeRecurring = (modules) => testEnv.withSecurityRulesDisabled(async (context) => {
+    await context.firestore().collection('spaces').doc('s1').collection('items').doc('item1').update({ modules });
+  });
+
+  it('lets a member complete a recurring item by moving it to a later date', async () => {
+    await makeRecurring({ schedule: { date: '2026-11-06' }, recurrence: { unit: 'week', every: 1, weekdays: [5] } });
+    const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+    await assertSucceeds(rollForward(charlieDb, completion('charlie')));
+  });
+
+  it('denies rolling forward an item that does not recur, or to an earlier or the same date', async () => {
+    const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+    await makeRecurring({ schedule: { date: '2026-11-06' } });
+    await assertFails(rollForward(charlieDb, completion('charlie')));
+
+    await makeRecurring({ schedule: { date: '2026-11-06' }, recurrence: { unit: 'day', every: 1 } });
+    await assertFails(rollForward(charlieDb, completion('charlie'), '2026-11-06'));
+    await assertFails(rollForward(charlieDb, completion('charlie'), '2026-11-01'));
+  });
+
   // Opens item1 again and records the reopening in one batch, the way the app reopens an item.
   const reopen = (db, record) => {
     const space = db.collection('spaces').doc('s1');

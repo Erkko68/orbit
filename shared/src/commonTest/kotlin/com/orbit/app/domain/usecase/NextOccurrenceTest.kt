@@ -1,5 +1,6 @@
 package com.orbit.app.domain.usecase
 
+import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Schedule
 import kotlinx.datetime.DayOfWeek.FRIDAY
@@ -116,5 +117,16 @@ class NextOccurrenceTest {
 
         assertNull(next(friday, Recurrence.Weeks(1, emptySet())))
         assertFailsWith<IllegalArgumentException> { next(friday, Recurrence.Days(0)) }
+    }
+
+    @Test
+    fun completingOnTimeOrLateMovesPastBothTheDateAndToday() {
+        val friday = LocalDate(2026, 11, 6)
+        val weekly = ItemModules(schedule = Schedule(friday), recurrence = Recurrence.Weeks(1, setOf(FRIDAY)))
+
+        assertEquals(Schedule(LocalDate(2026, 11, 13)), weekly.rolledForward(today = LocalDate(2026, 11, 4)))
+        assertEquals(Schedule(LocalDate(2026, 11, 20)), weekly.rolledForward(today = LocalDate(2026, 11, 14)))
+        assertNull(ItemModules(schedule = Schedule(friday)).rolledForward(friday))
+        assertNull(weekly.copy(recurrence = Recurrence.Days(1, until = friday)).rolledForward(friday))
     }
 }

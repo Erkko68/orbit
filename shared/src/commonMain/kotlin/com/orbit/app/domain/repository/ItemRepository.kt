@@ -5,6 +5,7 @@ import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Schedule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.LocalDate
 
@@ -51,8 +52,11 @@ interface ItemRepository {
     /** The latest items [userId] completed or reopened in the space, newest first. */
     fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>>
 
-    /** Also records the completion in the item's history, which reopening keeps. */
-    suspend fun complete(spaceId: String, itemId: String)
+    /**
+     * Also records the completion in the item's history, which reopening keeps. With a [next] schedule the item
+     * recurs: it stays open and moves there instead (ADR 0011).
+     */
+    suspend fun complete(spaceId: String, itemId: String, next: Schedule?)
 
     /** Also records the reopening in the item's history. */
     suspend fun reopen(spaceId: String, itemId: String)

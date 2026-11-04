@@ -6,6 +6,7 @@ import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Module
+import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import kotlin.time.Duration
@@ -32,10 +33,12 @@ data class ItemUiState(
     /** The title as typed, until it is saved. */
     val titleDraft: String? = null,
     val createdBy: String? = null,
-    /** The sheet that picks when to remind is showing. */
+    /** The sheet that lists the reminders is showing. */
     val editingReminder: Boolean = false,
-    /** The moment being typed in that sheet, while its fields are open. */
-    val customReminder: CustomDuration? = null,
+    /** That sheet is on its page that adds one. */
+    val addingReminder: Boolean = false,
+    /** The moment on that page's wheels. */
+    val customReminder: CustomDuration = CustomDuration(),
     /** The sheet that confirms deleting the item is showing. */
     val confirmingDelete: Boolean = false,
     /** The item is gone, so the screen closes. */
@@ -90,11 +93,15 @@ data class ItemUiState(
 
     val assignment: Assignment? get() = modules.filterIsInstance<Assignment>().firstOrNull()
     val schedule: Schedule? get() = modules.filterIsInstance<Schedule>().firstOrNull()
+    val recurrence: Recurrence? get() = modules.filterIsInstance<Recurrence>().firstOrNull()
     val reminder: Reminder? get() = modules.filterIsInstance<Reminder>().firstOrNull()
     val reminderOffsets: List<Duration> get() = reminder?.offsets.orEmpty()
 
-    /** The moments to pick from: the usual ones, and any other the reminder already has. */
-    val reminderChoices: List<Duration> get() = (ReminderPresets + reminderOffsets).distinct().sorted()
+    /** The usual moments the reminder does not have yet. */
+    val reminderChoices: List<Duration> get() = ReminderPresets - reminderOffsets.toSet()
+
+    /** A reminder counts back from a date, so its row shows once the item has one. */
+    val showsReminder: Boolean get() = schedule != null
 
     /** What the name field shows while it is typed, and after. */
     val shownTitle: String get() = titleDraft ?: title

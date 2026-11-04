@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -25,12 +24,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -38,7 +40,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.orbit.app.core.designsystem.theme.OrbitMotion
@@ -63,8 +64,9 @@ private val HaloWidth = 36.dp
  * screen scrolls its content, above the keyboard, and leaves room for what floats. Leave it off for a screen whose
  * content scrolls itself. [list] does the same for a lazy list, so what it shows can glide when it changes: pass it
  * instead of [content]. [primaryAction], such as the one button of a form, stays at the bottom in the gutter, in place
- * of a [bottomBar]. With [collapsingTopBar] the top bar slides away as the content scrolls down and comes back as soon
- * as it scrolls up, for a long screen whose way back should not hold room.
+ * of a [bottomBar]. With [collapsingTopBar] the part of the top bar marked [topBarCollapsible] shrinks away as the
+ * content scrolls down and comes back once it is scrolled to the top, as M3's exitUntilCollapsed does: the rest, such as
+ * the way back, stays pinned.
  */
 @Composable
 fun OrbitScreen(
@@ -84,7 +86,6 @@ fun OrbitScreen(
     val planet by animateColorAsState(accent.planet, OrbitMotion.effects())
     val halo by animateColorAsState(accent.halo, OrbitMotion.effects())
     val collapse = remember { TopBarCollapse() }
-    collapse.kept = WindowInsets.statusBars.getTop(LocalDensity.current).toFloat()
     Box(
         modifier.fillMaxSize().background(page).drawBehind {
             val radius = PlanetRadius.toPx()
@@ -95,7 +96,7 @@ fun OrbitScreen(
     ) {
         Scaffold(
             topBar = if (collapsingTopBar) {
-                { Box(Modifier.background(page).collapsing(collapse)) { topBar() } }
+                { CompositionLocalProvider(LocalTopBarCollapse provides collapse) { topBar() } }
             } else {
                 topBar
             },
@@ -148,28 +149,46 @@ fun OrbitScreen(
     }
 }
 
-/** Hides the top bar as the content scrolls down and shows it again as soon as it scrolls up, as M3's enterAlways does. */
+/** The collapse of the screen's top bar, while [OrbitScreen] has one. */
+private val LocalTopBarCollapse = staticCompositionLocalOf<TopBarCollapse?> { null }
+
+/**
+ * Shrinks the part of the top bar the content collapses, from scrolling down until it is gone, and gives it back once
+ * the content is scrolled to its top, as M3's exitUntilCollapsed does.
+ */
 private class TopBarCollapse : NestedScrollConnection {
-    /** The bar's full height, measured by [collapsing]. */
+    /** The full height of the part that collapses, measured by [topBarCollapsible]. */
     var height = 0f
 
-    /** What stays of it: the status bar's height, so the bar's own colour stays behind the clock and battery. */
-    var kept = 0f
-
-    /** How far the bar has slid up, from 0 to -([height] - [kept]). */
+    /** How much of it is gone, from 0 to -[height]. */
     var offset by mutableFloatStateOf(0f)
 
-    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+    override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset =
+        if (available.y < 0) slide(available.y) else Offset.Zero
+
+    override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset =
+        if (available.y > 0) slide(available.y) else Offset.Zero
+
+    private fun slide(by: Float): Offset {
         val before = offset
-        offset = (offset + available.y).coerceIn(-(height - kept).coerceAtLeast(0f), 0f)
+        offset = (offset + by).coerceIn(-height, 0f)
         return Offset(0f, offset - before)
     }
 }
 
-/** Lays the bar out as tall as what is left of it, its bottom showing, so the content below follows it up. */
-private fun Modifier.collapsing(collapse: TopBarCollapse): Modifier = clipToBounds().layout { measurable, constraints ->
-    val placeable = measurable.measure(constraints)
-    collapse.height = placeable.height.toFloat()
-    val offset = collapse.offset.roundToInt()
-    layout(placeable.width, (placeable.height + offset).coerceAtLeast(0)) { placeable.place(0, offset) }
+/**
+ * Marks the part of a top bar that collapses on a screen with `collapsingTopBar`, such as a big title: it slides up
+ * under what is above it and fades, and the bar shrinks with it. Elsewhere it does nothing.
+ */
+@Composable
+internal fun Modifier.topBarCollapsible(): Modifier {
+    val collapse = LocalTopBarCollapse.current ?: return this
+    return clipToBounds()
+        .layout { measurable, constraints ->
+            val placeable = measurable.measure(constraints)
+            collapse.height = placeable.height.toFloat()
+            val offset = collapse.offset.roundToInt()
+            layout(placeable.width, (placeable.height + offset).coerceAtLeast(0)) { placeable.place(0, offset) }
+        }
+        .graphicsLayer { alpha = if (collapse.height == 0f) 1f else 1f + collapse.offset / collapse.height }
 }

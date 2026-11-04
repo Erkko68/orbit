@@ -209,7 +209,7 @@ The next occurrence is the first date after both the schedule's date and the com
 
 ### `spaces/{spaceId}/completions/{completionId}`
 
-The history of an item: who completed it or reopened it and when, one document each, written in the batch that marks the item done or open again. Append-only: reopening the item keeps its completions, and nobody edits or deletes one. One collection per space, so rotation and fairness (#49 to #51) read every completion of a space in one query, skipping reopenings.
+The history of an item: who completed it or reopened it and when, one document each, written in the batch that marks the item done or open again, or that moves a recurring item to its next date. Append-only: reopening the item keeps its completions, and nobody edits or deletes one. One collection per space, so rotation and fairness (#49 to #51) read every completion of a space in one query, skipping reopenings.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
@@ -217,8 +217,6 @@ The history of an item: who completed it or reopened it and when, one document e
 | `completedBy` | uid | yes | The caller: who completed or reopened it |
 | `completedAt` | timestamp | yes | Server time |
 | `action` | string | for a reopening | `reopen`. Absent on a completion, which is what every entry was before it |
-
-The occurrence date of a recurring item comes with recurrence (#46).
 
 ### `spaces/{spaceId}/expenses/{expenseId}`
 
@@ -315,7 +313,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `removeEntry` | same | `update`: delete `modules.checklist.entries.<id>` |
 | `observeCompletions` | `spaces/{id}/completions` where `itemId ==` id, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way. Completions and reopenings |
 | `observeMemberCompletions` | `spaces/{id}/completions` where `completedBy ==` uid, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way. Completions and reopenings: "Lately" skips the reopenings |
-| `complete` | same item, and a new `spaces/{id}/completions/{completionId}` | One batch: `update` of `status: done`, `completedBy`, `completedAt`, and `set` of the completion |
+| `complete` | same item, and a new `spaces/{id}/completions/{completionId}` | One batch: `update` of `status: done`, `completedBy`, `completedAt`, and `set` of the completion. A recurring item with a next occurrence gets an `update` of `modules.schedule` instead and stays open (ADR 0011) |
 | `reopen` | same item, and a new `spaces/{id}/completions/{completionId}` with `action: reopen` | One batch: `update` of `status: open`, delete `completedBy` and `completedAt`, and `set` of the reopening |
 
 No method saves a whole existing item: every update writes only its field paths, so concurrent edits merge.

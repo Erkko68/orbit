@@ -253,7 +253,7 @@ service cloud.firestore {
 
       // ── spaces/{spaceId}/completions/{completionId} ────────────────────────────────────────────
       // The history of an item: who completed it or reopened it, and when. A member adds their own entry, in the
-      // batch that marks the item done or open again. A reopening has `action: 'reopen'`; a completion has no action.
+      // batch that marks the item done or open again, or that moves a recurring item to its next date. A reopening has `action: 'reopen'`; a completion has no action.
       // Append-only: reopening keeps the completions, and nobody edits or deletes one.
 
       match /completions/{completionId} {
@@ -261,11 +261,21 @@ service cloud.firestore {
           return /databases/$(database)/documents/spaces/$(spaceId)/items/$(itemId);
         }
 
-        // A reopening opens a done item; a completion leaves the item done.
+        // A recurring item stays open and its schedule moves to a later date (ADR 0011).
+        function rollsForward(itemId) {
+          let before = get(item(itemId)).data;
+          let after = getAfter(item(itemId)).data;
+          return after.status == 'open'
+            && 'recurrence' in after.modules
+            && after.modules.schedule.date > before.modules.schedule.date;
+        }
+
+        // A reopening opens a done item; a completion leaves the item done, or rolls a recurring one forward.
         function matchesItem(entry) {
           return entry.get('action', null) == 'reopen'
             ? get(item(entry.itemId)).data.status == 'done' && getAfter(item(entry.itemId)).data.status == 'open'
-            : !('action' in entry.keys()) && getAfter(item(entry.itemId)).data.status == 'done';
+            : !('action' in entry.keys())
+              && (getAfter(item(entry.itemId)).data.status == 'done' || rollsForward(entry.itemId));
         }
 
         allow read: if isMember(spaceId);

@@ -27,7 +27,7 @@ A recurrence repeats an item's schedule: every N days, every N weeks on chosen w
 
 ## Consequences
 
-- The item's history is the record of past occurrences: each completion stays there while the item moves on. Which occurrence a completion was for is recorded with the card (#46).
+- The item's history is the record of past occurrences: each completion stays there while the item moves on. It does not store which occurrence it was for: nothing reads that yet.
 - A recurring item is never `done` until its end, so reopening applies only to that last completion; undoing a roll-forward belongs to the activity history (#84).
 - Rotation (#49) hands the item to the next member in the same batch, on the same document.
 - Weeks start on Monday for every space, whatever the phone's first day of the week: it only matters to a rule every 2 or more weeks.

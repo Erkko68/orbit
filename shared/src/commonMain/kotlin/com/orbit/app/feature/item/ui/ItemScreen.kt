@@ -196,7 +196,8 @@ private fun LazyListScope.itemBody(state: ItemUiState, viewModel: ItemViewModel,
             if (state.failed) {
                 item(key = "failed") { OrbitErrorText(stringResource(Res.string.item_action_failed)) }
             }
-            orbitGroup(ItemRow.entries, key = { it.name }) { row -> ItemActionRow(row, state, viewModel) }
+            val rows = ItemRow.entries.filter { it != ItemRow.REMINDER || state.showsReminder }
+            orbitGroup(rows, key = { it.name }) { row -> ItemActionRow(row, state, viewModel) }
             gap("description")
             item(key = "description") {
                 OrbitDetailsField(
@@ -238,7 +239,7 @@ private fun ItemActionRow(row: ItemRow, state: ItemUiState, viewModel: ItemViewM
 
         ItemRow.WHEN -> OrbitActionRow(
             title = stringResource(Res.string.item_when),
-            supporting = state.schedule?.let { itemScheduleLabel(it) } ?: stringResource(Res.string.item_add_date),
+            supporting = state.schedule?.let { itemWhenLabel(it, state.recurrence) } ?: stringResource(Res.string.item_add_date),
             icon = Res.drawable.ic_event,
             onClick = viewModel::editSchedule,
             modifier = modifier,

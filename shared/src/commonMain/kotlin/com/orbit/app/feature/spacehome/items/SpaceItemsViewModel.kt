@@ -15,6 +15,7 @@ import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import com.orbit.app.domain.usecase.rolledForward
 import com.orbit.app.feature.item.ItemFace
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
@@ -86,8 +88,11 @@ class SpaceItemsViewModel(
     /** Folds the Done section away, or unfolds it. */
     fun toggleDoneSection() = showingDone.update { !it }
 
+    /** A recurring item moves to its next date and stays open (ADR 0011). */
     fun complete(itemId: String) = submit("Completing item $itemId in space $spaceId") {
-        items.complete(spaceId, itemId)
+        val item = items.observeItems(spaceId).first().firstOrNull { it.id == itemId }
+        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+        items.complete(spaceId, itemId, item?.modules?.rolledForward(today))
     }
 
     fun reopen(itemId: String) = submit("Reopening item $itemId in space $spaceId") {

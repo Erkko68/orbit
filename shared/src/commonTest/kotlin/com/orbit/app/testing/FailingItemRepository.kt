@@ -5,6 +5,7 @@ import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.repository.ItemRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -46,7 +47,7 @@ internal class FailingItemRepository(
 
     override fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>> = flowOf(emptyList())
 
-    override suspend fun complete(spaceId: String, itemId: String) = throw failure
+    override suspend fun complete(spaceId: String, itemId: String, next: Schedule?) = throw failure
 
     override suspend fun reopen(spaceId: String, itemId: String) = throw failure
 }

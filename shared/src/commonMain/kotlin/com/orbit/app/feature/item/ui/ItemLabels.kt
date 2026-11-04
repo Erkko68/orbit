@@ -3,8 +3,10 @@ package com.orbit.app.feature.item.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.intl.Locale
 import com.orbit.app.core.formatDate
+import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.duration_days
@@ -19,6 +21,18 @@ import orbit.shared.generated.resources.module_reminder_at_time
 import orbit.shared.generated.resources.module_reminder_before
 import orbit.shared.generated.resources.module_schedule_range
 import orbit.shared.generated.resources.module_schedule_time
+import orbit.shared.generated.resources.repeat_every_days
+import orbit.shared.generated.resources.repeat_every_months
+import orbit.shared.generated.resources.repeat_every_weeks
+import orbit.shared.generated.resources.repeat_every_years
+import orbit.shared.generated.resources.repeat_month_day
+import orbit.shared.generated.resources.weekday_fri
+import orbit.shared.generated.resources.weekday_mon
+import orbit.shared.generated.resources.weekday_sat
+import orbit.shared.generated.resources.weekday_sun
+import orbit.shared.generated.resources.weekday_thu
+import orbit.shared.generated.resources.weekday_tue
+import orbit.shared.generated.resources.weekday_wed
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration
@@ -38,6 +52,49 @@ internal fun itemScheduleLabel(schedule: Schedule): String {
         stringResource(Res.string.module_schedule_time, date, time.toString())
     } ?: date
 }
+
+/** When a recurring item falls, on one line: its next date and how it repeats. */
+@Composable
+internal fun itemWhenLabel(schedule: Schedule, recurrence: Recurrence?): String =
+    recurrence?.let { stringResource(Res.string.module_schedule_time, itemScheduleLabel(schedule), itemRecurrenceLabel(it)) }
+        ?: itemScheduleLabel(schedule)
+
+/** How often it repeats ("Every 2 weeks"), with the days of a weekly repeat or the day of a monthly one. Twelve months are a year. */
+@Composable
+internal fun itemRecurrenceLabel(recurrence: Recurrence): String {
+    val every = recurrence.every
+    return when (recurrence) {
+        is Recurrence.Days -> pluralStringResource(Res.plurals.repeat_every_days, every, every)
+        is Recurrence.Weeks -> stringResource(
+            Res.string.module_schedule_time,
+            pluralStringResource(Res.plurals.repeat_every_weeks, every, every),
+            recurrence.weekdays.sorted().map { itemWeekdayLabel(it) }.joinToString(", "),
+        )
+        is Recurrence.Months -> if (every % 12 == 0) {
+            pluralStringResource(Res.plurals.repeat_every_years, every / 12, every / 12)
+        } else {
+            stringResource(
+                Res.string.module_schedule_time,
+                pluralStringResource(Res.plurals.repeat_every_months, every, every),
+                stringResource(Res.string.repeat_month_day, recurrence.dayOfMonth),
+            )
+        }
+    }
+}
+
+/** A day of the week, short. */
+@Composable
+internal fun itemWeekdayLabel(day: DayOfWeek): String = stringResource(
+    when (day) {
+        DayOfWeek.MONDAY -> Res.string.weekday_mon
+        DayOfWeek.TUESDAY -> Res.string.weekday_tue
+        DayOfWeek.WEDNESDAY -> Res.string.weekday_wed
+        DayOfWeek.THURSDAY -> Res.string.weekday_thu
+        DayOfWeek.FRIDAY -> Res.string.weekday_fri
+        DayOfWeek.SATURDAY -> Res.string.weekday_sat
+        DayOfWeek.SUNDAY -> Res.string.weekday_sun
+    },
+)
 
 /** One moment of a reminder. */
 @Composable

@@ -58,7 +58,8 @@ Firebase deploys one rules file and the language has no imports, so the file is 
 | `isSpaceCreator`, `joinsAsMember`, `keepsJoin` | members | The creator's own owner document; the member half of a join; `invitationCode` and `joinedAt` unchanged |
 | `handsOwnership`, `leaves` | members | The member half of a transfer or a leave |
 | `completesAsSelf` | items | `completedBy` set only to the caller |
-| `matchesItem(entry)` | completions | A completion: the same batch leaves the item `done`. A reopening (`action: 'reopen'`): the item was `done` and the batch leaves it `open` |
+| `matchesItem(entry)` | completions | A completion: the same batch leaves the item `done`, or rolls it forward (`rollsForward`). A reopening (`action: 'reopen'`): the item was `done` and the batch leaves it `open` |
+| `rollsForward(itemId)` | completions | A recurring item stays `open` with `modules.recurrence`, and the batch moves `modules.schedule.date` later (ADR 0011) |
 | `isExpense(data)` | expenses | The fields of an expense have the right types |
 
 ## What each collection checks
