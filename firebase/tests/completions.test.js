@@ -53,6 +53,37 @@ describe('Completions subcollection', () => {
     await assertFails(completions.add({ ...completion('charlie'), itemId: 'missing' }));
   });
 
+  // Opens item1 again and records the reopening in one batch, the way the app reopens an item.
+  const reopen = (db, record) => {
+    const space = db.collection('spaces').doc('s1');
+    const batch = db.batch();
+    batch.update(space.collection('items').doc('item1'), { status: 'open' });
+    batch.set(space.collection('completions').doc(), record);
+    return batch.commit();
+  };
+
+  const reopening = (by) => ({ ...completion(by), action: 'reopen' });
+
+  it('lets a member record their own reopening with the item it reopens', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('spaces').doc('s1').collection('items').doc('item1')
+        .update({ status: 'done', completedBy: 'alice', completedAt: new Date() });
+    });
+    const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+    await assertSucceeds(reopen(charlieDb, reopening('charlie')));
+  });
+
+  it('denies a reopening of an open item or that leaves it done, another action, or a completion of an open item', async () => {
+    const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+    const completions = charlieDb.collection('spaces').doc('s1').collection('completions');
+
+    await assertFails(complete(charlieDb, reopening('charlie')));
+    await assertFails(reopen(charlieDb, { ...completion('charlie'), action: 'archive' }));
+    await assertFails(reopen(charlieDb, reopening('alice')));
+    await assertFails(reopen(charlieDb, completion('charlie')));
+    await assertFails(completions.add(reopening('charlie')));
+  });
+
   it('denies a non-member a completion', async () => {
     const davidDb = testEnv.authenticatedContext('david').firestore();
     await assertFails(complete(davidDb, completion('david')));

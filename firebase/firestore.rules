@@ -252,22 +252,29 @@ service cloud.firestore {
       }
 
       // ── spaces/{spaceId}/completions/{completionId} ────────────────────────────────────────────
-      // Who completed an item and when, kept for every completion. A member adds their own, in the batch that
-      // marks the item done. Append-only: reopening keeps it, and nobody edits or deletes one.
+      // The history of an item: who completed it or reopened it, and when. A member adds their own entry, in the
+      // batch that marks the item done or open again. A reopening has `action: 'reopen'`; a completion has no action.
+      // Append-only: reopening keeps the completions, and nobody edits or deletes one.
 
       match /completions/{completionId} {
-        function completesItem(itemId) {
-          let item = /databases/$(database)/documents/spaces/$(spaceId)/items/$(itemId);
-          return getAfter(item).data.status == 'done';
+        function item(itemId) {
+          return /databases/$(database)/documents/spaces/$(spaceId)/items/$(itemId);
+        }
+
+        // A reopening opens a done item; a completion leaves the item done.
+        function matchesItem(entry) {
+          return entry.get('action', null) == 'reopen'
+            ? get(item(entry.itemId)).data.status == 'done' && getAfter(item(entry.itemId)).data.status == 'open'
+            : !('action' in entry.keys()) && getAfter(item(entry.itemId)).data.status == 'done';
         }
 
         allow read: if isMember(spaceId);
         allow create: if isMember(spaceId)
-          && request.resource.data.keys().hasOnly(['itemId', 'completedBy', 'completedAt'])
+          && request.resource.data.keys().hasOnly(['itemId', 'completedBy', 'completedAt', 'action'])
           && request.resource.data.itemId is string
           && request.resource.data.completedBy == request.auth.uid
           && request.resource.data.completedAt == request.time
-          && completesItem(request.resource.data.itemId);
+          && matchesItem(request.resource.data);
         allow update, delete: if false;
       }
 
