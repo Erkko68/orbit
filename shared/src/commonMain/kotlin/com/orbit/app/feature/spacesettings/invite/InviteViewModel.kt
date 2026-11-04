@@ -1,4 +1,4 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.spacesettings.invite
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
-/** The invitation dialog of the member row: an owner or admin creates, shares and revokes the link of a space. */
+/** The invitation sheet of the settings: an owner or admin creates, shares and revokes the link of a space. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class InviteViewModel(
     private val spaceId: String,
@@ -79,7 +79,9 @@ class InviteViewModel(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InviteUiState())
 
-    fun open() = form.update { it.copy(open = true) }
+    fun open() {
+        if (uiState.value.canInvite) form.update { it.copy(open = true) }
+    }
 
     fun dismiss() = form.update { it.copy(open = false, failure = null) }
 

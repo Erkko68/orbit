@@ -1,27 +1,27 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.spacesettings.invite
 
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.share.TextSharer
+import com.orbit.app.feature.member.SpaceMembersViewModel
+import com.orbit.app.feature.spacesettings.SpaceSettingsViewModel
+import com.orbit.app.feature.spacesettings.ui.SpaceSettingsScreen
 import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.SpaceRepository
-import com.orbit.app.feature.spacehome.settings.SpaceSettings
-import com.orbit.app.feature.spacehome.settings.SpaceSettingsViewModel
 import com.orbit.app.testing.FailingInvitationRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryInvitationRepository
 import com.orbit.app.testing.InMemorySpaceRepository
-import com.orbit.app.testing.hasClickLabel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -29,7 +29,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
-class InvitePageTest : ComposeTest() {
+class InviteSheetTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
     private val shared = mutableListOf<String>()
 
@@ -39,14 +39,15 @@ class InvitePageTest : ComposeTest() {
         InMemorySpaceRepository(auth).also { it.createSpace("Flat 4B", accent = 0) }
     }
 
-    /** Shows the settings of the space and goes to the invitation from their menu. */
+    /** Shows the settings of the space and opens the invitation sheet from them. */
     private fun ComposeUiTest.showCard(spaces: SpaceRepository, invitations: InvitationRepository) {
         setContent {
             OrbitTheme {
-                SpaceSettings(
+                SpaceSettingsScreen(
                     spaceId = "space-1",
+                    onBack = {},
+                    onOpenMember = {},
                     onGone = {},
-                    onOpenItem = {},
                     viewModel = SpaceSettingsViewModel("space-1", spaces, auth),
                     membersViewModel = SpaceMembersViewModel("space-1", spaces, auth),
                     inviteViewModel = InviteViewModel("space-1", invitations, spaces, auth),
@@ -54,15 +55,14 @@ class InvitePageTest : ComposeTest() {
                 )
             }
         }
-        onAllNodes(hasClickLabel("Space settings")).onFirst().performClick()
-        onNodeWithText("Invite people").performClick()
+        onNodeWithText("Invite people").performScrollTo().performClick()
     }
 
     @Test
     fun offersTheOwnerToCreateAnInvitation() = runComposeUiTest {
         showCard(ownedSpace(), InMemoryInvitationRepository(auth))
 
-        onNodeWithText("Invite people").assertIsDisplayed()
+        onNodeWithContentDescription("Close").assertIsDisplayed()
         onNodeWithText("Create invitation").assertIsEnabled()
         onNodeWithText("Share").assertDoesNotExist()
     }
@@ -71,7 +71,7 @@ class InvitePageTest : ComposeTest() {
     fun opensAtOnceButOffersToCreateOnlyOnceTheInvitationsArrive() = runComposeUiTest {
         showCard(ownedSpace(), FailingInvitationRepository(neverLoad = true))
 
-        onNodeWithText("Invite people").assertIsDisplayed()
+        onNodeWithContentDescription("Close").assertIsDisplayed()
         onNodeWithText("Create invitation").assertIsNotEnabled()
     }
 
@@ -128,15 +128,15 @@ class InvitePageTest : ComposeTest() {
     }
 
     @Test
-    fun closingTheDialogForgetsAFailure() = runComposeUiTest {
+    fun closingTheSheetForgetsAFailure() = runComposeUiTest {
         showCard(ownedSpace(), FailingInvitationRepository())
         onNodeWithText("Create invitation").performClick()
 
-        onNodeWithContentDescription("Back").performClick()
+        onNodeWithContentDescription("Close").performClick()
         onNodeWithText("Create invitation").assertDoesNotExist()
-        onNodeWithText("Invite people").performClick()
+        onNodeWithText("Invite people").performScrollTo().performClick()
 
-        onNodeWithText("Invite people").assertIsDisplayed()
+        onNodeWithContentDescription("Close").assertIsDisplayed()
         onNodeWithText("Could not create the invitation. Try again.").assertDoesNotExist()
     }
 }

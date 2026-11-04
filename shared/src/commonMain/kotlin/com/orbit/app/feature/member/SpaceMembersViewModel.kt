@@ -1,10 +1,11 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.member
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orbit.app.core.Load
 import com.orbit.app.core.asLoad
 import com.orbit.app.core.attempt
+import com.orbit.app.core.orOnFailure
 import com.orbit.app.core.initialsOf
 import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.Member
@@ -17,13 +18,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * The members of a space, and for the owner the way to change their roles: a member becomes an admin, an admin goes back
- * to member or takes the space over, after a dialog.
+ * The members of a space, and for the owner the way to change their roles, in a sheet: a member becomes an admin, an
+ * admin goes back to member or takes the space over, after a dialog.
  */
 class SpaceMembersViewModel(
     private val spaceId: String,
@@ -35,11 +38,18 @@ class SpaceMembersViewModel(
     /** The last role change: whose it is, and whether it is under way or failed, with the handover dialog. */
     private val change = MutableStateFlow(RoleChange())
 
+    /** Only decorates the header and the dialog, so it does not hold the members back. */
+    private val spaceName = spaces.observeSpaces()
+        .orOnFailure("Loading the spaces", emptyList())
+        .map { all -> all.firstOrNull { it.id == spaceId }?.name.orEmpty() }
+        .onStart { emit("") }
+
     val uiState: StateFlow<SpaceMembersUiState> = combine(
         spaces.observeMembers(spaceId).asLoad("Loading the members of $spaceId", retries),
         auth.session,
+        spaceName,
         change,
-    ) { load, user, change ->
+    ) { load, user, name, change ->
         val members = load.valueOrNull.orEmpty()
         val owns = members.firstOrNull { it.userId == user?.id }?.role == Role.OWNER
         val shown = members.mapIndexed { index, member ->
@@ -53,12 +63,14 @@ class SpaceMembersViewModel(
             )
         }
         SpaceMembersUiState(
+            spaceName = name,
             loading = load == Load.Loading,
             loadFailed = load == Load.Failed,
             members = shown,
             changing = change.memberId,
             busy = change.busy,
             failed = change.failed,
+            pickingRole = shown.firstOrNull { it.id == change.memberId && it.canChangeRole }?.takeIf { change.picking },
             transferTo = shown.firstOrNull { it.id == change.memberId && it.canTakeOwnership }?.takeIf { change.confirmingTransfer },
             transferAcknowledged = change.acknowledged,
         )
@@ -68,10 +80,24 @@ class SpaceMembersViewModel(
         if (uiState.value.loadFailed) retries.trySend(Unit)
     }
 
-    /** Gives [memberId] [role], when the user may and it is not the one they have. A failure says so on their page. */
+    /** Opens the sheet that picks the role of [memberId], when the user may change it. */
+    fun openRoles(memberId: String) {
+        if (change.value.busy || uiState.value.members.none { it.id == memberId && it.canChangeRole }) return
+        change.value = RoleChange(memberId, picking = true)
+    }
+
+    fun dismissRoles() {
+        if (!change.value.busy) change.value = RoleChange()
+    }
+
+    /** Gives [memberId] [role], when the user may. The sheet closes once it is saved, and says so if that fails. */
     fun changeRole(memberId: String, role: Role) {
         val member = uiState.value.members.firstOrNull { it.id == memberId && it.canChangeRole } ?: return
-        if (role == member.currentRole || role == Role.OWNER) return
+        if (role == Role.OWNER) return
+        if (role == member.currentRole) {
+            dismissRoles()
+            return
+        }
         submit(memberId, "Changing the role of $memberId") { spaces.changeRole(spaceId, memberId, role) }
     }
 
@@ -107,6 +133,7 @@ class SpaceMembersViewModel(
         val memberId: String? = null,
         val busy: Boolean = false,
         val failed: Boolean = false,
+        val picking: Boolean = false,
         val confirmingTransfer: Boolean = false,
         val acknowledged: Boolean = false,
     )

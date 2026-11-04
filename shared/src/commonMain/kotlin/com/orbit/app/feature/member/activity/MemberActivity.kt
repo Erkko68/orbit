@@ -1,4 +1,4 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.member.activity
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
@@ -26,8 +26,8 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * Under a member's [MemberHeader] in the settings sheet: what they have, then what they did lately. It loads by
- * itself, so the header shows at once and this fills in under it. An item opens through [onOpenItem].
+ * On a member's screen: what they have, then what they did lately. It loads by itself, so the header shows at once
+ * and this fills in under it. An item opens through [onOpenItem].
  */
 @Composable
 internal fun MemberActivity(

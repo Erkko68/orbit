@@ -36,8 +36,9 @@ class SpaceHomeScreenTest : ComposeTest() {
     private val spaces = InMemorySpaceRepository(auth)
     private val items = InMemoryItemRepository(auth)
     private val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository(), auth)
+    private var settingsOpened = 0
 
-    // The member row and the items get their view models from Koin.
+    // The items get their view models from Koin.
     @BeforeTest
     fun startDi() {
         startTestKoin(auth, spaces, items)
@@ -50,7 +51,7 @@ class SpaceHomeScreenTest : ComposeTest() {
 
     private fun ComposeUiTest.showTheSpace() = setContent {
         OrbitTheme {
-            SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, onNewItem = {}, onOpenAssistant = {}, viewModel = viewModel)
+            SpaceHomeScreen("space-1", onBack = {}, onOpenAccount = {}, onOpenItem = {}, onNewItem = {}, onOpenAssistant = {}, onOpenSettings = { settingsOpened++ }, viewModel = viewModel)
         }
     }
 
@@ -69,16 +70,17 @@ class SpaceHomeScreenTest : ComposeTest() {
     }
 
     @Test
-    fun aMembersFaceInTheTopBarOpensTheSettings() = runComposeUiTest {
+    fun theFacesAndTheSettingsButtonOpenTheSettings() = runComposeUiTest {
         runBlocking {
             auth.register("ana@orbit.app", "secret", displayName = "Ana López")
             spaces.createSpace("Flat 4B", accent = 0)
         }
         showTheSpace()
 
-        onNodeWithContentDescription("Ana López").performClick()
+        onNode(hasClickLabel("Space settings")).performClick()
+        onNodeWithContentDescription("Space settings").performClick()
 
-        onNodeWithText("Manage space").assertIsDisplayed()
+        assertEquals(2, settingsOpened)
     }
 
     @Test
@@ -127,6 +129,7 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenItem = {},
                     onNewItem = {},
                     onOpenAssistant = {},
+                    onOpenSettings = {},
                     viewModel = viewModel,
                 )
             }
@@ -152,6 +155,7 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenItem = {},
                     onNewItem = {},
                     onOpenAssistant = {},
+                    onOpenSettings = {},
                     viewModel = viewModel,
                 )
             }
@@ -186,6 +190,7 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenItem = {},
                     onNewItem = { added++ },
                     onOpenAssistant = {},
+                    onOpenSettings = {},
                     viewModel = viewModel,
                 )
             }
@@ -207,6 +212,7 @@ class SpaceHomeScreenTest : ComposeTest() {
                     onOpenItem = {},
                     onNewItem = {},
                     onOpenAssistant = { opened++ },
+                    onOpenSettings = {},
                     viewModel = viewModel,
                 )
             }

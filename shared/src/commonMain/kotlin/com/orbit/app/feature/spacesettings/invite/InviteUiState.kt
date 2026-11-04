@@ -1,14 +1,14 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.spacesettings.invite
 
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.invite_create_failed
 import orbit.shared.generated.resources.invite_revoke_failed
 import org.jetbrains.compose.resources.StringResource
 
-/** The invitation page of the settings of a space. It only shows for an owner or admin. */
+/** The invitation sheet of the settings of a space. It only opens for an owner or admin. */
 data class InviteUiState(
     val canInvite: Boolean = false,
-    /** The invitation page is showing. */
+    /** The invitation sheet is open. */
     val open: Boolean = false,
     val spaceName: String = "",
     /** The invitations have not arrived yet, so the card cannot say whether there is one to share. */

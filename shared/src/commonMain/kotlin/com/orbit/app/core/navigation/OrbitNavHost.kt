@@ -19,15 +19,17 @@ import com.orbit.app.feature.auth.SessionViewModel
 import com.orbit.app.feature.auth.ui.CreateAccountScreen
 import com.orbit.app.feature.auth.ui.SignInScreen
 import com.orbit.app.feature.item.ui.ItemScreen
+import com.orbit.app.feature.member.ui.MemberScreen
 import com.orbit.app.feature.newspace.ui.NewSpaceScreen
 import com.orbit.app.feature.space.ui.SpaceScreen
 import com.orbit.app.feature.spacehome.ui.SpaceHomeScreen
+import com.orbit.app.feature.spacesettings.ui.SpaceSettingsScreen
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * The auth gate and the app's routes: signed out, only sign-in; signed in, the spaces and their
- * homes. Each side gets its own back stack, so signing in or out never leaves a way back across.
+ * The auth gate and the app's routes: signed out, only sign-in; signed in, the spaces, their homes, settings,
+ * members and items, each a screen on the stack. Each side gets its own back stack, so signing in or out never leaves a way back across.
  * A signed-in user starts in the space they opened last, or in the list if there is none. An invitation
  * link brings them to the list, which opens the new space screen, ready to join.
  */
@@ -84,6 +86,25 @@ fun OrbitNavHost(
                     onOpenItem = { itemId -> navController.navigate(ItemRoute(spaceId = spaceId, itemId = itemId)) },
                     onNewItem = { navController.navigate(ItemRoute(spaceId = spaceId)) },
                     onOpenAssistant = { navController.navigate(InterviewRoute) },
+                    onOpenSettings = { navController.navigate(SpaceSettingsRoute(spaceId)) },
+                )
+            }
+            composable<SpaceSettingsRoute> { entry ->
+                val spaceId = entry.toRoute<SpaceSettingsRoute>().spaceId
+                SpaceSettingsScreen(
+                    spaceId = spaceId,
+                    onBack = { navController.popBackStack() },
+                    onOpenMember = { userId -> navController.navigate(MemberRoute(spaceId, userId)) },
+                    onGone = { navController.showSpaces() },
+                )
+            }
+            composable<MemberRoute> { entry ->
+                val route = entry.toRoute<MemberRoute>()
+                MemberScreen(
+                    spaceId = route.spaceId,
+                    userId = route.userId,
+                    onBack = { navController.popBackStack() },
+                    onOpenItem = { itemId -> navController.navigate(ItemRoute(route.spaceId, itemId)) },
                 )
             }
             composable<ItemRoute> { entry ->

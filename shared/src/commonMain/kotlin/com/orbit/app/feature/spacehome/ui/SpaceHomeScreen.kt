@@ -8,7 +8,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitAddButton
 import com.orbit.app.core.designsystem.component.OrbitAvatarButton
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
+import com.orbit.app.core.designsystem.component.OrbitFaceStack
 import com.orbit.app.core.designsystem.component.OrbitHero
+import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitNavigationBar
 import com.orbit.app.core.designsystem.component.OrbitNavigationDestination
 import com.orbit.app.core.designsystem.component.OrbitScreen
@@ -16,15 +18,16 @@ import com.orbit.app.core.designsystem.component.OrbitTonalButton
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpaceColor
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.feature.item.ui.face
 import com.orbit.app.feature.item.ui.itemDateLabel
 import com.orbit.app.feature.spacehome.SpaceHeadline
 import com.orbit.app.feature.spacehome.SpaceHomeTab
 import com.orbit.app.feature.spacehome.SpaceHomeUiState
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
-import com.orbit.app.feature.spacehome.settings.SpaceSettings
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.account_title
+import orbit.shared.generated.resources.ic_tune
 import orbit.shared.generated.resources.space_agenda_empty_body
 import orbit.shared.generated.resources.space_agenda_empty_title
 import orbit.shared.generated.resources.space_assistant
@@ -35,6 +38,7 @@ import orbit.shared.generated.resources.space_headline_clear
 import orbit.shared.generated.resources.space_headline_due
 import orbit.shared.generated.resources.space_headline_empty
 import orbit.shared.generated.resources.space_new_item
+import orbit.shared.generated.resources.space_settings
 import orbit.shared.generated.resources.space_tab_expenses
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -43,8 +47,8 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * A space (ADR 0005), painted in its colour: its name in the top bar, which opens the list of spaces through [onBack],
- * as does leaving the space, and its destinations in the bottom bar. Beside the name its members float around the
- * settings. Calendar says where the user stands, with the agenda (#38) under it. Tasks has the items, and Expenses waits
+ * and its destinations in the bottom bar. Beside the name the members' faces and a settings button open the space's
+ * settings through [onOpenSettings]. Calendar says where the user stands, with the agenda (#38) under it. Tasks has the items, and Expenses waits
  * for #54. The members and the items load themselves. The add button opens a new item through [onNewItem]. The account avatar calls
  * [onOpenAccount]. The assistant opens over the bar through [onOpenAssistant], from the calendar.
  */
@@ -56,6 +60,7 @@ fun SpaceHomeScreen(
     onOpenItem: (String) -> Unit,
     onNewItem: () -> Unit,
     onOpenAssistant: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: SpaceHomeViewModel = koinViewModel { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -67,7 +72,9 @@ fun SpaceHomeScreen(
                     onTitleClick = onBack,
                     onTitleClickLabel = stringResource(Res.string.space_back),
                     actions = {
-                        SpaceSettings(spaceId, onGone = onBack, onOpenItem = onOpenItem)
+                        val settings = stringResource(Res.string.space_settings)
+                        OrbitFaceStack(state.faces.map { it.face() }, onClick = onOpenSettings, clickLabel = settings)
+                        OrbitIconButton(Res.drawable.ic_tune, settings, onOpenSettings)
                         OrbitAvatarButton(
                             initials = state.userInitials,
                             photoUrl = state.userPhotoUrl,

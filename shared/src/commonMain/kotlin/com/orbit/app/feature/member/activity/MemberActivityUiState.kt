@@ -1,4 +1,4 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.member.activity
 
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime

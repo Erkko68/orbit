@@ -1,4 +1,4 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.member.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -11,6 +11,9 @@ import com.orbit.app.core.designsystem.component.OrbitCheck
 import com.orbit.app.core.designsystem.component.OrbitDialog
 import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
+import com.orbit.app.feature.member.SpaceMember
+import com.orbit.app.feature.member.SpaceMembersUiState
+import com.orbit.app.feature.member.SpaceMembersViewModel
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.member_role_failed
 import orbit.shared.generated.resources.transfer_acknowledge

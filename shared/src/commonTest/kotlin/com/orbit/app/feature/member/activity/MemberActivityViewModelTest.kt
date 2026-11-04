@@ -1,4 +1,4 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.member.activity
 
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Completion

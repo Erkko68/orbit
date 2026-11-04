@@ -1,4 +1,4 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.member.activity
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -19,7 +19,7 @@ import kotlinx.datetime.todayIn
 import kotlin.time.Clock
 
 /**
- * What [userId] has and did lately in a space, under their name in the settings sheet. Who they are and their role come
+ * What [userId] has and did lately in a space, on their screen. Who they are and their role come
  * from `SpaceMembersViewModel`, which already listed them; their items and completions only add to that, so a failed
  * read of those leaves them empty. What they have shows as soon as the items arrive, without waiting for the history.
  */
@@ -37,7 +37,7 @@ class MemberActivityViewModel(spaceId: String, private val userId: String, items
             has = all.filter { it.status is ItemStatus.Open && it.modules.isAssignedTo(userId) }
                 .sortedWith(compareBy(nullsLast()) { it: Item -> it.modules.schedule?.deadline })
                 .map { MemberItem(it.id, it.title, it.modules.schedule?.deadline) },
-            lately = completions.mapNotNull { toMemberCompletion(it, all) },
+            lately = completions.filterNot { it.reopened }.mapNotNull { toMemberCompletion(it, all) },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MemberActivityUiState(loading = true))
 

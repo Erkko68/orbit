@@ -1,4 +1,4 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.member
 
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.repository.SpaceRepository

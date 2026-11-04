@@ -10,6 +10,7 @@ import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import com.orbit.app.feature.item.ItemFace
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -47,10 +48,11 @@ class SpaceHomeViewModel(
 
     val uiState: StateFlow<SpaceHomeUiState> = combine(
         spaces.observeSpaces().orOnFailure("Loading the spaces", emptyList()),
+        spaces.observeMembers(spaceId).orOnFailure("Loading the members of $spaceId", emptyList()),
         loadedItems,
         auth.session,
         form,
-    ) { allSpaces, loaded, user, form ->
+    ) { allSpaces, members, loaded, user, form ->
         val space = allSpaces.firstOrNull { it.id == spaceId }
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
         form.copy(
@@ -58,6 +60,7 @@ class SpaceHomeViewModel(
             accent = space?.accent,
             userInitials = initialsOf(user?.displayName.orEmpty()),
             userPhotoUrl = user?.photoUrl,
+            faces = members.mapIndexed { index, member -> ItemFace(member.userId, member.displayName, index, member.photoUrl) },
             today = today,
             headline = loaded?.let { headlineOf(it, user?.id, today) },
         )

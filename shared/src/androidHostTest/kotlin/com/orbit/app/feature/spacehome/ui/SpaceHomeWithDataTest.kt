@@ -5,7 +5,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -15,6 +14,7 @@ import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.domain.model.Checklist
+import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Member
@@ -28,7 +28,6 @@ import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
 import com.orbit.app.testing.InMemorySpaceRepository
-import com.orbit.app.testing.hasClickLabel
 import com.orbit.app.testing.startTestKoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -51,7 +50,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
     }
 
     @Test
-    fun showsTheFacesOfTheMembersAndTheRestInTheSettings() = runComposeUiTest {
+    fun showsFourFacesOfTheMembersAndCountsTheRest() = runComposeUiTest {
         auth.signIn("Ana", "secret")
         val spaces = FakeSpaceRepository.withMembers(
             "Ana" to Role.OWNER,
@@ -73,19 +72,15 @@ class SpaceHomeWithDataTest : ComposeTest() {
                     onOpenItem = {},
                     onNewItem = {},
                     onOpenAssistant = {},
+                    onOpenSettings = {},
                     viewModel = viewModel,
                 )
             }
         }
         onNodeWithText("Flat 4B").assertIsDisplayed()
-        onAllNodesWithText("A")[0].assertIsDisplayed()
-
-        onAllNodes(hasClickLabel("Space settings")).onFirst().performClick()
-        onNodeWithText("6 members").assertIsDisplayed()
-        onNodeWithText("Manage space").performClick()
-        onNodeWithText("You").assertExists()
-        onNodeWithText("Owner").assertExists()
-        onNodeWithText("Admins").assertExists()
+        onNodeWithContentDescription("Di").assertExists()
+        onNodeWithContentDescription("Ed").assertDoesNotExist()
+        onNodeWithText("+2", useUnmergedTree = true).assertExists()
     }
 
     @Test
@@ -95,7 +90,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val items = InMemoryItemRepository(auth)
         val id = spaces.createSpace("Flat 4B", accent = 0)
         items.create(id, NewItem("Book plumber"))
-        val groceriesId = items.create(id, NewItem("Groceries", modules = ItemModules(checklist = Checklist(emptyList()))))
+        val groceriesId = items.create(id, NewItem("Groceries", modules = ItemModules(checklist = Checklist(listOf(ChecklistEntry("m", "Milk"))))))
         val opened = mutableListOf<String>()
         startTestKoin(auth, spaces, items)
         val viewModel = SpaceHomeViewModel(id, spaces, items, InMemoryLastSpaceRepository(), auth)
@@ -108,6 +103,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
                     onOpenItem = { opened += it },
                     onNewItem = {},
                     onOpenAssistant = {},
+                    onOpenSettings = {},
                     viewModel = viewModel,
                 )
             }
@@ -146,6 +142,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         ShadowLooper.idleMainLooper()
         waitForIdle()
 
+        onNodeWithText("Show").performScrollTo().performClick()
         onNodeWithContentDescription("Reopen Buy bread").assertIsDisplayed()
         val completed = runBlocking { items.observeItems(id).first().single { it.id == itemId } }
         assertTrue(completed.status is ItemStatus.Done, "Expected item to be Done but was: ${completed.status}")

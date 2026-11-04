@@ -1,5 +1,6 @@
 package com.orbit.app.feature.spacehome
 
+import com.orbit.app.feature.item.ItemFace
 import kotlinx.datetime.LocalDate
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_calendar_selected
@@ -14,7 +15,7 @@ import orbit.shared.generated.resources.space_tab_tasks
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 
-/** The header of a space and its selected destination. The member row and items have their own state. */
+/** The header of a space and its selected destination. The items have their own state. */
 data class SpaceHomeUiState(
     val name: String = "",
     /** The space's colour, null until it has loaded. */
@@ -22,6 +23,8 @@ data class SpaceHomeUiState(
     /** The signed-in user, for the account avatar in the top bar. */
     val userInitials: String = "",
     val userPhotoUrl: String? = null,
+    /** The members, whose faces open the settings from the top bar. */
+    val faces: List<ItemFace> = emptyList(),
     val tab: SpaceHomeTab = SpaceHomeTab.CALENDAR,
     val today: LocalDate? = null,
     /** What Calendar opens with. Null until the items load, or if they could not. */

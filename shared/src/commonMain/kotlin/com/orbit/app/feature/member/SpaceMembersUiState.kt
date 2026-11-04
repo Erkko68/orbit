@@ -1,4 +1,4 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.member
 
 import com.orbit.app.domain.model.Role
 import orbit.shared.generated.resources.Res
@@ -9,6 +9,8 @@ import org.jetbrains.compose.resources.StringResource
 
 /** The members of a space, and the role change or handover the owner is making. */
 data class SpaceMembersUiState(
+    /** The space's name, for the member screen's header and the handover dialog. */
+    val spaceName: String = "",
     /** The members have not arrived yet. */
     val loading: Boolean = false,
     /** Loading the members failed. Cleared by a retry. */
@@ -20,6 +22,8 @@ data class SpaceMembersUiState(
     val busy: Boolean = false,
     /** The last of those failed. Cleared by the next attempt. */
     val failed: Boolean = false,
+    /** The member whose role the sheet is picking, while it is open. */
+    val pickingRole: SpaceMember? = null,
     /** The admin the user is about to hand the space to, while the dialog asks. */
     val transferTo: SpaceMember? = null,
     /** The user ticked that only the new owner can give the space back. */
@@ -27,7 +31,7 @@ data class SpaceMembersUiState(
 ) {
     val canTransfer: Boolean get() = transferTo != null && transferAcknowledged && !busy
 
-    /** Changing the role of [memberId] failed, which their page says. */
+    /** Changing the role of [memberId] failed, which their screen says. */
     fun roleFailed(memberId: String): Boolean = failed && changing == memberId
 
     /** The members under their role, the owner first. Within a role the user comes first, then by name. */

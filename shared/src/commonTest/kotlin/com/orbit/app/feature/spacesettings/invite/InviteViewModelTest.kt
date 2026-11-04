@@ -1,4 +1,4 @@
-package com.orbit.app.feature.spacehome.members
+package com.orbit.app.feature.spacesettings.invite
 
 import com.orbit.app.domain.model.Invitation
 import com.orbit.app.domain.model.Role
