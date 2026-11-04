@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Space proposal, version 1",
+  "description": "A new space for the group, proposed only when the interview is for a new one. Nothing is created until the user confirms it.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "What the group calls the space, in the user's language."
+    },
+    "accent": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 5,
+      "description": "Which of the six space colours it takes: an index, not a colour."
+    }
+  },
+  "required": ["name", "accent"],
+  "additionalProperties": false
+}

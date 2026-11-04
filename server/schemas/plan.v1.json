@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Plan, version 1",
+  "description": "What the assistant proposes at the end of an interview. The user reviews every proposal and nothing is saved until they confirm.",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "integer",
+      "enum": [1],
+      "description": "The version of this schema."
+    },
+    "space": {
+      "$ref": "space.v1.json",
+      "description": "The new space, only when the interview is for one."
+    },
+    "items": {
+      "type": "array",
+      "items": {"$ref": "item.v1.json"},
+      "description": "The items to add to the space."
+    }
+  },
+  "required": ["version", "items"],
+  "additionalProperties": false
+}
