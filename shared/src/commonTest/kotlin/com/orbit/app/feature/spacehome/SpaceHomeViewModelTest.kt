@@ -105,7 +105,7 @@ class SpaceHomeViewModelTest {
         val item = dueItem("Today", ANA, today, id)
         val viewModel = collected(SpaceHomeViewModel(id, spaces, items, lastSpace, auth))
 
-        items.complete(id, item)
+        items.complete(id, item, null)
 
         assertEquals(SpaceHeadline.AllClear, viewModel.uiState.value.headline)
     }

@@ -166,6 +166,52 @@
     <string name="schedule_how_long">Quanto dura</string>
     <string name="schedule_tap_to_change">Tocca per cambiare</string>
     <string name="schedule_tap_to_set">Facoltativo</string>
+    <string name="schedule_repeat">Ripeti</string>
+    <string name="repeat_none">Non si ripete</string>
+    <string name="repeat_every">Ogni</string>
+    <string name="repeat_ends">Termina</string>
+    <string name="repeat_never">Mai</string>
+    <plurals name="repeat_every_days">
+        <item quantity="one">Ogni giorno</item>
+        <item quantity="other">Ogni %1$d giorni</item>
+    </plurals>
+    <plurals name="repeat_every_weeks">
+        <item quantity="one">Ogni settimana</item>
+        <item quantity="other">Ogni %1$d settimane</item>
+    </plurals>
+    <plurals name="repeat_every_months">
+        <item quantity="one">Ogni mese</item>
+        <item quantity="other">Ogni %1$d mesi</item>
+    </plurals>
+    <plurals name="repeat_every_years">
+        <item quantity="one">Ogni anno</item>
+        <item quantity="other">Ogni %1$d anni</item>
+    </plurals>
+    <plurals name="repeat_unit_days">
+        <item quantity="one">giorno</item>
+        <item quantity="other">giorni</item>
+    </plurals>
+    <plurals name="repeat_unit_weeks">
+        <item quantity="one">settimana</item>
+        <item quantity="other">settimane</item>
+    </plurals>
+    <plurals name="repeat_unit_months">
+        <item quantity="one">mese</item>
+        <item quantity="other">mesi</item>
+    </plurals>
+    <plurals name="repeat_unit_years">
+        <item quantity="one">anno</item>
+        <item quantity="other">anni</item>
+    </plurals>
+    <string name="repeat_month_day">Il giorno %1$d</string>
+    <string name="repeat_done">Fatto</string>
+    <string name="weekday_mon">lun</string>
+    <string name="weekday_tue">mar</string>
+    <string name="weekday_wed">mer</string>
+    <string name="weekday_thu">gio</string>
+    <string name="weekday_fri">ven</string>
+    <string name="weekday_sat">sab</string>
+    <string name="weekday_sun">dom</string>
     <string name="module_assignment_anyone">Chiunque</string>
     <string name="assignment_pick_member">Chi ce l&apos;ha?</string>
     <string name="module_checklist_quantity">× %1$d</string>
@@ -187,12 +233,12 @@
     <string name="duration_hours_minutes">%1$d h %2$d min</string>
     <string name="module_reminder_at_time">All&apos;ora di scadenza</string>
     <string name="module_reminder_before">%1$s prima</string>
-    <string name="reminder_none">Nessun promemoria</string>
     <string name="duration_custom">Personalizzato</string>
     <string name="duration_amount">Quanti</string>
     <string name="duration_unit_minutes">Min</string>
     <string name="duration_unit_hours">Ore</string>
     <string name="duration_unit_days">Giorni</string>
+    <string name="reminder_remove">Rimuovi %1$s</string>
     <string name="reminder_add">Aggiungi promemoria</string>
     <string name="invite_title">Invita persone</string>
     <string name="invite_none">Crea un link e un codice. Chiunque li abbia può unirsi a questo spazio per una settimana, o finché non li revochi.</string>

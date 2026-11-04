@@ -76,7 +76,7 @@ This file holds the rules. The background to them (architecture, schema, roles, 
   - Vivid fills are for what is touched every day: `OrbitColorHeader` on a screen about one thing and `OrbitSpaceTile`. `OrbitTurnCard` is the one hero moment: nothing else gets that treatment.
   - Navigation is the platform's ([ADR 0010](docs/adr/0010-standard-navigation-and-one-item-form.md)): a place the user goes (settings, a member, an item) is a route on the stack, with a back arrow, and system back and swipe-back do the same. Never a sheet with pages.
   - Headers show, the body edits: a colour header carries the title and actions, and what changes is a labelled row or field under it. The one exception is an item's title, typed in place with its pencil.
-  - One layout per screen: a screen keeps its sections in the same order whatever it holds, and an empty section shows its add row. An item is one form: title, Who, When, Reminder, one description, the checklist, the history, and one button at the bottom.
+  - One layout per screen: a screen keeps its sections in the same order whatever it holds, and an empty section shows its add row. An item is one form: title, Who, When, Reminder (once it has a date), one description, the checklist, the history, and one button at the bottom.
   - Still, not animated: motion is feedback (a press, a check, a page change). Nothing moves on its own.
   - One check: `OrbitCheck`, the same everywhere.
   - One add: `OrbitAddButton` floats in the same place on every screen. In a space it opens the item screen on a new item ([ADR 0007](docs/adr/0007-one-item.md)).

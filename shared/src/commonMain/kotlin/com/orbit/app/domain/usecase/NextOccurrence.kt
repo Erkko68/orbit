@@ -1,5 +1,6 @@
 package com.orbit.app.domain.usecase
 
+import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Schedule
 import kotlinx.datetime.DateTimeUnit
@@ -26,6 +27,16 @@ fun nextOccurrence(schedule: Schedule, recurrence: Recurrence, after: LocalDate)
     if (recurrence.until?.let { next > it } == true) return null
     val shift = schedule.date.daysUntil(next)
     return schedule.copy(date = next, endDate = schedule.endDate?.plus(shift, DateTimeUnit.DAY))
+}
+
+/**
+ * Where an item's schedule moves when it is completed on [today]: the next occurrence after both its date and
+ * [today]. Null when it does not recur or has no occurrence left, and completing it closes it (ADR 0011).
+ */
+fun ItemModules.rolledForward(today: LocalDate): Schedule? {
+    val schedule = schedule ?: return null
+    val recurrence = recurrence ?: return null
+    return nextOccurrence(schedule, recurrence, maxOf(schedule.date, today))
 }
 
 private fun nextDay(anchor: LocalDate, every: Int, start: LocalDate): LocalDate {

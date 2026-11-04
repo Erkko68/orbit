@@ -45,10 +45,12 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
@@ -95,11 +97,23 @@ fun OrbitTimeWheel(
 
 /**
  * The numbers lie over the one field of the wheel, in the band in the middle. At rest the field shows the number picked,
- * and the numbers take over while they move. So the wheel gets every drag and the keyboard stays up as it turns.
+ * and the numbers take over while they move. So the wheel gets every drag and the keyboard stays up as it turns. With
+ * [words] it turns through those instead, which cannot be typed: [width] and [style] fit them. [label] names it under
+ * the wheel, or only to a screen reader without [showLabel].
  */
 @Composable
-private fun Wheel(value: Int, label: String, onValueChange: (Int) -> Unit) {
-    val pager = rememberPagerState(initialPage = value) { NUMBERS }
+internal fun Wheel(
+    value: Int,
+    label: String,
+    onValueChange: (Int) -> Unit,
+    words: List<String>? = null,
+    showLabel: Boolean = true,
+    width: Dp = WheelWidth,
+    style: TextStyle = OrbitTheme.data.large,
+) {
+    val count = words?.size ?: NUMBERS
+    val typable = words == null
+    val pager = rememberPagerState(initialPage = value) { count }
     val scope = rememberCoroutineScope()
     val requester = remember { FocusRequester() }
     val onSettled by rememberUpdatedState(onValueChange)
@@ -110,7 +124,7 @@ private fun Wheel(value: Int, label: String, onValueChange: (Int) -> Unit) {
         if (value != pager.settledPage) pager.scrollToPage(value)
     }
     val turning = pager.isScrollInProgress
-    Column(Modifier.width(WheelWidth), verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs)) {
+    Column(Modifier.width(width), verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs)) {
         Box(Modifier.fillMaxWidth().height(WheelHeight), contentAlignment = Alignment.Center) {
             Box(
                 Modifier
@@ -118,48 +132,56 @@ private fun Wheel(value: Int, label: String, onValueChange: (Int) -> Unit) {
                     .height(NumberHeight)
                     .background(OrbitTheme.accent.vivid, MaterialTheme.shapes.medium),
             )
-            WheelField(
-                number = pager.currentPage,
-                label = label,
-                onValueChange = onValueChange,
-                modifier = Modifier.focusRequester(requester).alpha(if (turning) 0f else 1f),
-            )
+            if (typable) {
+                WheelField(
+                    number = pager.currentPage,
+                    label = label,
+                    onValueChange = onValueChange,
+                    modifier = Modifier.focusRequester(requester).alpha(if (turning) 0f else 1f),
+                )
+            }
             VerticalPager(
                 state = pager,
-                modifier = Modifier.fillMaxSize().nestedScroll(StopAtTheEnds).clearAndSetSemantics {},
+                // The field speaks for a number wheel; a word wheel's words speak for themselves.
+                modifier = Modifier.fillMaxSize().nestedScroll(StopAtTheEnds).then(
+                    if (typable) Modifier.clearAndSetSemantics {} else Modifier,
+                ),
                 contentPadding = PaddingValues(vertical = NumberHeight),
                 pageSize = PageSize.Fixed(NumberHeight),
-                flingBehavior = PagerDefaults.flingBehavior(pager, pagerSnapDistance = PagerSnapDistance.atMost(NUMBERS)),
+                flingBehavior = PagerDefaults.flingBehavior(pager, pagerSnapDistance = PagerSnapDistance.atMost(count)),
             ) { number ->
                 val picked = number == pager.currentPage
                 Box(
                     modifier = Modifier.fillMaxSize().clickable(interactionSource = null, indication = null) {
                         scope.launch { pager.animateScrollToPage(number) }
-                        requester.requestFocus()
+                        if (typable) requester.requestFocus()
                     },
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = number.twoDigits(),
+                        text = words?.get(number) ?: number.twoDigits(),
                         modifier = Modifier.graphicsLayer {
                             val away = abs(number - pager.currentPage - pager.currentPageOffsetFraction).coerceAtMost(1f)
                             scaleX = lerp(1f, AWAY_SCALE, away)
                             scaleY = scaleX
-                            alpha = if (picked && !turning) 0f else lerp(1f, AWAY_ALPHA, away)
+                            alpha = if (picked && !turning && typable) 0f else lerp(1f, AWAY_ALPHA, away)
                         },
-                        style = OrbitTheme.data.large,
+                        style = style,
+                        maxLines = 1,
                         color = if (picked) Ink else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
         }
-        Text(
-            text = label,
-            modifier = Modifier.fillMaxWidth(),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+        if (showLabel) {
+            Text(
+                text = label,
+                modifier = Modifier.fillMaxWidth(),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 

@@ -6,6 +6,7 @@ import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.model.Space
@@ -63,7 +64,7 @@ class SpaceItemsViewModelTest {
         items.create(id, NewItem("Book plumber"))
         items.create(id, NewItem("Groceries", modules = ItemModules(checklist = Checklist(listOf(ChecklistEntry("m", "Milk"))))))
         val dinner = items.create(id, NewItem("Dinner at 20:00"))
-        items.complete(id, dinner)
+        items.complete(id, dinner, null)
         val viewModel = SpaceItemsViewModel(id, items, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
@@ -136,6 +137,22 @@ class SpaceItemsViewModelTest {
         viewModel.reopen(itemId)
         val reopened = viewModel.uiState.first { !it.items.single().done }
         assertFalse(reopened.items.single().done)
+    }
+
+    @Test
+    fun completingARecurringItemMovesItToItsNextDate() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val id = spaces.createSpace("Flat 4B", accent = 0)
+        val modules = ItemModules(schedule = Schedule(LocalDate(2030, 1, 7)), recurrence = Recurrence.Days(3))
+        val itemId = items.create(id, NewItem("Water the plants", modules = modules))
+        val viewModel = SpaceItemsViewModel(id, items, spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+        viewModel.uiState.first { it.items.isNotEmpty() || it.turn != null }
+
+        viewModel.complete(itemId)
+
+        val item = items.observeItems(id).first { list -> list.single().modules.schedule?.date == LocalDate(2030, 1, 10) }.single()
+        assertEquals(com.orbit.app.domain.model.ItemStatus.Open, item.status)
     }
 
     @Test

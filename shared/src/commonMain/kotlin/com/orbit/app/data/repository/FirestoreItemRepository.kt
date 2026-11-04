@@ -149,13 +149,18 @@ class FirestoreItemRepository(
             .retryWhileRefused()
 
     /** The item and its completion go in one batch, so the history never misses one nor has one too many. */
-    override suspend fun complete(spaceId: String, itemId: String) {
+    override suspend fun complete(spaceId: String, itemId: String, next: Schedule?) {
         val userId = auth.requireUser().id
         val batch = firestore.batch()
         batch.updateFields(items(spaceId).document(itemId)) {
-            FieldPath(STATUS) to STATUS_DONE
-            FieldPath(COMPLETED_BY) to userId
-            FieldPath(COMPLETED_AT) to FieldValue.serverTimestamp
+            encodeDefaults = false
+            if (next != null) {
+                FieldPath(MODULES, moduleKey(ModuleType.SCHEDULE)).to(ScheduleDocument.serializer(), scheduleDocument(next))
+            } else {
+                FieldPath(STATUS) to STATUS_DONE
+                FieldPath(COMPLETED_BY) to userId
+                FieldPath(COMPLETED_AT) to FieldValue.serverTimestamp
+            }
         }
         batch.set(completions(spaceId).document, CompletionDocument(itemId, userId, Timestamp.ServerTimestamp)) {
             encodeDefaults = false

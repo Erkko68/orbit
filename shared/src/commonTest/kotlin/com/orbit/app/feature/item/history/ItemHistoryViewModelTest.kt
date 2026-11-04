@@ -97,9 +97,9 @@ class ItemHistoryViewModelTest {
         val viewModel = historyViewModel(items, id)
         assertEquals(listOf(ItemHistoryAction.CREATED), viewModel.uiState.value.entries.map { it.action })
 
-        items.complete("space-1", id)
+        items.complete("space-1", id, null)
         items.reopen("space-1", id)
-        items.complete("space-1", id)
+        items.complete("space-1", id, null)
 
         assertEquals(
             listOf(ItemHistoryAction.COMPLETED, ItemHistoryAction.REOPENED, ItemHistoryAction.COMPLETED, ItemHistoryAction.CREATED),

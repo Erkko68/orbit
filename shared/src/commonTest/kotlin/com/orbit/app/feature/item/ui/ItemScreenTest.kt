@@ -28,6 +28,7 @@ import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Schedule
@@ -41,6 +42,7 @@ import com.orbit.app.testing.startTestKoin
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import org.koin.core.context.stopKoin
@@ -83,7 +85,7 @@ class ItemScreenTest : ComposeTest() {
     fun listsWhoCompletedTheItemUnderIt() = runComposeUiTest {
         val id = createItem(NewItem("Take the bins out"))
         runBlocking {
-            items.complete("space-1", id)
+            items.complete("space-1", id, null)
             items.reopen("space-1", id)
         }
         val viewModel = model(id, items)
@@ -214,7 +216,8 @@ class ItemScreenTest : ComposeTest() {
 
         list().performScrollToNode(hasContentDescription("Add to the list"))
         addField().performTextInput("Milk")
-        addButton().performClick()
+        // The keyboard's Done adds it: the button under the bottom bar would take the tap.
+        addField().performImeAction()
         waitForIdle()
 
         list().performScrollToNode(hasText("Milk"))
@@ -317,7 +320,7 @@ class ItemScreenTest : ComposeTest() {
         onNodeWithText("Remove the date").performScrollTo().performClick()
         waitForIdle()
         onNodeWithText("At the due time").assertDoesNotExist()
-        onNodeWithText("Remind me").assertIsDisplayed()
+        onNodeWithText("Remind me").assertDoesNotExist()
         onNodeWithText("Add a date").assertIsDisplayed()
     }
 
@@ -379,6 +382,30 @@ class ItemScreenTest : ComposeTest() {
             saved.modules.schedule,
         )
         onNodeWithText("Save").assertDoesNotExist()
+    }
+
+    @Test
+    fun repeatsTheItemFromTheWhenSheetAndShowsItInTheRow() = runComposeUiTest {
+        val itemId = createItem(NewItem("Bins", modules = ItemModules(schedule = Schedule(LocalDate(2030, 1, 7)))))
+        val viewModel = model(itemId, items)
+        setContent { OrbitTheme { ItemScreen("space-1", itemId, {}, viewModel) } }
+
+        onNodeWithText("Jan 7, 2030").performClick()
+        onNodeWithText("Repeat").performScrollTo().performClick()
+        onNodeWithText("Every week · Mon").assertIsDisplayed()
+        onNodeWithText("Every year").assertIsDisplayed()
+        onNodeWithText("Custom").performScrollTo().performClick()
+        onNodeWithText("Every").assertIsDisplayed()
+        onNodeWithText("Fri").performScrollTo().performClick()
+        onNodeWithText("Ends").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Done").performScrollTo().performClick()
+        onNodeWithText("Every week · Mon, Fri").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Save").performScrollTo().performClick()
+        waitForIdle()
+
+        val saved = runBlocking { items.observeItems("space-1").first().single { it.id == itemId } }
+        assertEquals(Recurrence.Weeks(1, setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY)), saved.modules.recurrence)
+        onNodeWithText("Jan 7, 2030 · Every week · Mon, Fri").assertIsDisplayed()
     }
 
     @Test
@@ -449,16 +476,17 @@ class ItemScreenTest : ComposeTest() {
     }
 
     @Test
-    fun aReminderWithoutADateAsksForTheDateFirst() = runComposeUiTest {
+    fun theReminderRowShowsOnceTheItemHasADate() = runComposeUiTest {
         val id = createItem(NewItem("Task"))
         val viewModel = model(id, items)
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
 
-        onNodeWithText("Remind me").performClick()
+        onNodeWithText("Remind me").assertDoesNotExist()
+        onNodeWithText("Add a date").performClick()
+        onNodeWithText("Save").performScrollTo().performClick()
         waitForIdle()
 
-        assertTrue(viewModel.uiState.value.scheduleEditor != null)
-        assertFalse(viewModel.uiState.value.editingReminder)
+        onNodeWithText("Remind me").assertIsDisplayed()
     }
 
     @Test
@@ -517,11 +545,18 @@ class ItemScreenTest : ComposeTest() {
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
 
         onNodeWithText("At the due time").performClick()
+        onNodeWithText("Add reminder").performScrollTo().performClick()
         onNodeWithText("10 min before").performScrollTo().performClick()
         waitForIdle()
 
         val reminded = runBlocking { items.observeItems("space-1").first().single { it.id == id } }
         assertEquals(Reminder(listOf(Duration.ZERO, 10.minutes)), reminded.modules.reminder)
+        onNodeWithText("10 min before").assertIsDisplayed()
+
+        onNodeWithContentDescription("Remove At the due time").performClick()
+        waitForIdle()
+        val removed = runBlocking { items.observeItems("space-1").first().single { it.id == id } }
+        assertEquals(Reminder(listOf(10.minutes)), removed.modules.reminder)
     }
 
     @Test

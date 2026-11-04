@@ -1,8 +1,10 @@
 package com.orbit.app.feature.item
 
 import com.orbit.app.domain.model.ItemError
+import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Schedule
 import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -20,7 +22,7 @@ class ScheduleEditorTest {
 
     @Test
     fun opensOnWhatTheScheduleHolds() {
-        val editor = ScheduleEditor.of(Schedule(day, time = LocalTime(9, 5), duration = 90.minutes), today = day)
+        val editor = ScheduleEditor.of(Schedule(day, time = LocalTime(9, 5), duration = 90.minutes), recurrence = null, today = day)
 
         assertFalse(editor.window)
         assertEquals("09:05", editor.time)
@@ -32,7 +34,7 @@ class ScheduleEditorTest {
 
     @Test
     fun opensAWindowAsOne() {
-        val editor = ScheduleEditor.of(Schedule(day, endDate = LocalDate(2026, 10, 30)), today = day)
+        val editor = ScheduleEditor.of(Schedule(day, endDate = LocalDate(2026, 10, 30)), recurrence = null, today = day)
 
         assertTrue(editor.window)
         assertEquals(Schedule(day, endDate = LocalDate(2026, 10, 30)), editor.schedule)
@@ -115,5 +117,48 @@ class ScheduleEditorTest {
         assertEquals(LocalDate(2026, 11, 6), moved.endDate)
         assertNull(moved.picking)
         assertEquals(emptyList<ItemError>(), moved.errors)
+    }
+
+    @Test
+    fun aRepeatFollowsWhatIsPicked() {
+        // 26 October 2026 is a Monday.
+        val editor = ScheduleEditor(date = day)
+
+        assertNull(editor.recurrence)
+        assertEquals(Recurrence.Days(1), editor.copy(repeat = RepeatUnit.DAYS).recurrence)
+        assertEquals(Recurrence.Weeks(2, setOf(DayOfWeek.MONDAY)), editor.copy(repeat = RepeatUnit.WEEKS, repeatEvery = 2).recurrence)
+        assertEquals(Recurrence.Months(1, 26), editor.copy(repeat = RepeatUnit.MONTHS).recurrence)
+    }
+
+    @Test
+    fun aWeeklyRepeatKeepsItsLastDay() {
+        val editor = ScheduleEditor(date = day, repeat = RepeatUnit.WEEKS)
+
+        val both = editor.withWeekdayToggled(DayOfWeek.FRIDAY)
+        assertEquals(setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY), both.repeatWeekdays)
+        assertEquals(setOf(DayOfWeek.FRIDAY), both.withWeekdayToggled(DayOfWeek.MONDAY).repeatWeekdays)
+        assertEquals(editor, editor.withWeekdayToggled(DayOfWeek.MONDAY))
+    }
+
+    @Test
+    fun theLastRepeatIsPickedFromTheStartAndMovesWithIt() {
+        val later = LocalDate(2026, 11, 20)
+        val editor = ScheduleEditor(date = day, repeat = RepeatUnit.DAYS, picking = ScheduleDate.UNTIL)
+
+        assertFalse(editor.canPick(LocalDate(2026, 10, 25).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()))
+        val until = editor.withPicked(LocalDate(2026, 11, 2))
+        assertEquals(Recurrence.Days(1, LocalDate(2026, 11, 2)), until.recurrence)
+
+        val moved = until.copy(picking = ScheduleDate.START).withPicked(later)
+        assertEquals(later, moved.repeatUntil)
+        assertEquals(Schedule(later), moved.schedule)
+    }
+
+    @Test
+    fun opensOnTheRepeatItHas() {
+        val editor = ScheduleEditor.of(Schedule(day), Recurrence.Weeks(3, setOf(DayOfWeek.SUNDAY), day), today = day)
+
+        assertEquals(RepeatUnit.WEEKS, editor.repeat)
+        assertEquals(Recurrence.Weeks(3, setOf(DayOfWeek.SUNDAY), day), editor.recurrence)
     }
 }

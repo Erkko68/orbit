@@ -87,7 +87,7 @@ class ReminderSyncTest {
         val itemId = items.create(spaceId, dinner)
         startSync()
 
-        items.complete(spaceId, itemId)
+        items.complete(spaceId, itemId, null)
         assertTrue(scheduler.pending.isEmpty())
 
         items.reopen(spaceId, itemId)
@@ -168,7 +168,7 @@ class ReminderSyncTest {
         val itemId = items.create(spaceId, dinner)
         startSync().cancel()
 
-        items.complete(spaceId, itemId)
+        items.complete(spaceId, itemId, null)
         startSync()
 
         assertTrue(scheduler.pending.isEmpty())
@@ -184,7 +184,7 @@ class ReminderSyncTest {
         startSync(FlakySpaceRepository(spaceFailures = 1))
         assertEquals(setOf("reminder-$itemId-30"), scheduler.pending.keys)
 
-        items.complete(spaceId, itemId)
+        items.complete(spaceId, itemId, null)
         assertEquals(setOf("reminder-$itemId-30"), scheduler.pending.keys)
 
         advanceTimeBy(31.seconds)

@@ -74,7 +74,7 @@ class MemberActivityViewModelTest {
         items.create("space-1", bens("Someday"))
         items.create("space-1", NewItem("Somebody else's"))
         val done = items.create("space-1", bens("Already done"))
-        items.complete("space-1", done)
+        items.complete("space-1", done, null)
 
         val state = activity("ben@orbit.app").uiState.value
 
@@ -87,8 +87,8 @@ class MemberActivityViewModelTest {
         flat()
         val kitchen = items.create("space-1", NewItem("Clean the kitchen"))
         val gone = items.create("space-1", NewItem("Gone"))
-        items.complete("space-1", kitchen)
-        items.complete("space-1", gone)
+        items.complete("space-1", kitchen, null)
+        items.complete("space-1", gone, null)
         items.delete("space-1", gone)
 
         val state = activity("ben@orbit.app").uiState.value

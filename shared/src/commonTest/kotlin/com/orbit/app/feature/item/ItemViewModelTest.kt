@@ -10,6 +10,7 @@ import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Schedule
@@ -31,6 +32,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.test.AfterTest
@@ -44,6 +46,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
@@ -854,7 +857,7 @@ class ItemViewModelTest {
         model.toggleAnyone()
         assertFalse(model.uiState.value.askNotifications)
 
-        model.toggleReminderOffset(Duration.ZERO)
+        model.addReminderOffset(Duration.ZERO)
         assertTrue(model.uiState.first { it.askNotifications }.askNotifications)
 
         model.onNotificationsAnswered()
@@ -862,39 +865,38 @@ class ItemViewModelTest {
     }
 
     @Test
-    fun aMomentTypedByHandJoinsTheOthers() = runTest {
+    fun aMomentOnTheWheelsJoinsTheListAndLeavesThePage() = runTest {
         val id = createItem(ItemModules(schedule = Schedule(LocalDate(2026, 10, 26)), reminder = Reminder(listOf(10.minutes))))
         val model = track(ItemViewModel("space-1", id, items, spaces, auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
         model.uiState.first { it.reminder != null }
 
         model.openReminder()
-        model.toggleCustomReminder()
-        assertEquals(DurationUnit.MINUTES, model.uiState.first { it.customReminder != null }.customReminder?.unit)
+        model.openAddReminder()
+        assertTrue(model.uiState.value.addingReminder)
+        assertEquals(listOf(Duration.ZERO, 1.hours, 1.days), model.uiState.value.reminderChoices)
+        model.onCustomReminderAmountChange(0)
         model.addCustomReminder()
         assertEquals(listOf(10.minutes), model.uiState.value.reminderOffsets)
 
-        model.onCustomReminderAmountChange("3a0000")
-        assertEquals("300", model.uiState.value.customReminder?.amount)
-        model.onCustomReminderAmountChange("2")
+        model.onCustomReminderAmountChange(2)
         model.selectCustomReminderUnit(DurationUnit.DAYS)
         model.addCustomReminder()
 
         val saved = model.uiState.first { it.reminderOffsets.size == 2 }
         assertEquals(listOf(10.minutes, 2.days), saved.reminderOffsets)
-        assertEquals(2.days, saved.reminderChoices.last())
-        assertNull(saved.customReminder)
+        assertFalse(saved.addingReminder)
+        assertTrue(saved.editingReminder)
     }
 
     @Test
     fun aZeroAmountIsNotAMoment() {
-        assertNull(CustomDuration(amount = "0").length)
-        assertNull(CustomDuration(amount = "").length)
-        assertEquals(90.minutes, CustomDuration("90", DurationUnit.MINUTES).length)
+        assertNull(CustomDuration(amount = 0).length)
+        assertEquals(90.minutes, CustomDuration(90, DurationUnit.MINUTES).length)
     }
 
     @Test
-    fun noReminderTakesEveryMomentOff() = runTest {
+    fun removingEveryMomentTakesTheReminderOff() = runTest {
         val id = createItem(
             ItemModules(schedule = Schedule(LocalDate(2026, 10, 26)), reminder = Reminder(listOf(Duration.ZERO, 10.minutes))),
         )
@@ -903,11 +905,120 @@ class ItemViewModelTest {
         model.uiState.first { it.reminder != null }
 
         model.openReminder()
-        model.clearReminder()
+        model.removeReminderOffset(Duration.ZERO)
+        model.uiState.first { it.reminderOffsets == listOf(10.minutes) }
+        model.removeReminderOffset(10.minutes)
 
         val state = model.uiState.first { it.reminder == null }
         assertTrue(state.editingReminder)
         assertTrue(state.reminderOffsets.isEmpty())
+    }
+
+    @Test
+    fun savesAWeeklyRepeatWithTheSchedule() = runTest {
+        val id = createItem(ItemModules(schedule = Schedule(monday)))
+        val model = loadedModel(id)
+
+        model.editSchedule()
+        model.openRepeat()
+        model.openCustomRepeat()
+        assertEquals(RepeatUnit.WEEKS, model.uiState.value.scheduleEditor?.repeat)
+        model.onRepeatEveryChange(2)
+        model.toggleRepeatWeekday(DayOfWeek.FRIDAY)
+        model.pickScheduleDate(ScheduleDate.UNTIL)
+        model.onScheduleDatePicked(1_896_048_000_000) // 2030-01-31
+        model.finishCustomRepeat()
+        model.saveSchedule()
+
+        val saved = items.observeItems("space-1").first().single { it.id == id }.modules
+        assertEquals(Recurrence.Weeks(2, setOf(DayOfWeek.MONDAY, DayOfWeek.FRIDAY), LocalDate(2030, 1, 31)), saved.recurrence)
+        assertEquals(saved.recurrence, model.uiState.value.recurrence)
+    }
+
+    @Test
+    fun theRepeatOpensAsSavedAndNeverStopsIt() = runTest {
+        val id = createItem(ItemModules(schedule = Schedule(monday), recurrence = Recurrence.Months(3, 7)))
+        val model = loadedModel(id)
+
+        model.editSchedule()
+        val editor = model.uiState.value.scheduleEditor!!
+        assertEquals(RepeatUnit.MONTHS, editor.repeat)
+        assertEquals(3, editor.repeatEvery)
+        model.openRepeat()
+        model.pickRepeat(null)
+        assertFalse(model.uiState.value.scheduleEditor!!.editingRepeat)
+        model.saveSchedule()
+
+        assertNull(items.observeItems("space-1").first().single { it.id == id }.modules.recurrence)
+    }
+
+    @Test
+    fun removingTheScheduleAlsoRemovesItsRepeat() = runTest {
+        val id = createItem(ItemModules(schedule = Schedule(monday), recurrence = Recurrence.Days(1)))
+        val model = loadedModel(id)
+
+        model.removeSchedule()
+
+        val modules = items.observeItems("space-1").first().single { it.id == id }.modules
+        assertNull(modules.schedule)
+        assertNull(modules.recurrence)
+    }
+
+    @Test
+    fun completingARecurringItemMovesItToItsNextDateAndKeepsItOpen() = runTest {
+        val id = createItem(ItemModules(schedule = Schedule(monday), recurrence = Recurrence.Weeks(1, setOf(DayOfWeek.MONDAY))))
+        val model = loadedModel(id)
+
+        model.complete()
+
+        val state = model.uiState.first { it.schedule?.date == LocalDate(2030, 1, 14) }
+        assertFalse(state.isDone)
+        assertEquals(1, items.observeCompletions("space-1", id).first().size)
+    }
+
+    @Test
+    fun aFailedRepeatSaveKeepsTheEditorAndWritesNoRepeat() = runTest {
+        val id = createItem(ItemModules(schedule = Schedule(monday)))
+        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write failed") } }
+        val model = track(ItemViewModel("space-1", id, controlled, spaces, auth))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+
+        model.editSchedule()
+        model.pickRepeat(Recurrence.Days(1))
+        model.saveSchedule()
+
+        val state = model.uiState.first { it.failed }
+        assertEquals(RepeatUnit.DAYS, state.scheduleEditor?.repeat)
+        assertNull(items.observeItems("space-1").first().single { it.id == id }.modules.recurrence)
+    }
+
+    @Test
+    fun aYearlyRepeatIsTwelveMonthsOnTheStartsDay() = runTest {
+        val id = createItem(ItemModules(schedule = Schedule(monday)))
+        val model = loadedModel(id)
+
+        model.editSchedule()
+        model.openCustomRepeat()
+        model.selectRepeatUnit(RepeatUnit.YEARS)
+        model.finishCustomRepeat()
+        model.saveSchedule()
+
+        val saved = items.observeItems("space-1").first().single { it.id == id }.modules.recurrence
+        assertEquals(Recurrence.Months(12, 7), saved)
+        model.editSchedule()
+        val editor = model.uiState.value.scheduleEditor!!
+        assertEquals(RepeatUnit.YEARS, editor.repeat)
+        assertFalse(editor.isCustomRepeat)
+    }
+
+    private val monday = LocalDate(2030, 1, 7)
+
+    private suspend fun TestScope.loadedModel(id: String): ItemViewModel {
+        val model = track(ItemViewModel("space-1", id, items, spaces, auth))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading }
+        return model
     }
 
     private fun track(viewModel: ItemViewModel): ItemViewModel = viewModel.also { viewModels.put("item", it) }
@@ -1123,10 +1234,10 @@ class ItemViewModelTest {
 
         model.openReminder()
         assertTrue(model.uiState.value.editingReminder)
-        model.toggleReminderOffset(10.minutes)
+        model.addReminderOffset(10.minutes)
         assertTrue(model.uiState.first { it.reminder != null }.askNotifications)
 
-        model.toggleReminderOffset(10.minutes)
+        model.removeReminderOffset(10.minutes)
         assertNull(model.uiState.first { it.reminder == null }.reminder)
     }
 
@@ -1139,7 +1250,9 @@ class ItemViewModelTest {
 
         model.openReminder()
 
+        assertFalse(model.uiState.value.showsReminder)
         assertFalse(model.uiState.value.editingReminder)
+        assertNull(model.uiState.value.scheduleEditor)
     }
 
     @Test
@@ -1151,7 +1264,7 @@ class ItemViewModelTest {
         model.uiState.first { it.schedule != null }
 
         model.openReminder()
-        model.toggleReminderOffset(Duration.ZERO)
+        model.addReminderOffset(Duration.ZERO)
 
         val state = model.uiState.first { it.failed }
         assertTrue(state.editingReminder)
@@ -1214,7 +1327,7 @@ class ItemViewModelTest {
         auth.signIn("ana@orbit.app", "secret")
         val (id, model) = listModel(ChecklistEntry("milk", "Milk", checked = true))
         model.uiState.first { it.hasEntries }
-        items.complete("space-1", id)
+        items.complete("space-1", id, null)
         model.uiState.first { it.isDone }
 
         model.onNewEntryChange("Eggs")
