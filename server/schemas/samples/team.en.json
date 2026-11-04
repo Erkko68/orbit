@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "title": "Book the meeting room",
+      "description": "For the Friday review, with a screen.",
+      "modules": {}
+    },
+    {
+      "title": "Water the office plants",
+      "modules": {
+        "assignment": {"mode": "anyone"}
+      }
+    }
+  ]
+}

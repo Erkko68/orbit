@@ -30,7 +30,11 @@ internal fun interviewStep(body: String): InterviewStep {
     }
     reply.error?.let { throw AssistantException(assistantError(it.status)) }
     val step = reply.result ?: throw AssistantException(AssistantError.UNAVAILABLE)
-    if (step.plan != null) return InterviewStep.PlanReady
+    // A plan in a version this app does not read could be misread, so it is not used at all.
+    step.plan?.let { plan ->
+        if (plan.version != PLAN_VERSION) throw AssistantException(AssistantError.UNAVAILABLE)
+        return InterviewStep.PlanReady
+    }
     val id = step.id
     val text = step.text
     if (id.isNullOrBlank() || text.isNullOrBlank()) throw AssistantException(AssistantError.UNAVAILABLE)

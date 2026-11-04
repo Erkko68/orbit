@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "items": [
+    {
+      "title": "Portar els nens a l'escola",
+      "modules": {
+        "schedule": {"date": "2026-11-09", "time": "08:30", "durationMinutes": 30},
+        "assignment": {"mode": "member", "assignees": ["m2", "m3"]}
+      }
+    },
+    {
+      "title": "Regar les plantes",
+      "modules": {
+        "schedule": {"date": "2026-11-10", "endDate": "2026-11-12"},
+        "assignment": {"mode": "anyone"}
+      }
+    },
+    {
+      "title": "Netejar la cuina",
+      "modules": {
+        "assignment": {"mode": "member", "assignees": ["m1"]},
+        "checklist": {"entries": [{"text": "Rentar els plats"}, {"text": "Fregar el terra"}]}
+      }
+    }
+  ]
+}

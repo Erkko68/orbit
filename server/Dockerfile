@@ -3,8 +3,9 @@
 FROM python:3.13-slim
 
 WORKDIR /app
-COPY assistant.py auth.py main.py models.py net.py ./
+COPY assistant.py auth.py main.py models.py net.py proposals.py ./
 COPY prompts/ prompts/
+COPY schemas/*.json schemas/
 
 # Not root: the server needs no privileges.
 USER nobody

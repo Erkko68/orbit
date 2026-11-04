@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Item proposal, version 1",
+  "description": "Something the group shares (a task, a chore, a bill, a list, an event), with only the modules it needs. Nothing is saved until the user confirms it.",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 120,
+      "description": "Short, in the user's language."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Anything the title leaves out. Leave it out when there is nothing to add."
+    },
+    "modules": {
+      "type": "object",
+      "description": "The modules the item needs, each at most once. None is fine.",
+      "properties": {
+        "schedule": {
+          "type": "object",
+          "description": "When it is due: on date, at time or all day, or any day from date to endDate.",
+          "properties": {
+            "date": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
+              "description": "YYYY-MM-DD: the due date, or the first day of the window."
+            },
+            "time": {
+              "type": "string",
+              "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$",
+              "description": "HH:mm. Leave it out for all day, and never with endDate."
+            },
+            "endDate": {
+              "type": "string",
+              "pattern": "^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$",
+              "description": "YYYY-MM-DD, after date: due any day until then."
+            },
+            "durationMinutes": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "How long it takes."
+            }
+          },
+          "required": ["date"],
+          "additionalProperties": false
+        },
+        "assignment": {
+          "description": "Who has it: members by their handle in the request (m1, m2), or anyone.",
+          "anyOf": [
+            {
+              "type": "object",
+              "properties": {
+                "mode": {"type": "string", "enum": ["member"]},
+                "assignees": {
+                  "type": "array",
+                  "items": {"type": "string", "pattern": "^m[1-9][0-9]*$"},
+                  "minItems": 1,
+                  "uniqueItems": true
+                }
+              },
+              "required": ["mode", "assignees"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {"type": "string", "enum": ["anyone"]}
+              },
+              "required": ["mode"],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "checklist": {
+          "type": "object",
+          "description": "What the item lists, in order: what to buy, the steps of a chore.",
+          "properties": {
+            "entries": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "properties": {
+                  "text": {"type": "string", "minLength": 1},
+                  "quantity": {"type": "integer", "minimum": 1}
+                },
+                "required": ["text"],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": ["entries"],
+          "additionalProperties": false
+        },
+        "reminder": {
+          "type": "object",
+          "description": "When to remind whoever has it, in minutes before it is due. Only with a schedule.",
+          "properties": {
+            "offsetsMinutes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {"type": "integer", "minimum": 0}
+            }
+          },
+          "required": ["offsetsMinutes"],
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": ["title", "modules"],
+  "additionalProperties": false
+}

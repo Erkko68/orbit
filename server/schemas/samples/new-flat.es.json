@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "space": {"name": "Piso de la calle Verdi", "accent": 2},
+  "items": [
+    {
+      "title": "Sacar la basura",
+      "modules": {
+        "schedule": {"date": "2026-11-09", "time": "21:00"},
+        "assignment": {"mode": "anyone"},
+        "reminder": {"offsetsMinutes": [30]}
+      }
+    },
+    {
+      "title": "Compra semanal",
+      "description": "Lo que falta en la nevera, para toda la semana.",
+      "modules": {
+        "schedule": {"date": "2026-11-07", "endDate": "2026-11-08"},
+        "assignment": {"mode": "member", "assignees": ["m1"]},
+        "checklist": {"entries": [{"text": "Leche", "quantity": 2}, {"text": "Pan"}, {"text": "Huevos", "quantity": 12}]}
+      }
+    },
+    {
+      "title": "Pagar el alquiler",
+      "modules": {
+        "schedule": {"date": "2026-12-01", "time": "10:00", "durationMinutes": 15},
+        "assignment": {"mode": "member", "assignees": ["m1"]},
+        "reminder": {"offsetsMinutes": [0, 1440]}
+      }
+    }
+  ]
+}
