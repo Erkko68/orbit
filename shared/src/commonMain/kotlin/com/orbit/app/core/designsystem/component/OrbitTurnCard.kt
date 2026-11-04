@@ -36,7 +36,6 @@ import com.orbit.app.core.designsystem.theme.OrbitTheme
 
 private val BurstSize = 170.dp
 private val BurstOffset = 54.dp
-private val FaceStage = 88.dp
 private val FaceClearance = 76.dp
 private val ActionHeight = 56.dp
 private val ActionCorner = 28.dp
@@ -44,7 +43,7 @@ private val ActionCornerPressed = 14.dp
 private val ActionRing = 2.dp
 
 /**
- * The one hero moment of the app: what is the user's to do now. Inverse fill, a burst, big type and one big action.
+ * The one hero moment of the app: what is the user's to do now. Inverse fill, a burst in the partner colour, big type and one big action in the vivid one.
  * [label] says when, [title] what, and tapping the card calls [onOpen]. [actionText] is what [onAction] does, and once [finished] it
  * is the way back. [initials] and [photoUrl] are the user's. Use it once on a screen: the loud look only works if it stays rare.
  */
@@ -76,12 +75,16 @@ fun OrbitTurnCard(
                     .align(Alignment.TopEnd)
                     .offset(x = BurstOffset, y = -BurstOffset)
                     .size(BurstSize)
-                    .background(vivid, OrbitShape.Burst),
+                    .background(OrbitTheme.accent.partner, OrbitShape.Burst),
             )
             initials?.let {
-                OrbitFloatingFaces(
-                    faces = listOf(OrbitFloatingFace(it, it, Ink, OrbitShape.Cookie, it, photoUrl, vivid)),
-                    modifier = Modifier.align(Alignment.TopEnd).size(FaceStage),
+                OrbitAvatar(
+                    initials = it,
+                    accent = Ink,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(OrbitSpacing.md),
+                    photoUrl = photoUrl,
+                    contentColor = vivid,
+                    shape = OrbitShape.Cookie,
                 )
             }
             Column(

@@ -1,20 +1,23 @@
 package com.orbit.app.feature.space.ui
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitAddButton
 import com.orbit.app.core.designsystem.component.OrbitAvatarButton
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitErrorState
-import com.orbit.app.core.designsystem.component.OrbitGroup
 import com.orbit.app.core.designsystem.component.OrbitHero
 import com.orbit.app.core.designsystem.component.OrbitLoadingState
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitTopBar
+import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.feature.space.card.SpaceCard
@@ -83,8 +86,10 @@ fun SpaceScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-        OrbitGroup(state.spaceIds, key = { it }, modifier = Modifier.fillMaxWidth()) { spaceId ->
-            SpaceCard(spaceId, onClick = { onOpenSpace(spaceId) }, modifier = Modifier.fillMaxWidth())
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
+            for (spaceId in state.spaceIds) {
+                key(spaceId) { SpaceCard(spaceId, onClick = { onOpenSpace(spaceId) }, modifier = Modifier.fillMaxWidth()) }
+            }
         }
     }
     LaunchedEffect(state.invitationWaiting) {
