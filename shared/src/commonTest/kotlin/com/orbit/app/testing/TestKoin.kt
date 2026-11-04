@@ -12,6 +12,7 @@ import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import com.orbit.app.domain.repository.ExpenseRepository
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 
@@ -28,6 +29,7 @@ internal fun startTestKoin(
     sharer: TextSharer = TextSharer {},
     assistant: AssistantRepository = ScriptedAssistantRepository(emptyList()),
     dictation: Dictation = FakeDictation(),
+    expenses: ExpenseRepository = InMemoryExpenseRepository(auth),
 ) = startKoin {
     modules(
         module {
@@ -39,6 +41,7 @@ internal fun startTestKoin(
             single { sharer }
             single { assistant }
             single { dictation }
+            single { expenses }
         },
         featureModule,
     )

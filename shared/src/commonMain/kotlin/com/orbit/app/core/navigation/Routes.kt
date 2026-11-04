@@ -36,3 +36,7 @@ data object InterviewRoute
 /** One item of a space. Without [itemId] it is a new one, not written until the user creates it. */
 @Serializable
 data class ItemRoute(val spaceId: String, val itemId: String = "")
+
+/** An expense form, above the space bar. An empty id creates an entry only on Save. */
+@Serializable
+data class ExpenseRoute(val spaceId: String, val expenseId: String = "")
