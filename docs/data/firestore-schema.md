@@ -45,7 +45,7 @@ erDiagram
         string spaceId FK "copy of the parent"
         string title
         string description "optional"
-        string details "optional"
+        string details "retired, read only"
         string status "open or done"
         string createdBy FK
         timestamp createdAt
@@ -58,6 +58,7 @@ erDiagram
         string itemId FK
         string completedBy FK
         timestamp completedAt
+        string action "optional: reopen"
     }
     EXPENSE {
         string expenseId PK "auto id, made on the device"
@@ -149,8 +150,8 @@ The email is not stored: it comes from the Firebase Auth account.
 |---|---|---|---|
 | `spaceId` | string | yes | Copy of the parent id, so a collection-group query stays possible. Never changes. |
 | `title` | string | yes | 1 to 120 characters after trimming |
-| `description` | string | no | A short summary under the title |
-| `details` | string | no | The long text of the item |
+| `description` | string | no | The item's one text ([ADR 0010](../adr/0010-standard-navigation-and-one-item-form.md)) |
+| `details` | string | no | Retired by ADR 0010, never written. Reads as the end of `description`, after a blank line; the next save of the description deletes it |
 | `status` | string | yes | `open` or `done`. New items are `open`. |
 | `createdBy` | uid | yes | Never changes |
 | `createdAt` | timestamp | yes | Server time, never changes |
@@ -194,13 +195,14 @@ The *deadline* is `endDate`, or `date` without one: an open item is overdue once
 
 ### `spaces/{spaceId}/completions/{completionId}`
 
-Who completed an item and when, one document per completion, written in the batch that marks the item done. Append-only: reopening the item keeps it, and nobody edits or deletes one. One collection per space, so rotation and fairness (#49 to #51) read every completion of a space in one query.
+The history of an item: who completed it or reopened it and when, one document each, written in the batch that marks the item done or open again. Append-only: reopening the item keeps its completions, and nobody edits or deletes one. One collection per space, so rotation and fairness (#49 to #51) read every completion of a space in one query, skipping reopenings.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `itemId` | string | yes | The item completed |
-| `completedBy` | uid | yes | The caller, as on the item |
+| `itemId` | string | yes | The item completed or reopened |
+| `completedBy` | uid | yes | The caller: who completed or reopened it |
 | `completedAt` | timestamp | yes | Server time |
+| `action` | string | for a reopening | `reopen`. Absent on a completion, which is what every entry was before it |
 
 The occurrence date of a recurring item comes with recurrence (#46).
 
@@ -290,16 +292,17 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `create` | `spaces/{id}/items/{itemId}` | `set` of the whole new item |
 | `delete` | same | `delete`. The rules allow its creator, an admin or the owner |
 | `rename` | same | `update` of `title` |
+| `setDescription` | same | `update` of `description` (deleted when empty) and delete of the retired `details` |
 | `setModule` | same | `update` of `modules.<type>` (the whole module) |
 | `removeModule` | same | `update`: delete `modules.<type>` |
 | `setEntryChecked` | same | `update` of `modules.checklist.entries.<id>.checked` |
 | `addEntry` | same | `update` of `modules.checklist.entries.<new id>` with text, checked, optional quantity and order |
 | `updateEntry` | same | `update` of `modules.checklist.entries.<id>.text` and `.quantity` only |
 | `removeEntry` | same | `update`: delete `modules.checklist.entries.<id>` |
-| `observeCompletions` | `spaces/{id}/completions` where `itemId ==` id, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way |
-| `observeMemberCompletions` | `spaces/{id}/completions` where `completedBy ==` uid, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way |
+| `observeCompletions` | `spaces/{id}/completions` where `itemId ==` id, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way. Completions and reopenings |
+| `observeMemberCompletions` | `spaces/{id}/completions` where `completedBy ==` uid, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way. Completions and reopenings: "Lately" skips the reopenings |
 | `complete` | same item, and a new `spaces/{id}/completions/{completionId}` | One batch: `update` of `status: done`, `completedBy`, `completedAt`, and `set` of the completion |
-| `reopen` | same | `update` of `status: open`, delete `completedBy` and `completedAt` |
+| `reopen` | same item, and a new `spaces/{id}/completions/{completionId}` with `action: reopen` | One batch: `update` of `status: open`, delete `completedBy` and `completedAt`, and `set` of the reopening |
 
 No method saves a whole existing item: every update writes only its field paths, so concurrent edits merge.
 
