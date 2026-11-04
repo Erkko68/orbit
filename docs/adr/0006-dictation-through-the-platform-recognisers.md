@@ -38,6 +38,6 @@ The assistant itself runs in the cloud (AGENTS.md, "AI"), and that is a separate
 ## Consequences
 
 - The `expect`/`actual` follows the other platform access in `shared/` (notifications): an interface in `commonMain`, the actuals in `androidMain` and `iosMain`, registered in `platformModule`, and a fake in `commonTest` for the ViewModel and UI tests.
-- Each platform asks for its own permissions: microphone on Android; microphone and speech recognition on iOS, with their texts in `Info.plist`.
+- Each platform asks for its own permissions: microphone on Android; microphone and speech recognition on iOS, with their texts in `Info.plist` and translated in `<lang>.lproj/InfoPlist.strings` (#272).
 - Without a recogniser or a permission, the button says why and typing still works (#73).
 - On Android, where the recognition runs (on the phone or Google's servers) is up to the system's recogniser; the app does not choose. Revisit ML Kit when its speech API is stable and covers our languages, as an Android-only improvement behind the same interface.
