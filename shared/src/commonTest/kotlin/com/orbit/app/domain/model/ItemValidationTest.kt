@@ -1,5 +1,6 @@
 package com.orbit.app.domain.model
 
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
@@ -94,6 +95,25 @@ class ItemValidationTest {
     }
 
     @Test
+    fun aRecurrenceRepeatsASchedule() {
+        val schedule = Schedule(friday)
+        fun recurrenceErrors(recurrence: Recurrence, schedule: Schedule? = Schedule(friday)) =
+            errors(modules = ItemModules(schedule = schedule, recurrence = recurrence))
+
+        assertEquals(emptyList(), recurrenceErrors(Recurrence.Weeks(2, setOf(DayOfWeek.FRIDAY), until = friday)))
+        assertEquals(emptyList(), recurrenceErrors(Recurrence.Months(1, 31)))
+        assertEquals(listOf(ItemError.RecurrenceWithoutSchedule), recurrenceErrors(Recurrence.Days(1), schedule = null))
+        assertEquals(listOf(ItemError.NonPositiveInterval), recurrenceErrors(Recurrence.Days(0)))
+        assertEquals(listOf(ItemError.NoWeekdays), recurrenceErrors(Recurrence.Weeks(1, emptySet())))
+        assertEquals(listOf(ItemError.DayOfMonthOutOfRange), recurrenceErrors(Recurrence.Months(1, 32)))
+        assertEquals(listOf(ItemError.DayOfMonthOutOfRange), recurrenceErrors(Recurrence.Months(1, 0)))
+        assertEquals(
+            listOf(ItemError.RecurrenceEndsBeforeStart),
+            recurrenceErrors(Recurrence.Days(1, until = LocalDate(2026, 10, 8)), schedule),
+        )
+    }
+
+    @Test
     fun modulesAreAddedRemovedAndListedInCardOrder() {
         val reminder = Reminder(listOf(10.minutes))
         val schedule = Schedule(friday, endDate = sunday)
@@ -113,6 +133,7 @@ class ItemValidationTest {
     fun everyModuleTypeCanBeRemoved() {
         val full = ItemModules()
             .with(Schedule(friday))
+            .with(Recurrence.Days(1))
             .with(Assignment.Anyone)
             .with(Checklist(emptyList()))
             .with(Reminder(emptyList()))

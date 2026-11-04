@@ -8,9 +8,11 @@ import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import dev.gitlive.firebase.firestore.Timestamp
+import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
@@ -26,6 +28,7 @@ class ItemMapperTest {
 
     private val modules = ItemModules(
         schedule = Schedule(LocalDate(2026, 10, 9), time = LocalTime(20, 0), duration = 90.minutes),
+        recurrence = Recurrence.Weeks(2, setOf(DayOfWeek.FRIDAY, DayOfWeek.MONDAY), until = LocalDate(2027, 1, 1)),
         assignment = Assignment.ToMembers(setOf("ben")),
         checklist = Checklist(
             listOf(ChecklistEntry("e2", "Milk", quantity = 2, order = 0), ChecklistEntry("e1", "Bread", true, order = 1)),
@@ -70,6 +73,36 @@ class ItemMapperTest {
         assertEquals(listOf("Milk", false, 2, 0), listOf(milk.text, milk.checked, milk.quantity, milk.order))
         assertEquals(1, document.checklist.entries.getValue("e1").order)
         assertEquals(listOf(30), document.reminder!!.offsetsMinutes)
+        val recurrence = document.recurrence!!
+        assertEquals(listOf("week", 2, listOf(1, 5), null, "2027-01-01"), recurrence.run { listOf(unit, every, weekdays, dayOfMonth, until) })
+    }
+
+    @Test
+    fun everyRecurrenceReadsBackAsWritten() {
+        val recurrences = listOf(Recurrence.Days(3), Recurrence.Weeks(1, setOf(DayOfWeek.SUNDAY)), Recurrence.Months(1, 31))
+
+        val read = recurrences.map {
+            mapItem("item-1", storedModules(ItemModules(recurrence = it)))?.modules?.recurrence
+        }
+
+        assertEquals(recurrences, read)
+    }
+
+    @Test
+    fun aRecurrenceThatCannotRepeatIsSkipped() {
+        val malformed = listOf(
+            RecurrenceDocument("day", every = 0),
+            RecurrenceDocument("week", every = 1),
+            RecurrenceDocument("week", every = 1, weekdays = listOf(8)),
+            RecurrenceDocument("month", every = 1),
+            RecurrenceDocument("month", every = 1, dayOfMonth = 32),
+            RecurrenceDocument("day", every = 1, until = "someday"),
+            RecurrenceDocument("year", every = 1),
+        )
+
+        val read = malformed.map { mapItem("item-1", stored.copy(modules = ModulesDocument(recurrence = it)))?.modules }
+
+        assertEquals(List(malformed.size) { ItemModules() }, read)
     }
 
     @Test

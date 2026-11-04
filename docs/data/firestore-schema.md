@@ -170,6 +170,20 @@ The email is not stored: it comes from the Firebase Auth account.
 
 The *deadline* is `endDate`, or `date` without one: an open item is overdue once it is before today. The *due moment*, for reminders, is the deadline at `time`, or at 09:00 without one.
 
+#### `modules.recurrence`
+
+Repeats the schedule, so it needs `modules.schedule`: completing the item moves the schedule to the next occurrence and the item stays open ([ADR 0011](../adr/0011-a-recurring-item-rolls-forward.md)).
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `unit` | string | yes | `day`, `week` or `month`. Unknown skips the module. |
+| `every` | integer | yes | 1 or more: every how many days, weeks or months |
+| `weekdays` | array of integer | for `week` | ISO day numbers, Monday is 1. Not empty. Weeks count from the week of `schedule.date`, starting on Monday. |
+| `dayOfMonth` | integer | for `month` | 1 to 31. A shorter month uses its last day. |
+| `until` | string | no | `YYYY-MM-DD`, not before `schedule.date`: the last day an occurrence may fall on |
+
+The next occurrence is the first date after both the schedule's date and the completion day that matches the rule. The time, the duration and the length of a window move with it.
+
 #### `modules.assignment`
 
 | Field | Type | Required | Notes |
@@ -345,4 +359,4 @@ No method saves a whole existing item: every update writes only its field paths,
 
 ## Coming next
 
-Each extends this page in the PR that adds it: recurrence (#45) and the activity history (#83).
+Each extends this page in the PR that adds it: the activity history (#83).

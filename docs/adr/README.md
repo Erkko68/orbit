@@ -15,6 +15,7 @@ An ADR records one decision that shapes the code: the context, what was decided,
 | [0008](0008-summary-details-and-checklists.md) | An item has a summary and details, and a checklist finishes it | Accepted, two texts superseded by 0010 |
 | [0009](0009-only-the-owner-changes-roles.md) | Only the owner changes roles, and the space goes only to an admin | Accepted |
 | [0010](0010-standard-navigation-and-one-item-form.md) | Places are screens on the stack, and an item is one fixed form | Accepted |
+| [0011](0011-a-recurring-item-rolls-forward.md) | Completing a recurring item rolls the same item forward, and the completion goes to the history | Accepted |
 
 ## Writing one
 

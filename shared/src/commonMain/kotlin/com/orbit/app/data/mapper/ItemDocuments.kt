@@ -25,6 +25,7 @@ internal class ItemDocument(
 @Serializable
 internal class ModulesDocument(
     val schedule: ScheduleDocument? = null,
+    val recurrence: RecurrenceDocument? = null,
     val assignment: AssignmentDocument? = null,
     val checklist: ChecklistDocument? = null,
     val reminder: ReminderDocument? = null,
@@ -36,6 +37,16 @@ internal class ScheduleDocument(
     val time: String? = null,
     val endDate: String? = null,
     val durationMinutes: Int? = null,
+)
+
+/** [unit] is `day`, `week` or `month`; [weekdays] are ISO day numbers (Monday is 1), only for `week`. */
+@Serializable
+internal class RecurrenceDocument(
+    val unit: String,
+    val every: Int,
+    val weekdays: List<Int>? = null,
+    val dayOfMonth: Int? = null,
+    val until: String? = null,
 )
 
 /** [assigneeId] is how one member was stored before an item could have several: read, never written. */
