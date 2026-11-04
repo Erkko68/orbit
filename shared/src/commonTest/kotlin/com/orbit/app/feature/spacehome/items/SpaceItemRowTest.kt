@@ -18,6 +18,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class SpaceItemRowTest : ComposeTest() {
@@ -105,10 +106,14 @@ class SpaceItemRowTest : ComposeTest() {
     }
 
     @Test
-    fun aListHasNoCheckOfItsOwn() = runComposeUiTest {
-        showRow(SpaceItem("list", "Pack", done = true, checklist = SpaceItemChecklist(3, 3)))
+    fun theCheckOfAListOpensIt() = runComposeUiTest {
+        var opens = 0
+        val changes = mutableListOf<Boolean>()
+        showRow(SpaceItem("list", "Pack", checklist = SpaceItemChecklist(1, 3)), onClick = { opens++ }, onDoneChange = { changes += it })
 
-        onNodeWithContentDescription("Reopen Pack").assertDoesNotExist()
-        onNodeWithContentDescription("Complete Pack").assertDoesNotExist()
+        onNodeWithContentDescription("Complete Pack").performClick()
+
+        assertEquals(1, opens)
+        assertTrue(changes.isEmpty())
     }
 }

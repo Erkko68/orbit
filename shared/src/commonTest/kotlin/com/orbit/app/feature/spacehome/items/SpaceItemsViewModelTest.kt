@@ -57,17 +57,23 @@ class SpaceItemsViewModelTest {
     }
 
     @Test
-    fun whatHasAnOpenChecklistIsAListAndTheRestAreRows() = runTest {
+    fun tasksAndListsShareToDoAndDoneFoldsAway() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
         items.create(id, NewItem("Book plumber"))
-        items.create(id, NewItem("Groceries", modules = ItemModules(checklist = Checklist(emptyList()))))
-        items.create(id, NewItem("Dinner at 20:00"))
+        items.create(id, NewItem("Groceries", modules = ItemModules(checklist = Checklist(listOf(ChecklistEntry("m", "Milk"))))))
+        val dinner = items.create(id, NewItem("Dinner at 20:00"))
+        items.complete(id, dinner)
+        val viewModel = SpaceItemsViewModel(id, items, spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
-        val state = SpaceItemsViewModel(id, items, spaces, auth).uiState.first { it.items.size == 3 }
+        val state = viewModel.uiState.first { it.items.size == 3 }
+        assertEquals(listOf("Book plumber", "Groceries"), state.todo.map { it.title })
+        assertEquals(listOf("Dinner at 20:00"), state.done.map { it.title })
+        assertFalse(state.showingDone)
 
-        assertEquals(listOf("Groceries"), state.lists.map { it.title })
-        assertEquals(listOf("Book plumber", "Dinner at 20:00"), state.rows.map { it.title })
+        viewModel.toggleDoneSection()
+        assertTrue(viewModel.uiState.value.showingDone)
     }
 
     @Test
@@ -75,7 +81,8 @@ class SpaceItemsViewModelTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
         items.create(id, NewItem("Book plumber"))
-        items.create(id, NewItem("Groceries", modules = ItemModules(checklist = Checklist(emptyList()))))
+        items.create(id, NewItem("Groceries", modules = ItemModules(checklist = Checklist(listOf(ChecklistEntry("m", "Milk"))))))
+        items.create(id, NewItem("Empty list", modules = ItemModules(checklist = Checklist(emptyList()))))
         val viewModel = SpaceItemsViewModel(id, items, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
@@ -86,7 +93,7 @@ class SpaceItemsViewModelTest {
 
         assertEquals(
             mapOf(
-                ItemFilter.ALL to listOf("Book plumber", "Groceries"),
+                ItemFilter.ALL to listOf("Book plumber", "Groceries", "Empty list"),
                 ItemFilter.MINE to emptyList(),
                 ItemFilter.LISTS to listOf("Groceries"),
             ),
@@ -132,7 +139,7 @@ class SpaceItemsViewModelTest {
     }
 
     @Test
-    fun movesDoneItemsUnderOpenItems() = runTest {
+    fun aCompletedItemMovesToDone() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val id = spaces.createSpace("Flat 4B", accent = 0)
         val firstId = items.create(id, NewItem("First task"))
@@ -142,10 +149,10 @@ class SpaceItemsViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         viewModel.complete(firstId)
-        val state = viewModel.uiState.first { it.items.size == 3 && it.items.last().done }
+        val state = viewModel.uiState.first { it.done.isNotEmpty() }
 
-        assertEquals(listOf("Second task", "Third task", "First task"), state.items.map { it.title })
-        assertEquals(listOf(false, false, true), state.items.map { it.done })
+        assertEquals(listOf("Second task", "Third task"), state.todo.map { it.title })
+        assertEquals(listOf("First task"), state.done.map { it.title })
     }
 
     @Test
@@ -222,16 +229,14 @@ class SpaceItemsViewModelTest {
         val card = viewModel.uiState.value.items.single()
         assertEquals(listOf("Ana López"), card.faces.map { it.name })
         assertEquals(deadline, card.dueDate)
-        assertEquals(SpaceItemChecklist(1, 2, SpaceItemPeek(listOf("Bread"))), card.checklist)
-        assertEquals(0.5f, card.checklist?.progress)
+        assertEquals(SpaceItemChecklist(1, 2), card.checklist)
 
         items.setEntryChecked("space-1", itemId, "bread", checked = true)
         assertEquals(SpaceItemChecklist(2, 2), viewModel.uiState.value.items.single().checklist)
-        assertEquals(1f, viewModel.uiState.value.items.single().checklist?.progress)
     }
 
     @Test
-    fun keepsMissingModulesAbsentAndAnEmptyChecklistAtZero() = runTest {
+    fun keepsMissingModulesAbsentAndAnEmptyChecklistIsNoList() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         items.create("space-1", NewItem("Plain item"))
         items.create("space-1", NewItem("Empty list", modules = ItemModules(checklist = Checklist(emptyList()))))
@@ -242,8 +247,7 @@ class SpaceItemsViewModelTest {
         assertNull(plain.summary)
         assertNull(plain.dueDate)
         assertNull(plain.checklist)
-        assertEquals(SpaceItemChecklist(0, 0), state.items.last().checklist)
-        assertEquals(0f, state.items.last().checklist?.progress)
+        assertNull(state.items.last().checklist)
     }
 
     @Test
@@ -364,7 +368,7 @@ class SpaceItemsViewModelTest {
                 "Groceries",
                 modules = ItemModules(
                     assignment = Assignment.ToMembers(setOf(ANA)),
-                    checklist = Checklist(emptyList()),
+                    checklist = Checklist(listOf(ChecklistEntry("m", "Milk"))),
                 ),
             ),
         )
@@ -424,16 +428,12 @@ class SpaceItemsViewModelTest {
     }
 
     @Test
-    fun aListPeeksAtWhatIsLeft() = runTest {
+    fun aRowShowsTheFirstLineOfTheDescription() = runTest {
         auth.signIn("ana@orbit.app", "secret")
-        val entries = listOf("Eggs", "Pasta", "Rice", "Tea").mapIndexed { index, text -> ChecklistEntry("e$index", text) }
-        items.create(
-            "space-1",
-            NewItem("Groceries", modules = ItemModules(checklist = Checklist(entries))),
-        )
+        items.create("space-1", NewItem("Groceries", description = "\nFrom the market\nNot the corner shop"))
         val viewModel = SpaceItemsViewModel("space-1", items, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
-        assertEquals(SpaceItemPeek(listOf("Eggs", "Pasta"), more = 2), viewModel.uiState.value.lists.single().checklist?.peek)
+        assertEquals("From the market", viewModel.uiState.value.items.single().summary)
     }
 }

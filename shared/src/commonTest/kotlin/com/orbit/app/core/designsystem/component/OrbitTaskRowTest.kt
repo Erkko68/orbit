@@ -19,14 +19,14 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
-class OrbitTaskCardTest : ComposeTest() {
-    private val ana = OrbitFloatingFace("ana", "A", Color.Cyan, OrbitShape.Cookie, "Ana")
+class OrbitTaskRowTest : ComposeTest() {
+    private val ana = OrbitFace("ana", "Ana", "A", Color.Cyan, OrbitShape.Cookie)
 
     @Test
     fun theTitleComesFirstAndTheRestFollows() = runComposeUiTest {
         setContent {
             OrbitTheme {
-                OrbitTaskCard("Book the plumber", false, {}, "Complete", {}, summary = "Sink leaking", label = "TODAY", faces = listOf(ana))
+                OrbitTaskRow("Book the plumber", false, {}, "Complete", {}, summary = "Sink leaking", label = "TODAY", faces = listOf(ana))
             }
         }
 
@@ -39,8 +39,8 @@ class OrbitTaskCardTest : ComposeTest() {
     }
 
     @Test
-    fun aCardWithOnlyATitleIsCompact() = runComposeUiTest {
-        setContent { OrbitTheme { OrbitTaskCard("Take out the bins", false, {}, "Complete", {}) } }
+    fun aRowWithOnlyATitleIsCompact() = runComposeUiTest {
+        setContent { OrbitTheme { OrbitTaskRow("Take out the bins", false, {}, "Complete", {}) } }
 
         onNodeWithText("Take out the bins").assertIsDisplayed()
         val height = onNodeWithContentDescription("Complete", useUnmergedTree = true).getUnclippedBoundsInRoot().height
@@ -51,7 +51,7 @@ class OrbitTaskCardTest : ComposeTest() {
     fun tappingOpensItAndTheCheckCompletesIt() = runComposeUiTest {
         var opens = 0
         val changes = mutableListOf<Boolean>()
-        setContent { OrbitTheme { OrbitTaskCard("Task", false, { changes += it }, "Complete", { opens++ }) } }
+        setContent { OrbitTheme { OrbitTaskRow("Task", false, { changes += it }, "Complete", { opens++ }) } }
 
         onNodeWithText("Task").performClick()
         onNodeWithContentDescription("Complete").performClick()
@@ -62,7 +62,7 @@ class OrbitTaskCardTest : ComposeTest() {
 
     @Test
     fun theCheckWaitsWhileOff() = runComposeUiTest {
-        setContent { OrbitTheme { OrbitTaskCard("Task", true, {}, "Reopen", {}, enabled = false) } }
+        setContent { OrbitTheme { OrbitTaskRow("Task", true, {}, "Reopen", {}, enabled = false) } }
 
         onNodeWithContentDescription("Reopen").assertIsNotEnabled()
     }

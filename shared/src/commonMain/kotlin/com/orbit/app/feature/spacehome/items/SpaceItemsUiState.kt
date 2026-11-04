@@ -16,7 +16,7 @@ data class SpaceItemsUiState(
     val loading: Boolean = false,
     /** Loading the items failed. Cleared by a retry. */
     val loadFailed: Boolean = false,
-    /** The space's items that pass [filter], open ones first, without the one in [turn]. */
+    /** The space's items that pass [filter], without the one in [turn]. */
     val items: List<SpaceItem> = emptyList(),
     /** What is the user's to do next. Stays here, done, right after they finish it, so they can undo it. */
     val turn: SpaceItem? = null,
@@ -28,13 +28,11 @@ data class SpaceItemsUiState(
     val failed: Boolean = false,
     /** A complete or reopen write is currently in progress. */
     val submitting: Boolean = false,
+    /** The Done section is unfolded. */
+    val showingDone: Boolean = false,
 ) {
-    /** What has a checklist still open shows how far along it is, as a tile. */
-    val lists: List<SpaceItem> get() = items.filter { it.checklist != null && !it.done }
-
-    /** Everything else, as rows. */
-    val rows: List<SpaceItem> get() = items - lists.toSet()
-    val openRows: Int get() = rows.count { !it.done }
+    val todo: List<SpaceItem> get() = items.filterNot { it.done }
+    val done: List<SpaceItem> get() = items.filter { it.done }
 
     val isEmpty: Boolean get() = items.isEmpty() && turn == null
 }
@@ -43,7 +41,7 @@ data class SpaceItem(
     val id: String,
     val title: String,
     val done: Boolean = false,
-    /** Its short description. */
+    /** The first line of its description. */
     val summary: String? = null,
     /** Who has it: its assignees, or everyone when it is anyone's. */
     val faces: List<ItemFace> = emptyList(),
@@ -52,16 +50,12 @@ data class SpaceItem(
     val checklist: SpaceItemChecklist? = null,
 )
 
-data class SpaceItemChecklist(val done: Int, val total: Int, val peek: SpaceItemPeek = SpaceItemPeek()) {
-    val progress: Float get() = if (total == 0) 0f else done.toFloat() / total
-}
-
-/** A look at what a list still needs: its first few [entries], and how many [more] there are. */
-data class SpaceItemPeek(val entries: List<String> = emptyList(), val more: Int = 0)
+/** How far along a list is. */
+data class SpaceItemChecklist(val done: Int, val total: Int)
 
 /** The filters over the items. */
 enum class ItemFilter(val label: StringResource, val matches: (Item, String?) -> Boolean) {
     ALL(Res.string.filter_all, { _, _ -> true }),
     MINE(Res.string.filter_mine, { item, userId -> userId != null && item.modules.isAssignedTo(userId) }),
-    LISTS(Res.string.filter_lists, { item, _ -> item.modules.checklist != null }),
+    LISTS(Res.string.filter_lists, { item, _ -> item.modules.hasEntries }),
 }
