@@ -19,7 +19,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,9 +32,9 @@ private const val ENTRY_LINES = 2
 
 /**
  * One entry of a checklist in an [OrbitGroup]: lighter than a full row, so a long list reads as a list. The check
- * comes first, then [text] and its [quantity]. Ticking it draws a line through the text and lets the row sink into the
- * page, so what is done stays readable and steps back. Tapping the row calls [onClick]. [checkDescription] says what the
- * check does for screen readers.
+ * comes first, then [text] and its [quantity]. Ticking it draws a line through the text and tints the row like any
+ * done row: it stays a panel, readable, and steps back. Tapping the row calls [onClick]. [checkDescription] says what
+ * the check does for screen readers.
  */
 @Composable
 fun OrbitEntryRow(
@@ -49,7 +48,7 @@ fun OrbitEntryRow(
 ) {
     val scheme = MaterialTheme.colorScheme
     val interaction = remember { MutableInteractionSource() }
-    val fill by animateColorAsState(if (checked) Color.Transparent else scheme.surfaceBright, OrbitMotion.effects())
+    val fill by animateColorAsState(if (checked) OrbitTheme.accent.done else scheme.surfaceBright, OrbitMotion.effects())
     val ink by animateColorAsState(if (checked) scheme.onSurfaceVariant else scheme.onSurface, OrbitMotion.effects())
     val strike = animateFloatAsState(if (checked) 1f else 0f, OrbitMotion.effects())
     var lines by remember { mutableStateOf<TextLayoutResult?>(null) }

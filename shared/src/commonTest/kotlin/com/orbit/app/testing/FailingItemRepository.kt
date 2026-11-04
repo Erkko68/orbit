@@ -27,7 +27,6 @@ internal class FailingItemRepository(
 
     override suspend fun setDescription(spaceId: String, itemId: String, description: String?) = throw failure
 
-    override suspend fun setDetails(spaceId: String, itemId: String, details: String?) = throw failure
 
     override suspend fun setModule(spaceId: String, itemId: String, module: Module) = throw failure
 

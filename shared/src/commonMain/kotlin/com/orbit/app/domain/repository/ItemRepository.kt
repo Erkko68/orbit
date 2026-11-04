@@ -29,10 +29,8 @@ interface ItemRepository {
 
     suspend fun rename(spaceId: String, itemId: String, title: String)
 
-    /** Null takes the description off. */
+    /** Null takes the description off. It also clears the retired `details`, which reads as part of it (ADR 0010). */
     suspend fun setDescription(spaceId: String, itemId: String, description: String?)
-
-    suspend fun setDetails(spaceId: String, itemId: String, details: String?)
 
     /** Adds the module, or replaces the one of the same type. */
     suspend fun setModule(spaceId: String, itemId: String, module: Module)
@@ -47,14 +45,15 @@ interface ItemRepository {
 
     suspend fun removeEntry(spaceId: String, itemId: String, entryId: String)
 
-    /** The latest times the item was completed, newest first. */
+    /** The latest times the item was completed or reopened, newest first. */
     fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>>
 
-    /** The latest items [userId] completed in the space, newest first. */
+    /** The latest items [userId] completed or reopened in the space, newest first. */
     fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>>
 
-    /** Also records the completion, which reopening keeps. */
+    /** Also records the completion in the item's history, which reopening keeps. */
     suspend fun complete(spaceId: String, itemId: String)
 
+    /** Also records the reopening in the item's history. */
     suspend fun reopen(spaceId: String, itemId: String)
 }

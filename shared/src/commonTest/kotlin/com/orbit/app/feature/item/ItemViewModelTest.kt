@@ -102,10 +102,10 @@ class ItemViewModelTest {
         val viewModel = track(ItemViewModel(spaceId, itemId, items, spaces, auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
-        viewModel.addChecklist()
+        viewModel.toggleAnyone()
 
         val updated = items.observeItems(spaceId).first().first { it.id == itemId }
-        assertTrue(updated.modules.checklist != null)
+        assertEquals(Assignment.Anyone, updated.modules.assignment)
     }
 
     @Test
@@ -115,17 +115,17 @@ class ItemViewModelTest {
         val itemId = items.create(
             spaceId,
             NewItem(
-                title = "Task with checklist",
-                modules = ItemModules(checklist = Checklist(emptyList())),
+                title = "Anyone's task",
+                modules = ItemModules(assignment = Assignment.Anyone),
             ),
         )
         val viewModel = track(ItemViewModel(spaceId, itemId, items, spaces, auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
-        viewModel.removeChecklist()
+        viewModel.toggleAnyone()
 
         val updated = items.observeItems(spaceId).first().first { it.id == itemId }
-        assertNull(updated.modules.checklist)
+        assertNull(updated.modules.assignment)
     }
 
     @Test
@@ -169,7 +169,7 @@ class ItemViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         assertFalse(viewModel.uiState.value.failed)
-        viewModel.addChecklist()
+        viewModel.toggleAnyone()
         assertTrue(viewModel.uiState.value.failed)
     }
 
@@ -180,7 +180,7 @@ class ItemViewModelTest {
         val state = viewModel.uiState.first { !it.loading }
         assertTrue(state.notFound)
         assertFalse(state.loadFailed)
-        viewModel.addChecklist()
+        viewModel.toggleAnyone()
         viewModel.removeSchedule()
         assertTrue(controlled.writes.isEmpty())
     }
@@ -193,7 +193,7 @@ class ItemViewModelTest {
         val viewModel = track(ItemViewModel("space-1", "item-1", controlled, spaces, auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         assertTrue(viewModel.uiState.value.loading)
-        viewModel.addChecklist()
+        viewModel.toggleAnyone()
         assertTrue(controlled.writes.isEmpty())
     }
 
@@ -220,15 +220,15 @@ class ItemViewModelTest {
 
     @Test
     fun removeFailurePreservesTheModuleAndFlagsTheError() = runTest {
-        val id = createItem(ItemModules(checklist = Checklist(emptyList())))
+        val id = createItem(ItemModules(assignment = Assignment.Anyone))
         val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write denied") } }
         val viewModel = track(ItemViewModel("space-1", id, controlled, spaces, auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-        viewModel.removeChecklist()
+        viewModel.toggleAnyone()
         assertTrue(viewModel.uiState.value.failed)
         assertFalse(viewModel.uiState.value.submitting)
         assertEquals(1, viewModel.uiState.value.modules.size)
-        assertEquals(listOf("remove:CHECKLIST"), controlled.writes)
+        assertEquals(listOf("remove:ASSIGNMENT"), controlled.writes)
     }
 
     @Test
@@ -237,12 +237,12 @@ class ItemViewModelTest {
         val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write denied") } }
         val viewModel = track(ItemViewModel("space-1", id, controlled, spaces, auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-        viewModel.addChecklist()
+        viewModel.toggleAnyone()
         assertTrue(viewModel.uiState.value.failed)
         controlled.beforeWrite = {}
-        viewModel.addChecklist()
+        viewModel.toggleAnyone()
         assertFalse(viewModel.uiState.value.failed)
-        assertEquals(ModuleType.CHECKLIST, viewModel.uiState.value.modules.single().type)
+        assertEquals(ModuleType.ASSIGNMENT, viewModel.uiState.value.modules.single().type)
     }
 
     @Test
@@ -285,7 +285,7 @@ class ItemViewModelTest {
         val controlled = ControlledItemRepository(items).apply { beforeWrite = { throw CancellationException() } }
         val viewModel = track(ItemViewModel("space-1", id, controlled, spaces, auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-        viewModel.addChecklist()
+        viewModel.toggleAnyone()
         assertFalse(viewModel.uiState.value.failed)
         assertFalse(viewModel.uiState.value.submitting)
         assertTrue(viewModel.uiState.value.modules.isEmpty())
@@ -523,12 +523,12 @@ class ItemViewModelTest {
         val controlled = ControlledItemRepository(items).apply { beforeWrite = { gate.await() } }
         val viewModel = track(ItemViewModel("space-1", id, controlled, spaces, auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
-        viewModel.addChecklist()
+        viewModel.complete()
         assertTrue(viewModel.uiState.value.submitting)
         assertFalse(viewModel.uiState.value.canSubmit)
-        viewModel.removeChecklist()
-        viewModel.removeSchedule()
-        assertEquals(listOf("set:CHECKLIST"), controlled.writes)
+        viewModel.complete()
+        viewModel.reopen()
+        assertEquals(listOf("complete"), controlled.writes)
         gate.complete(Unit)
         assertFalse(viewModel.uiState.value.submitting)
         assertTrue(viewModel.uiState.value.canSubmit)
@@ -721,73 +721,111 @@ class ItemViewModelTest {
     }
 
     @Test
-    fun aNewItemWithNoNameWritesNothing() = runTest {
+    fun aNewItemFillsInAnyOrderAndWritesNothingUntilCreated() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val model = track(ItemViewModel("space-1", "", items, spaces, auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
 
         val state = model.uiState.value
         assertTrue(state.isNew)
-        assertTrue(state.loaded)
-        assertFalse(state.canSubmit)
+        assertTrue(state.canEdit)
+        assertFalse(state.canCreate)
 
-        model.addChecklist()
+        model.toggleAnyone()
+        model.onNewEntryChange("Milk")
+        model.addNewEntry()
         model.editSchedule()
-        model.openMemberPicker()
-        model.onTitleChange("   ")
+        model.saveSchedule()
+        model.onTitleChange("Groceries")
         model.saveDrafts()
 
-        assertNull(model.uiState.value.scheduleEditor)
-        assertFalse(model.uiState.value.pickingMember)
+        val filled = model.uiState.value
+        assertEquals(Assignment.Anyone, filled.assignment)
+        assertEquals(listOf("Milk"), filled.shownEntries.map { it.text })
+        assertTrue(filled.schedule != null)
+        assertTrue(filled.canCreate)
         assertTrue(items.observeItems("space-1").first().isEmpty())
     }
 
     @Test
-    fun aNewItemIsWrittenOnceWithItsName() = runTest {
+    fun createWritesEverythingInOneGoThenTheScreenCloses() = runTest {
         auth.signIn("ana@orbit.app", "secret")
-        val model = track(ItemViewModel("space-1", "", items, spaces, auth))
+        val controlled = ControlledItemRepository(items)
+        val model = track(ItemViewModel("space-1", "", controlled, spaces, auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.onTitleChange(" Groceries ")
+        model.onDescriptionChange("From the market")
+        model.toggleAssignee("mika@orbit.app")
+        model.onNewEntryChange("Milk")
+        model.addNewEntry()
+        model.onNewEntryChange("Bread")
+        model.addNewEntry()
+        model.toggleChecklistEntry(model.uiState.value.shownEntries.first().id)
 
-        model.onTitleChange(" Call the plumber ")
-        model.saveDrafts()
-        model.saveDrafts()
+        model.create()
 
-        val saved = model.uiState.first { !it.isNew }
-        assertEquals("Call the plumber", saved.title)
-        assertNull(saved.titleDraft)
-        assertEquals("Call the plumber", items.observeItems("space-1").first().single().title)
-    }
-
-    @Test
-    fun whatIsAddedToANamedNewItemWritesItToo() = runTest {
-        auth.signIn("ana@orbit.app", "secret")
-        val model = track(ItemViewModel("space-1", "", items, spaces, auth))
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
-
-        model.onTitleChange("Groceries")
-        model.addChecklist()
-
-        val saved = model.uiState.first { it.hasChecklist }
+        assertTrue(model.uiState.value.created)
+        assertTrue(controlled.writes.isEmpty())
+        val saved = items.observeItems("space-1").first().single()
         assertEquals("Groceries", saved.title)
-        assertFalse(saved.isNew)
-        assertEquals(1, items.observeItems("space-1").first().size)
+        assertEquals("From the market", saved.description)
+        assertEquals(setOf("mika@orbit.app"), saved.modules.assignment?.assigneeIds)
+        assertEquals(listOf("Milk" to true, "Bread" to false), saved.modules.checklist?.entries?.map { it.text to it.checked })
     }
 
     @Test
-    fun aFailedCreateKeepsTheNameForTheNextTry() = runTest {
+    fun aNewItemNeedsANameToBeCreated() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val model = track(ItemViewModel("space-1", "", items, spaces, auth))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+
+        model.onTitleChange("   ")
+        model.create()
+
+        assertFalse(model.uiState.value.created)
+        assertTrue(items.observeItems("space-1").first().isEmpty())
+    }
+
+    @Test
+    fun anEntryOfANewItemIsEditedAndRemovedInPlace() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val model = track(ItemViewModel("space-1", "", items, spaces, auth))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.onNewEntryChange("Milk")
+        model.addNewEntry()
+        val id = model.uiState.value.shownEntries.single().id
+
+        model.editChecklistEntry(id)
+        model.onChecklistTextChange("Oat milk")
+        model.onChecklistQuantityChange("2")
+        model.saveChecklistEntry()
+        assertEquals(ChecklistEntry(id, "Oat milk", quantity = 2, order = 0), model.uiState.value.shownEntries.single())
+        assertNull(model.uiState.value.checklistEditor)
+
+        model.editChecklistEntry(id)
+        model.removeChecklistEntry()
+        assertFalse(model.uiState.value.hasEntries)
+    }
+
+    @Test
+    fun aFailedCreateKeepsEverythingForTheNextTry() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val failing = object : ItemRepository by items {
             override suspend fun create(spaceId: String, item: NewItem): String = error("Write denied")
         }
         val model = track(ItemViewModel("space-1", "", failing, spaces, auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
-
         model.onTitleChange("Groceries")
-        model.saveDrafts()
+        model.toggleAnyone()
+
+        model.create()
 
         val state = model.uiState.first { it.failed }
         assertEquals("Groceries", state.shownTitle)
+        assertEquals(Assignment.Anyone, state.assignment)
         assertTrue(state.isNew)
+        assertFalse(state.created)
+        assertFalse(state.submitting)
     }
 
     @Test
@@ -799,7 +837,7 @@ class ItemViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
         model.uiState.first { it.canDelete }
 
-        model.addChecklist()
+        model.complete()
 
         assertTrue(model.uiState.value.submitting)
         assertTrue(model.uiState.value.canDelete)
@@ -813,7 +851,7 @@ class ItemViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
         model.uiState.first { it.schedule != null }
 
-        model.addChecklist()
+        model.toggleAnyone()
         assertFalse(model.uiState.value.askNotifications)
 
         model.toggleReminderOffset(Duration.ZERO)
@@ -1197,47 +1235,5 @@ class ItemViewModelTest {
 
         model.uiState.first { it.isDone }
         assertEquals(1, model.uiState.value.entryCount)
-    }
-
-    @Test
-    fun theDetailsAreSavedWithTheRest() = runTest {
-        auth.signIn("ana@orbit.app", "secret")
-        val id = items.create("space-1", NewItem("Task"))
-        val model = track(ItemViewModel("space-1", id, items, spaces, auth))
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
-        model.uiState.first { !it.loading }
-
-        model.onDetailsChange("  Under the cabinet  ")
-        model.saveDrafts()
-
-        model.uiState.first { it.details == "Under the cabinet" && it.detailsDraft == null }
-    }
-
-    @Test
-    fun aFailedDetailsSaveKeepsWhatWasTyped() = runTest {
-        auth.signIn("ana@orbit.app", "secret")
-        val id = items.create("space-1", NewItem("Task"))
-        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write failed") } }
-        val model = track(ItemViewModel("space-1", id, controlled, spaces, auth))
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
-        model.uiState.first { !it.loading }
-
-        model.onDetailsChange("Under the cabinet")
-        model.saveDrafts()
-
-        assertEquals("Under the cabinet", model.uiState.first { it.failed }.shownDetails)
-    }
-
-    @Test
-    fun aNewItemIsWrittenWithItsDetails() = runTest {
-        auth.signIn("ana@orbit.app", "secret")
-        val model = track(ItemViewModel("space-1", "", items, spaces, auth))
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
-
-        model.onTitleChange("Task")
-        model.onDetailsChange("Under the cabinet")
-        model.saveDrafts()
-
-        assertEquals("Under the cabinet", items.observeItems("space-1").first { it.isNotEmpty() }.single().details)
     }
 }

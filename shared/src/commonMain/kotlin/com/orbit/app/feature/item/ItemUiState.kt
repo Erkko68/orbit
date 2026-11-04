@@ -21,11 +21,13 @@ data class ItemFace(val id: String, val name: String, val index: Int, val photoU
 
 /**
  * Immutable state of the Item screen, the same for every item: its title, its description and the modules it has, or
- * a new item, which is not written until it has a name.
+ * a new item, which keeps all of that here until the user creates it.
  */
 data class ItemUiState(
     /** Opened from the add button, and not written yet. */
     val isNew: Boolean = false,
+    /** The new item was written, so the screen closes. */
+    val created: Boolean = false,
     val title: String = "",
     /** The title as typed, until it is saved. */
     val titleDraft: String? = null,
@@ -41,9 +43,6 @@ data class ItemUiState(
     val description: String? = null,
     /** The description as typed, until it is saved. */
     val descriptionDraft: String? = null,
-    val details: String? = null,
-    /** The details as typed, until they are saved. */
-    val detailsDraft: String? = null,
     val status: ItemStatus = ItemStatus.Open,
     val modules: List<Module> = emptyList(),
     val loading: Boolean = true,
@@ -71,22 +70,23 @@ data class ItemUiState(
 ) {
     val isDone: Boolean get() = status is ItemStatus.Done
 
-    /** A new item waits for its name, which is what gets it written: nothing else can be added before that. */
-    val unnamed: Boolean get() = isNew && shownTitle.isBlank()
-
     /** There is an item to show. */
     val loaded: Boolean get() = !loading && !loadFailed && !notFound
 
-    /** The screen can be used: a sheet can open, or a quick tap be written. */
-    val canEdit: Boolean get() = loaded && !unnamed
+    /** The screen can be used: a sheet can open, or a change be kept. A new item fills in in any order. */
+    val canEdit: Boolean get() = loaded
     val canSubmit: Boolean get() = canEdit && !submitting
+
+    /** A new item is written once it has a name. */
+    val canCreate: Boolean get() = isNew && shownTitle.isNotBlank() && !submitting
+
+    /** Mark done shows on a written item without entries: a checklist finishes by itself (ADR 0008). */
+    val showsDone: Boolean get() = !isNew && loaded && !hasEntries
     val canSaveSchedule: Boolean get() = canSubmit && scheduleEditor?.schedule != null
     val canSaveChecklist: Boolean get() = canSubmit && checklistEditor?.canSave == true
 
     /** What the description field shows while it is typed, and after. */
     val shownDescription: String get() = descriptionDraft ?: description.orEmpty()
-
-    val shownDetails: String get() = detailsDraft ?: details.orEmpty()
 
     val assignment: Assignment? get() = modules.filterIsInstance<Assignment>().firstOrNull()
     val schedule: Schedule? get() = modules.filterIsInstance<Schedule>().firstOrNull()
@@ -96,7 +96,7 @@ data class ItemUiState(
     /** The moments to pick from: the usual ones, and any other the reminder already has. */
     val reminderChoices: List<Duration> get() = (ReminderPresets + reminderOffsets).distinct().sorted()
 
-    /** What the header shows while the title is being typed, and after. */
+    /** What the name field shows while it is typed, and after. */
     val shownTitle: String get() = titleDraft ?: title
 
     /** The rule of `firestore.rules`: its creator, or someone who manages the space. Until it is written there is nothing to delete. */
@@ -120,7 +120,6 @@ data class ItemUiState(
     private val checklist: Checklist? get() = modules.filterIsInstance<Checklist>().firstOrNull()
     private val entries: List<ChecklistEntry> get() = checklist?.entries.orEmpty()
 
-    val hasChecklist: Boolean get() = checklist != null
     val hasEntries: Boolean get() = entries.isNotEmpty()
 
     /** One list, what is left first. An entry just ticked keeps its place for a moment. */
@@ -128,7 +127,6 @@ data class ItemUiState(
 
     val checkedCount: Int get() = entries.count { it.checked }
     val entryCount: Int get() = entries.size
-    val entryProgress: Float get() = if (entries.isEmpty()) 0f else checkedCount.toFloat() / entries.size
 
-    val canAddEntry: Boolean get() = canEdit && hasChecklist && newEntry.isNotBlank()
+    val canAddEntry: Boolean get() = canEdit && newEntry.isNotBlank()
 }

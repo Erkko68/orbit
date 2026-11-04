@@ -35,7 +35,6 @@ internal fun itemDocument(spaceId: String, item: NewItem, creatorId: String) = I
     spaceId = spaceId,
     title = item.title,
     description = item.description,
-    details = item.details,
     status = STATUS_OPEN,
     createdBy = creatorId,
     createdAt = Timestamp.ServerTimestamp,
@@ -81,12 +80,12 @@ internal fun mapItem(id: String, stored: StoredItem): Item? {
     return Item(
         id = id,
         title = title,
-        description = stored.description,
+        description = listOfNotNull(stored.description, stored.details).filter { it.isNotBlank() }
+            .joinToString("\n\n").ifEmpty { null },
         status = statusOf(stored),
         createdBy = createdBy,
         createdAt = createdAt,
         modules = modulesOf(id, stored),
-        details = stored.details,
     )
 }
 

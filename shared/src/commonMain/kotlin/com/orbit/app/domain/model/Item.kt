@@ -17,8 +17,6 @@ data class Item(
     val createdBy: String,
     val createdAt: Instant,
     val modules: ItemModules = ItemModules(),
-    /** The long text, under the short [description]. */
-    val details: String? = null,
 )
 
 /** The item is still to do, it is [userId]'s, and it is due by [today]. */
@@ -32,5 +30,4 @@ data class NewItem(
     val title: String,
     val description: String? = null,
     val modules: ItemModules = ItemModules(),
-    val details: String? = null,
 )
