@@ -362,4 +362,21 @@
     <string name="expense_total_value">%1$s — Total</string>
     <string name="expense_paid_by_value">Pagat per: %1$s</string>
     <string name="expense_date_value">Data: %1$s</string>
+
+    <string name="expenses_balances">Saldos</string>
+    <string name="expenses_payments">Pagaments suggerits</string>
+    <string name="expenses_ledger">Registre</string>
+    <string name="expenses_receives">Per rebre</string>
+    <string name="expenses_pays">Per pagar</string>
+    <string name="expenses_even">Al dia</string>
+    <string name="expenses_payment">%1$s paga %2$s a %3$s</string>
+    <string name="expenses_no_payments">No cal fer cap pagament.</string>
+    <string name="expenses_mark_paid">Marca com a pagat</string>
+    <string name="expenses_confirm_title">Vols registrar aquest pagament?</string>
+    <string name="expenses_confirm_body">Confirma només si el pagament ja s’ha fet. Orbit l’anota al registre; no transfereix diners.</string>
+    <string name="expenses_recording">S’està registrant…</string>
+    <string name="expenses_settlement_title">Reemborsament</string>
+    <string name="expenses_payment_changed">El registre ha canviat. Tanca aquesta confirmació i tria un pagament actualitzat.</string>
+    <string name="expenses_who_pays">Qui paga</string>
+    <string name="expenses_who_receives">Qui rep</string>
 </resources>
