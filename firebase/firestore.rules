@@ -291,7 +291,8 @@ service cloud.firestore {
       // ── spaces/{spaceId}/expenses/{expenseId} ──────────────────────────────────────────────────
       // The ledger. Editing and deleting follow the item table: every member edits, only the creator, an
       // admin or the owner deletes. Rules cannot sum a split of any size, so the domain checks that the shares
-      // add up, and balances only trust the shares (ADR 0003).
+      // add up, and balances only trust the shares (ADR 0003). A settlement is recorded by who paid it, never in
+      // someone else's name: the one who owes is trusted to say they paid, and nobody confirms receiving it.
 
       match /expenses/{expenseId} {
 
@@ -310,10 +311,12 @@ service cloud.firestore {
           && request.resource.data.createdBy == request.auth.uid
           && request.resource.data.createdAt == request.time
           && request.resource.data.spaceId == spaceId
-          && isExpense(request.resource.data);
+          && isExpense(request.resource.data)
+          && (request.resource.data.kind != 'settlement' || request.resource.data.paidBy == request.auth.uid);
         allow update: if isMember(spaceId)
           && keepsCreation()
           && !changedKeys().hasAny(['kind', 'itemId'])
+          && (resource.data.kind != 'settlement' || !changedKeys().hasAny(['paidBy']))
           && isExpense(request.resource.data);
         allow delete: if isMember(spaceId)
           && (resource.data.createdBy == request.auth.uid || isAdminOrOwner(spaceId));

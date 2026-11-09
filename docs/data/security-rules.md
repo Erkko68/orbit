@@ -122,8 +122,8 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 ### `spaces/{spaceId}/expenses/{expenseId}`
 
 - **Read:** a member.
-- **Create:** a member, with `createdBy` the caller, `createdAt` the server time, `spaceId` the path's and valid fields (`isExpense`): a valid title, a non-empty `split` map, a string `paidBy` and `date`, `kind` `expense` or `settlement`, and a string `itemId` if there is one.
-- **Update:** a member, keeping the creation fields, `kind` and `itemId`, and valid fields.
+- **Create:** a member, with `createdBy` the caller, `createdAt` the server time, `spaceId` the path's and valid fields (`isExpense`): a valid title, a non-empty `split` map, a string `paidBy` and `date`, `kind` `expense` or `settlement`, and a string `itemId` if there is one. A settlement's `paidBy` is the caller: who owes says they paid, nobody records a payment in someone else's name, and the one who gets it confirms nothing.
+- **Update:** a member, keeping the creation fields, `kind` and `itemId`, a settlement's `paidBy`, and valid fields.
 - **Delete:** the expense's creator, an admin or the owner.
 
 ### `invitations/{code}`
