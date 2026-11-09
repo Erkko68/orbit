@@ -8,6 +8,11 @@ expect fun deviceMoneyLocale(): MoneyLocale
 /** Euros until space currencies arrive (#111). Native formatters receive exact decimals, never Double. */
 expect fun formatEuro(cents: Long): String
 
+const val EURO = "€"
+
+/** Whether the device writes the euro sign before an amount (€12.40) or after it (12,40 €), as [formatEuro] does. */
+fun euroBeforeAmount(formatted: String = formatEuro(0)): Boolean = formatted.trimStart().startsWith(EURO)
+
 /** Plain editing value, without currency or grouping, so it can be safely edited and parsed again. */
 fun moneyInput(cents: Long, locale: MoneyLocale): String {
     require(cents >= 0)

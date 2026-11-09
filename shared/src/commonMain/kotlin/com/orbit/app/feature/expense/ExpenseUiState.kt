@@ -1,17 +1,20 @@
 package com.orbit.app.feature.expense
 
+import com.orbit.app.core.EURO
 import com.orbit.app.core.MoneyLocale
+import com.orbit.app.core.euroBeforeAmount
 import com.orbit.app.core.parseMoney
 import com.orbit.app.domain.model.Expense
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.validateExpense
 import com.orbit.app.domain.usecase.splitEqually
 import com.orbit.app.domain.usecase.splitExactly
+import com.orbit.app.feature.item.ItemFace
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 
 enum class ExpenseSplit { EQUAL, EXACT }
-
-data class ExpensePerson(val id: String, val name: String)
 
 /** A preview of the user's exact shares. These amounts are never persisted separately. */
 data class ExpenseSplitProgress(val total: Long, val assigned: Long) {
@@ -25,24 +28,33 @@ data class ExpenseUiState(
     val loadFailed: Boolean = false,
     val missing: Boolean = false,
     val accent: Int? = null,
+    val spaceName: String = "",
     val title: String = "",
     val amount: String = "",
     val paidBy: String = "",
-    val date: String = "",
+    val date: LocalDate? = null,
     val mode: ExpenseSplit = ExpenseSplit.EQUAL,
     val selected: Set<String> = emptySet(),
     val exact: Map<String, String> = emptyMap(),
-    val people: List<ExpensePerson> = emptyList(),
+    /** The members, and anyone who left but is still in the expense being edited. */
+    val people: List<ItemFace> = emptyList(),
     val locale: MoneyLocale = MoneyLocale(".", ","),
     val original: Expense? = null,
     val member: Member? = null,
     val submitting: Boolean = false,
     val failed: Boolean = false,
     val deleteOpen: Boolean = false,
+    val pickingPayer: Boolean = false,
+    val pickingDate: Boolean = false,
     val closed: Boolean = false,
 ) {
     val editing: Boolean get() = original != null
-    val parsedDate: LocalDate? get() = runCatching { LocalDate.parse(date) }.getOrNull()
+
+    /** The euro sign on the side of the amount the device writes it. */
+    val currencyPrefix: String? get() = EURO.takeIf { euroBeforeAmount() }
+    val currencySuffix: String? get() = EURO.takeUnless { euroBeforeAmount() }
+    val payer: ItemFace? get() = people.firstOrNull { it.id == paidBy }
+    val dateMillis: Long? get() = date?.atStartOfDayIn(TimeZone.UTC)?.toEpochMilliseconds()
     val cents: Long? get() = parseMoney(amount, locale)?.takeIf { it > 0 }
     val invalidShareIds: Set<String>
         get() = selected.filter { parseMoney(exact[it].orEmpty(), locale) == null }.toSet()
@@ -58,6 +70,12 @@ data class ExpenseUiState(
             }
             return ExpenseSplitProgress(total, assigned)
         }
+    /** What the heading of the split says: how much of the total the shares cover, in either mode. */
+    val splitTotals: ExpenseSplitProgress?
+        get() = when (mode) {
+            ExpenseSplit.EXACT -> splitProgress
+            ExpenseSplit.EQUAL -> cents?.let { ExpenseSplitProgress(it, split?.values?.sum() ?: 0L) }
+        }
     val split: Map<String, Long>?
         get() {
             val total = cents ?: return null
@@ -70,8 +88,16 @@ data class ExpenseUiState(
                 }
             }
         }
+    /** What each person's row shows: their part of an equal split, what was typed for them, or nothing. */
+    val shares: Map<String, Long>
+        get() = selected.associateWith { id ->
+            when (mode) {
+                ExpenseSplit.EQUAL -> split?.get(id) ?: 0L
+                ExpenseSplit.EXACT -> parseMoney(exact[id].orEmpty(), locale) ?: 0L
+            }
+        }
     val canSave: Boolean
-        get() = !loading && !loadFailed && !missing && !submitting && !closed && member != null && parsedDate != null &&
+        get() = !loading && !loadFailed && !missing && !submitting && !closed && member != null && date != null &&
                 split?.let {
                     validateExpense(
                         title,

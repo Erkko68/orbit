@@ -49,7 +49,7 @@ Lists and chores also follow Material 3 Expressive: the [launch post](https://m3
 The look stays; these keep the structure plain, the way phone apps people already know work.
 
 - **Standard navigation.** A place the user goes is a screen on the stack, with a back arrow, and system back and swipe-back do the same. Sheets are only for a short task (who, when, the reminder, an invitation, a role) and dialogs for what cannot be undone.
-- **Edit in the body.** A colour header shows. The one exception is an item's title, typed in place with a pencil beside it. Everything else that changes is a labelled row or field in the body.
+- **Edit in the body.** A colour header shows. The one exception is the title of an item or an expense, typed in place with a pencil beside it. Everything else that changes is a labelled row or field in the body.
 - **One text per idea.** An item has a title and a description.
 - **Lists are lists.** Things of the same kind are rows in one vertical list. No tiles, carousels or sideways scrollers for content.
 - **One layout per screen.** A screen does not change shape with what it holds. Sections keep their order, and an empty one shows its add row.
@@ -79,8 +79,8 @@ Over the bar: item, list, expense form, interview, review board
 | Tasks | Filters in one row. Your turn on top, then To do and Done (folded to its count) as one list: every item is the same row, the check, the title, a line of its description, when and how far along, and the faces at the end. The check of a list opens it |
 | Item | The same form for every item: a colour block with the title typed in place (the pencil says so), then Who and When rows, and Reminder once it has a date, the description as tall as its text, the checklist with its add row last, and the history: "Ana marked it done", "You reopened it". One button at the bottom: Create, or Mark done on an item without entries; ticking the last entry finishes a list. On scroll the title shrinks away and the row with the back arrow stays; it comes back at the top |
 | Add | Type a title and Create. Who, when and the checklist can be filled first or later; nothing is written before Create |
-| Expenses | The amount is the headline, with Settle up beside it. Balances as sentences, then the ledger |
-| Expense form | Amount first. Everyone in one line, with their share under their name. Tap to leave someone out |
+| Expenses | Balances first, as sentences with each face: the whole row vivid teal for who gets money back and coral for who owes it, with a + or − before the amount. Then Settle up, only the payments you are in: "You owe Ana" with Pay, and "Bea owes you" with nothing to press, since who owes says when they paid, then the ledger, where a reimbursement reads "Bea paid Ana" with both faces on a tinted row |
+| Expense form | The item's colour header, with the title typed in place. Amount first, then Paid by and Date as rows with a sheet. Split between says how much is assigned; everyone is a row with their share at the end, typed there for custom amounts: tap to leave someone out |
 | Settings | A screen: name and colour with Save for an owner or admin, the members with their roles, Invite people (a sheet), then Leave or Delete space, after a dialog |
 | Member | A screen with a colour header in their colour: their face, name and role, then what they have and did lately. For the owner a Role row opens a sheet: Member or Admin, and "Make owner" for an admin, after a dialog |
 | Interview | One question per screen in violet, and "Do it by hand instead" is always there |

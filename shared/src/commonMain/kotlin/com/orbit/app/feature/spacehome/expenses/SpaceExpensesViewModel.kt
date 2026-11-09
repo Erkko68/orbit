@@ -13,9 +13,11 @@ import com.orbit.app.domain.model.NewExpense
 import com.orbit.app.domain.model.SuggestedPayment
 import com.orbit.app.domain.model.newestFirst
 import com.orbit.app.domain.model.validateExpense
+import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ExpenseRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.domain.usecase.calculateBalances
+import com.orbit.app.feature.item.ItemFace
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,17 +35,26 @@ data class SpaceExpensesUiState(
     val loading: Boolean = true,
     val loadFailed: Boolean = false,
     val entries: List<Expense> = emptyList(),
-    val names: Map<String, String> = emptyMap(),
+    /** Members, and former members by the name they left with, in their colour and shape. */
+    val faces: Map<String, ItemFace> = emptyMap(),
+    /** The signed-in user, whose payments Settle up shows. */
+    val me: String? = null,
     val balances: Balances = Balances(emptyList(), emptyList()),
     val pendingPayment: SuggestedPayment? = null,
     val submitting: Boolean = false,
     val failed: Boolean = false,
 ) {
+    fun name(id: String): String = faces[id]?.name ?: id
+
+    /** The payments the user is in, paying or getting paid: the only ones Settle up shows. */
+    val myPayments: List<SuggestedPayment>
+        get() = balances.payments.filter { it.paidBy == me || it.paidTo == me }
+
     val paymentChanged: Boolean
         get() = pendingPayment != null && pendingPayment !in balances.payments && !loading && !loadFailed && !submitting
 
     val canConfirm: Boolean
-        get() = pendingPayment != null && pendingPayment in balances.payments && !loading && !loadFailed && !submitting
+        get() = pendingPayment != null && pendingPayment.paidBy == me && pendingPayment in balances.payments && !loading && !loadFailed && !submitting
 }
 
 private data class SettlementState(
@@ -52,11 +63,15 @@ private data class SettlementState(
     val failed: Boolean = false,
 )
 
-/** Balances follow the ledger. A proposal is recorded only after an explicit confirmation. */
+/**
+ * Balances follow the ledger. A payment is recorded only by who pays it, after an explicit confirmation: the one who
+ * owes is trusted to say they paid, and nobody confirms receiving it (the rules hold the same).
+ */
 class SpaceExpensesViewModel(
     private val spaceId: String,
     private val expenses: ExpenseRepository,
     spaces: SpaceRepository,
+    auth: AuthRepository,
 ) : ViewModel() {
     private val retries = Channel<Unit>(Channel.CONFLATED)
     private val settlement = MutableStateFlow(SettlementState())
@@ -64,12 +79,18 @@ class SpaceExpensesViewModel(
         expenses.observeExpenses(spaceId),
         spaces.observeMembers(spaceId),
         spaces.observeSpaces(),
-    ) { ledger, members, allSpaces ->
+        auth.session,
+    ) { ledger, members, allSpaces, user ->
         val former = allSpaces.firstOrNull { it.id == spaceId }?.formerMembers.orEmpty()
+        val current = members.mapIndexed { index, it -> ItemFace(it.userId, it.displayName, index, it.photoUrl) }
+        val left = (former.keys - current.map { it.id }.toSet()).sorted().mapIndexed { index, id ->
+            ItemFace(id, former.getValue(id), members.size + index, null)
+        }
         SpaceExpensesUiState(
             loading = false,
             entries = ledger.newestFirst(),
-            names = former + members.associate { it.userId to it.displayName },
+            faces = (current + left).associateBy { it.id },
+            me = user?.id,
             balances = calculateBalances(ledger, members.map { it.userId }),
         )
     }.asLoad("Loading the ledger of $spaceId", retries)
@@ -86,7 +107,9 @@ class SpaceExpensesViewModel(
 
     fun requestSettlement(payment: SuggestedPayment) {
         val state = uiState.value
-        if (!state.loading && !state.loadFailed && !settlement.value.submitting && payment in state.balances.payments) {
+        if (!state.loading && !state.loadFailed && !settlement.value.submitting && payment.paidBy == state.me &&
+            payment in state.balances.payments
+        ) {
             settlement.value = SettlementState(payment)
         }
     }

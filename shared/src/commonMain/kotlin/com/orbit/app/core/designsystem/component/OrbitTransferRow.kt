@@ -1,98 +1,73 @@
 package com.orbit.app.core.designsystem.component
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.Layout
-import androidx.compose.ui.unit.constrainHeight
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import com.orbit.app.core.designsystem.theme.Ink
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.ic_arrow_forward
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
-/** A proposed transfer: people above, amount and the explicit action aligned below. Wide text may wrap, never clip. */
+private val ActionHeight = 44.dp
+private val ActionIcon = 18.dp
+
+/**
+ * A payment that settles a balance: the [faces] of who pays and who gets it, the [sentence] ("You owe Ana") over its
+ * [amount]. When the user is the one who pays, a small filled [action] ("Pay") with its [actionIcon] sits at the end,
+ * in the teal of a settled balance; without one the row only says what is coming. [onPaid] only asks: the payment is
+ * recorded once it is confirmed. [actionDescription] names the action for screen readers.
+ */
 @Composable
 fun OrbitTransferRow(
-    payer: String,
-    payee: String,
-    payerLabel: String,
-    payeeLabel: String,
+    faces: List<OrbitFace>,
+    sentence: String,
     amount: String,
-    action: String,
-    onAction: () -> Unit,
     modifier: Modifier = Modifier,
+    action: String? = null,
+    actionIcon: DrawableResource? = null,
+    actionDescription: String? = null,
+    onPaid: () -> Unit = {},
     enabled: Boolean = true,
 ) {
     OrbitGroupRow(modifier) {
-        Column(
-            Modifier.weight(1f).padding(end = OrbitSpacing.sm).padding(vertical = OrbitSpacing.sm),
-            verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
-        ) {
-            Row(
-                Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
-                horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                TransferPerson(payerLabel, payer, TextAlign.Start, Modifier.weight(1f))
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(painterResource(Res.drawable.ic_arrow_forward), contentDescription = null)
-                }
-                TransferPerson(payeeLabel, payee, TextAlign.End, Modifier.weight(1f))
-            }
-            TransferAction(amount, action, onAction, enabled)
+        OrbitFaceStack(faces)
+        Column(Modifier.weight(1f).padding(vertical = OrbitSpacing.xs)) {
+            Text(sentence, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text(amount, style = OrbitTheme.data.large, color = MaterialTheme.colorScheme.onSurface)
         }
-    }
-}
-
-/** Measure the action at the available row width before deciding whether both elements fit on one line. */
-@Composable
-private fun TransferAction(amount: String, action: String, onAction: () -> Unit, enabled: Boolean) {
-    val gap = OrbitSpacing.sm
-    Layout(
-        modifier = Modifier.fillMaxWidth(),
-        content = {
-            Text(amount, style = OrbitTheme.data.large)
-            OrbitTonalButton(
-                action, onAction, enabled = enabled,
+        if (action != null && actionIcon != null) {
+            Surface(
+                onClick = onPaid,
+                modifier = Modifier.heightIn(min = ActionHeight).semantics { contentDescription = actionDescription ?: action },
+                enabled = enabled,
                 shape = CircleShape,
-                compact = true,
-            )
-        },
-    ) { measurables, constraints ->
-        val loose = constraints.copy(minWidth = 0, minHeight = 0)
-        val value = measurables[0].measure(loose)
-        val button = measurables[1].measure(loose)
-        val width = constraints.maxWidth
-        val inline = value.width + gap.roundToPx() + button.width <= width
-        val contentHeight =
-            if (inline) maxOf(value.height, button.height) else value.height + gap.roundToPx() + button.height
-        layout(width, constraints.constrainHeight(contentHeight)) {
-            value.placeRelative(0, if (inline) (contentHeight - value.height) / 2 else 0)
-            button.placeRelative(
-                width - button.width,
-                if (inline) (contentHeight - button.height) / 2 else value.height + gap.roundToPx()
-            )
+                color = OrbitTheme.colors.credit,
+                contentColor = Ink,
+            ) {
+                Row(
+                    Modifier.padding(horizontal = OrbitSpacing.md),
+                    horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(painterResource(actionIcon), contentDescription = null, modifier = Modifier.size(ActionIcon))
+                    Text(action, style = MaterialTheme.typography.labelLarge)
+                }
+            }
         }
-    }
-}
-
-@Composable
-private fun TransferPerson(label: String, name: String, textAlign: TextAlign, modifier: Modifier) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs)) {
-        Text(label, Modifier.fillMaxWidth(), style = MaterialTheme.typography.bodySmall, textAlign = textAlign)
-        Text(name, Modifier.fillMaxWidth(), style = MaterialTheme.typography.titleMedium, textAlign = textAlign)
     }
 }

@@ -19,9 +19,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
+import com.orbit.app.feature.item.ItemFace
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
+import kotlin.time.Instant
 import kotlin.time.Clock
 
 /** One explicit Save writes a new entry or edits the existing one. Nothing is persisted while typing. */
@@ -35,7 +38,7 @@ class ExpenseViewModel(
     private val retries = Channel<Unit>(Channel.CONFLATED)
     private val form = MutableStateFlow<ExpenseUiState?>(null)
     private val locale = deviceMoneyLocale()
-    private val today = Clock.System.todayIn(TimeZone.currentSystemDefault()).toString()
+    private val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
     private val loaded = combine(
         spaces.observeSpaces(),
         spaces.observeMembers(spaceId),
@@ -46,17 +49,19 @@ class ExpenseViewModel(
         val original = ledger.firstOrNull { it.id == expenseId }
         val member = members.firstOrNull { it.userId == user?.id }
         val formerIds = original?.let { it.split.keys + it.paidBy }.orEmpty() - members.map { it.userId }.toSet()
-        val people = members.map { ExpensePerson(it.userId, it.displayName) } + formerIds.sorted().map {
-            ExpensePerson(it, space?.formerMembers?.get(it) ?: it)
-        }
+        val people = members.mapIndexed { index, it -> ItemFace(it.userId, it.displayName, index, it.photoUrl) } +
+            formerIds.sorted().mapIndexed { index, it ->
+                ItemFace(it, space?.formerMembers?.get(it) ?: it, members.size + index, null)
+            }
         ExpenseUiState(
             loading = false,
             missing = space == null || member == null || (expenseId.isNotEmpty() && original == null),
             accent = space?.accent,
+            spaceName = space?.name.orEmpty(),
             title = original?.title.orEmpty(),
             amount = original?.let { moneyInput(it.total, locale) }.orEmpty(),
             paidBy = original?.paidBy ?: user?.id.orEmpty(),
-            date = original?.date?.toString() ?: today,
+            date = original?.date ?: today,
             // Stored shares are authoritative: opening an edit never splits or rounds them again.
             mode = if (original == null) ExpenseSplit.EQUAL else ExpenseSplit.EXACT,
             selected = original?.split?.keys ?: members.map { it.userId }.toSet(),
@@ -76,6 +81,7 @@ class ExpenseViewModel(
             loadFailed = load == Load.Failed,
             missing = context?.missing ?: false,
             accent = context?.accent ?: state.accent,
+            spaceName = context?.spaceName ?: state.spaceName,
             people = context?.people ?: state.people,
             original = context?.original ?: state.original,
             member = context?.member,
@@ -91,8 +97,16 @@ class ExpenseViewModel(
 
     fun onTitleChange(value: String) = edit { it.copy(title = value) }
     fun onAmountChange(value: String) = edit { it.copy(amount = value) }
-    fun selectPayer(id: String) = edit { it.copy(paidBy = id) }
-    fun onDateChange(value: String) = edit { it.copy(date = value) }
+    fun openPayerPicker() = edit { it.copy(pickingPayer = true) }
+    fun dismissPayerPicker() = edit { it.copy(pickingPayer = false) }
+    fun selectPayer(id: String) = edit { it.copy(paidBy = id, pickingPayer = false) }
+    fun openDatePicker() = edit { it.copy(pickingDate = true) }
+    fun dismissDatePicker() = edit { it.copy(pickingDate = false) }
+
+    /** The calendar gives the day as UTC midnight. */
+    fun pickDate(utcMillis: Long) = edit {
+        it.copy(date = Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date, pickingDate = false)
+    }
     fun selectSplit(mode: ExpenseSplit) = edit { state ->
         val exact = if (mode == ExpenseSplit.EXACT && state.mode == ExpenseSplit.EQUAL) {
             state.selected.associateWith { moneyInput(state.split?.get(it) ?: 0L, locale) }
@@ -119,7 +133,7 @@ class ExpenseViewModel(
         if (!state.canSave || form.value?.submitting == true) return
         val split = state.split ?: return
         submit(state, "Saving expense in $spaceId") {
-            val date = requireNotNull(state.parsedDate)
+            val date = requireNotNull(state.date)
             if (expenseId.isEmpty()) {
                 expenses.add(spaceId, NewExpense(state.title.trim(), state.paidBy, split, date))
             } else {
