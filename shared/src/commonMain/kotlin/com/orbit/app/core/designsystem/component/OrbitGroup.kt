@@ -26,9 +26,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.orbit.app.core.designsystem.theme.Ink
 import com.orbit.app.core.designsystem.theme.OrbitMotion
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
@@ -103,21 +105,23 @@ internal fun groupShape(interaction: MutableInteractionSource): Shape {
 
 /**
  * One row of an [OrbitGroup]: a pressed row rounds off, and [done] tints it. Its fill is a panel, or the sunk fill on
- * what is already a panel, such as a sheet. Tappable when [onClick] is set.
+ * what is already a panel, such as a sheet, or a vivid [fill] that carries ink, such as a balance. Tappable when
+ * [onClick] is set.
  */
 @Composable
 fun OrbitGroupRow(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
     done: Boolean = false,
+    fill: Color? = null,
     content: @Composable RowScope.() -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
     val shape = groupShape(interaction)
     val colors = MaterialTheme.colorScheme
     val rest = if (LocalInsideCard.current) colors.surfaceContainer else colors.surfaceBright
-    val fill by animateColorAsState(if (done) OrbitTheme.accent.done else rest, OrbitMotion.effects())
-    val contentColor = colors.onSurface
+    val shown by animateColorAsState(fill ?: if (done) OrbitTheme.accent.done else rest, OrbitMotion.effects())
+    val contentColor = if (fill != null) Ink else colors.onSurface
     val body: @Composable () -> Unit = {
         CompositionLocalProvider(LocalInsideCard provides true) {
             Row(
@@ -132,13 +136,13 @@ fun OrbitGroupRow(
         }
     }
     if (onClick == null) {
-        Surface(modifier, shape = shape, color = fill, contentColor = contentColor, content = body)
+        Surface(modifier, shape = shape, color = shown, contentColor = contentColor, content = body)
     } else {
         Surface(
             onClick = onClick,
             modifier = modifier,
             shape = shape,
-            color = fill,
+            color = shown,
             contentColor = contentColor,
             interactionSource = interaction,
             content = body,

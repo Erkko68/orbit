@@ -48,6 +48,23 @@ describe('Expenses subcollection', () => {
     await assertSucceeds(expenses(charlieDb).doc('e4').set(expense({ itemId: 'item1' })));
   });
 
+  it('denies recording a settlement in the name of someone else, who must say they paid it', async () => {
+    const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+
+    await assertFails(expenses(charlieDb).doc('e2').set(expense({ kind: 'settlement', paidBy: 'alice', split: { charlie: 620 } })));
+    await assertSucceeds(expenses(charlieDb).doc('e3').set(expense({ paidBy: 'alice', split: { charlie: 620 } })));
+  });
+
+  it('keeps who paid a settlement when it is edited', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await expenses(context.firestore()).doc('s1').set(expense({ kind: 'settlement', split: { alice: 1240 } }));
+    });
+    const aliceDb = testEnv.authenticatedContext('alice').firestore();
+
+    await assertFails(expenses(aliceDb).doc('s1').update({ paidBy: 'alice' }));
+    await assertSucceeds(expenses(aliceDb).doc('s1').update({ date: '2026-11-03' }));
+  });
+
   it('denies an expense from a non-member or that misstates how it was created', async () => {
     const charlieDb = testEnv.authenticatedContext('charlie').firestore();
     const davidDb = testEnv.authenticatedContext('david').firestore();

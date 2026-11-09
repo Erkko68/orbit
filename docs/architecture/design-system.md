@@ -33,7 +33,7 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | `OrbitColorHeader` | The top of a screen about one thing: a vivid block with its title, a face and a detail line. It shows; only an item's title is typed in it, with a pencil |
 | `OrbitHero` | The big bold opening of a screen, on the page |
 | `OrbitScreenHeader` | The opening of a screen without a top bar (sign-in) |
-| `OrbitSectionHeader` | The opening of a group: title, and a count or an action; `centered` centres a title-only section without changing other callers |
+| `OrbitSectionHeader` | The opening of a group: title, and a count or an action |
 | `OrbitCard` | A panel |
 | `OrbitGroup`, `orbitGroup` | Rows that read as one thing, in a column or a lazy list |
 | `OrbitSheet` | A short task over the screen. Whether it is open is `UiState`. A section of the app is a route, never a sheet |
@@ -49,12 +49,13 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | `OrbitGroupRow` | One row of a group, with anything in it |
 | `OrbitTaskRow` | An item in a list, a task or a list alike: the check, the title, a line of description, when and how far along, and the faces at the end |
 | `OrbitEntryRow` | One entry of a checklist, lighter than a check row |
-| `OrbitAmountRow` | A ledger entry: title, payer, regional date and amount, with monetary data in Martian Mono |
-| `OrbitBalanceRow` | A person's name, a labelled directional arrow and an exact amount, adapting to long names; a zero balance has a status without an arrow |
-| `OrbitTransferRow` | Payer and recipient above an aligned amount and rounded tonal action; long text can wrap without clipping |
+| `OrbitAmountRow` | A row about money: a title over a line, the amount at the end in Martian Mono, a face in front when it is a person. A ledger entry, or a balance: with a + or − sign the whole row is the vivid `credit` (teal) or `debit` (coral) fill; `done` tints a reimbursement |
+| `OrbitAmountField` | An amount typed at the end of a row, such as one person's share: right-aligned in Martian Mono |
+| `OrbitTransferRow` | A payment to settle: the two faces, the sentence ("You owe Ana") over its amount, and, when the user is the one who pays, a small teal pill with an icon ("Pay") that asks to record it |
 | `OrbitActionRow` | A row that does something: an icon on a shape, a title over its value, faces or another `trailing`, and an arrow |
 | `OrbitNoteField` | Text of several lines typed where it is read |
 | `OrbitDetailsField` | The long text of something, on a panel as tall as its text |
+| `OrbitDatePicker` | A calendar on a page of an `OrbitSheet`, with the button that confirms the day. The schedule of an item and the date of an expense use it |
 | `OrbitTimeWheel` | A length of time on two small wheels, 0 to 99 hours and minutes. Scroll one, or tap a number to type it. What is picked is `UiState`. It fits at the end of an `OrbitGroupRow` |
 | `OrbitSpaceColorPicker` | The colour of a space, under its label |
 | `OrbitSpaceTile` | A space as a card in its own colour, with its shape at the top right and its members' faces |

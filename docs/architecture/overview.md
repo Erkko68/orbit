@@ -89,10 +89,16 @@ Everything is under `shared/src/commonMain/kotlin/com/orbit/app/`.
 | `item` | One item: its modules as cards, "Add detail", and the schedule editor |
 | `expense` | A full-screen create/edit form: payer, date, equal or exact shares, explicit Save, and role-checked deletion |
 
-`spacehome/expenses/` owns the live ledger in the space's Expenses destination, latest date first. `OrbitAmountRow`
-shows title, payer, date and amount. Its layout changes do not affect the #54 form or its write paths.
+`spacehome/expenses/` owns the space's Expenses destination, laid out as Tricount does: every member's balance, the
+payments that settle up the ones the signed-in user is in (`myPayments`; only who pays can record one, as the rules
+require), then the ledger, latest date first. A ledger
+row (`OrbitAmountRow`) shows the title over who paid and the date, and the amount; a reimbursement reads "Bea paid Ana"
+with both faces on a tinted row, so it is not mistaken for spending.
 The shared add button opens `ExpenseRoute(spaceId)` there; selecting an entry opens the same form with its id.
-The expense form places amount and title first, then payer and date, and shows participants in a row with each person's share under their name so tapping a member includes or excludes them. It defaults to the signed-in payer, today's date and all current members. An edit starts from
+The expense form has the item's colour header, with the title typed in place and Delete at its end. The body puts the
+amount first, then Paid by and Date as rows that open a sheet (the members, the calendar), then Split between with how
+much is assigned, and everyone in one vertical list with their share at the end, or an `OrbitAmountField` for it with
+custom amounts, so tapping a member includes or excludes them. Save stays at the bottom. It defaults to the signed-in payer, today's date and all current members. An edit starts from
 the saved exact shares, including former participants, so opening it never redistributes money. Inputs live
 in `ExpenseUiState`; no write happens before Save. Reads expose retry, and writes expose failure and an
 in-flight flag. The ledger and form use the existing offline-capable `ExpenseRepository`.
@@ -101,8 +107,8 @@ Above the ledger, `SpaceExpensesViewModel` derives balances and suggested paymen
 with an outstanding balance use the names in `Space.formerMembers`. Text states whether each person pays,
 receives or is settled up, independently of colour. No balance is persisted.
 
-`OrbitBalanceRow` and `OrbitTransferRow` display plain values and callbacks; application state stays in the ViewModel.
-Direction and payment roles are labelled in en/es/ca/it, so understanding them does not depend on colour or arrows alone.
+`OrbitAmountRow` and `OrbitTransferRow` display plain values and callbacks; application state stays in the ViewModel.
+A balance says in words whether the person gets money back or owes it, so it never depends on colour.
 
 "Mark as paid" opens a confirmation sheet for one suggested payment. Nothing is written on opening or
 dismissing it. Confirmation records a `NewExpense` of kind `SETTLEMENT` through `ExpenseRepository.add`,

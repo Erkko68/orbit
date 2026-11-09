@@ -167,6 +167,10 @@ data class OrbitColors(
     val inkTertiary: Color,
     /** The soft shadow of panels. */
     val shadow: Color,
+    /** A balance that gets money back, as a whole row. Text on it is always [Ink]. */
+    val credit: Color,
+    /** A balance that owes money, as a whole row. Text on it is always [Ink]. */
+    val debit: Color,
 ) {
     /** The accent for [index] (a space's `accent`, a member's position), wrapping around the list. */
     fun spaceAccent(index: Int): Color = spaceAccents[index.mod(spaceAccents.size)]
@@ -234,6 +238,8 @@ internal val LightOrbitColors = OrbitColors(
     accents = accents(CanvasLight, White, PageAmountLight),
     inkTertiary = InkTertiaryLight,
     shadow = Ink,
+    credit = VividFills[2],
+    debit = VividFills[1],
 )
 
 internal val DarkOrbitColors = OrbitColors(
@@ -247,4 +253,6 @@ internal val DarkOrbitColors = OrbitColors(
     accents = accents(CanvasDark, PanelDark, PageAmountDark),
     inkTertiary = InkTertiaryDark,
     shadow = Color.Black,
+    credit = VividFills[2],
+    debit = VividFills[1],
 )

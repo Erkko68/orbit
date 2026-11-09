@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
 import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -46,7 +48,7 @@ class ExpenseViewModelTest {
     private fun ExpenseViewModel.fill() {
         onTitleChange("  Food  ")
         onAmountChange(moneyInput(1000, locale))
-        onDateChange("2026-11-04")
+        pickDate(LocalDate(2026, 11, 4).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds())
     }
 
     private suspend fun stored(creator: String = "ana"): String {
@@ -94,14 +96,48 @@ class ExpenseViewModelTest {
     }
 
     @Test
+    fun payerAndDateArePickedInTheirSheetsWhichCloseOnPick() = runTest {
+        signIn()
+        val vm = open()
+        vm.openPayerPicker()
+        assertTrue(vm.uiState.value.pickingPayer)
+        vm.selectPayer("bea")
+        assertFalse(vm.uiState.value.pickingPayer)
+        assertEquals("bea", vm.uiState.value.payer?.name)
+        vm.openPayerPicker()
+        vm.dismissPayerPicker()
+        assertFalse(vm.uiState.value.pickingPayer)
+        assertEquals("bea", vm.uiState.value.paidBy)
+        vm.openDatePicker()
+        assertTrue(vm.uiState.value.pickingDate)
+        val millis = LocalDate(2026, 3, 1).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
+        vm.pickDate(millis)
+        assertFalse(vm.uiState.value.pickingDate)
+        assertEquals(LocalDate(2026, 3, 1), vm.uiState.value.date)
+        assertEquals(millis, vm.uiState.value.dateMillis)
+        vm.openDatePicker()
+        vm.dismissDatePicker()
+        assertFalse(vm.uiState.value.pickingDate)
+    }
+
+    @Test
+    fun equalSharesFollowTheSelectionAndTypedSharesShowAsTyped() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        assertEquals(mapOf("ana" to 334L, "bea" to 333L, "marc" to 333L), vm.uiState.value.shares)
+        vm.toggleMember("marc")
+        assertEquals(mapOf("ana" to 500L, "bea" to 500L), vm.uiState.value.shares)
+        vm.selectSplit(ExpenseSplit.EXACT)
+        vm.onShareChange("ana", "x")
+        assertEquals(mapOf("ana" to 0L, "bea" to 500L), vm.uiState.value.shares)
+    }
+
+    @Test
     fun invalidFieldsAndAnEmptySelectionNeverWrite() = runTest {
         signIn()
         val vm = open()
         vm.fill()
-        vm.onDateChange("2026-02-30")
-        vm.save()
-        assertFalse(vm.uiState.value.canSave)
-        vm.onDateChange("2026-11-04")
         vm.onTitleChange("x".repeat(121))
         assertFalse(vm.uiState.value.canSave)
         vm.onTitleChange("Food")

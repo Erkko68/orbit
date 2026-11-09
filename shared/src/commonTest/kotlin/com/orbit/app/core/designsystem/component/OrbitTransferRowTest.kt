@@ -3,83 +3,75 @@ package com.orbit.app.core.designsystem.component
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.text.TextLayoutResult
 import com.orbit.app.core.designsystem.ComposeTest
+import com.orbit.app.core.designsystem.theme.OrbitShape
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import kotlin.math.abs
+import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.ic_wallet
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class OrbitTransferRowTest : ComposeTest() {
+    private val faces = listOf(
+        OrbitFace("bea", "Bea", "B", Color.Red, OrbitShape.Circle, null),
+        OrbitFace("ana", "Ana", "A", Color.Blue, OrbitShape.Circle, null),
+    )
+
     @Test
-    fun alignsTheAmountWithTheActionAndOnlyTheActionIsClickable() = runComposeUiTest {
-        var clicks = 0
+    fun onlyThePaidActionAsksAndItSitsAfterTheAmount() = runComposeUiTest {
+        var asked = 0
         setContent {
             OrbitTheme {
                 OrbitTransferRow(
-                    "Ana",
-                    "Marco",
-                    "Who pays",
-                    "Who receives",
-                    "12,40 €",
-                    "Mark as paid",
-                    { clicks++ },
-                    Modifier.width(360.dp)
+                    faces, "You owe Bea", "12,40 €", Modifier.width(360.dp),
+                    action = "Pay", actionIcon = Res.drawable.ic_wallet, actionDescription = "Mark as paid: You owe Bea",
+                    onPaid = { asked++ },
                 )
             }
         }
-        onNode(hasText("Ana") and hasText("Marco")).assertIsDisplayed().assertHasNoClickAction()
-        val amount = onNodeWithText("12,40 €").fetchSemanticsNode().boundsInRoot
-        val button = onNodeWithText("Mark as paid").fetchSemanticsNode().boundsInRoot
-        assertTrue(abs(amount.center.y - button.center.y) <= 1f)
-        assertTrue(amount.right < button.left)
-        onNodeWithText("Mark as paid").assertHeightIsEqualTo(56.dp).performClick()
-        assertEquals(1, clicks)
+        val sentence = onNodeWithText("You owe Bea", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val amount = onNodeWithText("12,40 €", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val action = onNodeWithContentDescription("Mark as paid: You owe Bea").fetchSemanticsNode().boundsInRoot
+        assertTrue(sentence.bottom <= amount.top)
+        assertTrue(amount.right <= action.left)
+        onNodeWithText("You owe Bea").assertHasNoClickAction()
+        onNodeWithContentDescription("Mark as paid: You owe Bea").assertHeightIsAtLeast(44.dp).performClick()
+        assertEquals(1, asked)
     }
 
     @Test
-    fun translatedLargeTextStaysReadableWithoutEnablingADisabledPayment() = runComposeUiTest {
-        var clicks = 0
+    fun aDisabledPaymentAsksNothingEvenWithLargeText() = runComposeUiTest {
+        var asked = 0
         setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1.5f)) {
                 OrbitTheme {
                     OrbitTransferRow(
-                        "Alessandra",
-                        "Valerio",
-                        "Chi paga",
-                        "Chi riceve",
-                        "123,45 €",
-                        "Segna come pagato",
-                        { clicks++ },
-                        Modifier.width(320.dp),
-                        enabled = false
+                        faces, "Devi a Valerio", "123,45 €", Modifier.width(320.dp),
+                        action = "Paga", actionIcon = Res.drawable.ic_wallet, actionDescription = "Segna come pagato",
+                        onPaid = { asked++ }, enabled = false,
                     )
                 }
             }
         }
         onNodeWithText("123,45 €").assertIsDisplayed()
-        onNodeWithText("Segna come pagato").assertIsDisplayed().assertIsNotEnabled().performClick()
-        assertEquals(0, clicks)
-        val amount = onNodeWithText("123,45 €").fetchSemanticsNode().boundsInRoot
-        val button = onNodeWithText("Segna come pagato").fetchSemanticsNode().boundsInRoot
-        assertTrue(amount.right <= button.left || amount.bottom <= button.top, "Amount=$amount, button=$button")
-        val layouts = mutableListOf<TextLayoutResult>()
-        onNodeWithText("Segna come pagato", useUnmergedTree = true)
-            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-        val layout = layouts.single()
-        // Robolectric's legacy text renderer uses placeholder glyph widths; check vertical clipping
-        // and actual component bounds here. Real font rendering is verified on the device.
-        assertFalse(layout.didOverflowHeight)
-        assertTrue(button.right <= onRoot().fetchSemanticsNode().boundsInRoot.right)
+        onNodeWithContentDescription("Segna come pagato").assertIsNotEnabled().performClick()
+        assertEquals(0, asked)
+    }
+
+    @Test
+    fun withoutAnActionItOnlySaysWhatIsComing() = runComposeUiTest {
+        setContent { OrbitTheme { OrbitTransferRow(faces, "Bea owes you", "12,40 €") } }
+        onNodeWithText("Bea owes you").assertIsDisplayed()
+        onNodeWithText("12,40 €").assertIsDisplayed()
+        onAllNodes(hasClickAction()).assertCountEquals(0)
     }
 }

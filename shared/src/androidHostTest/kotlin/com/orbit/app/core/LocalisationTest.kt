@@ -17,8 +17,8 @@ import orbit.shared.generated.resources.sign_in
 import orbit.shared.generated.resources.expenses_receives
 import orbit.shared.generated.resources.expenses_pays
 import orbit.shared.generated.resources.expenses_even
-import orbit.shared.generated.resources.expenses_who_pays
-import orbit.shared.generated.resources.expenses_who_receives
+import orbit.shared.generated.resources.expenses_payments
+import orbit.shared.generated.resources.expenses_pay
 import orbit.shared.generated.resources.expenses_settlement_title
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -36,7 +36,7 @@ class LocalisationTest : ComposeTest() {
         "2 days",
         "en",
         "Jan",
-        listOf("To receive", "To pay", "Settled up", "Who pays", "Who receives", "Reimbursement")
+        listOf("Gets back", "Owes", "Settled up", "Settle up", "Pay", "Reimbursement")
     )
 
     @Test
@@ -47,7 +47,7 @@ class LocalisationTest : ComposeTest() {
         "2 días",
         "es",
         "ene",
-        listOf("Por recibir", "Por pagar", "Al día", "Quién paga", "Quién recibe", "Reembolso")
+        listOf("Recupera", "Debe", "Al día", "Saldar cuentas", "Pagar", "Reembolso")
     )
 
     @Test
@@ -58,7 +58,7 @@ class LocalisationTest : ComposeTest() {
         "2 dies",
         "ca",
         "gen",
-        listOf("Per rebre", "Per pagar", "Al dia", "Qui paga", "Qui rep", "Reemborsament")
+        listOf("Recupera", "Deu", "Al dia", "Saldar comptes", "Pagar", "Reemborsament")
     )
 
     @Test
@@ -69,7 +69,7 @@ class LocalisationTest : ComposeTest() {
         "2 giorni",
         "it",
         "gen",
-        listOf("Da ricevere", "Da pagare", "In pari", "Chi paga", "Chi riceve", "Rimborso")
+        listOf("Deve ricevere", "Deve dare", "In pari", "Salda i conti", "Paga", "Rimborso")
     )
 
     @Test
@@ -80,7 +80,7 @@ class LocalisationTest : ComposeTest() {
         "2 days",
         "en",
         "janv",
-        listOf("To receive", "To pay", "Settled up", "Who pays", "Who receives", "Reimbursement")
+        listOf("Gets back", "Owes", "Settled up", "Settle up", "Pay", "Reimbursement")
     )
 
     private fun assertLanguage(
@@ -103,8 +103,8 @@ class LocalisationTest : ComposeTest() {
                         Text(stringResource(Res.string.expenses_receives))
                         Text(stringResource(Res.string.expenses_pays))
                         Text(stringResource(Res.string.expenses_even))
-                        Text(stringResource(Res.string.expenses_who_pays))
-                        Text(stringResource(Res.string.expenses_who_receives))
+                        Text(stringResource(Res.string.expenses_payments))
+                        Text(stringResource(Res.string.expenses_pay))
                         Text(stringResource(Res.string.expenses_settlement_title))
                     }
                 }

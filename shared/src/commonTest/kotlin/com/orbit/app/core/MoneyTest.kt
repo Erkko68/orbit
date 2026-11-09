@@ -37,4 +37,12 @@ class MoneyTest {
             }
         }
     }
+
+    @Test
+    fun theEuroSignGoesWhereTheDeviceWritesIt() {
+        assertEquals(true, euroBeforeAmount("€12.40"))
+        assertEquals(true, euroBeforeAmount("€ 12,40"))
+        assertEquals(false, euroBeforeAmount("12,40 €"))
+        assertEquals(false, euroBeforeAmount("12,40\u00a0€"))
+    }
 }

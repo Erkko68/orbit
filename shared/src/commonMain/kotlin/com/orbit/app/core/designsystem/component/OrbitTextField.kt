@@ -26,6 +26,8 @@ fun OrbitTextField(
     supportingText: String? = null,
     leadingIcon: DrawableResource? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
+    prefix: String? = null,
+    suffix: String? = null,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
 ) {
@@ -44,6 +46,8 @@ fun OrbitTextField(
         placeholder = { Text(placeholder, style = MaterialTheme.typography.bodyLarge) },
         leadingIcon = leadingIcon?.let { { Icon(painterResource(it), contentDescription = null) } },
         trailingIcon = trailingIcon,
+        prefix = prefix?.let { { Text(it, style = MaterialTheme.typography.bodyLarge) } },
+        suffix = suffix?.let { { Text(it, style = MaterialTheme.typography.bodyLarge) } },
         supportingText = supportingText?.let { { Text(it) } },
         isError = isError,
         visualTransformation = visualTransformation,

@@ -13,6 +13,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import kotlinx.datetime.LocalDate
@@ -36,22 +37,44 @@ class SpaceExpensesViewModelTest : ComposeTest() {
         Dispatchers.resetMain()
     }
 
+    /**
+     * Waits for a confirmed settlement to finish. Its title is read from the string resources, which is real I/O that
+     * `advanceUntilIdle` does not wait for.
+     */
+    private suspend fun SpaceExpensesViewModel.settled() = uiState.first { !it.submitting }
+
     @Test
     fun observesAddsEditsAndDeletesInDateOrderAndKeepsSpacesSeparate() = runTest {
         auth.register("ana", "secret", "Ana")
         val spaces = FakeSpaceRepository.withMembers("ana" to com.orbit.app.domain.model.Role.OWNER)
-        val vm = SpaceExpensesViewModel("space-1", ledger, spaces)
+        val vm = SpaceExpensesViewModel("space-1", ledger, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
         assertTrue(vm.uiState.value.entries.isEmpty())
         val older = ledger.add("space-1", NewExpense("Old", "ana", mapOf("ana" to 10L), LocalDate(2026, 11, 1)))
         val newer = ledger.add("space-1", NewExpense("New", "ana", mapOf("ana" to 20L), LocalDate(2026, 11, 2)))
         ledger.add("other", NewExpense("Other", "ana", mapOf("ana" to 99L), LocalDate(2026, 11, 3)))
         assertEquals(listOf(newer, older), vm.uiState.value.entries.map { it.id })
-        assertEquals("ana", vm.uiState.value.names["ana"])
+        assertEquals("ana", vm.uiState.value.faces["ana"]?.name)
         ledger.edit("space-1", older, "Edited", "ana", mapOf("ana" to 30L), LocalDate(2026, 11, 4))
         assertEquals("Edited", vm.uiState.value.entries.first().title)
         ledger.delete("space-1", older)
         assertEquals(listOf(newer), vm.uiState.value.entries.map { it.id })
+    }
+
+    @Test
+    fun settleUpKeepsOnlyThePaymentsTheSignedInUserIsIn() = runTest {
+        auth.register("ana", "secret", "Ana")
+        val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER, "marc" to Role.MEMBER)
+        val vm = SpaceExpensesViewModel("space-1", ledger, spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
+        assertEquals("ana", vm.uiState.value.me)
+        ledger.add("space-1", NewExpense("Food", "marc", mapOf("bea" to 500L), LocalDate(2026, 11, 1)))
+        assertEquals(listOf(SuggestedPayment("bea", "marc", 500L)), vm.uiState.value.balances.payments)
+        assertTrue(vm.uiState.value.myPayments.isEmpty())
+        ledger.add("space-1", NewExpense("Taxi", "ana", mapOf("marc" to 300L), LocalDate(2026, 11, 2)))
+        assertEquals(listOf(SuggestedPayment("bea", "ana", 300L)), vm.uiState.value.myPayments)
+        assertEquals("bea", vm.uiState.value.name("bea"))
+        assertEquals("gone", vm.uiState.value.name("gone"))
     }
 
     @Test
@@ -63,13 +86,13 @@ class SpaceExpensesViewModelTest : ComposeTest() {
             ledger to FlakySpaceRepository(spaceFailures = 1),
         )
         for ((expenses, spaces) in cases) {
-            val vm = SpaceExpensesViewModel("space-1", expenses, spaces)
+            val vm = SpaceExpensesViewModel("space-1", expenses, spaces, auth)
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
             assertTrue(vm.uiState.value.loadFailed)
             assertFalse(vm.uiState.value.loading)
             vm.retry()
             assertFalse(vm.uiState.value.loadFailed)
-            assertEquals("ana", vm.uiState.value.names["ana"])
+            assertEquals("ana", vm.uiState.value.faces["ana"]?.name)
         }
     }
 
@@ -77,7 +100,7 @@ class SpaceExpensesViewModelTest : ComposeTest() {
     fun balancesFollowAddsEditsAndDeletesAndIncludeCurrentZeroBalances() = runTest {
         auth.register("ana", "secret", "Ana")
         val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER, "cam" to Role.MEMBER)
-        val vm = SpaceExpensesViewModel("space-1", ledger, spaces)
+        val vm = SpaceExpensesViewModel("space-1", ledger, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
         assertEquals(listOf(0L, 0L, 0L), vm.uiState.value.balances.members.map { it.cents })
         val id = ledger.add(
@@ -102,12 +125,14 @@ class SpaceExpensesViewModelTest : ComposeTest() {
     fun onlyConfirmationWritesTheExactSettlementAndDeletingItRestoresTheDebt() = runTest {
         auth.register("ana", "secret", "Ana")
         val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER)
-        ledger.add("space-1", NewExpense("Food", "ana", mapOf("bea" to 1240L), LocalDate(2026, 11, 4)))
+        ledger.add("space-1", NewExpense("Food", "bea", mapOf("ana" to 1240L), LocalDate(2026, 11, 4)))
         val controlled = ControlledExpenseRepository(ledger)
-        val vm = SpaceExpensesViewModel("space-1", controlled, spaces)
+        val vm = SpaceExpensesViewModel("space-1", controlled, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
         val payment = vm.uiState.value.balances.payments.single()
         vm.confirmSettlement()
+        vm.requestSettlement(payment.copy(paidBy = "bea", paidTo = "ana"))
+        assertNull(vm.uiState.value.pendingPayment)
         vm.requestSettlement(payment.copy(cents = 1))
         assertNull(vm.uiState.value.pendingPayment)
         vm.requestSettlement(payment)
@@ -119,15 +144,15 @@ class SpaceExpensesViewModelTest : ComposeTest() {
         vm.requestSettlement(payment)
         val before = Clock.System.todayIn(TimeZone.currentSystemDefault())
         vm.confirmSettlement()
-        advanceUntilIdle()
+        vm.settled()
         val after = Clock.System.todayIn(TimeZone.currentSystemDefault())
         assertEquals(1, controlled.writes)
         assertNull(vm.uiState.value.pendingPayment)
         assertFalse(vm.uiState.value.submitting)
         assertFalse(vm.uiState.value.failed)
         val entry = vm.uiState.value.entries.single { it.kind == ExpenseKind.SETTLEMENT }
-        assertEquals("bea", entry.paidBy)
-        assertEquals(mapOf("ana" to 1240L), entry.split)
+        assertEquals("ana", entry.paidBy)
+        assertEquals(mapOf("bea" to 1240L), entry.split)
         assertEquals("ana", entry.createdBy)
         assertTrue(entry.title.isNotBlank())
         assertTrue(entry.date == before || entry.date == after)
@@ -142,14 +167,14 @@ class SpaceExpensesViewModelTest : ComposeTest() {
     fun failedWriteKeepsConfirmationAndRetryPreventsDoubleSubmission() = runTest {
         auth.register("ana", "secret", "Ana")
         val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER)
-        ledger.add("space-1", NewExpense("Food", "ana", mapOf("bea" to 1240L), LocalDate(2026, 11, 4)))
+        ledger.add("space-1", NewExpense("Food", "bea", mapOf("ana" to 1240L), LocalDate(2026, 11, 4)))
         val controlled = ControlledExpenseRepository(ledger).apply { failWrites = true }
-        val vm = SpaceExpensesViewModel("space-1", controlled, spaces)
+        val vm = SpaceExpensesViewModel("space-1", controlled, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
         val payment = vm.uiState.value.balances.payments.single()
         vm.requestSettlement(payment)
         vm.confirmSettlement()
-        advanceUntilIdle()
+        vm.settled()
         assertTrue(vm.uiState.value.failed)
         assertTrue(vm.uiState.value.canConfirm)
         assertEquals(payment, vm.uiState.value.pendingPayment)
@@ -177,12 +202,12 @@ class SpaceExpensesViewModelTest : ComposeTest() {
     fun changedLedgerDisablesTheOldConfirmationAndRequiresANewSelection() = runTest {
         auth.register("ana", "secret", "Ana")
         val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER)
-        val id = ledger.add("space-1", NewExpense("Food", "ana", mapOf("bea" to 1240L), LocalDate(2026, 11, 4)))
+        val id = ledger.add("space-1", NewExpense("Food", "bea", mapOf("ana" to 1240L), LocalDate(2026, 11, 4)))
         val controlled = ControlledExpenseRepository(ledger)
-        val vm = SpaceExpensesViewModel("space-1", controlled, spaces)
+        val vm = SpaceExpensesViewModel("space-1", controlled, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
         vm.requestSettlement(vm.uiState.value.balances.payments.single())
-        ledger.edit("space-1", id, "Food", "ana", mapOf("bea" to 500L), LocalDate(2026, 11, 4))
+        ledger.edit("space-1", id, "Food", "bea", mapOf("ana" to 500L), LocalDate(2026, 11, 4))
         assertTrue(vm.uiState.value.paymentChanged)
         assertFalse(vm.uiState.value.canConfirm)
         vm.confirmSettlement()
@@ -192,8 +217,8 @@ class SpaceExpensesViewModelTest : ComposeTest() {
         vm.requestSettlement(vm.uiState.value.balances.payments.single())
         assertTrue(vm.uiState.value.canConfirm)
         vm.confirmSettlement()
-        advanceUntilIdle()
-        assertEquals(mapOf("ana" to 500L), vm.uiState.value.entries.single { it.kind == ExpenseKind.SETTLEMENT }.split)
+        vm.settled()
+        assertEquals(mapOf("bea" to 500L), vm.uiState.value.entries.single { it.kind == ExpenseKind.SETTLEMENT }.split)
     }
 
     @Test
@@ -203,13 +228,13 @@ class SpaceExpensesViewModelTest : ComposeTest() {
             Space("space-1", "Flat", 0, listOf("ana"), mapOf("bea" to "Beatrice")),
             listOf(Member("ana", "Ana", null, Role.OWNER)),
         )
-        ledger.add("space-1", NewExpense("Food", "ana", mapOf("bea" to 100L), LocalDate(2026, 11, 4)))
-        val vm = SpaceExpensesViewModel("space-1", ledger, spaces)
+        ledger.add("space-1", NewExpense("Food", "bea", mapOf("ana" to 100L), LocalDate(2026, 11, 4)))
+        val vm = SpaceExpensesViewModel("space-1", ledger, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
-        assertEquals("Beatrice", vm.uiState.value.names["bea"])
+        assertEquals("Beatrice", vm.uiState.value.faces["bea"]?.name)
         vm.requestSettlement(vm.uiState.value.balances.payments.single())
         vm.confirmSettlement()
-        advanceUntilIdle()
+        vm.settled()
         assertEquals(listOf(MemberBalance("ana", 0)), vm.uiState.value.balances.members)
     }
 
@@ -219,7 +244,7 @@ class SpaceExpensesViewModelTest : ComposeTest() {
         val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER)
         ledger.add("space-1", NewExpense("First", "ana", mapOf("bea" to Long.MAX_VALUE), LocalDate(2026, 11, 4)))
         val invalid = ledger.add("space-1", NewExpense("Second", "ana", mapOf("bea" to 1L), LocalDate(2026, 11, 4)))
-        val vm = SpaceExpensesViewModel("space-1", ledger, spaces)
+        val vm = SpaceExpensesViewModel("space-1", ledger, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
         assertTrue(vm.uiState.value.loadFailed)
         assertFalse(vm.uiState.value.canConfirm)

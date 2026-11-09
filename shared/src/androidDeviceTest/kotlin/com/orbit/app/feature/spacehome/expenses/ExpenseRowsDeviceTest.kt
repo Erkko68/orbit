@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalContext
@@ -14,11 +15,11 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import com.orbit.app.core.designsystem.component.*
+import com.orbit.app.core.designsystem.theme.OrbitShape
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import orbit.shared.generated.resources.Res
-import orbit.shared.generated.resources.ic_arrow_back
+import orbit.shared.generated.resources.ic_wallet
 import java.io.File
-import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -40,45 +41,39 @@ class ExpenseRowsDeviceTest {
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 OrbitTheme {
                     OrbitScreen(scrollable = true) {
-                        OrbitSectionHeader("Saldi", Modifier.fillMaxWidth(), centered = true)
-                        OrbitBalanceRow(
-                            "Alessandra Maria",
-                            "Da ricevere",
-                            "123,45 €",
-                            Res.drawable.ic_arrow_back,
-                            Modifier.fillMaxWidth()
-                        )
-                        OrbitSectionHeader("Pagamenti suggeriti", Modifier.fillMaxWidth(), centered = true)
+                        OrbitSectionHeader("Saldi", Modifier.fillMaxWidth())
+                        OrbitAmountRow("Alessandra Maria", "Deve ricevere", "123,45 €", Modifier.fillMaxWidth())
+                        OrbitSectionHeader("Salda i conti", Modifier.fillMaxWidth())
                         OrbitTransferRow(
-                            "Alessandra Maria",
-                            "Valerio Bianchi",
-                            "Chi paga",
-                            "Chi riceve",
+                            listOf(
+                                OrbitFace("v", "Valerio Bianchi", "VB", Color.Red, OrbitShape.Circle),
+                                OrbitFace("a", "Alessandra Maria", "AM", Color.Cyan, OrbitShape.Circle),
+                            ),
+                            "Devi a Alessandra Maria",
                             "123,45 €",
-                            "Segna come pagato",
-                            {},
-                            Modifier.fillMaxWidth()
+                            Modifier.fillMaxWidth(),
+                            action = "Paga",
+                            actionIcon = Res.drawable.ic_wallet,
+                            actionDescription = "Segna come pagato",
                         )
-                        OrbitSectionHeader("Registro", Modifier.fillMaxWidth(), centered = true)
+                        OrbitSectionHeader("Registro", Modifier.fillMaxWidth())
                         OrbitAmountRow(
                             "Spesa al supermercato",
-                            "Pagato da: Alessandra Maria",
+                            "Pagato da Alessandra Maria · 7 nov 2026",
                             "123,45 €",
-                            "7 nov 2026",
-                            {},
                             Modifier.fillMaxWidth(),
-                            "Alessandra Maria"
+                            onClick = {},
                         )
                     }
                 }
             }
         }
-        onNodeWithText("Segna come pagato").performScrollTo().assertIsDisplayed()
+        onNodeWithContentDescription("Segna come pagato").performScrollTo().assertIsDisplayed()
         val file = File(context.getExternalFilesDir(null), "$imageName.png")
         file.outputStream()
             .use { onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it) }
         val layouts = mutableListOf<TextLayoutResult>()
-        onNodeWithText("Segna come pagato", useUnmergedTree = true)
+        onNodeWithText("Devi a Alessandra Maria", useUnmergedTree = true)
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
         val layout = layouts.single()
         // A paragraph can retain the maximum measurement width while Text wraps its visible lines.
@@ -89,11 +84,10 @@ class ExpenseRowsDeviceTest {
             assertTrue(layout.getLineLeft(line) >= -1f)
             assertTrue(layout.getLineBottom(line) <= layout.size.height + 1f)
         }
-        val button = onNodeWithText("Segna come pagato").fetchSemanticsNode().boundsInRoot
+        val check = onNodeWithContentDescription("Segna come pagato").fetchSemanticsNode().boundsInRoot
         val amount = onAllNodesWithText("123,45 €", useUnmergedTree = true)[1].fetchSemanticsNode().boundsInRoot
-        assertTrue(amount.right <= button.left || amount.bottom <= button.top)
-        if (fontScale == 1f) assertTrue(amount.right <= button.left, "Normal text keeps amount and action on one row")
-        if (amount.right <= button.left) assertTrue(abs(amount.center.y - button.center.y) <= 1f)
+        assertTrue(amount.right <= check.left, "The amount never runs under the action")
+        assertTrue(check.right <= onRoot().fetchSemanticsNode().boundsInRoot.right)
         val balanceLayouts = mutableListOf<TextLayoutResult>()
         onAllNodesWithText("123,45 €", useUnmergedTree = true)[0]
             .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(balanceLayouts) }
