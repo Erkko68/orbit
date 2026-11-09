@@ -5,21 +5,18 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TimePickerDefaults
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.orbit.app.core.designsystem.component.OrbitActionRow
 import com.orbit.app.core.designsystem.component.OrbitButton
+import com.orbit.app.core.designsystem.component.OrbitDatePicker
 import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitFilterChip
 import com.orbit.app.core.designsystem.component.OrbitGroup
@@ -366,42 +363,16 @@ private fun DurationRow(editor: ScheduleEditor, viewModel: ItemViewModel) {
     }
 }
 
-/** The picker's own state holds the day being browsed; the view model gets the one confirmed. */
-// DatePicker is experimental on iOS only (stable on Android): an exception AGENTS.md allows.
-@OptIn(ExperimentalMaterial3Api::class)
+/** The calendar of the date being picked; Never under it clears the end of a repeat. */
 @Composable
 private fun ScheduleDatePage(editor: ScheduleEditor, viewModel: ItemViewModel) {
-    val pickerState = rememberDatePickerState(
-        initialSelectedDateMillis = editor.pickerMillis,
-        yearRange = editor.pickerYears,
-        selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long) = editor.canPick(utcTimeMillis)
-
-            override fun isSelectableYear(year: Int) = editor.canPickYear(year)
-        },
-    )
-    val scheme = MaterialTheme.colorScheme
-    DatePicker(
-        state = pickerState,
-        title = null,
-        headline = null,
-        showModeToggle = false,
-        colors = DatePickerDefaults.colors(
-            // The sheet's own colour: the list of years is painted with it, over the days.
-            containerColor = scheme.surfaceBright,
-            selectedDayContainerColor = OrbitTheme.accent.vivid,
-            selectedDayContentColor = Ink,
-            selectedYearContainerColor = OrbitTheme.accent.vivid,
-            selectedYearContentColor = Ink,
-            todayContentColor = scheme.onSurface,
-            todayDateBorderColor = scheme.onSurface,
-        ),
-    )
-    OrbitButton(
-        text = stringResource(Res.string.schedule_pick),
-        onClick = { pickerState.selectedDateMillis?.let(viewModel::onScheduleDatePicked) },
-        modifier = Modifier.fillMaxWidth(),
-        enabled = pickerState.selectedDateMillis != null,
+    OrbitDatePicker(
+        selectedMillis = editor.pickerMillis,
+        pickText = stringResource(Res.string.schedule_pick),
+        onPick = viewModel::onScheduleDatePicked,
+        years = editor.pickerYears,
+        canPick = editor::canPick,
+        canPickYear = editor::canPickYear,
     )
     if (editor.picking == ScheduleDate.UNTIL) {
         OrbitTextButton(
