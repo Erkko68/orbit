@@ -362,4 +362,21 @@
     <string name="expense_total_value">%1$s — Totale</string>
     <string name="expense_paid_by_value">Pagato da: %1$s</string>
     <string name="expense_date_value">Data: %1$s</string>
+
+    <string name="expenses_balances">Saldi</string>
+    <string name="expenses_payments">Pagamenti suggeriti</string>
+    <string name="expenses_ledger">Registro</string>
+    <string name="expenses_receives">Da ricevere</string>
+    <string name="expenses_pays">Da pagare</string>
+    <string name="expenses_even">In pari</string>
+    <string name="expenses_payment">%1$s versa %2$s a %3$s</string>
+    <string name="expenses_no_payments">Non servono pagamenti.</string>
+    <string name="expenses_mark_paid">Segna come pagato</string>
+    <string name="expenses_confirm_title">Registrare questo pagamento?</string>
+    <string name="expenses_confirm_body">Conferma solo se il pagamento è già avvenuto. Orbit lo registra nel registro; non trasferisce denaro.</string>
+    <string name="expenses_recording">Registrazione…</string>
+    <string name="expenses_settlement_title">Rimborso</string>
+    <string name="expenses_payment_changed">Il registro è cambiato. Chiudi questa conferma e scegli un pagamento aggiornato.</string>
+    <string name="expenses_who_pays">Chi paga</string>
+    <string name="expenses_who_receives">Chi riceve</string>
 </resources>

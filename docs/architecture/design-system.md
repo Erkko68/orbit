@@ -33,7 +33,7 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | `OrbitColorHeader` | The top of a screen about one thing: a vivid block with its title, a face and a detail line. It shows; only an item's title is typed in it, with a pencil |
 | `OrbitHero` | The big bold opening of a screen, on the page |
 | `OrbitScreenHeader` | The opening of a screen without a top bar (sign-in) |
-| `OrbitSectionHeader` | The opening of a group: title, and a count or an action |
+| `OrbitSectionHeader` | The opening of a group: title, and a count or an action; `centered` centres a title-only section without changing other callers |
 | `OrbitCard` | A panel |
 | `OrbitGroup`, `orbitGroup` | Rows that read as one thing, in a column or a lazy list |
 | `OrbitSheet` | A short task over the screen. Whether it is open is `UiState`. A section of the app is a route, never a sheet |
@@ -50,6 +50,8 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | `OrbitTaskRow` | An item in a list, a task or a list alike: the check, the title, a line of description, when and how far along, and the faces at the end |
 | `OrbitEntryRow` | One entry of a checklist, lighter than a check row |
 | `OrbitAmountRow` | A ledger entry: title, payer, regional date and amount, with monetary data in Martian Mono |
+| `OrbitBalanceRow` | A person's name, a labelled directional arrow and an exact amount, adapting to long names; a zero balance has a status without an arrow |
+| `OrbitTransferRow` | Payer and recipient above an aligned amount and rounded tonal action; long text can wrap without clipping |
 | `OrbitActionRow` | A row that does something: an icon on a shape, a title over its value, faces or another `trailing`, and an arrow |
 | `OrbitNoteField` | Text of several lines typed where it is read |
 | `OrbitDetailsField` | The long text of something, on a panel as tall as its text |
@@ -79,7 +81,7 @@ Buttons and text fields are 56 dp tall (`ControlHeight`) and take the full width
 | Component | Use it for |
 |---|---|
 | `OrbitButton` | The one primary action |
-| `OrbitTonalButton` | A secondary action, a sign-in provider |
+| `OrbitTonalButton` | A secondary action, a sign-in provider; shared rows can supply a shape and a compact label/padding variant while retaining the control height and theme colours |
 | `OrbitTextButton` | A tertiary text action |
 | `OrbitAddButton` | The one way to add something, floating in the same place on every screen |
 | `OrbitIconButton` | An icon-only action, named for screen readers |

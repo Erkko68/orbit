@@ -362,4 +362,21 @@
     <string name="expense_total_value">%1$s — Total</string>
     <string name="expense_paid_by_value">Paid by: %1$s</string>
     <string name="expense_date_value">Date: %1$s</string>
+
+    <string name="expenses_balances">Balances</string>
+    <string name="expenses_payments">Suggested payments</string>
+    <string name="expenses_ledger">Ledger</string>
+    <string name="expenses_receives">To receive</string>
+    <string name="expenses_pays">To pay</string>
+    <string name="expenses_even">Settled up</string>
+    <string name="expenses_payment">%1$s pays %2$s to %3$s</string>
+    <string name="expenses_no_payments">No payments needed.</string>
+    <string name="expenses_mark_paid">Mark as paid</string>
+    <string name="expenses_confirm_title">Record this payment?</string>
+    <string name="expenses_confirm_body">Confirm only if this payment has already been made. Orbit records it in the ledger; it does not transfer money.</string>
+    <string name="expenses_recording">Recording…</string>
+    <string name="expenses_settlement_title">Reimbursement</string>
+    <string name="expenses_payment_changed">The ledger has changed. Close this confirmation and choose an updated payment.</string>
+    <string name="expenses_who_pays">Who pays</string>
+    <string name="expenses_who_receives">Who receives</string>
 </resources>

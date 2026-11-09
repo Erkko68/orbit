@@ -89,13 +89,33 @@ Everything is under `shared/src/commonMain/kotlin/com/orbit/app/`.
 | `item` | One item: its modules as cards, "Add detail", and the schedule editor |
 | `expense` | A full-screen create/edit form: payer, date, equal or exact shares, explicit Save, and role-checked deletion |
 
-`spacehome/expenses/` owns the live ledger in the space's Expenses destination, latest date first, showing each entry's title, labelled total, payer and regional date through `OrbitAmountRow`.
+`spacehome/expenses/` owns the live ledger in the space's Expenses destination, latest date first. `OrbitAmountRow`
+shows title, payer, date and amount. Its layout changes do not affect the #54 form or its write paths.
 The shared add button opens `ExpenseRoute(spaceId)` there; selecting an entry opens the same form with its id.
 The expense form places amount and title first, then payer and date, and shows participants in a row with each person's share under their name so tapping a member includes or excludes them. It defaults to the signed-in payer, today's date and all current members. An edit starts from
 the saved exact shares, including former participants, so opening it never redistributes money. Inputs live
 in `ExpenseUiState`; no write happens before Save. Reads expose retry, and writes expose failure and an
 in-flight flag. The ledger and form use the existing offline-capable `ExpenseRepository`.
-Balances and recording a proposed settlement remain #57.
+Above the ledger, `SpaceExpensesViewModel` derives balances and suggested payments with the existing
+`calculateBalances(ledger, memberIds)` use case. Current members remain visible at zero; former members
+with an outstanding balance use the names in `Space.formerMembers`. Text states whether each person pays,
+receives or is settled up, independently of colour. No balance is persisted.
+
+`OrbitBalanceRow` and `OrbitTransferRow` display plain values and callbacks; application state stays in the ViewModel.
+Direction and payment roles are labelled in en/es/ca/it, so understanding them does not depend on colour or arrows alone.
+
+"Mark as paid" opens a confirmation sheet for one suggested payment. Nothing is written on opening or
+dismissing it. Confirmation records a `NewExpense` of kind `SETTLEMENT` through `ExpenseRepository.add`,
+paid by the debtor with a single share owed by the creditor, a translated title and today's device-local
+date. It records a payment already made, not a money transfer. The ViewModel validates the entry and uses
+`attempt`; an in-flight flag blocks repeat submissions and a failed write keeps the confirmation open for
+retry. If the selected payment no longer belongs to the latest suggestions, confirmation is disabled and
+the user must choose an updated payment. The ledger listener recalculates the result, including offline
+cache updates. Deleting the settlement through the existing expense form restores its effect on the debt.
+
+Tests cover reactive balances, confirmation/cancellation, failed writes, retries and duplicate submission protection.
+UI tests exercise settling up, row alignment, large text and the four translated label sets. Android emulator tests
+check real text bounds with fake values. The user reports correct Android operation with real Firebase; iOS CI remains pending.
 
 The exact-share mode is labelled "Custom amounts" in the form. It explains that each amount is what that
 person owes and shows the assigned total, how much remains, or the excess. `ExpenseUiState.splitProgress`

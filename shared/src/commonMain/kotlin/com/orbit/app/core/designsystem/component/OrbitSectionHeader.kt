@@ -10,6 +10,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
@@ -25,10 +26,14 @@ fun OrbitSectionHeader(
     count: String? = null,
     action: String? = null,
     onAction: () -> Unit = {},
+    centered: Boolean = false,
 ) {
     val inside = LocalInsideCard.current
     Row(
-        modifier = modifier.padding(top = if (inside) OrbitSpacing.sm else OrbitSpacing.md, bottom = if (inside) 0.dp else OrbitSpacing.xs),
+        modifier = modifier.padding(
+            top = if (inside) OrbitSpacing.sm else OrbitSpacing.md,
+            bottom = if (inside) 0.dp else OrbitSpacing.xs
+        ),
         horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -37,6 +42,7 @@ fun OrbitSectionHeader(
             modifier = Modifier.weight(1f).semantics { heading() },
             style = if (inside) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.onSurface,
+            textAlign = if (centered) TextAlign.Center else TextAlign.Start,
         )
         count?.let {
             Text(it, style = OrbitTheme.data.small, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
