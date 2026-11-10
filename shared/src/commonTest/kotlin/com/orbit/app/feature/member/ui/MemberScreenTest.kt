@@ -3,6 +3,7 @@ package com.orbit.app.feature.member.ui
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -167,4 +168,43 @@ class MemberScreenTest : ComposeTest() {
 
         onNodeWithText("Member not found").assertIsDisplayed()
     }
+
+    @Test
+    fun theOwnerRemovesAMemberAfterConfirming() = runComposeUiTest {
+        showMemberAs("ana@orbit.app", "cy@orbit.app")
+
+        onNodeWithText("Remove Cy").performScrollTo().performClick()
+        onNodeWithText("Remove Cy?").assertIsDisplayed()
+        onNodeWithText("Remove").performClick()
+
+        assertEquals(
+            listOf("ana@orbit.app", "ben@orbit.app"),
+            runBlocking { spaces.observeMembers("space-1").first().map { it.userId } },
+        )
+    }
+
+    @Test
+    fun cancellingTheRemovalKeepsTheMember() = runComposeUiTest {
+        showMemberAs("ana@orbit.app", "cy@orbit.app")
+
+        onNodeWithText("Remove Cy").performScrollTo().performClick()
+        onNodeWithText("Cancel").performClick()
+
+        assertEquals(3, runBlocking { spaces.observeMembers("space-1").first().size })
+    }
+
+    @Test
+    fun anAdminRemovesAPlainMemberOnly() = runComposeUiTest {
+        showMemberAs("ben@orbit.app", "cy@orbit.app")
+
+        onNodeWithText("Remove Cy").assertIsDisplayed()
+    }
+
+    @Test
+    fun aPlainMemberIsOfferedNoRemoval() = runComposeUiTest {
+        showMemberAs("cy@orbit.app", "ben@orbit.app")
+
+        onNodeWithText("Remove Ben").assertIsNotDisplayed()
+    }
+
 }

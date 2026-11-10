@@ -92,9 +92,10 @@ service cloud.firestore {
         return !changedKeys().hasAny(['ownerId']);
       }
 
-      // The members of a space grow only through a join, never by an admin writing uids into memberIds.
-      function addsMembers() {
-        return request.resource.data.memberIds.size() > resource.data.memberIds.size();
+      // Who is in a space changes only through a join, a leave or a removal, each of which writes the
+      // matching member document in the same batch. The settings never touch membership.
+      function keepsMembers() {
+        return !changedKeys().hasAny(['memberIds', 'formerMembers']);
       }
 
       // The space half of a join (ADR 0002, "Joining"): it appends the caller, and only the caller, to
@@ -124,6 +125,22 @@ service cloud.firestore {
           && !existsAfter(memberPath(spaceId, request.auth.uid));
       }
 
+      // The space half of a removal (#264): an owner or admin takes one other member, and only them, out of
+      // memberIds, and the same batch deletes that member's document, whose own rule decides who may remove
+      // whom. The space keeps the removed name in formerMembers, and nobody else's entry changes.
+      function removesMember() {
+        let removed = resource.data.memberIds.removeAll(request.resource.data.memberIds);
+        return isAdminOrOwner(spaceId)
+          && removed.size() == 1
+          && !(request.auth.uid in removed)
+          && changedKeys().hasOnly(['memberIds', 'formerMembers'])
+          && request.resource.data.memberIds == resource.data.memberIds.removeAll(removed)
+          && request.resource.data.formerMembers.get(removed[0], null) is string
+          && request.resource.data.formerMembers.diff(resource.data.get('formerMembers', {})).affectedKeys()
+            .hasOnly(removed)
+          && !existsAfter(memberPath(spaceId, removed[0]));
+      }
+
       // The space half of a transfer (#27, ADR 0004): it names an admin as ownerId, and the same batch makes
       // them owner and the caller an admin. A plain member is made admin first.
       function transfersOwnership() {
@@ -146,10 +163,11 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.createdAt == request.time
         && hasValidSpaceFields();
-      // The settings (an owner or admin), or one half of a join, a leave or a transfer.
-      allow update: if (isAdminOrOwner(spaceId) && keepsCreation() && keepsOwner() && !addsMembers() && hasValidSpaceFields())
+      // The settings (an owner or admin), or one half of a join, a leave, a removal or a transfer.
+      allow update: if (isAdminOrOwner(spaceId) && keepsCreation() && keepsOwner() && keepsMembers() && hasValidSpaceFields())
         || joinsSpace()
         || leavesSpace()
+        || removesMember()
         || transfersOwnership();
       // Deleting leaves the members and items behind, unreadable: isMember needs the space (ADR 0004).
       allow delete: if isOwner(spaceId);

@@ -51,7 +51,8 @@ class SpaceMembersViewModel(
         change,
     ) { load, user, name, change ->
         val members = load.valueOrNull.orEmpty()
-        val owns = members.firstOrNull { it.userId == user?.id }?.role == Role.OWNER
+        val mine = members.firstOrNull { it.userId == user?.id }?.role
+        val owns = mine == Role.OWNER
         val shown = members.mapIndexed { index, member ->
             val other = member.userId != user?.id
             toSpaceMember(
@@ -60,6 +61,11 @@ class SpaceMembersViewModel(
                 isYou = !other,
                 canChangeRole = owns && other && member.role != Role.OWNER,
                 canTakeOwnership = owns && other && member.role == Role.ADMIN,
+                canRemove = other && when (mine) {
+                    Role.OWNER -> member.role != Role.OWNER
+                    Role.ADMIN -> member.role == Role.MEMBER
+                    else -> false
+                },
             )
         }
         SpaceMembersUiState(
@@ -71,6 +77,7 @@ class SpaceMembersViewModel(
             busy = change.busy,
             failed = change.failed,
             pickingRole = shown.firstOrNull { it.id == change.memberId && it.canChangeRole }?.takeIf { change.picking },
+            removing = shown.firstOrNull { it.id == change.memberId && it.canRemove }?.takeIf { change.confirmingRemoval },
             transferTo = shown.firstOrNull { it.id == change.memberId && it.canTakeOwnership }?.takeIf { change.confirmingTransfer },
             transferAcknowledged = change.acknowledged,
         )
@@ -99,6 +106,24 @@ class SpaceMembersViewModel(
             return
         }
         submit(memberId, "Changing the role of $memberId") { spaces.changeRole(spaceId, memberId, role) }
+    }
+
+    /** Asks before taking [memberId] out of the space, when the user may: the question names them. */
+    fun askRemove(memberId: String) {
+        if (change.value.busy || uiState.value.members.none { it.id == memberId && it.canRemove }) return
+        change.value = RoleChange(memberId, confirmingRemoval = true)
+    }
+
+    fun cancelRemove() {
+        if (!change.value.busy) change.value = RoleChange()
+    }
+
+    /** Takes the member the dialog asked about out of the space. The dialog stays open if it fails. */
+    fun removeMember() {
+        val member = uiState.value.removing ?: return
+        submit(member.id, "Removing ${member.id} from space $spaceId") {
+            spaces.removeMember(spaceId, member.id, member.name)
+        }
     }
 
     /** Asks before handing the space to [memberId], an admin: the user cannot take it back. */
@@ -134,12 +159,20 @@ class SpaceMembersViewModel(
         val busy: Boolean = false,
         val failed: Boolean = false,
         val picking: Boolean = false,
+        val confirmingRemoval: Boolean = false,
         val confirmingTransfer: Boolean = false,
         val acknowledged: Boolean = false,
     )
 }
 
-private fun toSpaceMember(member: Member, index: Int, isYou: Boolean, canChangeRole: Boolean, canTakeOwnership: Boolean) =
+private fun toSpaceMember(
+    member: Member,
+    index: Int,
+    isYou: Boolean,
+    canChangeRole: Boolean,
+    canTakeOwnership: Boolean,
+    canRemove: Boolean,
+) =
     SpaceMember(
         id = member.userId,
         index = index,
@@ -151,4 +184,5 @@ private fun toSpaceMember(member: Member, index: Int, isYou: Boolean, canChangeR
         isYou = isYou,
         canChangeRole = canChangeRole,
         canTakeOwnership = canTakeOwnership,
+        canRemove = canRemove,
     )

@@ -83,6 +83,24 @@ class InMemorySpaceRepository(
         members.update { all -> all + (spaceId to team - me) }
     }
 
+    override suspend fun removeMember(spaceId: String, userId: String, displayName: String) {
+        val actorId = auth.requireUser().id
+        val team = members.value[spaceId].orEmpty()
+        val actor = checkNotNull(team.firstOrNull { it.userId == actorId }) { "Not a member of the space" }
+        check(userId != actorId) { "Leaving a space is not removing someone from it" }
+        val target = checkNotNull(team.firstOrNull { it.userId == userId }) { "Not a member of the space" }
+        check(target.role != Role.OWNER) { "The owner is never removed" }
+        check(actor.role == Role.OWNER || target.role == Role.MEMBER) { "An admin removes only a plain member" }
+        check(actor.role.managesSpace) { "Only an owner or admin can remove a member" }
+        spaces.update { all ->
+            all.map {
+                if (it.id != spaceId) return@map it
+                it.copy(memberIds = it.memberIds - userId, formerMembers = it.formerMembers + (userId to displayName))
+            }
+        }
+        members.update { all -> all + (spaceId to team - target) }
+    }
+
     override suspend fun deleteSpace(spaceId: String) {
         val userId = auth.requireUser().id
         check(members.value[spaceId].orEmpty().firstOrNull { it.userId == userId }?.role == Role.OWNER) {
