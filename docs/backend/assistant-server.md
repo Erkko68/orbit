@@ -6,15 +6,18 @@ Firebase is the backend for everything but the assistant: Authentication, and Fi
 
 ```
 server/
-├── main.py              the HTTP server (http.server): answers in the callable shape
-├── auth.py              the check of the caller's Firebase ID token
-├── assistant.py         the assistant and the check of what the model answers, testable without the server
-├── models.py            the models it can ask (Gemma 4 on Ollama, Gemini), chosen by configuration
-├── net.py               JSON over HTTP
-├── proposals.py         the catalogue's schemas, loaded whole for the model
-├── prompts/             the prompts, versioned as files
-├── schemas/             what the assistant may propose, as versioned JSON Schemas, and samples/ of each
-├── tests/               pytest, with a fake model and a fake token check
+├── assistant/           the code, one package (`python -m assistant` runs it)
+│   ├── __init__.py      where the prompts and schemas are
+│   ├── __main__.py      the entry point: serves with the environment's configuration
+│   ├── api.py           the HTTP server (http.server): answers in the callable shape
+│   ├── auth.py          the check of the caller's Firebase ID token
+│   ├── interview.py     the interview and the check of what the model answers, testable without the server
+│   ├── providers.py     the models it can ask (Gemma 4 on Ollama, Gemini), chosen by configuration
+│   ├── net.py           JSON over HTTP
+│   └── proposals.py     the catalogue's schemas, loaded whole for the model
+├── prompts/             the prompts, as files
+├── schemas/             what the assistant may propose, as JSON Schemas, and samples/ of each (the app reads them too)
+├── tests/               pytest, one file per module, with a fake model and a fake token check
 ├── Dockerfile           the server's image (port 8080); installs nothing
 ├── compose.yaml         the server and Ollama, side by side
 └── requirements-dev.txt pytest, pytest-cov, jsonschema: the tests' only dependencies
@@ -133,7 +136,13 @@ pytest covers the server with a fake model and a fake token check, so the tests 
 
 ```sh
 cd server
-python -m venv venv && source venv/bin/activate   # venv\Scripts\activate on Windows
+python3 -m venv .venv && source .venv/bin/activate   # .venv\Scripts\activate on Windows
 pip install -r requirements-dev.txt
 pytest --cov
+```
+
+To run it on your machine against Ollama there (`ollama pull gemma4` first):
+
+```sh
+FIREBASE_API_KEY=… MODEL_URL=http://localhost:11434/v1 python -m assistant
 ```

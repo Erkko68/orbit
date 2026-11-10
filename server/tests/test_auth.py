@@ -1,6 +1,6 @@
 import pytest
 
-import auth
+from assistant import auth
 
 
 def test_a_valid_token_names_its_user():

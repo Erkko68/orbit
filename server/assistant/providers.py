@@ -3,8 +3,8 @@
 import json
 from collections.abc import Mapping
 
-from assistant import Generate
-from net import Post, post_json
+from assistant.interview import Generate
+from assistant.net import Post, post_json
 
 GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 

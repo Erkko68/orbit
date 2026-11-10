@@ -2,7 +2,7 @@
 
 from collections.abc import Callable, Mapping
 
-from net import Post, post_json
+from assistant.net import Post, post_json
 
 # Firebase Authentication's own check of an ID token: it answers with the user, or an error for a bad token.
 LOOKUP = "https://identitytoolkit.googleapis.com/v1/accounts:lookup"

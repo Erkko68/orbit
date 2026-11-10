@@ -1,9 +1,8 @@
 """What the assistant may propose (#64): the JSON Schemas in schemas/, which the app reads its plans with too."""
 
 import json
-from pathlib import Path
 
-SCHEMAS = Path(__file__).parent / "schemas"
+from assistant import SCHEMAS
 
 # The plan's schema version this server writes. A change an older app cannot read gets a new version.
 PLAN_VERSION = 1

@@ -3,7 +3,8 @@ import json
 import pytest
 from jsonschema import Draft202012Validator
 
-from proposals import PLAN_SCHEMA, PLAN_VERSION, SCHEMAS
+from assistant import SCHEMAS
+from assistant.proposals import PLAN_SCHEMA, PLAN_VERSION
 
 # The app parses the same samples (ProposalSamplesTest), so both sides read one contract.
 SAMPLES = sorted((SCHEMAS / "samples").glob("*.json"))

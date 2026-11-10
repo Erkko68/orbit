@@ -3,11 +3,11 @@
 FROM python:3.13-slim
 
 WORKDIR /app
-COPY assistant.py auth.py main.py models.py net.py proposals.py ./
+COPY assistant/ assistant/
 COPY prompts/ prompts/
 COPY schemas/*.json schemas/
 
 # Not root: the server needs no privileges.
 USER nobody
 EXPOSE 8080
-CMD ["python", "main.py"]
+CMD ["python", "-m", "assistant"]

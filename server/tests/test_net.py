@@ -1,6 +1,6 @@
 import json
 
-import net
+from assistant import net
 
 
 class Reply:

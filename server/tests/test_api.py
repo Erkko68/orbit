@@ -5,7 +5,7 @@ import urllib.request
 
 import pytest
 
-import main
+from assistant import api
 
 QUESTION = {"text": "Who lives there?", "options": ["Roommates", "Family"], "multiSelect": False, "freeText": True}
 
@@ -17,7 +17,7 @@ def verify(token):
 
 
 def ask(path="/interview", method="POST", authorization="Bearer valid", generate=lambda prompt, schema: QUESTION):
-    return main.respond(method, path, authorization, verify, generate)
+    return api.respond(method, path, authorization, verify, generate)
 
 
 def test_answers_a_signed_in_caller_with_the_first_question():
@@ -61,9 +61,9 @@ def test_says_it_is_up_and_knows_no_other_endpoint():
 @pytest.fixture
 def running(monkeypatch):
     """The real server on a free local port, with fake token checks and a fake model."""
-    monkeypatch.setattr(main.auth, "firebase_tokens", lambda env: verify)
-    monkeypatch.setattr(main.models, "from_env", lambda env: lambda prompt, schema: QUESTION)
-    server = main.server({"HOST": "127.0.0.1", "PORT": "0"})
+    monkeypatch.setattr(api.auth, "firebase_tokens", lambda env: verify)
+    monkeypatch.setattr(api.providers, "from_env", lambda env: lambda prompt, schema: QUESTION)
+    server = api.server({"HOST": "127.0.0.1", "PORT": "0"})
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{server.server_address[1]}"
     server.shutdown()

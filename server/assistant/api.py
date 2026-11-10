@@ -7,13 +7,11 @@ only, so its image installs nothing.
 
 import json
 import logging
-import os
 from collections.abc import Mapping
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-import auth
-import models
-from assistant import AssistantError, Generate, first_question
+from assistant import auth, providers
+from assistant.interview import AssistantError, Generate, first_question
 
 HTTP_STATUS = {"UNAUTHENTICATED": 401, "UNAVAILABLE": 503}
 
@@ -71,9 +69,5 @@ def handler(verify_token: auth.VerifyToken, generate: Generate) -> type[BaseHTTP
 def server(env: Mapping[str, str]) -> ThreadingHTTPServer:
     """The server the environment describes. In Docker it listens on every interface, behind the reverse proxy."""
     address = (env.get("HOST", "0.0.0.0"), int(env.get("PORT", "8080")))
-    return ThreadingHTTPServer(address, handler(auth.firebase_tokens(env), models.from_env(env)))
+    return ThreadingHTTPServer(address, handler(auth.firebase_tokens(env), providers.from_env(env)))
 
-
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    server(os.environ).serve_forever()
