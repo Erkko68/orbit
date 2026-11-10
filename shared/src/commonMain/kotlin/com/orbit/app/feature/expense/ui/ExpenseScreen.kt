@@ -2,7 +2,6 @@ package com.orbit.app.feature.expense.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -95,6 +94,7 @@ fun ExpenseScreen(
             }
         }
         if (state.pickingPayer) PayerSheet(state, viewModel)
+        if (state.pickingSplit) SplitSheet(state, viewModel)
         if (state.pickingDate) {
             OrbitSheet(
                 title = stringResource(Res.string.schedule_pick_date),
@@ -144,8 +144,8 @@ private fun ExpenseHeader(state: ExpenseUiState, viewModel: ExpenseViewModel, on
     )
 }
 
-/** Who paid and when, as the item form's Who and When: a labelled row whose sheet changes it. */
-private enum class ExpenseRow { PAYER, DATE }
+/** Who paid, when and how it is split, as the item form's Who and When: a labelled row whose sheet changes it. */
+private enum class ExpenseRow { PAYER, DATE, SPLIT }
 
 @Composable
 private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel) {
@@ -179,6 +179,15 @@ private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 shape = OrbitShape.Sunny,
             )
+
+            ExpenseRow.SPLIT -> OrbitActionRow(
+                title = stringResource(Res.string.expense_split_mode),
+                supporting = stringResource(state.mode.label),
+                icon = Res.drawable.ic_tune,
+                onClick = viewModel::openSplitPicker,
+                modifier = Modifier.fillMaxWidth(),
+                shape = OrbitShape.Clover,
+            )
         }
     }
     OrbitHeading(
@@ -190,18 +199,6 @@ private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel) {
         titleStyle = MaterialTheme.typography.titleLarge,
     )
     SplitErrors(state)
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
-        verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
-    ) {
-        ExpenseSplit.entries.forEach { mode ->
-            OrbitFilterChip(
-                label = stringResource(mode.label),
-                selected = state.mode == mode,
-                onClick = { viewModel.selectSplit(mode) },
-            )
-        }
-    }
     OrbitGroup(state.people, key = { it.id }, Modifier.fillMaxWidth()) { person ->
         SplitRow(person, state, viewModel)
     }
@@ -214,6 +211,14 @@ private val ExpenseSplit.label
         ExpenseSplit.EXACT -> Res.string.expense_exact
         ExpenseSplit.PERCENTAGES -> Res.string.expense_percentages
         ExpenseSplit.WEIGHTS -> Res.string.expense_weights
+    }
+
+private val ExpenseSplit.hint
+    get() = when (this) {
+        ExpenseSplit.EQUAL -> Res.string.expense_equal_hint
+        ExpenseSplit.EXACT -> Res.string.expense_exact_hint
+        ExpenseSplit.PERCENTAGES -> Res.string.expense_percentages_hint
+        ExpenseSplit.WEIGHTS -> Res.string.expense_weights_hint
     }
 
 /**
@@ -292,6 +297,23 @@ private fun SplitErrors(state: ExpenseUiState) {
     }
     progress.remaining?.let { OrbitErrorText(stringResource(Res.string.expense_remaining, format(it))) }
     progress.excess?.let { OrbitErrorText(stringResource(Res.string.expense_excess, format(it))) }
+}
+
+/** How to split: every mode is a row with what it means, and tapping one picks it and closes the sheet. */
+@Composable
+private fun SplitSheet(state: ExpenseUiState, viewModel: ExpenseViewModel) {
+    OrbitSheet(
+        title = stringResource(Res.string.expense_split_mode),
+        closeDescription = stringResource(Res.string.close),
+        onDismiss = viewModel::dismissSplitPicker,
+    ) {
+        OrbitGroup(ExpenseSplit.entries, key = { it.name }, Modifier.fillMaxWidth()) { mode ->
+            OrbitGroupRow(Modifier.fillMaxWidth(), onClick = { viewModel.selectSplit(mode) }) {
+                OrbitHeading(stringResource(mode.label), stringResource(mode.hint), Modifier.weight(1f))
+                OrbitCheck(mode == state.mode, { viewModel.selectSplit(mode) }, stringResource(mode.label), compact = true)
+            }
+        }
+    }
 }
 
 /** Who paid: every person is a row, and tapping one picks them and closes the sheet. */

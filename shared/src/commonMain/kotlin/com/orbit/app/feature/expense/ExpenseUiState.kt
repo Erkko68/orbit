@@ -51,6 +51,7 @@ data class ExpenseUiState(
     val failed: Boolean = false,
     val deleteOpen: Boolean = false,
     val pickingPayer: Boolean = false,
+    val pickingSplit: Boolean = false,
     val pickingDate: Boolean = false,
     val closed: Boolean = false,
 ) {

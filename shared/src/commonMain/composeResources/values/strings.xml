@@ -340,12 +340,17 @@
     <string name="expense_date">Date</string>
     <string name="expense_split">Split between</string>
     <string name="expense_split_hint">Enter the amount, then pick who shares it.</string>
+    <string name="expense_split_mode">Split</string>
     <string name="expense_equal">Equally</string>
     <string name="expense_exact">Custom amounts</string>
     <string name="expense_percentages">Percentages</string>
     <string name="expense_weights">Weights</string>
     <string name="expense_percent_sign">%</string>
     <string name="expense_percent">%1$s%</string>
+    <string name="expense_equal_hint">Everyone pays the same.</string>
+    <string name="expense_exact_hint">Type what each person pays.</string>
+    <string name="expense_percentages_hint">Percentages that add up to 100%.</string>
+    <string name="expense_weights_hint">Whole numbers, such as 2 : 1 : 1.</string>
     <string name="expense_weight_share">Weight for %1$s</string>
     <string name="expense_share">Share for %1$s</string>
     <string name="expense_exact_help">Enter a valid total and a valid share for each selected person. Use 0 if they owe nothing.</string>

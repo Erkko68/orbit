@@ -102,6 +102,8 @@ class ExpenseViewModel(
     fun openPayerPicker() = edit { it.copy(pickingPayer = true) }
     fun dismissPayerPicker() = edit { it.copy(pickingPayer = false) }
     fun selectPayer(id: String) = edit { it.copy(paidBy = id, pickingPayer = false) }
+    fun openSplitPicker() = edit { it.copy(pickingSplit = true) }
+    fun dismissSplitPicker() = edit { it.copy(pickingSplit = false) }
     fun openDatePicker() = edit { it.copy(pickingDate = true) }
     fun dismissDatePicker() = edit { it.copy(pickingDate = false) }
 
@@ -112,9 +114,10 @@ class ExpenseViewModel(
     /**
      * Custom amounts and percentages start from the split on screen, so switching keeps what the user sees: €40 as
      * 20 / 10 / 10 becomes 50 / 25 / 25 %. Without a split yet, percentages start equal. Weights keep what was typed.
+     * Picking one closes the sheet.
      */
     fun selectSplit(mode: ExpenseSplit) = edit { state ->
-        if (mode == state.mode) return@edit state
+        if (mode == state.mode) return@edit state.copy(pickingSplit = false)
         val split = state.split
         when (mode) {
             ExpenseSplit.EXACT -> split?.let { state.copy(exact = state.inputs(it)) } ?: state
@@ -124,7 +127,7 @@ class ExpenseViewModel(
                 ),
             )
             else -> state
-        }.copy(mode = mode)
+        }.copy(mode = mode, pickingSplit = false)
     }
 
     private fun ExpenseUiState.inputs(values: Map<String, Long>) =
