@@ -6,6 +6,7 @@ import com.orbit.app.core.Load
 import com.orbit.app.core.asLoad
 import com.orbit.app.core.attempt
 import com.orbit.app.core.deviceMoneyLocale
+import com.orbit.app.core.isMoneyInput
 import com.orbit.app.core.moneyInput
 import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.Expense
@@ -98,7 +99,8 @@ class ExpenseViewModel(
     }
 
     fun onTitleChange(value: String) = edit { it.copy(title = value) }
-    fun onAmountChange(value: String) = edit { it.copy(amount = value) }
+    /** Amounts, percentages and weights take only what they can hold: a letter or a sign never reaches the state. */
+    fun onAmountChange(value: String) = edit { if (isMoneyInput(value)) it.copy(amount = value) else it }
     fun openPayerPicker() = edit { it.copy(pickingPayer = true) }
     fun dismissPayerPicker() = edit { it.copy(pickingPayer = false) }
     fun selectPayer(id: String) = edit { it.copy(paidBy = id, pickingPayer = false) }
@@ -138,6 +140,8 @@ class ExpenseViewModel(
     }
 
     fun onShareChange(id: String, value: String) = edit {
+        val allowed = if (it.mode == ExpenseSplit.WEIGHTS) value.all { c -> c in '0'..'9' } else isMoneyInput(value)
+        if (!allowed) return@edit it
         when (it.mode) {
             ExpenseSplit.EQUAL -> it
             ExpenseSplit.EXACT -> it.copy(exact = it.exact + (id to value))

@@ -19,6 +19,9 @@ fun moneyInput(cents: Long, locale: MoneyLocale): String {
     return "${cents / 100}${locale.decimal}${(cents % 100).toString().padStart(2, '0')}"
 }
 
+/** What a money field lets through while typing: digits and the separators, nothing else. [parseMoney] checks the rest. */
+fun isMoneyInput(text: String): Boolean = text.all { it in '0'..'9' || it == ',' || it == '.' }
+
 /** Rejects malformed grouping, fractions of a cent, signs and overflow rather than rounding money. */
 fun parseMoney(text: String, locale: MoneyLocale): Long? {
     val parts = text.trim().split(locale.decimal)

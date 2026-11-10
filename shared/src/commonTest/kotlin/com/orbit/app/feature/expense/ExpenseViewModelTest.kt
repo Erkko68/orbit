@@ -77,6 +77,26 @@ class ExpenseViewModelTest {
     }
 
     @Test
+    fun moneyFieldsTakeOnlyDigitsAndSeparatorsAndWeightsOnlyDigits() = runTest {
+        signIn()
+        val vm = open()
+        vm.onAmountChange("12,50")
+        for (typed in listOf("12,50a", "-12", "12 ", "€12", "1e3")) vm.onAmountChange(typed)
+        assertEquals("12,50", vm.uiState.value.amount)
+        vm.onAmountChange("1.234,5")
+        assertEquals("1.234,5", vm.uiState.value.amount)
+        vm.selectSplit(ExpenseSplit.EXACT)
+        vm.onShareChange("ana", "x")
+        assertFalse("x" in vm.uiState.value.exact["ana"].orEmpty())
+        vm.selectSplit(ExpenseSplit.WEIGHTS)
+        vm.onShareChange("ana", "1,5")
+        vm.onShareChange("ana", "-2")
+        assertEquals("1", vm.uiState.value.shareInputs["ana"])
+        vm.onShareChange("ana", "3")
+        assertEquals("3", vm.uiState.value.shareInputs["ana"])
+    }
+
+    @Test
     fun percentagesStartFromTheSplitAndMustAddUpToOneHundred() = runTest {
         signIn()
         val vm = open()
@@ -181,7 +201,7 @@ class ExpenseViewModelTest {
         vm.toggleMember("marc")
         assertEquals(mapOf("ana" to 500L, "bea" to 500L), vm.uiState.value.shares)
         vm.selectSplit(ExpenseSplit.EXACT)
-        vm.onShareChange("ana", "x")
+        vm.onShareChange("ana", "")
         assertEquals(mapOf("ana" to 0L, "bea" to 500L), vm.uiState.value.shares)
     }
 
@@ -193,7 +213,7 @@ class ExpenseViewModelTest {
         vm.onTitleChange("x".repeat(121))
         assertFalse(vm.uiState.value.canSave)
         vm.onTitleChange("Food")
-        vm.onAmountChange("-1")
+        vm.onAmountChange("0")
         assertFalse(vm.uiState.value.canSave)
         vm.onAmountChange(moneyInput(1000, locale))
         for (id in listOf("ana", "bea", "marc")) vm.toggleMember(id)
