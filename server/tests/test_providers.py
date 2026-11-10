@@ -48,7 +48,7 @@ def test_the_local_model_is_the_default(monkeypatch):
 
     providers.from_env({})
 
-    assert made == [("http://ollama:11434/v1", "gemma4")]
+    assert made == [("http://ollama:11434/v1", "gemma4:e2b")]
 
 
 def test_gemini_takes_its_key_from_the_environment(monkeypatch):

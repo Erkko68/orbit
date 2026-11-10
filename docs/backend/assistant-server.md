@@ -114,7 +114,7 @@ The plan says which version it follows (`"version": 1`), and `PLAN_VERSION` is t
 | `FIREBASE_API_KEY` | | An `orbit-app-dev` API key allowed to call the Identity Toolkit API, to check ID tokens. Make one for the server in Google Cloud (Credentials → API key → restrict to Identity Toolkit API): the apps' keys are restricted to the apps. In `.env`, never committed |
 | `HOST`, `PORT` | `0.0.0.0`, `8080` | Where the server listens |
 | `ASSISTANT_PROVIDER` | `local` | `local` (an OpenAI-compatible endpoint, such as Ollama) or `gemini` |
-| `ASSISTANT_MODEL` | `gemma4` (local), `gemini-3.5-flash` (gemini) | The model's name for that provider. For Ollama, the tag it was pulled with |
+| `ASSISTANT_MODEL` | `gemma4:e2b` (local), `gemini-3.5-flash` (gemini) | The model's name for that provider. For Ollama, the tag it was pulled with. `gemma4:e2b` is Gemma 4's smallest, made for phones, so it runs on a CPU in little memory; `gemma4:e4b` is the next size up |
 | `MODEL_URL` | `http://ollama:11434/v1` | The OpenAI-compatible endpoint, for `local` |
 | `GEMINI_API_KEY` | | Gemini's API key from AI Studio, for `gemini` (the free tier needs no billing). In `.env`, never committed |
 
@@ -124,7 +124,7 @@ On the server, from `server/`:
 
 ```sh
 docker compose up -d --build
-docker compose exec ollama ollama pull gemma4   # once; the tag in ASSISTANT_MODEL
+docker compose exec ollama ollama pull gemma4:e2b   # once; the tag in ASSISTANT_MODEL
 ```
 
 Port 8080 needs HTTPS in front of it (a reverse proxy): the app only talks HTTPS. Ollama is not published, so only the server reaches the model.
@@ -142,7 +142,7 @@ pip install -r requirements-dev.txt
 pytest --cov
 ```
 
-To run it on your machine against Ollama there (`ollama pull gemma4` first):
+To run it on your machine against Ollama there (`ollama pull gemma4:e2b` first):
 
 ```sh
 FIREBASE_API_KEY=… MODEL_URL=http://localhost:11434/v1 python -m assistant
