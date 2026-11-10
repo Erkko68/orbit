@@ -16,7 +16,7 @@ QUESTION_SCHEMA = {
     "type": "object",
     "properties": {
         "text": {"type": "string"},
-        "options": {"type": "array", "items": {"type": "string"}},
+        "options": {"type": "array", "items": {"type": "string"}, "maxItems": 5},
         "multiSelect": {"type": "boolean"},
         "freeText": {"type": "boolean"},
     },
