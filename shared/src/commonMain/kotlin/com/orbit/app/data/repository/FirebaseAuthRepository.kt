@@ -8,6 +8,7 @@ import com.orbit.app.data.mapper.mapUser
 import com.orbit.app.data.mapper.registerException
 import com.orbit.app.data.mapper.signInException
 import com.orbit.app.data.mapper.userProfileDocument
+import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import dev.gitlive.firebase.auth.FirebaseAuth
@@ -166,6 +167,25 @@ class FirebaseAuthRepository(
             throw e
         } catch (e: Exception) {
             Logger.w(e) { "Could not update device preferences for $uid" }
+        }
+    }
+
+    /**
+     * Firebase refuses an address it has no account for, which would tell a stranger who is registered. That
+     * answer is swallowed: the caller cannot tell it from a link that was sent, which is the point (#217).
+     */
+    override suspend fun sendPasswordReset(email: String) {
+        try {
+            auth.sendPasswordResetEmail(email.trim())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val failure = signInException(e)
+            if (failure.error == AuthError.WRONG_CREDENTIALS) {
+                Logger.d { "A password reset was asked for an address with no account" }
+                return
+            }
+            throw failure
         }
     }
 
