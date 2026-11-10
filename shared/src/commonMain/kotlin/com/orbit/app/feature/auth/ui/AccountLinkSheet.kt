@@ -10,6 +10,7 @@ import com.orbit.app.core.designsystem.component.OrbitPasswordField
 import com.orbit.app.core.designsystem.component.OrbitSheet
 import com.orbit.app.core.designsystem.component.OrbitTonalButton
 import com.orbit.app.feature.auth.AccountLinkUiState
+import com.orbit.app.feature.auth.AuthLinkForm
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.close
 import orbit.shared.generated.resources.or
@@ -62,6 +63,21 @@ internal fun AccountLinkSheet(
             modifier = Modifier.fillMaxWidth(),
             isError = state.passwordError != null,
             supportingText = state.passwordError?.let { stringResource(it) },
+        )
+    }
+}
+
+/** Shows [AccountLinkSheet] while [state] says the address already has an account, for any auth form. */
+@Composable
+internal fun AccountLinkSheetFor(state: AccountLinkUiState?, form: AuthLinkForm) {
+    state?.let { link ->
+        AccountLinkSheet(
+            state = link,
+            onPasswordChange = form::onLinkPasswordChange,
+            onToggleVisibility = form::toggleLinkPasswordVisibility,
+            onContinueWithGoogle = form::signInWithGoogle,
+            onConfirm = form::confirmLink,
+            onDismiss = form::dismissLink,
         )
     }
 }

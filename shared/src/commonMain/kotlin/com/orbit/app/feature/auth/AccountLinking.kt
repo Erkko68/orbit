@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
  * through [read] and [write], so sign-in and create account share one implementation (#173). A linked
  * account is signed in, which moves the auth gate, so success only closes the sheet.
  */
-internal class AccountLinking(
+class AccountLinking(
     private val auth: AuthRepository,
     private val scope: CoroutineScope,
     private val read: () -> AccountLinkUiState?,
@@ -41,4 +41,24 @@ internal class AccountLinking(
     private fun update(change: (AccountLinkUiState) -> AccountLinkUiState) {
         read()?.let { write(change(it)) }
     }
+}
+
+/**
+ * The link sheet's half of an auth form. Sign-in and create account answer it the same way, so one
+ * composable drives both and neither repeats the wiring (#173).
+ */
+interface AuthLinkForm {
+    /** Where the form keeps its linking; everything below is answered from it. */
+    val linking: AccountLinking
+
+    /** The other way into the same account, offered beside the password. */
+    fun signInWithGoogle()
+
+    fun onLinkPasswordChange(password: String) = linking.onPasswordChange(password)
+
+    fun toggleLinkPasswordVisibility() = linking.togglePasswordVisibility()
+
+    fun confirmLink() = linking.confirm()
+
+    fun dismissLink() = linking.dismiss()
 }

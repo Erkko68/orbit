@@ -15,12 +15,12 @@ import kotlinx.coroutines.launch
  * success needs no state here. The form asks for no name, so the profile starts with the part of the
  * email before the `@`, which the account screen can edit later.
  */
-class CreateAccountViewModel(private val auth: AuthRepository) : ViewModel() {
+class CreateAccountViewModel(private val auth: AuthRepository) : ViewModel(), AuthLinkForm {
     private val _uiState = MutableStateFlow(CreateAccountUiState())
     val uiState: StateFlow<CreateAccountUiState> = _uiState.asStateFlow()
 
     /** The link sheet, shared with the other auth form: a collision is state here, with its own message (#173). */
-    private val linking = AccountLinking(
+    override val linking = AccountLinking(
         auth = auth,
         scope = viewModelScope,
         read = { _uiState.value.link },
@@ -52,15 +52,7 @@ class CreateAccountViewModel(private val auth: AuthRepository) : ViewModel() {
         submit("Registration") { auth.register(email, form.password, displayName = email.substringBefore('@')) }
     }
 
-    fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
-
-    fun onLinkPasswordChange(password: String) = linking.onPasswordChange(password)
-
-    fun toggleLinkPasswordVisibility() = linking.togglePasswordVisibility()
-
-    fun confirmLink() = linking.confirm()
-
-    fun dismissLink() = linking.dismiss()
+    override fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
 
     /**
      * Runs [call] unless one is running. A failure stays in the form as [CreateAccountUiState.authError];

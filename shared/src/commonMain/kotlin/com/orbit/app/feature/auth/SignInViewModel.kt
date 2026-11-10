@@ -11,12 +11,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** Holds the sign-in form. Signing in moves the auth gate, so success needs no state here. */
-class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
+class SignInViewModel(private val auth: AuthRepository) : ViewModel(), AuthLinkForm {
     private val _uiState = MutableStateFlow(SignInUiState())
     val uiState: StateFlow<SignInUiState> = _uiState.asStateFlow()
 
     /** The link sheet, shared with the other auth form: a collision is state here, with its own message (#173). */
-    private val linking = AccountLinking(
+    override val linking = AccountLinking(
         auth = auth,
         scope = viewModelScope,
         read = { _uiState.value.link },
@@ -42,15 +42,7 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
         submit("Sign-in") { auth.signIn(form.email.trim(), form.password) }
     }
 
-    fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
-
-    fun onLinkPasswordChange(password: String) = linking.onPasswordChange(password)
-
-    fun toggleLinkPasswordVisibility() = linking.togglePasswordVisibility()
-
-    fun confirmLink() = linking.confirm()
-
-    fun dismissLink() = linking.dismiss()
+    override fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
 
     /**
      * Runs [call] unless one is running. A failure stays in the form as [SignInUiState.authError]; an
