@@ -5,6 +5,7 @@
       "title": "Portar els nens a l'escola",
       "modules": {
         "schedule": {"date": "2026-11-09", "time": "08:30", "durationMinutes": 30},
+        "recurrence": {"unit": "week", "every": 1, "weekdays": [1, 2, 3, 4, 5], "until": "2027-06-22"},
         "assignment": {"mode": "member", "assignees": ["m2", "m3"]}
       }
     },
@@ -12,6 +13,7 @@
       "title": "Regar les plantes",
       "modules": {
         "schedule": {"date": "2026-11-10", "endDate": "2026-11-12"},
+        "recurrence": {"unit": "day", "every": 7},
         "assignment": {"mode": "anyone"}
       }
     },

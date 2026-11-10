@@ -2,9 +2,10 @@
 
 import logging
 from collections.abc import Callable
-from pathlib import Path
 
-FIRST_QUESTION_PROMPT = (Path(__file__).parent / "prompts" / "first_question.md").read_text(encoding="utf-8")
+from assistant import PROMPTS
+
+FIRST_QUESTION_PROMPT = (PROMPTS / "first_question.md").read_text(encoding="utf-8")
 
 # How many questions an interview may ask. #74 makes it the real budget.
 QUESTION_BUDGET = 8
@@ -15,7 +16,7 @@ QUESTION_SCHEMA = {
     "type": "object",
     "properties": {
         "text": {"type": "string"},
-        "options": {"type": "array", "items": {"type": "string"}},
+        "options": {"type": "array", "items": {"type": "string"}, "maxItems": 5},
         "multiSelect": {"type": "boolean"},
         "freeText": {"type": "boolean"},
     },

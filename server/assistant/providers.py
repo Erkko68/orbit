@@ -3,8 +3,8 @@
 import json
 from collections.abc import Mapping
 
-from assistant import Generate
-from net import Post, post_json
+from assistant.interview import Generate
+from assistant.net import Post, post_json
 
 GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
@@ -47,7 +47,7 @@ def from_env(env: Mapping[str, str]) -> Generate:
     """The model [env] names: ASSISTANT_PROVIDER is `local` (the default, Ollama) or `gemini` (needs GEMINI_API_KEY)."""
     provider = env.get("ASSISTANT_PROVIDER", "local")
     if provider == "local":
-        return openai_compatible(env.get("MODEL_URL", "http://ollama:11434/v1"), env.get("ASSISTANT_MODEL", "gemma4"))
+        return openai_compatible(env.get("MODEL_URL", "http://ollama:11434/v1"), env.get("ASSISTANT_MODEL", "gemma4:e2b"))
     if provider == "gemini":
         return gemini(env["GEMINI_API_KEY"], env.get("ASSISTANT_MODEL", "gemini-3.5-flash"))
     raise ValueError(f"Unknown ASSISTANT_PROVIDER {provider!r}: use local or gemini")

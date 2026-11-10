@@ -3,3 +3,5 @@ source = .
 omit =
     tests/*
     venv/*
+    .venv/*
+    assistant/__main__.py

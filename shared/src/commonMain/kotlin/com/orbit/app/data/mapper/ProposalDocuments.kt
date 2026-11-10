@@ -34,6 +34,7 @@ internal data class ItemProposalDocument(
 @Serializable
 internal data class ProposedModulesDocument(
     val schedule: ProposedScheduleDocument? = null,
+    val recurrence: ProposedRecurrenceDocument? = null,
     val assignment: ProposedAssignmentDocument? = null,
     val checklist: ProposedChecklistDocument? = null,
     val reminder: ProposedReminderDocument? = null,
@@ -45,6 +46,19 @@ internal data class ProposedScheduleDocument(
     val time: String? = null,
     val endDate: String? = null,
     val durationMinutes: Int? = null,
+)
+
+/**
+ * As an item stores it: [unit] `day`, `week` with [weekdays] (ISO, Monday is 1) or `month` with [dayOfMonth], every
+ * [every] of them, until the optional [until] (`YYYY-MM-DD`).
+ */
+@Serializable
+internal data class ProposedRecurrenceDocument(
+    val unit: String,
+    val every: Int,
+    val weekdays: List<Int>? = null,
+    val dayOfMonth: Int? = null,
+    val until: String? = null,
 )
 
 /** `member` with the [assignees] by their handle in the request (`m1`), never a uid, or `anyone` without them. */

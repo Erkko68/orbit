@@ -1,6 +1,6 @@
 import pytest
 
-from assistant import FIRST_QUESTION_PROMPT, QUESTION_BUDGET, QUESTION_SCHEMA, AssistantError, first_question, parse_question
+from assistant.interview import FIRST_QUESTION_PROMPT, QUESTION_BUDGET, QUESTION_SCHEMA, AssistantError, first_question, parse_question
 
 SIGNED_IN = "ana"
 
