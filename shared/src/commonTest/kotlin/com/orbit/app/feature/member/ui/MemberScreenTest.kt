@@ -3,7 +3,6 @@ package com.orbit.app.feature.member.ui
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -194,17 +193,39 @@ class MemberScreenTest : ComposeTest() {
     }
 
     @Test
-    fun anAdminRemovesAPlainMemberOnly() = runComposeUiTest {
+    fun anAdminRemovesAPlainMember() = runComposeUiTest {
         showMemberAs("ben@orbit.app", "cy@orbit.app")
 
-        onNodeWithText("Remove Cy").assertIsDisplayed()
+        onNodeWithText("Remove Cy").performScrollTo().performClick()
+        onNodeWithText("Remove").performClick()
+
+        assertEquals(
+            listOf("ana@orbit.app", "ben@orbit.app"),
+            runBlocking { spaces.observeMembers("space-1").first().map { it.userId } },
+        )
     }
 
     @Test
     fun aPlainMemberIsOfferedNoRemoval() = runComposeUiTest {
         showMemberAs("cy@orbit.app", "ben@orbit.app")
 
-        onNodeWithText("Remove Ben").assertIsNotDisplayed()
+        onNodeWithText("Remove Ben").assertDoesNotExist()
+    }
+
+    @Test
+    fun saysInTheDialogWhenTheRemovalFails() = runComposeUiTest {
+        val offline = object : SpaceRepository by spaces {
+            override suspend fun removeMember(spaceId: String, userId: String, displayName: String) =
+                error("Could not reach the server")
+        }
+        showMemberAs("ana@orbit.app", "cy@orbit.app", offline)
+        onNodeWithText("Remove Cy").performScrollTo().performClick()
+
+        onNodeWithText("Remove").performClick()
+
+        onNodeWithText("Could not remove them. Try again.").assertIsDisplayed()
+        onNodeWithText("Remove Cy?").assertIsDisplayed()
+        assertEquals(3, runBlocking { spaces.observeMembers("space-1").first().size })
     }
 
 }

@@ -340,6 +340,17 @@ class SpaceMembersViewModelTest {
     }
 
     @Test
+    fun confirmingWithNoDialogOpenRemovesNobody() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Must not be called")))
+
+        viewModel.removeMember()
+
+        assertNull(viewModel.uiState.value.removing)
+        assertFalse(viewModel.uiState.value.failed)
+    }
+
+    @Test
     fun cancellingTheDialogLeavesEveryoneWhereTheyWere() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Must not be called")))
