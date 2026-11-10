@@ -10,14 +10,21 @@ data class CreateAccountUiState(
     val confirmation: String = "",
     val passwordVisible: Boolean = false,
     val confirmationVisible: Boolean = false,
-    val submitting: Boolean = false,
+    override val submitting: Boolean = false,
     /** What the form got wrong, found when Create account was pressed. Cleared by the next edit. */
     val errors: List<CredentialsError> = emptyList(),
     /** Why the last attempt failed. Cleared by the next edit or attempt. */
     val authError: AuthError? = null,
     /** The account this address already belongs to, while the user links the other way in (#173). */
-    val link: AccountLinkUiState? = null,
-) {
+    override val link: AccountLinkUiState? = null,
+) : AuthFormState<CreateAccountUiState> {
+    override fun starting() = copy(submitting = true, errors = emptyList(), authError = null)
+
+    override fun finished(link: AccountLinkUiState?, authError: AuthError?) =
+        copy(submitting = false, link = link ?: this.link, authError = authError)
+
+    override fun withLink(link: AccountLinkUiState?) = copy(link = link)
+
     /** What to say under the email field. */
     val emailError: StringResource? get() = emailMessage(errors, authError)
 

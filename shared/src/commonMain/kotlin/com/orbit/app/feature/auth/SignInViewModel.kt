@@ -8,20 +8,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 /** Holds the sign-in form. Signing in moves the auth gate, so success needs no state here. */
 class SignInViewModel(private val auth: AuthRepository) : ViewModel(), AuthLinkForm {
     private val _uiState = MutableStateFlow(SignInUiState())
     val uiState: StateFlow<SignInUiState> = _uiState.asStateFlow()
 
-    /** The link sheet, shared with the other auth form: a collision is state here, with its own message (#173). */
-    override val linking = AccountLinking(
-        auth = auth,
-        scope = viewModelScope,
-        read = { _uiState.value.link },
-        write = { link -> _uiState.update { it.copy(link = link) } },
-    )
+    /** Submissions and the link sheet, both shared with the other auth form (#173). */
+    private val form = AuthForm(auth, _uiState, viewModelScope)
+
+    override val linking get() = form.linking
 
     fun onEmailChange(email: String) =
         _uiState.update { it.copy(email = email, errors = emptyList(), authError = null) }
@@ -44,21 +40,6 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel(), AuthLinkF
 
     override fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
 
-    /**
-     * Runs [call] unless one is running. A failure stays in the form as [SignInUiState.authError]; an
-     * address that already has an account becomes [SignInUiState.link], which offers to link it.
-     */
-    private fun submit(what: String, call: suspend () -> Unit) {
-        if (_uiState.value.submitting) return
-        _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
-        viewModelScope.launch {
-            when (val outcome = executeSignIn(what, call)) {
-                null -> _uiState.update { it.copy(submitting = false) }
-                is SignInOutcome.Link -> _uiState.update {
-                    it.copy(submitting = false, link = AccountLinkUiState(outcome.email, outcome.proof))
-                }
-                is SignInOutcome.Failed -> _uiState.update { it.copy(submitting = false, authError = outcome.error) }
-            }
-        }
-    }
+    /** Runs [call] unless one is running; the form then shows whatever it left behind. */
+    private fun submit(what: String, call: suspend () -> Unit) = form.submit(what, call)
 }
