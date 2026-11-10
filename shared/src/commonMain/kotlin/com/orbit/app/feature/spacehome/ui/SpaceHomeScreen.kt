@@ -6,6 +6,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitAddButton
+import com.orbit.app.core.designsystem.component.OrbitAddMenu
+import com.orbit.app.core.designsystem.component.OrbitAddMenuAction
 import com.orbit.app.core.designsystem.component.OrbitAvatarButton
 import com.orbit.app.core.designsystem.component.OrbitFaceStack
 import com.orbit.app.core.designsystem.component.OrbitHero
@@ -13,7 +15,6 @@ import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitNavigationBar
 import com.orbit.app.core.designsystem.component.OrbitNavigationDestination
 import com.orbit.app.core.designsystem.component.OrbitScreen
-import com.orbit.app.core.designsystem.component.OrbitTonalButton
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpaceColor
 import com.orbit.app.core.designsystem.theme.OrbitTheme
@@ -28,7 +29,10 @@ import com.orbit.app.feature.spacehome.expenses.SpaceExpensesTab
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.account_title
+import orbit.shared.generated.resources.close
 import orbit.shared.generated.resources.expense_add
+import orbit.shared.generated.resources.ic_sparkle
+import orbit.shared.generated.resources.ic_task
 import orbit.shared.generated.resources.ic_tune
 import orbit.shared.generated.resources.space_assistant
 import orbit.shared.generated.resources.space_back
@@ -36,6 +40,7 @@ import orbit.shared.generated.resources.space_headline_clear
 import orbit.shared.generated.resources.space_headline_due
 import orbit.shared.generated.resources.space_headline_empty
 import orbit.shared.generated.resources.space_new_item
+import orbit.shared.generated.resources.space_new_task
 import orbit.shared.generated.resources.space_settings
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
@@ -46,8 +51,8 @@ import org.koin.core.parameter.parametersOf
  * A space (ADR 0005), painted in its colour: its name in the top bar, which opens the list of spaces through [onBack],
  * and its destinations in the bottom bar. Beside the name the members' faces and a settings button open the space's
  * settings through [onOpenSettings]. Calendar says where the user stands, with the month or the agenda under it. Tasks has the items, and
- * Expenses has the ledger. The components load themselves. The add button opens an expense on Expenses and an item elsewhere. The account
- * avatar calls [onOpenAccount]. The assistant opens over the bar through [onOpenAssistant], from the calendar.
+ * Expenses has the ledger. The components load themselves. The add button opens an expense on Expenses; elsewhere it opens a menu: a new item
+ * by hand, or the assistant through [onOpenAssistant]. The account avatar calls [onOpenAccount].
  */
 @Composable
 fun SpaceHomeScreen(
@@ -95,7 +100,16 @@ fun SpaceHomeScreen(
             },
             floatingActionButton = {
                 if (state.canAddItem) {
-                    OrbitAddButton(stringResource(Res.string.space_new_item), onNewItem)
+                    OrbitAddMenu(
+                        expanded = state.addMenuOpen,
+                        onExpandedChange = { open -> if (open) viewModel.openAddMenu() else viewModel.closeAddMenu() },
+                        contentDescription = stringResource(Res.string.space_new_item),
+                        closeDescription = stringResource(Res.string.close),
+                        actions = listOf(
+                            OrbitAddMenuAction(stringResource(Res.string.space_new_task), Res.drawable.ic_task, onNewItem),
+                            OrbitAddMenuAction(stringResource(Res.string.space_assistant), Res.drawable.ic_sparkle, onOpenAssistant),
+                        ),
+                    )
                 } else {
                     OrbitAddButton(stringResource(Res.string.expense_add), onNewExpense)
                 }
@@ -108,11 +122,6 @@ fun SpaceHomeScreen(
                         title = headlineText(state),
                         datum = state.today?.let { itemDateLabel(it) },
                         modifier = Modifier.fillMaxWidth(),
-                    )
-                    OrbitTonalButton(
-                        stringResource(Res.string.space_assistant),
-                        onOpenAssistant,
-                        Modifier.fillMaxWidth()
                     )
                     SpaceCalendarTab(spaceId, onOpenItem, Modifier.fillMaxWidth())
                 }

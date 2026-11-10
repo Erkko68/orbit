@@ -108,6 +108,7 @@
     <string name="space_agenda_empty_title">No hi ha res programat aquesta setmana</string>
     <string name="space_assistant">Planifica amb l&apos;assistent</string>
     <string name="space_agenda_empty_body">Els elements amb data apareixeran aquí, dia a dia.</string>
+    <string name="space_new_task">Nova tasca</string>
     <string name="calendar_view_month">Mes</string>
     <string name="calendar_view_list">Llista</string>
     <string name="calendar_previous_month">Mes anterior</string>

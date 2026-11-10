@@ -61,11 +61,11 @@ The look stays; these keep the structure plain, the way phone apps people alread
 Spaces (from the title)
   └── New space  create one or join with an invite
 Last space opened
-  ├── Calendar  headline, then the month or the list by day, assistant (members + settings in the top bar)
+  ├── Calendar  headline, then the month or the list by day (members + settings in the top bar)
   ├── Tasks     filters, lists, chores, bills, events, tasks
   └── Expenses  what you owe, who owes what, ledger
 
-Floating add → a new item, or an expense on Expenses
+Floating add → a menu: a new task or the assistant; an expense on Expenses
 Over the bar: item, list, expense form, interview, review board
 ```
 
@@ -75,6 +75,7 @@ Over the bar: item, list, expense form, interview, review board
 | Spaces | A card per space in its colour, with its shape at the top right: the name, what matters ("2 for you today"), then the members' faces, still |
 | New space | A page of its own: the mark, a big title, then a panel to name a space and pick its colour, which the page takes on as a preview, and a panel to join with a code or link. Either way lands in the space. The guided setup comes later |
 | Calendar | Headline counts what is yours today. Two chips switch between the month and the list. The month is a panel like the date picker: days with open items are filled, today has a ring, and the day picked lists its items under it. The list goes Overdue, then each day to the end of the week. The members' faces and a settings button in the top bar open the settings |
+| Add menu | On Calendar and Tasks the add button turns into a close button with two pills above it: New task (by hand) and Plan with the assistant. A tap outside closes it. On Expenses it adds an expense straight away |
 | Empty space | The assistant is the first thing, "Add something yourself" is one tap away |
 | Tasks | Filters in one row. Your turn on top, then To do and Done (folded to its count) as one list: every item is the same row, the check, the title, a line of its description, when and how far along, and the faces at the end. The check of a list opens it |
 | Item | The same form for every item: a colour block with the title typed in place (the pencil says so), then Who and When rows, and Reminder once it has a date, the description as tall as its text, the checklist with its add row last, and the history: "Ana marked it done", "You reopened it". One button at the bottom: Create, or Mark done on an item without entries; ticking the last entry finishes a list. On scroll the title shrinks away and the row with the back arrow stays; it comes back at the top |

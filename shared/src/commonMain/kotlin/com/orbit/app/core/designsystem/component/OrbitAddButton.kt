@@ -11,6 +11,7 @@ import com.orbit.app.core.designsystem.theme.Ink
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_add
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 private val AddSize = 62.dp
@@ -22,6 +23,12 @@ private val AddIconSize = 28.dp
  */
 @Composable
 fun OrbitAddButton(contentDescription: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    AddCircle(Res.drawable.ic_add, contentDescription, onClick, modifier)
+}
+
+/** The add button's circle with any [icon], such as the close of [OrbitAddMenu]. */
+@Composable
+internal fun AddCircle(icon: DrawableResource, contentDescription: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     FloatingActionButton(
         onClick = onClick,
         modifier = modifier.size(AddSize),
@@ -29,6 +36,6 @@ fun OrbitAddButton(contentDescription: String, onClick: () -> Unit, modifier: Mo
         containerColor = OrbitTheme.accent.fill,
         contentColor = Ink,
     ) {
-        Icon(painterResource(Res.drawable.ic_add), contentDescription, Modifier.size(AddIconSize))
+        Icon(painterResource(icon), contentDescription, Modifier.size(AddIconSize))
     }
 }

@@ -247,12 +247,13 @@ class SpaceHomeScreenTest : ComposeTest() {
             }
         }
         onNodeWithContentDescription("Add").performClick()
+        onNodeWithText("New task").performClick()
 
         assertEquals(1, added)
     }
 
     @Test
-    fun theCalendarOpensTheAssistant() = runComposeUiTest {
+    fun theAddMenuOpensTheAssistant() = runComposeUiTest {
         var opened = 0
         setContent {
             OrbitTheme {
@@ -268,7 +269,9 @@ class SpaceHomeScreenTest : ComposeTest() {
                 )
             }
         }
-        onNodeWithText("Plan with the assistant").performScrollTo().performClick()
+        onNodeWithText("Plan with the assistant").assertDoesNotExist()
+        onNodeWithContentDescription("Add").performClick()
+        onNodeWithText("Plan with the assistant").performClick()
 
         assertEquals(1, opened)
     }

@@ -108,6 +108,7 @@
     <string name="space_agenda_empty_title">Niente in programma questa settimana</string>
     <string name="space_assistant">Pianifica con l&apos;assistente</string>
     <string name="space_agenda_empty_body">Gli elementi con una data compariranno qui, giorno per giorno.</string>
+    <string name="space_new_task">Nuova attività</string>
     <string name="calendar_view_month">Mese</string>
     <string name="calendar_view_list">Elenco</string>
     <string name="calendar_previous_month">Mese precedente</string>
