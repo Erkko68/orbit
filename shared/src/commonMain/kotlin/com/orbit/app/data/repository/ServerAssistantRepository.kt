@@ -41,6 +41,7 @@ class ServerAssistantRepository(
         } catch (e: Exception) {
             throw AssistantException(AssistantError.NETWORK, e)
         }
-        return interviewStep(body)
+        // The request names no members until #66 sends the space's, so no handle in a plan stands for one yet.
+        return interviewStep(body, members = emptyList())
     }
 }

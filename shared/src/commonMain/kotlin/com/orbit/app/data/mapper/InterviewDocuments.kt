@@ -1,6 +1,7 @@
 package com.orbit.app.data.mapper
 
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonObject
 
 /* The callable shape the assistant server speaks (ADR 0007): {"data": …} in, {"result": …} or {"error": …} out. */
 
@@ -16,7 +17,7 @@ internal data class AnswerDocument(val questionId: String, val selected: List<St
 @Serializable
 internal data class InterviewReply(val result: StepDocument? = null, val error: ErrorDocument? = null)
 
-/** A question, or a plan once the server has one (#66). */
+/** A question, or a plan once the server has one (#66), read proposal by proposal (`planOf`). */
 @Serializable
 internal data class StepDocument(
     val id: String? = null,
@@ -26,7 +27,7 @@ internal data class StepDocument(
     val freeText: Boolean = false,
     val position: Int = 0,
     val budget: Int = 0,
-    val plan: PlanDocument? = null,
+    val plan: JsonObject? = null,
 )
 
 @Serializable

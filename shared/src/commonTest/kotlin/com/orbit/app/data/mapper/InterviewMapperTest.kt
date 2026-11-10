@@ -5,12 +5,14 @@ import com.orbit.app.domain.model.AssistantException
 import com.orbit.app.domain.model.InterviewAnswer
 import com.orbit.app.domain.model.InterviewQuestion
 import com.orbit.app.domain.model.InterviewStep
+import com.orbit.app.domain.model.Plan
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
 class InterviewMapperTest {
-    private fun failure(body: String) = assertFailsWith<AssistantException> { interviewStep(body) }.error
+    private fun failure(body: String) =
+        assertFailsWith<AssistantException> { interviewStep(body, members = emptyList()) }.error
 
     @Test
     fun sendsEveryAnswerInTheCallableShape() {
@@ -24,6 +26,7 @@ class InterviewMapperTest {
         val step = interviewStep(
             """{"result":{"id":"q1","text":"Who lives there?","options":["Roommates"],"multiSelect":false,""" +
                 """"freeText":true,"position":1,"budget":8,"extra":"ignored"}}""",
+            members = emptyList(),
         )
 
         assertEquals(
@@ -33,19 +36,16 @@ class InterviewMapperTest {
     }
 
     @Test
-    fun readsThatThereIsAPlan() {
-        assertEquals(InterviewStep.PlanReady, interviewStep("""{"result":{"plan":{"version":1,"items":[]}}}"""))
+    fun readsAPlan() {
+        assertEquals(
+            InterviewStep.PlanReady(Plan(space = null, items = emptyList())),
+            interviewStep("""{"result":{"plan":{"version":1,"items":[]}}}""", members = emptyList()),
+        )
     }
 
     @Test
-    fun aPlanInAnotherVersionOrShapeIsNotUsed() {
-        assertEquals(AssistantError.UNAVAILABLE, failure("""{"result":{"plan":{"version":2,"items":[]}}}"""))
-        assertEquals(AssistantError.UNAVAILABLE, failure("""{"result":{"plan":{"items":[]}}}"""))
-        assertEquals(AssistantError.UNAVAILABLE, failure("""{"result":{"plan":{"version":1,"items":[{"modules":{}}]}}}"""))
-        assertEquals(
-            AssistantError.UNAVAILABLE,
-            failure("""{"result":{"plan":{"version":1,"items":[{"title":"Bins","modules":{"schedule":{}}}]}}}"""),
-        )
+    fun aPlanThatIsNotAnObjectIsNotUsed() {
+        assertEquals(AssistantError.UNAVAILABLE, failure("""{"result":{"plan":"Take out the bins"}}"""))
     }
 
     @Test

@@ -5,6 +5,7 @@ import com.orbit.app.domain.model.AssistantException
 import com.orbit.app.domain.model.InterviewAnswer
 import com.orbit.app.domain.model.InterviewQuestion
 import com.orbit.app.domain.model.InterviewStep
+import com.orbit.app.domain.model.Plan
 import com.orbit.app.testing.ScriptedAssistantRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -23,6 +24,7 @@ import kotlin.test.assertTrue
 class InterviewViewModelTest {
     private val who = question("q1", "Who lives there?", listOf("Roommates", "Family"))
     private val rooms = question("q2", "Which rooms?", listOf("Kitchen", "Bathroom"), multiSelect = true)
+    private val noPlan = InterviewStep.PlanReady(Plan(space = null, items = emptyList()))
 
     private fun question(id: String, text: String, options: List<String>, multiSelect: Boolean = false) =
         InterviewQuestion(id, text, options, multiSelect, freeText = true, position = 1, budget = 8)
@@ -127,7 +129,7 @@ class InterviewViewModelTest {
 
     @Test
     fun aPlanOpensTheReview() {
-        val (_, viewModel) = started(listOf(InterviewStep.Ask(who), InterviewStep.PlanReady))
+        val (_, viewModel) = started(listOf(InterviewStep.Ask(who), noPlan))
         viewModel.select("Family")
 
         viewModel.send()

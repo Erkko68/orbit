@@ -22,8 +22,8 @@ data class InterviewAnswer(val questionId: String, val selected: Set<String>, va
 sealed interface InterviewStep {
     data class Ask(val question: InterviewQuestion) : InterviewStep
 
-    /** The assistant has enough to propose a plan, which the review board (#75) shows. */
-    data object PlanReady : InterviewStep
+    /** The assistant proposes [plan], which the review board (#75) shows. */
+    data class PlanReady(val plan: Plan) : InterviewStep
 }
 
 /** Why the assistant did not answer, in terms a screen can explain. */

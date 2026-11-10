@@ -5,6 +5,7 @@ import java.io.File
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
@@ -24,12 +25,16 @@ class ProposalSamplesTest {
         assertTrue(samples.isNotEmpty())
     }
 
+    /** Every proposal of every sample passes the checks of manual input, so none is dropped (#65). */
     @Test
-    fun everySampleIsAPlanTheAppReads() {
+    fun everySampleIsAPlanTheAppShowsWhole() {
         samples.forEach { sample ->
             val reply = """{"result":{"plan":${sample.readText()}}}"""
+            val proposed = Json.decodeFromString(PlanDocument.serializer(), sample.readText()).items.size
 
-            assertEquals(InterviewStep.PlanReady, interviewStep(reply), sample.name)
+            val step = interviewStep(reply, members = listOf("uid-1", "uid-2", "uid-3"))
+
+            assertEquals(proposed, assertIs<InterviewStep.PlanReady>(step, sample.name).plan.items.size, sample.name)
         }
     }
 
