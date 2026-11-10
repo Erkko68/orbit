@@ -147,7 +147,7 @@ private fun List<Item>.nextTurn(userId: String?): Item? = filter {
     userId != null && it.status is ItemStatus.Open && !it.modules.hasEntries && it.modules.isAssignedTo(userId)
 }.minWithOrNull(compareBy(nullsLast()) { it.modules.schedule?.deadline })
 
-private fun toSpaceItem(item: Item, members: List<Member>): SpaceItem {
+internal fun toSpaceItem(item: Item, members: List<Member>): SpaceItem {
     val assignment = item.modules.assignment
     val assigneeIds = assignment?.assigneeIds.orEmpty()
     val faces = members.mapIndexed { index, member -> ItemFace(member.userId, member.displayName, index, member.photoUrl) }

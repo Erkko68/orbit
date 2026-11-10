@@ -16,6 +16,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.domain.model.ItemModules
+import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Schedule
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
@@ -29,6 +32,9 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Clock
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 
 @OptIn(ExperimentalTestApi::class)
 class SpaceHomeScreenTest : ComposeTest() {
@@ -74,8 +80,43 @@ class SpaceHomeScreenTest : ComposeTest() {
 
         onNodeWithText("Calendar").assertIsSelected()
         onNodeWithText("Nothing in orbit yet").assertIsDisplayed()
-        onNodeWithText("Nothing scheduled for today").assertIsDisplayed()
+        onNodeWithText("Month").assertIsSelected()
+        onNodeWithText("Nothing on this day").performScrollTo().assertIsDisplayed()
+
+        onNodeWithText("List").performScrollTo().performClick().assertIsSelected()
+        onNodeWithText("Nothing scheduled this week").performScrollTo().assertIsDisplayed()
         onAllNodes(hasClickLabel("Space settings")).onFirst().assertIsDisplayed()
+    }
+
+    @Test
+    fun theCalendarListsTheDayPickedAndOpensItsItems() = runComposeUiTest {
+        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+        runBlocking {
+            auth.register("ana@orbit.app", "secret", displayName = "Ana López")
+            val id = spaces.createSpace("Flat 4B", accent = 0)
+            items.create(id, NewItem("Take the bins out", modules = ItemModules(schedule = Schedule(today))))
+        }
+        val opened = mutableListOf<String>()
+        setContent {
+            OrbitTheme {
+                SpaceHomeScreen(
+                    "space-1",
+                    onBack = {},
+                    onOpenAccount = {},
+                    onOpenItem = { opened += it },
+                    onNewItem = {},
+                    onOpenAssistant = {},
+                    onOpenSettings = {},
+                    viewModel = viewModel,
+                )
+            }
+        }
+
+        onNodeWithText("Take the bins out").performScrollTo().performClick()
+        onNodeWithText("List").performScrollTo().performClick()
+        onNodeWithText("Take the bins out").performScrollTo().assertIsDisplayed()
+
+        assertEquals(listOf("item-1"), opened)
     }
 
     @Test

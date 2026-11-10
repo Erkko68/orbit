@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitAddButton
 import com.orbit.app.core.designsystem.component.OrbitAvatarButton
-import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitFaceStack
 import com.orbit.app.core.designsystem.component.OrbitHero
 import com.orbit.app.core.designsystem.component.OrbitIconButton
@@ -24,14 +23,13 @@ import com.orbit.app.feature.spacehome.SpaceHeadline
 import com.orbit.app.feature.spacehome.SpaceHomeTab
 import com.orbit.app.feature.spacehome.SpaceHomeUiState
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
+import com.orbit.app.feature.spacehome.calendar.SpaceCalendarTab
 import com.orbit.app.feature.spacehome.expenses.SpaceExpensesTab
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.account_title
 import orbit.shared.generated.resources.expense_add
 import orbit.shared.generated.resources.ic_tune
-import orbit.shared.generated.resources.space_agenda_empty_body
-import orbit.shared.generated.resources.space_agenda_empty_title
 import orbit.shared.generated.resources.space_assistant
 import orbit.shared.generated.resources.space_back
 import orbit.shared.generated.resources.space_headline_clear
@@ -47,9 +45,9 @@ import org.koin.core.parameter.parametersOf
 /**
  * A space (ADR 0005), painted in its colour: its name in the top bar, which opens the list of spaces through [onBack],
  * and its destinations in the bottom bar. Beside the name the members' faces and a settings button open the space's
- * settings through [onOpenSettings]. Calendar says where the user stands, with the agenda (#38) under it. Tasks has the items, and Expenses has
- * the ledger. The components load themselves. The add button opens an expense on Expenses and an item elsewhere. The account avatar calls
- * [onOpenAccount]. The assistant opens over the bar through [onOpenAssistant], from the calendar.
+ * settings through [onOpenSettings]. Calendar says where the user stands, with the month or the agenda under it. Tasks has the items, and
+ * Expenses has the ledger. The components load themselves. The add button opens an expense on Expenses and an item elsewhere. The account
+ * avatar calls [onOpenAccount]. The assistant opens over the bar through [onOpenAssistant], from the calendar.
  */
 @Composable
 fun SpaceHomeScreen(
@@ -116,11 +114,7 @@ fun SpaceHomeScreen(
                         onOpenAssistant,
                         Modifier.fillMaxWidth()
                     )
-                    OrbitEmptyState(
-                        title = stringResource(Res.string.space_agenda_empty_title),
-                        body = stringResource(Res.string.space_agenda_empty_body),
-                        modifier = Modifier.fillMaxWidth(),
-                    )
+                    SpaceCalendarTab(spaceId, onOpenItem, Modifier.fillMaxWidth())
                 }
 
                 SpaceHomeTab.TASKS -> SpaceItemsTab(spaceId, onOpenItem, Modifier.fillMaxWidth())

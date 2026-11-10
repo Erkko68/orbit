@@ -8,6 +8,7 @@ import com.orbit.app.domain.repository.ItemRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.datetime.LocalDate
 
 /** Real in-memory behaviour with observable calls and controllable delays/failures for tests. */
 internal class ControlledItemRepository(private val delegate: ItemRepository) : ItemRepository by delegate {
@@ -21,6 +22,12 @@ internal class ControlledItemRepository(private val delegate: ItemRepository) : 
         readAttempts++
         beforeRead()
         emitAll(delegate.observeItems(spaceId))
+    }
+
+    override fun observeAgenda(spaceId: String, until: LocalDate): Flow<List<Item>> = flow {
+        readAttempts++
+        beforeRead()
+        emitAll(delegate.observeAgenda(spaceId, until))
     }
 
     override suspend fun setDescription(spaceId: String, itemId: String, description: String?) {
