@@ -4,7 +4,7 @@ import pytest
 from jsonschema import Draft202012Validator
 
 from assistant import SCHEMAS
-from assistant.proposals import PLAN_SCHEMA, PLAN_VERSION
+from assistant.proposals import PLAN_SCHEMA, PLAN_VERSION, checked_plan, item_errors, schema_errors
 
 # The app parses the same samples (ProposalSamplesTest), so both sides read one contract.
 SAMPLES = sorted((SCHEMAS / "samples").glob("*.json"))
@@ -70,9 +70,7 @@ def test_an_item_repeats_by_days_weeks_or_months(recurrence):
     assert errors(plan_with(item=item_with(schedule={"date": "2026-11-09"}, recurrence=recurrence))) == []
 
 
-@pytest.mark.parametrize(
-    "plan",
-    [
+NOT_PLANS = [
         {"items": []},
         plan_with(version=2),
         plan_with(items="Take out the bins"),
@@ -107,7 +105,90 @@ def test_an_item_repeats_by_days_weeks_or_months(recurrence):
         plan_with(item=item_with(checklist={"entries": []})),
         plan_with(item=item_with(checklist={"entries": [{"text": "Milk", "quantity": 0}]})),
         plan_with(item=item_with(reminder={"offsetsMinutes": [-10]})),
-    ],
-)
+]
+
+
+@pytest.mark.parametrize("plan", NOT_PLANS)
 def test_rejects_what_is_not_a_plan(plan):
     assert errors(plan) != []
+
+
+# The server's own check (#65) runs on the standard library, so it must agree with jsonschema on what is a plan.
+@pytest.mark.parametrize("plan", NOT_PLANS)
+def test_the_servers_check_rejects_what_jsonschema_rejects(plan):
+    assert schema_errors(plan, PLAN_SCHEMA) != []
+
+
+@pytest.mark.parametrize("path", SAMPLES, ids=lambda path: path.name)
+def test_the_servers_check_takes_every_sample_whole(path):
+    plan = read(path)
+
+    assert schema_errors(plan, PLAN_SCHEMA) == []
+    assert checked_plan(plan, handles={"m1", "m2", "m3"}) == plan
+
+
+SCHEDULED = {"date": "2026-11-09"}
+
+
+@pytest.mark.parametrize(
+    ("item", "why"),
+    [
+        (item_with(cost={"amount": 1200}), "modules.cost is not allowed"),
+        (item_with(assignment={"mode": "member", "assignees": ["m1", "m4"]}), "m4 not in the space"),
+        (item_with(schedule={"date": "2026-11-09", "endDate": "2026-11-08"}), "the endDate is not after the date"),
+        (item_with(schedule={"date": "2026-11-09", "endDate": "2026-11-09"}), "the endDate is not after the date"),
+        ({"title": "   ", "modules": {}}, "the title is blank"),
+        ({"title": "", "modules": {}}, "title is too short"),
+        (item_with(schedule={"date": "2026-11-09", "time": "21:00", "endDate": "2026-11-12"}), "has no time"),
+        (item_with(schedule={"date": "2026-02-30"}), "a date is not on the calendar"),
+        (item_with(recurrence={"unit": "day", "every": 1}), "a recurrence needs a schedule"),
+        (
+            item_with(schedule=SCHEDULED, recurrence={"unit": "day", "every": 1, "until": "2026-11-08"}),
+            "the recurrence ends before the date",
+        ),
+        (item_with(reminder={"offsetsMinutes": [60]}), "a reminder needs a schedule"),
+        (item_with(checklist={"entries": [{"text": " "}]}), "a checklist entry is blank"),
+    ],
+)
+def test_finds_why_an_item_cannot_be_proposed(item, why):
+    assert any(why in error for error in item_errors(item, handles={"m1", "m2"}))
+
+
+def test_keeps_an_item_that_follows_every_rule():
+    item = item_with(
+        schedule={"date": "2026-11-09", "endDate": "2026-11-12"},
+        recurrence={"unit": "week", "every": 1, "weekdays": [1], "until": "2026-11-09"},
+        assignment={"mode": "member", "assignees": ["m2"]},
+        checklist={"entries": [{"text": "Milk", "quantity": 2}]},
+        reminder={"offsetsMinutes": [0]},
+    )
+
+    assert item_errors(item, handles={"m1", "m2"}) == []
+
+
+def test_drops_the_invalid_proposals_and_logs_why(caplog):
+    good = item_with(assignment={"mode": "anyone"})
+    plan = plan_with(items=[good, {"title": " ", "modules": {}}, item_with(cost={})], space={"name": "Flat", "accent": 2})
+
+    checked = checked_plan(plan, handles=set())
+
+    assert checked == {**plan, "items": [good]}
+    assert "Dropped proposal 1 of the plan: the title is blank" in caplog.text
+    assert "Dropped proposal 2 of the plan: modules.cost is not allowed" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "plan",
+    [
+        "a plan",
+        {"items": []},
+        plan_with(version=2),
+        plan_with(items={}),
+        plan_with(space={"name": "Flat", "accent": 6}),
+        plan_with(space={"name": "  ", "accent": 0}),
+        plan_with(owner="m1"),
+    ],
+)
+def test_a_plan_that_is_not_one_is_not_used(plan):
+    with pytest.raises(ValueError):
+        checked_plan(plan, handles={"m1"})

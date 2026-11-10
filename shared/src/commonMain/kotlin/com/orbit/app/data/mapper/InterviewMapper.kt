@@ -18,9 +18,10 @@ internal fun interviewRequest(answers: List<InterviewAnswer>): String = json.enc
 
 /**
  * The step in the server's reply, or the [AssistantException] it stands for. A reply that is not the callable shape,
- * such as a proxy's error page, means the server is not answering.
+ * such as a proxy's error page, means the server is not answering. [members] are the uids the request names, in the
+ * order of their handles (`m1` first).
  */
-internal fun interviewStep(body: String): InterviewStep {
+internal fun interviewStep(body: String, members: List<String>): InterviewStep {
     val reply = try {
         json.decodeFromString(InterviewReply.serializer(), body)
     } catch (e: SerializationException) {
@@ -30,11 +31,7 @@ internal fun interviewStep(body: String): InterviewStep {
     }
     reply.error?.let { throw AssistantException(assistantError(it.status)) }
     val step = reply.result ?: throw AssistantException(AssistantError.UNAVAILABLE)
-    // A plan in a version this app does not read could be misread, so it is not used at all.
-    step.plan?.let { plan ->
-        if (plan.version != PLAN_VERSION) throw AssistantException(AssistantError.UNAVAILABLE)
-        return InterviewStep.PlanReady
-    }
+    step.plan?.let { return InterviewStep.PlanReady(planOf(it, members)) }
     val id = step.id
     val text = step.text
     if (id.isNullOrBlank() || text.isNullOrBlank()) throw AssistantException(AssistantError.UNAVAILABLE)

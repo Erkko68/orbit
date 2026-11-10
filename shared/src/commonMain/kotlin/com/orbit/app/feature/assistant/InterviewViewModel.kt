@@ -77,7 +77,7 @@ class InterviewViewModel(private val assistant: AssistantRepository) : ViewModel
                         when (step) {
                             is InterviewStep.Ask ->
                                 InterviewUiState(consented = true, question = step.question)
-                            InterviewStep.PlanReady -> it.copy(loading = false, planReady = true)
+                            is InterviewStep.PlanReady -> it.copy(loading = false, planReady = true)
                         }
                     }
                 },

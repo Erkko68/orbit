@@ -18,6 +18,7 @@ import com.orbit.app.domain.model.AssistantError
 import com.orbit.app.domain.model.AssistantException
 import com.orbit.app.domain.model.InterviewQuestion
 import com.orbit.app.domain.model.InterviewStep
+import com.orbit.app.domain.model.Plan
 import com.orbit.app.feature.assistant.InterviewViewModel
 import com.orbit.app.testing.FakeDictation
 import com.orbit.app.testing.InMemorySpaceRepository
@@ -34,6 +35,7 @@ import kotlin.test.assertEquals
 class InterviewScreenTest : ComposeTest() {
     private val who = InterviewQuestion("q1", "Who lives there?", listOf("Roommates", "Family"), false, true, 1, 8)
     private val rooms = InterviewQuestion("q2", "Which rooms?", listOf("Kitchen", "Bathroom"), true, false, 2, 8)
+    private val noPlan = InterviewStep.PlanReady(Plan(space = null, items = emptyList()))
     private val auth = InMemoryAuthRepository().apply {
         runBlocking {
             register("ana@orbit.app", "secret", "Ana López")
@@ -77,7 +79,7 @@ class InterviewScreenTest : ComposeTest() {
 
     @Test
     fun answersInWordsTypedOrDictated() = runComposeUiTest {
-        show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(who), InterviewStep.PlanReady)))
+        show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(who), noPlan)))
 
         onNode(hasSetTextAction()).performScrollTo().performTextInput("We are")
         onNodeWithContentDescription("Dictate").performScrollTo().performClick()
