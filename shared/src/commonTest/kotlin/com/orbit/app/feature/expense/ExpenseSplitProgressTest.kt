@@ -1,6 +1,5 @@
 package com.orbit.app.feature.expense
 
-import com.orbit.app.feature.item.ItemFace
 import com.orbit.app.core.MoneyLocale
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -9,51 +8,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ExpenseSplitProgressTest {
-    @Test
-    fun zeroCentSharesStayVisibleButAreNotStored() {
-        val tiny = ExpenseUiState(
-            amount = "0.01", mode = ExpenseSplit.WEIGHTS,
-            selected = setOf("a", "b"), people = listOf(ItemFace("a", "A", 0, null), ItemFace("b", "B", 1, null)),
-        )
-        assertEquals(mapOf("a" to 1L), tiny.split)
-        assertEquals(mapOf("a" to 1L, "b" to 0L), tiny.previewShares)
-        val percent = tiny.copy(
-            mode = ExpenseSplit.EXACT, unit = ExpenseUnit.PERCENT,
-            percentReference = com.orbit.app.domain.usecase.ExpensePercentages(
-                10_000,
-                mapOf("a" to 5000L, "b" to 5000L)
-            )
-        )
-        assertEquals(tiny.previewShares, percent.previewShares)
-    }
-
-    @Test
-    fun percentagesFollowRegionalSeparatorsAndRejectSymbolsPrecisionAndOverflow() {
-        val percent = ExpenseUiState(
-            mode = ExpenseSplit.EXACT, unit = ExpenseUnit.PERCENT,
-            amount = "40,00", locale = MoneyLocale(",", "."),
-            selected = setOf("a", "b"), people = listOf(ItemFace("a", "A", 0, null), ItemFace("b", "B", 1, null)),
-            percentReference = com.orbit.app.domain.usecase.ExpensePercentages(4000, mapOf("a" to 2000L, "b" to 2000L)),
-            percentages = mapOf("a" to "25,50", "b" to "74,50"),
-        )
-        assertEquals(mapOf("a" to 1020L, "b" to 2980L), percent.split)
-        assertTrue(percent.percentagesMatched)
-        for (text in listOf("25.50", "25,501", "25%", "-1", "101", "", "9223372036854775808")) {
-            val invalid = percent.copy(percentages = percent.percentages + ("a" to text))
-            assertNull(invalid.split)
-            assertTrue("a" in invalid.invalidShareIds)
-        }
-        val english = percent.copy(
-            amount = "40.00",
-            locale = MoneyLocale(".", ","),
-            percentages = mapOf("a" to "25.50", "b" to "74.50")
-        )
-        assertEquals(percent.split, english.split)
-        val excluded = percent.copy(selected = setOf("b"), percentages = percent.percentages + ("a" to "invalid"))
-        assertTrue(excluded.invalidShareIds.isEmpty())
-        assertEquals(7450L, excluded.percentageProgress?.whole)
-    }
-
     private val state = ExpenseUiState(
         mode = ExpenseSplit.EXACT,
         amount = "12,40",

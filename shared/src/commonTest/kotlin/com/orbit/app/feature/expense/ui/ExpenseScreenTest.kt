@@ -21,62 +21,29 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalTestApi::class)
 class ExpenseScreenTest : ComposeTest() {
     @Test
-    fun anApproximatePercentageDoesNotMakeAnIncompleteSplitValid() = runComposeUiTest {
+    fun percentagesAndWeightsShowWhatEachPersonPays() = runComposeUiTest {
         val auth = InMemoryAuthRepository()
         val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER, "marc" to Role.MEMBER)
         val ledger = InMemoryExpenseRepository(auth)
-        val id = runBlocking {
-            auth.register("ana", "secret", "Ana")
-            ledger.add(
-                "space-1",
-                NewExpense("Tiny", "ana", mapOf("ana" to 1L, "bea" to 1L, "marc" to 1L), LocalDate(2026, 11, 7))
-            )
-        }
-        val vm = ExpenseViewModel("space-1", id, ledger, spaces, auth)
-        setContent { OrbitTheme { ExpenseScreen("space-1", id, {}, vm) } }
-        onNodeWithContentDescription("Percentages").performScrollTo().performClick()
-        onNodeWithText("Save").assertIsEnabled()
-        onNodeWithContentDescription("Share for ana").performScrollTo().performTextReplacement("33")
-        onNodeWithContentDescription("Share for ana").performScrollTo()
-            .performTextReplacement(moneyInput(3333, deviceMoneyLocale()))
-        assertTrue(vm.uiState.value.percentageDifferenceSmall)
-        onNodeWithText("Still to assign: <0${deviceMoneyLocale().decimal}01%. The percentages must total 100%.").performScrollTo()
-            .assertIsDisplayed()
-        onNodeWithText("Save").assertIsNotEnabled()
-    }
-
-    @Test
-    fun switchesUnitsWithoutSymbolsAndShowsWeightsAndConvertedAmounts() = runComposeUiTest {
-        val auth = InMemoryAuthRepository()
-        val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER, "marc" to Role.MEMBER)
-        val ledger = InMemoryExpenseRepository(auth)
+        val locale = deviceMoneyLocale()
         runBlocking { auth.register("ana", "secret", "Ana") }
         val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
         setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
-        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo()
-            .performTextInput(moneyInput(4000, deviceMoneyLocale()))
+        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo().performTextInput(moneyInput(4000, locale))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
         onNodeWithText("Weights").performScrollTo().performClick()
         onNodeWithContentDescription("Weight for ana").performScrollTo().performTextReplacement("2")
-        onAllNodesWithText(formatEuro(2000)).onFirst().performScrollTo().assertIsDisplayed()
-        onNodeWithText("Custom amounts").performScrollTo().performClick()
-        onNodeWithContentDescription("Percentages").performScrollTo().performClick()
-        onNodeWithContentDescription("Percentages").assertIsSelected()
-        onNodeWithContentDescription("Share for ana").performScrollTo().performTextReplacement("50")
-        onNodeWithContentDescription("Share for bea").performScrollTo().performTextReplacement("25")
+        onNodeWithText(formatEuro(2000)).performScrollTo().assertIsDisplayed()
+        onNodeWithText("Percentages").performScrollTo().performClick()
         onNodeWithContentDescription("Share for marc").performScrollTo().performTextReplacement("24")
+        onNodeWithText("Still to assign: ${moneyInput(100, locale)}%").performScrollTo().assertIsDisplayed()
         onNodeWithText("Save").assertIsNotEnabled()
         onNodeWithContentDescription("Share for marc").performScrollTo().performTextReplacement("25")
-        onNodeWithText("Assigned ${moneyInput(10_000, deviceMoneyLocale())}% of 100%").performScrollTo()
-            .assertIsDisplayed()
-        onNodeWithContentDescription("Amounts in euros").performScrollTo().performClick()
-        onNodeWithText("${moneyInput(5000, deviceMoneyLocale())}%").performScrollTo().assertIsDisplayed()
-        onNode(hasSetTextAction() and hasText(moneyInput(2000, deviceMoneyLocale()))).performScrollTo()
-            .assertIsDisplayed()
         onNodeWithText("Save").assertIsEnabled().performClick()
         assertEquals(
             mapOf("ana" to 2000L, "bea" to 1000L, "marc" to 1000L),
-            runBlocking { ledger.observeExpenses("space-1").first().single().split })
+            runBlocking { ledger.observeExpenses("space-1").first().single().split },
+        )
     }
 
     @Test

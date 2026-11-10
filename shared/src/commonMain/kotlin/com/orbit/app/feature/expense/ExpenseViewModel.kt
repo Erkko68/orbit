@@ -7,14 +7,14 @@ import com.orbit.app.core.asLoad
 import com.orbit.app.core.attempt
 import com.orbit.app.core.deviceMoneyLocale
 import com.orbit.app.core.moneyInput
-import com.orbit.app.core.parseMoney
 import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.Expense
 import com.orbit.app.domain.model.NewExpense
-import com.orbit.app.domain.usecase.ExpensePercentages
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ExpenseRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import com.orbit.app.domain.usecase.HUNDRED_PERCENT
+import com.orbit.app.domain.usecase.splitByWeights
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -52,9 +52,9 @@ class ExpenseViewModel(
         val member = members.firstOrNull { it.userId == user?.id }
         val formerIds = original?.let { it.split.keys + it.paidBy }.orEmpty() - members.map { it.userId }.toSet()
         val people = members.mapIndexed { index, it -> ItemFace(it.userId, it.displayName, index, it.photoUrl) } +
-                formerIds.sorted().mapIndexed { index, it ->
-                    ItemFace(it, space?.formerMembers?.get(it) ?: it, members.size + index, null)
-                }
+            formerIds.sorted().mapIndexed { index, it ->
+                ItemFace(it, space?.formerMembers?.get(it) ?: it, members.size + index, null)
+            }
         ExpenseUiState(
             loading = false,
             missing = space == null || member == null || (expenseId.isNotEmpty() && original == null),
@@ -98,11 +98,7 @@ class ExpenseViewModel(
     }
 
     fun onTitleChange(value: String) = edit { it.copy(title = value) }
-    fun onAmountChange(value: String) = edit {
-        if (value == it.amount) return@edit it
-        it.copy(amount = value, percentReference = if (it.unit == ExpenseUnit.MONEY) null else it.percentReference)
-    }
-
+    fun onAmountChange(value: String) = edit { it.copy(amount = value) }
     fun openPayerPicker() = edit { it.copy(pickingPayer = true) }
     fun dismissPayerPicker() = edit { it.copy(pickingPayer = false) }
     fun selectPayer(id: String) = edit { it.copy(paidBy = id, pickingPayer = false) }
@@ -113,60 +109,39 @@ class ExpenseViewModel(
     fun pickDate(utcMillis: Long) = edit {
         it.copy(date = Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date, pickingDate = false)
     }
-
+    /**
+     * Custom amounts and percentages start from the split on screen, so switching keeps what the user sees: €40 as
+     * 20 / 10 / 10 becomes 50 / 25 / 25 %. Without a split yet, percentages start equal. Weights keep what was typed.
+     */
     fun selectSplit(mode: ExpenseSplit) = edit { state ->
         if (mode == state.mode) return@edit state
-        val exact = if (mode == ExpenseSplit.EXACT && state.mode != ExpenseSplit.EXACT) {
-            state.selected.associateWith { moneyInput(state.split?.get(it) ?: 0L, locale) }
-        } else state.exact
-        state.copy(
-            mode = mode,
-            exact = exact,
-            unit = ExpenseUnit.MONEY,
-            percentReference = null,
-            percentages = emptyMap()
-        )
+        val split = state.split
+        when (mode) {
+            ExpenseSplit.EXACT -> split?.let { state.copy(exact = state.inputs(it)) } ?: state
+            ExpenseSplit.PERCENTAGES -> state.copy(
+                percentages = state.inputs(
+                    splitByWeights(HUNDRED_PERCENT, split ?: state.selected.associateWith { 1L }).orEmpty(),
+                ),
+            )
+            else -> state
+        }.copy(mode = mode)
     }
 
-    fun selectUnit(unit: ExpenseUnit) = edit { state ->
-        if (!state.canChangeUnit || unit == state.unit) return@edit state
-        if (unit == ExpenseUnit.PERCENT) {
-            val reference = state.percentReference ?: ExpensePercentages(
-                requireNotNull(state.cents),
-                state.exact.mapNotNull { (id, value) -> parseMoney(value, locale)?.let { id to it } }.toMap(),
-            )
-            state.copy(
-                unit = unit, percentReference = reference,
-                percentages = if (state.percentReference == null) emptyMap() else state.percentages
-            )
-        } else {
-            val values = state.previewShares
-            state.copy(unit = unit, exact = state.exact + state.selected.associateWith {
-                values[it]?.let { cents -> moneyInput(cents, locale) }.orEmpty()
-            })
-        }
-    }
+    private fun ExpenseUiState.inputs(values: Map<String, Long>) =
+        selected.associateWith { moneyInput(values[it] ?: 0L, locale) }
 
     fun toggleMember(id: String) = edit {
-        if (it.people.none { person -> person.id == id }) return@edit it
-        it.copy(
-            selected = if (id in it.selected) it.selected - id else it.selected + id,
-            exact = if (id in it.exact) it.exact else it.exact + (id to moneyInput(0, locale)),
-            percentReference = it.percentReference?.let { reference ->
-                if (id in reference.referenceShares) reference else reference.copy(referenceShares = reference.referenceShares + (id to 0L))
-            },
-        )
+        it.copy(selected = if (id in it.selected) it.selected - id else it.selected + id)
     }
 
     fun onShareChange(id: String, value: String) = edit {
-        if (id !in it.selected) return@edit it
-        when {
-            it.mode == ExpenseSplit.WEIGHTS -> it.copy(weights = it.weights + (id to value))
-            it.unit == ExpenseUnit.PERCENT -> it.copy(percentages = it.percentages + (id to value))
-            else -> it.copy(exact = it.exact + (id to value), percentReference = null, percentages = emptyMap())
+        when (it.mode) {
+            ExpenseSplit.EQUAL -> it
+            ExpenseSplit.EXACT -> it.copy(exact = it.exact + (id to value))
+            ExpenseSplit.PERCENTAGES -> it.copy(percentages = it.percentages + (id to value))
+            ExpenseSplit.WEIGHTS -> it.copy(weights = it.weights + (id to value))
         }
     }
-
     fun requestDelete() {
         if (uiState.value.canDelete) edit { it.copy(deleteOpen = true) }
     }

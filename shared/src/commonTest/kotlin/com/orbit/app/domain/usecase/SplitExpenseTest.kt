@@ -9,53 +9,44 @@ import kotlin.test.assertTrue
 
 class SplitExpenseTest {
     @Test
-    fun weightsAndPercentagesAllocateOnlyPositiveSharesInUidOrder() {
+    fun weightsGiveLeftoverCentsToPositiveWeightsInUidOrder() {
         assertEquals(
             mapOf("a" to 2000L, "b" to 1000L, "c" to 1000L),
-            splitByWeights(4000, mapOf("c" to 1L, "a" to 2L, "b" to 1L))
+            splitByWeights(4000, mapOf("c" to 1L, "a" to 2L, "b" to 1L)),
         )
-        val percentages = ExpensePercentages(10_000, emptyMap(), mapOf("a" to 0L, "b" to 5000L, "c" to 5000L))
-        assertEquals(mapOf("b" to 1L), percentages.split(1, setOf("c", "a", "b")))
         assertEquals(mapOf("a" to 4L, "b" to 3L, "c" to 3L), splitByWeights(10, mapOf("c" to 1L, "b" to 1L, "a" to 1L)))
+        assertEquals(mapOf("b" to 1L), splitByWeights(1, mapOf("a" to 0L, "b" to 1L, "c" to 1L)))
         assertEquals(Long.MAX_VALUE, splitByWeights(Long.MAX_VALUE, mapOf("a" to 2L, "b" to 1L))!!.values.sum())
         assertNull(splitByWeights(0, mapOf("a" to 1L)))
         assertNull(splitByWeights(100, emptyMap()))
         assertNull(splitByWeights(100, mapOf("a" to 0L)))
         assertNull(splitByWeights(100, mapOf("a" to -1L)))
-        assertNull(splitByWeights(100, mapOf("a" to Long.MAX_VALUE, "b" to 1L)))
+        assertNull(splitByWeights(100, mapOf("a" to MAX_WEIGHT_SUM, "b" to 1L)))
     }
 
     @Test
-    fun percentagesRetainExactRatiosAndDoNotMistakeRoundedTotalsForOneHundred() {
-        val ids = setOf("a", "b", "c")
-        val thirds = ExpensePercentages(3, ids.associateWith { 1L })
-        assertEquals(ShareDivision(10_000, 0), thirds.progress(ids))
-        assertEquals(ShareDivision(3333, 1), thirds.percentage("a"))
-        assertEquals(mapOf("a" to 1L, "b" to 1L, "c" to 1L), thirds.split(3, ids))
-        val edited = thirds.copy(hundredths = mapOf("a" to 3333L))
-        assertEquals(ShareDivision(9999, 2), edited.progress(ids))
-        assertNull(edited.split(3, ids))
-        assertNull(edited.copy(hundredths = mapOf("a" to 10_001L)).progress(ids))
-        assertNull(thirds.progress(emptySet()))
-        assertNull(thirds.progress(setOf("missing")))
-        assertNull(thirds.copy(referenceTotal = 0).progress(ids))
-        assertNull(thirds.copy(referenceShares = mapOf("a" to -1)).progress(setOf("a")))
-        assertNull(thirds.copy(referenceShares = mapOf("a" to Long.MAX_VALUE, "b" to 1)).progress(setOf("a", "b")))
+    fun percentagesMustAddUpToExactlyOneHundred() {
+        assertEquals(
+            mapOf("a" to 2000L, "b" to 1000L, "c" to 1000L),
+            splitByPercentages(4000, mapOf("a" to 5000L, "b" to 2500L, "c" to 2500L)),
+        )
+        assertEquals(
+            mapOf("a" to 4L, "b" to 3L, "c" to 3L),
+            splitByPercentages(10, mapOf("a" to 3334L, "b" to 3333L, "c" to 3333L)),
+        )
+        assertNull(splitByPercentages(4000, mapOf("a" to 5000L, "b" to 2500L, "c" to 2499L)))
+        assertNull(splitByPercentages(4000, mapOf("a" to 10_001L, "b" to -1L)))
     }
 
     @Test
-    fun randomWeightsAndPercentagesConserveMoneyAndIgnoreInputOrder() {
+    fun randomWeightsConserveMoneyAndIgnoreInputOrder() {
         val random = Random(55)
         repeat(500) {
-            val ids = (0 until random.nextInt(1, 9)).map { "member-$it" }
-            val weights = ids.associateWith { random.nextLong(1, 1001) }
+            val weights = (0 until random.nextInt(1, 9)).associate { "member-$it" to random.nextLong(1, 1001) }
             val cents = random.nextLong(1, Long.MAX_VALUE)
             val result = requireNotNull(splitByWeights(cents, weights))
             assertEquals(cents, result.values.sum())
             assertEquals(result, splitByWeights(cents, weights.entries.shuffled(random).associate { it.toPair() }))
-            val anchored = ExpensePercentages(cents, result)
-            assertEquals(result, anchored.split(cents, result.keys))
-            assertEquals(cents, anchored.split(cents, result.keys)!!.values.sum())
         }
     }
 
