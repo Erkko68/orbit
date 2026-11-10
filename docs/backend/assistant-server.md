@@ -35,7 +35,7 @@ The server is worth it only for what the phone cannot or must not do. Everything
 
 | Stays on the device | Why |
 |---|---|
-| Validation of items and proposals | `validateItem` runs before every write; the server validates proposals again (#65) |
+| Validation of items and proposals | `validateItem` runs before every write and on every proposal; the server checks proposals first (#65) |
 | Balances and debt simplification | A pure function of the ledger, offline ([ADR 0003](../adr/0003-balances-on-device.md)) |
 | Joining a space | A security rule checks the invitation ([ADR 0002](../adr/0002-firestore-data-model.md)) |
 | Local reminders | Each phone schedules its own |
@@ -95,9 +95,18 @@ An item's modules are the ones the app has today, each at most once, in the shap
 | `checklist` | `entries`: a list of `text` and `quantity` | A list in order, without ids or ticks: the app gives each entry its id and order |
 | `reminder` | `offsetsMinutes` | Nothing. Only with a schedule |
 
-The schemas say the shape: the fields, their types, the date and time formats, the handles. What depends on more than one field (no `time` with an `endDate`, an `endDate` after the `date`, a reminder or a recurrence only with a schedule, an `until` not before the `date`, assignees who are in the request) the schemas cannot say to every model, so the server checks it before answering (#65) and the app checks it again with `validateItem` before saving.
+The schemas say the shape: the fields, their types, the date and time formats, the handles. What depends on more than one field (no `time` with an `endDate`, an `endDate` after the `date`, a reminder or a recurrence only with a schedule, an `until` not before the `date`, assignees who are in the request) the schemas cannot say to every model, so both sides check it, as described under [Checking proposals](#checking-proposals).
 
 `proposals.py` loads the plan's schema with the space and item schemas written out in place (`PLAN_SCHEMA`), because a model is given one schema and cannot open the others. #66 hands it to the model at the end of the interview.
+
+### Checking proposals
+
+A model can still break a schema, or follow it and propose something the app would refuse by hand. So every proposal is checked twice, and one that fails is dropped, never shown (#65):
+
+- **The server**, before it answers: `checked_plan(plan, handles)` in `proposals.py` checks each item against the item schema and then against the rules across its fields above, with `handles` the members the request names. It drops an item that fails and logs why (`Dropped proposal 2 of the plan: modules.cost is not allowed`). The runtime has only the standard library, so `schema_errors` checks the part of JSON Schema that `schemas/` uses, and the pytest checks it agrees with the `jsonschema` package on every sample and every invalid plan.
+- **The app**, when it reads the reply: `planOf` (`ProposalMapper.kt`) reads each item on its own, with the strict `Json` so a field it does not know (an unknown module) makes that item unreadable. It maps each handle to its member's uid and checks the item with `validateItem`, as manual input is. `InterviewStep.PlanReady` carries only the items that pass, as `NewItem`s for the review board (#75). A dropped item is logged with Kermit.
+
+A plan that is not one is not used at all, on either side: another version, no `items`, or a `space` without a name or with an accent outside the six colours. `checked_plan` raises a `ValueError`, which the interview (#66, which calls it on the model's plan) answers as `UNAVAILABLE`, and the app reads it the same way, with the manual path. Until #66 sends the space's members in the request, the app maps no handle to a member, so a proposal assigned to a member is dropped.
 
 ### Versions
 
