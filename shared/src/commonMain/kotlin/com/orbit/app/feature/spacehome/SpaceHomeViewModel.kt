@@ -67,6 +67,10 @@ class SpaceHomeViewModel(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceHomeUiState())
 
     fun selectTab(tab: SpaceHomeTab) = form.update { it.copy(tab = tab) }
+
+    fun openAddMenu() = form.update { it.copy(addMenuOpen = true) }
+
+    fun closeAddMenu() = form.update { it.copy(addMenuOpen = false) }
 }
 
 private fun headlineOf(items: List<Item>, userId: String?, today: LocalDate): SpaceHeadline {

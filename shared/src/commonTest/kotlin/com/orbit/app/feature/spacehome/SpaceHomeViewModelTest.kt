@@ -126,6 +126,18 @@ class SpaceHomeViewModelTest {
     }
 
     @Test
+    fun opensAndClosesTheAddMenu() = runTest {
+        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth))
+        assertFalse(viewModel.uiState.value.addMenuOpen)
+
+        viewModel.openAddMenu()
+        assertTrue(viewModel.uiState.value.addMenuOpen)
+
+        viewModel.closeAddMenu()
+        assertFalse(viewModel.uiState.value.addMenuOpen)
+    }
+
+    @Test
     fun hasNoNameForASpaceItCannotSee() = runTest {
         val viewModel = SpaceHomeViewModel("missing", spaces, items, lastSpace, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }

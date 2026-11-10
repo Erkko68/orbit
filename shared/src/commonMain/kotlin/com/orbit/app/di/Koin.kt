@@ -19,6 +19,7 @@ import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.account.AccountViewModel
 import com.orbit.app.feature.expense.ExpenseViewModel
+import com.orbit.app.feature.spacehome.calendar.SpaceCalendarViewModel
 import com.orbit.app.feature.spacehome.expenses.SpaceExpensesViewModel
 import com.orbit.app.feature.assistant.InterviewViewModel
 import com.orbit.app.feature.assistant.dictation.DictationViewModel
@@ -100,6 +101,7 @@ val featureModule = module {
     viewModelOf(::SpaceCardViewModel)
     viewModelOf(::SpaceHomeViewModel)
     viewModelOf(::SpaceItemsViewModel)
+    viewModelOf(::SpaceCalendarViewModel)
     viewModelOf(::SpaceMembersViewModel)
     viewModelOf(::InviteViewModel)
     viewModelOf(::MemberActivityViewModel)

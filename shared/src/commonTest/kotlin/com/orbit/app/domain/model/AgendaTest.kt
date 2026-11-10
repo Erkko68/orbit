@@ -30,10 +30,11 @@ class AgendaTest {
         modules = ItemModules(schedule = schedule),
     )
 
-    private fun Agenda.ids() = listOf(overdue, today, thisWeek).map { section -> section.map { it.id } }
+    /** The overdue ids, then each day's. */
+    private fun Agenda.ids() = listOf(null to overdue.map { it.id }) + days.map { day -> day.date to day.items.map { it.id } }
 
     @Test
-    fun sortsOpenItemsIntoOverdueTodayAndThisWeekInTheOrderTheyStart() {
+    fun sortsOpenItemsIntoOverdueAndEachDayInTheOrderTheyStart() {
         val items = listOf(
             item("evening", Schedule(wednesday, time = LocalTime(18, 0))),
             item("sunday", Schedule(sunday)),
@@ -49,12 +50,21 @@ class AgendaTest {
 
         assertEquals(
             listOf(
-                listOf("monday", "window ended"),
-                listOf("window open", "all day", "evening"),
-                listOf("thursday", "sunday"),
+                null to listOf("monday", "window ended"),
+                wednesday to listOf("window open", "all day", "evening"),
+                thursday to listOf("thursday"),
+                sunday to listOf("sunday"),
             ),
             agendaOf(items, wednesday).ids(),
         )
+    }
+
+    @Test
+    fun aScheduleCoversTheDaysFromItsDateToItsDeadline() {
+        val window = Schedule(monday, endDate = wednesday)
+
+        assertEquals(listOf(false, true, true, true, false), listOf(LocalDate(2026, 11, 1), monday, tuesday, wednesday, thursday).map(window::covers))
+        assertEquals(listOf(true, false), listOf(monday, tuesday).map(Schedule(monday)::covers))
     }
 
     @Test
@@ -69,7 +79,7 @@ class AgendaTest {
     fun onSundayNextWeekIsNotThisWeek() {
         val items = listOf(item("sunday", Schedule(sunday)), item("monday", Schedule(nextMonday)))
 
-        assertEquals(listOf(emptyList(), listOf("sunday"), emptyList()), agendaOf(items, sunday).ids())
+        assertEquals(listOf(null to emptyList(), sunday to listOf("sunday")), agendaOf(items, sunday).ids())
     }
 
     @Test
@@ -80,8 +90,11 @@ class AgendaTest {
         val now = LocalDateTime(thursday, LocalTime(0, 30)).toInstant(madrid)
         val items = listOf(item("thursday", Schedule(thursday)))
 
-        assertEquals(listOf(emptyList(), listOf("thursday"), emptyList()), agendaOf(items, now.dayIn(madrid)).ids())
-        assertEquals(listOf(emptyList(), emptyList(), listOf("thursday")), agendaOf(items, now.dayIn(losAngeles)).ids())
+        // Today in Madrid, tomorrow in Los Angeles: the day's section is the same date, today only in Madrid.
+        assertEquals(thursday, now.dayIn(madrid))
+        assertEquals(wednesday, now.dayIn(losAngeles))
+        assertEquals(listOf(null to emptyList(), thursday to listOf("thursday")), agendaOf(items, now.dayIn(madrid)).ids())
+        assertEquals(listOf(null to emptyList(), thursday to listOf("thursday")), agendaOf(items, now.dayIn(losAngeles)).ids())
     }
 
     @Test
