@@ -7,6 +7,9 @@ enum class AuthError {
     INVALID_EMAIL,
     EMAIL_IN_USE,
     WEAK_PASSWORD,
+
+    /** The Google account the user picked is a different address from the one being linked (#173). */
+    DIFFERENT_GOOGLE_ACCOUNT,
     NETWORK,
     UNKNOWN,
 }

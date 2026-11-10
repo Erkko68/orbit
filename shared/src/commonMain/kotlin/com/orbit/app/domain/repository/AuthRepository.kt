@@ -37,8 +37,27 @@ interface AuthRepository {
     /** The signed-in user's Firebase ID token, which the assistant server checks (ADR 0007). Throws when signed out. */
     suspend fun idToken(): String
 
-    /** Shows the platform's Google account picker. Does nothing when the user closes it. */
+    /**
+     * Shows the platform's Google account picker. Does nothing when the user closes it. Throws an
+     * [com.orbit.app.domain.model.AccountLinkException] when the address already has a password account:
+     * that one is linked, never replaced (#173).
+     */
     suspend fun signInWithGoogle()
+
+    /**
+     * Links the Google account that collided with [email] to the account that already has that address,
+     * once [password] proves it is theirs. Both ways in then reach the same `uid`. Throws an
+     * [com.orbit.app.domain.model.AuthException] with wrong credentials when the password is not theirs,
+     * and does nothing when the user closes the account picker.
+     */
+    suspend fun linkGoogleWithPassword(email: String, password: String)
+
+    /**
+     * Gives the Google account of [email] a [password] too, so email sign-in reaches it. The user picks
+     * the Google account again as proof; a different address throws
+     * [com.orbit.app.domain.model.AuthError.DIFFERENT_GOOGLE_ACCOUNT], and closing the picker does nothing.
+     */
+    suspend fun setPasswordWithGoogle(email: String, password: String)
 
     suspend fun signOut()
 }

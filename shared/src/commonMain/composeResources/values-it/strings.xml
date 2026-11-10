@@ -16,6 +16,13 @@
     <string name="sign_in_google">Continua con Google</string>
     <string name="sign_in_new">È la tua prima volta su Orbit?</string>
     <string name="sign_in_create_account">Crea account</string>
+    <!-- Un solo account per entrambi i modi di accedere -->
+    <string name="link_password_title">Un account, due modi per accedere</string>
+    <string name="link_password_body">%1$s accede già con una password. Inseriscila una volta e Google ti farà entrare nello stesso account.</string>
+    <string name="link_password_confirm">Collega Google</string>
+    <string name="link_google_title">Questo account usa Google</string>
+    <string name="link_google_body">%1$s accede con Google. Continua con Google oppure imposta una password per lo stesso account.</string>
+    <string name="link_google_confirm">Imposta password</string>
     <!-- Account -->
     <string name="account_title">Account</string>
     <string name="account_back">Torna agli spazi</string>
@@ -52,6 +59,7 @@
     <string name="error_current_password_wrong">Questa non è la tua password attuale.</string>
     <string name="error_email_in_use">Esiste già un account con questo indirizzo email.</string>
     <string name="error_weak_password">Scegli una password più sicura.</string>
+    <string name="error_different_google_account">Questo è un altro account Google. Scegli quello con questo indirizzo.</string>
     <string name="error_network">Connessione assente. Controlla internet e riprova.</string>
     <string name="error_unknown">Qualcosa è andato storto. Riprova.</string>
     <!-- Spaces -->

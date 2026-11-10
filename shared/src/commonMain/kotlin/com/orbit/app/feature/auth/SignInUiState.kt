@@ -13,6 +13,8 @@ data class SignInUiState(
     val errors: List<CredentialsError> = emptyList(),
     /** Why the last attempt failed. Cleared by the next edit or attempt. */
     val authError: AuthError? = null,
+    /** The account this address already belongs to, while the user links the other way in (#173). */
+    val link: AccountLinkUiState? = null,
 ) {
     /** What to say under the email field. */
     val emailError: StringResource? get() = emailMessage(errors, authError)

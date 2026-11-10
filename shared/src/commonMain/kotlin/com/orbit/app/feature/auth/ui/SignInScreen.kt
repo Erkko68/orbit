@@ -49,4 +49,14 @@ fun SignInScreen(onCreateAccount: () -> Unit, viewModel: SignInViewModel = koinV
             enabled = !state.submitting,
         )
     }
+    state.link?.let { link ->
+        AccountLinkSheet(
+            state = link,
+            onPasswordChange = viewModel::onLinkPasswordChange,
+            onToggleVisibility = viewModel::toggleLinkPasswordVisibility,
+            onContinueWithGoogle = viewModel::signInWithGoogle,
+            onConfirm = viewModel::confirmLink,
+            onDismiss = viewModel::dismissLink,
+        )
+    }
 }

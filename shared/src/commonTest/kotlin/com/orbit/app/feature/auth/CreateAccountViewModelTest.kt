@@ -1,8 +1,10 @@
 package com.orbit.app.feature.auth
 
+import com.orbit.app.domain.model.AccountLinkException
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.CredentialsError
+import com.orbit.app.domain.model.LinkProof
 import com.orbit.app.testing.FailingAuthRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import kotlinx.coroutines.Dispatchers
@@ -154,5 +156,42 @@ class CreateAccountViewModelTest {
 
         assertEquals(AuthError.UNKNOWN, viewModel.uiState.value.authError)
         assertFalse(viewModel.uiState.value.submitting)
+    }
+
+    @Test
+    fun offersToLinkWhenTheGoogleAddressAlreadyHasAPassword() {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.PASSWORD))
+        val viewModel = CreateAccountViewModel(auth)
+
+        viewModel.signInWithGoogle()
+
+        assertEquals(AccountLinkUiState("ana@orbit.app", LinkProof.PASSWORD), viewModel.uiState.value.link)
+        assertNull(viewModel.uiState.value.authError)
+    }
+
+    @Test
+    fun linksGoogleToTheAccountTheAddressAlreadyHas() = runTest {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.PASSWORD))
+        val viewModel = CreateAccountViewModel(auth)
+        viewModel.signInWithGoogle()
+
+        viewModel.onLinkPasswordChange("secret")
+        viewModel.confirmLink()
+
+        assertEquals(listOf(LinkProof.GOOGLE), auth.linked)
+        assertEquals("ana@orbit.app", auth.session.first()?.id)
+        assertNull(viewModel.uiState.value.link)
+    }
+
+    @Test
+    fun dismissingTheOfferLeavesTheFormAsItWas() {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.PASSWORD))
+        val viewModel = CreateAccountViewModel(auth)
+        viewModel.signInWithGoogle()
+
+        viewModel.dismissLink()
+
+        assertNull(viewModel.uiState.value.link)
+        assertTrue(auth.linked.isEmpty())
     }
 }

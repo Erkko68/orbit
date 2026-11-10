@@ -15,6 +15,14 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(SignInUiState())
     val uiState: StateFlow<SignInUiState> = _uiState.asStateFlow()
 
+    /** The link sheet, shared with the other auth form: a collision is state here, with its own message (#173). */
+    private val linking = AccountLinking(
+        auth = auth,
+        scope = viewModelScope,
+        read = { _uiState.value.link },
+        write = { link -> _uiState.update { it.copy(link = link) } },
+    )
+
     fun onEmailChange(email: String) =
         _uiState.update { it.copy(email = email, errors = emptyList(), authError = null) }
 
@@ -36,13 +44,29 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
 
     fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
 
-    /** Runs [call] unless one is running. A failure stays in the form as [SignInUiState.authError]. */
+    fun onLinkPasswordChange(password: String) = linking.onPasswordChange(password)
+
+    fun toggleLinkPasswordVisibility() = linking.togglePasswordVisibility()
+
+    fun confirmLink() = linking.confirm()
+
+    fun dismissLink() = linking.dismiss()
+
+    /**
+     * Runs [call] unless one is running. A failure stays in the form as [SignInUiState.authError]; an
+     * address that already has an account becomes [SignInUiState.link], which offers to link it.
+     */
     private fun submit(what: String, call: suspend () -> Unit) {
         if (_uiState.value.submitting) return
         _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
         viewModelScope.launch {
-            val authError = executeAuth(what, call)
-            _uiState.update { it.copy(submitting = false, authError = authError) }
+            when (val outcome = executeSignIn(what, call)) {
+                null -> _uiState.update { it.copy(submitting = false) }
+                is SignInOutcome.Link -> _uiState.update {
+                    it.copy(submitting = false, link = AccountLinkUiState(outcome.email, outcome.proof))
+                }
+                is SignInOutcome.Failed -> _uiState.update { it.copy(submitting = false, authError = outcome.error) }
+            }
         }
     }
 }
