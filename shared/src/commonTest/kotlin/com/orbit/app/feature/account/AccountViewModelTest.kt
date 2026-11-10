@@ -4,9 +4,13 @@ import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.CredentialsError
 import com.orbit.app.domain.model.User
+import com.orbit.app.domain.model.Member
+import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.repository.AuthRepository
+import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.FailingAuthRepository
 import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemorySpaceRepository
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -44,8 +48,11 @@ class AccountViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun TestScope.observe(auth: AuthRepository): AccountViewModel {
-        val viewModel = AccountViewModel(auth)
+    private fun TestScope.observe(auth: AuthRepository): AccountViewModel =
+        observe(auth, InMemorySpaceRepository(auth))
+
+    private fun TestScope.observe(auth: AuthRepository, spaces: SpaceRepository): AccountViewModel {
+        val viewModel = AccountViewModel(auth, spaces)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         return viewModel
     }
@@ -178,6 +185,7 @@ class AccountViewModelTest {
 
         viewModel.openDeleteAccount()
         assertEquals(AccountSheetKind.DELETE_ACCOUNT, viewModel.uiState.value.dialog)
+        viewModel.onDeletePasswordChange("secret")
         viewModel.deleteAccount()
 
         assertNull(auth.session.first())
@@ -201,14 +209,15 @@ class AccountViewModelTest {
         val gate = CompletableDeferred<Unit>()
         var deletes = 0
         val slow = object : AuthRepository by auth {
-            override suspend fun deleteAccount() {
+            override suspend fun deleteAccount(currentPassword: String?) {
                 deletes++
                 gate.await()
-                auth.deleteAccount()
+                auth.deleteAccount(currentPassword)
             }
         }
         val viewModel = observe(slow)
         viewModel.openDeleteAccount()
+        viewModel.onDeletePasswordChange("secret")
 
         viewModel.deleteAccount()
         viewModel.deleteAccount()
@@ -258,4 +267,100 @@ class AccountViewModelTest {
         assertEquals(Res.string.error_unknown, viewModel.uiState.value.dialogError)
         assertFalse(viewModel.uiState.value.submitting)
     }
+    @Test
+    fun deletingWithoutThePasswordDeletesNothing() = runTest {
+        val auth = signedIn()
+        val viewModel = observe(auth)
+        viewModel.openDeleteAccount()
+
+        viewModel.deleteAccount()
+
+        assertFalse(viewModel.uiState.value.submitting)
+        assertEquals(AccountSheetKind.DELETE_ACCOUNT, viewModel.uiState.value.dialog)
+        assertEquals(Res.string.error_current_password_wrong, viewModel.uiState.value.deletePasswordError)
+        assertEquals("ana@orbit.app", auth.session.first()?.id)
+    }
+
+    @Test
+    fun aWrongPasswordShowsUnderTheFieldItWasTypedIn() = runTest {
+        val auth = signedIn()
+        val viewModel = observe(auth)
+        viewModel.openDeleteAccount()
+        viewModel.onDeletePasswordChange("not-it")
+
+        viewModel.deleteAccount()
+
+        assertEquals(Res.string.error_current_password_wrong, viewModel.uiState.value.deletePasswordError)
+        assertNull(viewModel.uiState.value.dialogError)
+        assertEquals("ana@orbit.app", auth.session.first()?.id)
+    }
+
+    @Test
+    fun anAccountThatOnlySignsInWithGoogleHasNoPasswordToGive() = runTest {
+        val auth = InMemoryAuthRepository().apply { signInWithGoogle() }
+        val viewModel = observe(auth)
+        assertFalse(viewModel.uiState.value.hasPassword)
+
+        viewModel.openDeleteAccount()
+        assertTrue(viewModel.uiState.value.canDelete)
+        viewModel.deleteAccount()
+
+        assertNull(auth.session.first())
+    }
+
+    @Test
+    fun deletesTheSpacesWhereTheUserIsAloneAndLeavesTheRest() = runTest {
+        val auth = InMemoryAuthRepository()
+        val spaces = InMemorySpaceRepository(auth)
+        auth.register("bob@orbit.app", "secret", "Bob")
+        val shared = spaces.createSpace("Flat 4B", accent = 0)
+        auth.register("ana@orbit.app", "secret", "Ana López")
+        spaces.addMember(shared, Member("ana@orbit.app", "Ana López", photoUrl = null, role = Role.MEMBER))
+        val alone = spaces.createSpace("Studio", accent = 1)
+        val viewModel = observe(auth, spaces)
+        viewModel.openDeleteAccount()
+        viewModel.onDeletePasswordChange("secret")
+
+        viewModel.deleteAccount()
+
+        assertNull(auth.session.first())
+        assertEquals(emptyList(), spaces.observeMembers(alone).first())
+        assertEquals(listOf("bob@orbit.app"), spaces.observeMembers(shared).first().map { it.userId })
+    }
+
+    @Test
+    fun willNotDeleteWhileASpaceWithOtherPeopleInItIsOwned() = runTest {
+        val auth = signedIn()
+        val spaces = InMemorySpaceRepository(auth)
+        val owned = spaces.createSpace("Flat 4B", accent = 0)
+        spaces.addMember(owned, Member("bob@orbit.app", "Bob", photoUrl = null, role = Role.MEMBER))
+        val viewModel = observe(auth, spaces)
+        viewModel.openDeleteAccount()
+        viewModel.onDeletePasswordChange("secret")
+
+        viewModel.deleteAccount()
+
+        assertEquals(listOf("Flat 4B"), viewModel.uiState.value.handOver)
+        assertFalse(viewModel.uiState.value.submitting)
+        assertEquals("ana@orbit.app", auth.session.first()?.id)
+        assertEquals(2, spaces.observeMembers(owned).first().size)
+    }
+
+    @Test
+    fun typingAgainClearsTheSpacesToHandOver() = runTest {
+        val auth = signedIn()
+        val spaces = InMemorySpaceRepository(auth)
+        val owned = spaces.createSpace("Flat 4B", accent = 0)
+        spaces.addMember(owned, Member("bob@orbit.app", "Bob", photoUrl = null, role = Role.MEMBER))
+        val viewModel = observe(auth, spaces)
+        viewModel.openDeleteAccount()
+        viewModel.onDeletePasswordChange("secret")
+        viewModel.deleteAccount()
+        assertTrue(viewModel.uiState.value.handOver.isNotEmpty())
+
+        viewModel.onDeletePasswordChange("secret again")
+
+        assertEquals(emptyList(), viewModel.uiState.value.handOver)
+    }
+
 }

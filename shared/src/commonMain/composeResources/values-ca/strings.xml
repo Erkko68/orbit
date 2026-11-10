@@ -35,6 +35,8 @@
     <string name="account_delete_body">Suprimeix permanentment el teu compte i les teves dades.</string>
     <string name="account_delete_title">Vols suprimir el teu compte?</string>
     <string name="account_delete_warning">Sortiràs de tots els teus espais. Aquesta acció no es pot desfer.</string>
+    <string name="account_delete_password">La teva contrasenya</string>
+    <string name="account_delete_hand_over">Primer passa aquests espais a una altra persona, o esborra&apos;ls: %1$s</string>
     <!-- Create account -->
     <string name="create_account_title">Crea el teu compte</string>
     <string name="create_account_subtitle">Comença a organitzar els teus espais compartits en equip.</string>

@@ -8,8 +8,11 @@ import com.orbit.app.data.mapper.mapUser
 import com.orbit.app.data.mapper.registerException
 import com.orbit.app.data.mapper.signInException
 import com.orbit.app.data.mapper.userProfileDocument
+import com.orbit.app.domain.model.AuthError
+import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
+import dev.gitlive.firebase.auth.EmailAuthProvider
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.GoogleAuthProvider
@@ -111,12 +114,64 @@ class FirebaseAuthRepository(
         writeLocally("Rename user ${user.uid}") { batch.commit() }
     }
 
+    /**
+     * Firebase only changes a password for a session it has just seen the old one for, so this proves the
+     * current one first. A wrong one and a weak new one both come back as refused credentials, which
+     * [signInException] tells apart (#188).
+     */
     override suspend fun changePassword(currentPassword: String, newPassword: String) {
-        Logger.w { "changePassword is a stub (#188)" }
+        val user = signedInUser()
+        reauthenticate(user, currentPassword)
+        try {
+            user.updatePassword(newPassword)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw signInException(e)
+        }
     }
 
-    override suspend fun deleteAccount() {
-        Logger.w { "deleteAccount is a stub (#188)" }
+    /**
+     * Deletes the profile document and then the account itself (#188). The caller has already left or deleted
+     * the spaces: what is left here is `users/{uid}` and the Firebase account, in that order, so a run that
+     * stops halfway can simply be run again. Firebase wants a recent sign-in before it deletes an account,
+     * so this proves [currentPassword], or asks Google again for an account that signs in that way.
+     */
+    override suspend fun deleteAccount(currentPassword: String?) {
+        val user = signedInUser()
+        firestore.collection(USERS).document(user.uid).delete()
+        if (currentPassword != null) reauthenticate(user, currentPassword) else reauthenticateWithGoogle(user)
+        try {
+            user.delete()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw signInException(e)
+        }
+    }
+
+    /** Proves the password of the account being acted on. A wrong one is [AuthError.WRONG_CREDENTIALS]. */
+    private suspend fun reauthenticate(user: FirebaseUser, password: String) {
+        val email = checkNotNull(user.email) { "The account has no email to sign in with" }
+        try {
+            user.reauthenticate(EmailAuthProvider.credential(email, password))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw signInException(e)
+        }
+    }
+
+    /** The same for an account that signs in with Google: closing the picker leaves the account alone. */
+    private suspend fun reauthenticateWithGoogle(user: FirebaseUser) {
+        val google = googleAuthClient.getCredential() ?: throw AuthException(AuthError.WRONG_CREDENTIALS)
+        try {
+            user.reauthenticate(GoogleAuthProvider.credential(google.idToken, google.accessToken))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw googleSignInException(e)
+        }
     }
 
     /** Does nothing when the user closes the account picker. */
@@ -198,5 +253,9 @@ class FirebaseAuthRepository(
         fallbackPhotoUrl = photoURL,
         email = email,
         aiConsent = profile?.instant("aiConsentAt") != null,
+        hasPassword = providerData.any { it.providerId == PASSWORD_PROVIDER },
     )
 }
+
+/** The id Firebase gives the email-and-password sign-in method. */
+private const val PASSWORD_PROVIDER = "password"

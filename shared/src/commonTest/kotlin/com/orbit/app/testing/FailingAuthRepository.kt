@@ -20,7 +20,7 @@ internal class FailingAuthRepository(
 
     override suspend fun changePassword(currentPassword: String, newPassword: String) = throw failure
 
-    override suspend fun deleteAccount() = throw failure
+    override suspend fun deleteAccount(currentPassword: String?) = throw failure
 
     override suspend fun acceptAiConsent() = throw failure
 
