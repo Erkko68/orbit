@@ -9,6 +9,48 @@ import kotlin.test.assertTrue
 
 class SplitExpenseTest {
     @Test
+    fun weightsGiveLeftoverCentsToPositiveWeightsInUidOrder() {
+        assertEquals(
+            mapOf("a" to 2000L, "b" to 1000L, "c" to 1000L),
+            splitByWeights(4000, mapOf("c" to 1L, "a" to 2L, "b" to 1L)),
+        )
+        assertEquals(mapOf("a" to 4L, "b" to 3L, "c" to 3L), splitByWeights(10, mapOf("c" to 1L, "b" to 1L, "a" to 1L)))
+        assertEquals(mapOf("b" to 1L), splitByWeights(1, mapOf("a" to 0L, "b" to 1L, "c" to 1L)))
+        assertEquals(Long.MAX_VALUE, splitByWeights(Long.MAX_VALUE, mapOf("a" to 2L, "b" to 1L))!!.values.sum())
+        assertNull(splitByWeights(0, mapOf("a" to 1L)))
+        assertNull(splitByWeights(100, emptyMap()))
+        assertNull(splitByWeights(100, mapOf("a" to 0L)))
+        assertNull(splitByWeights(100, mapOf("a" to -1L)))
+        assertNull(splitByWeights(100, mapOf("a" to MAX_WEIGHT_SUM, "b" to 1L)))
+    }
+
+    @Test
+    fun percentagesMustAddUpToExactlyOneHundred() {
+        assertEquals(
+            mapOf("a" to 2000L, "b" to 1000L, "c" to 1000L),
+            splitByPercentages(4000, mapOf("a" to 5000L, "b" to 2500L, "c" to 2500L)),
+        )
+        assertEquals(
+            mapOf("a" to 4L, "b" to 3L, "c" to 3L),
+            splitByPercentages(10, mapOf("a" to 3334L, "b" to 3333L, "c" to 3333L)),
+        )
+        assertNull(splitByPercentages(4000, mapOf("a" to 5000L, "b" to 2500L, "c" to 2499L)))
+        assertNull(splitByPercentages(4000, mapOf("a" to 10_001L, "b" to -1L)))
+    }
+
+    @Test
+    fun randomWeightsConserveMoneyAndIgnoreInputOrder() {
+        val random = Random(55)
+        repeat(500) {
+            val weights = (0 until random.nextInt(1, 9)).associate { "member-$it" to random.nextLong(1, 1001) }
+            val cents = random.nextLong(1, Long.MAX_VALUE)
+            val result = requireNotNull(splitByWeights(cents, weights))
+            assertEquals(cents, result.values.sum())
+            assertEquals(result, splitByWeights(cents, weights.entries.shuffled(random).associate { it.toPair() }))
+        }
+    }
+
+    @Test
     fun leftoversGoInUidOrderAndZeroSharesAreNotStored() {
         assertEquals(
             mapOf("ana" to 334L, "bea" to 333L, "marc" to 333L),

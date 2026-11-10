@@ -21,6 +21,35 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalTestApi::class)
 class ExpenseScreenTest : ComposeTest() {
     @Test
+    fun percentagesAndWeightsShowWhatEachPersonPays() = runComposeUiTest {
+        val auth = InMemoryAuthRepository()
+        val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER, "marc" to Role.MEMBER)
+        val ledger = InMemoryExpenseRepository(auth)
+        val locale = deviceMoneyLocale()
+        runBlocking { auth.register("ana", "secret", "Ana") }
+        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
+        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
+        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo().performTextInput(moneyInput(4000, locale))
+        onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
+        onNodeWithText("Split").performScrollTo().performClick()
+        onNodeWithText("Whole numbers, such as 2 : 1 : 1.").assertIsDisplayed()
+        onNodeWithText("Weights").performClick()
+        onNodeWithContentDescription("Weight for ana").performScrollTo().performTextReplacement("2")
+        onNodeWithText(formatEuro(2000)).performScrollTo().assertIsDisplayed()
+        onNodeWithText("Split").performScrollTo().performClick()
+        onNodeWithText("Percentages").performClick()
+        onNodeWithContentDescription("Share for marc").performScrollTo().performTextReplacement("24")
+        onNodeWithText("Still to assign: ${moneyInput(100, locale)}%").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Save").assertIsNotEnabled()
+        onNodeWithContentDescription("Share for marc").performScrollTo().performTextReplacement("25")
+        onNodeWithText("Save").assertIsEnabled().performClick()
+        assertEquals(
+            mapOf("ana" to 2000L, "bea" to 1000L, "marc" to 1000L),
+            runBlocking { ledger.observeExpenses("space-1").first().single().split },
+        )
+    }
+
+    @Test
     fun customSharesExplainMissingAndExcessAmountsBeforeSaving() = runComposeUiTest {
         val auth = InMemoryAuthRepository()
         val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER)
@@ -35,7 +64,7 @@ class ExpenseScreenTest : ComposeTest() {
         }
         val vm = ExpenseViewModel("space-1", id, ledger, spaces, auth)
         setContent { OrbitTheme { ExpenseScreen("space-1", id, {}, vm) } }
-        onNodeWithText("Custom amounts").performScrollTo().assertIsSelected()
+        onNodeWithText("Custom amounts").performScrollTo().assertIsDisplayed()
         onNodeWithText("Assigned ${formatEuro(1240)} of ${formatEuro(1240)}").performScrollTo().assertIsDisplayed()
         onAllNodes(hasSetTextAction() and hasText(moneyInput(620, locale))).onFirst()
             .performScrollTo().performTextReplacement(moneyInput(700, locale))
@@ -69,7 +98,7 @@ class ExpenseScreenTest : ComposeTest() {
         val vm = ExpenseViewModel("space-1", id, ledger, spaces, auth)
         setContent { OrbitTheme { ExpenseScreen("space-1", id, {}, vm) } }
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextReplacement("Dinner")
-        onNodeWithText("Custom amounts").performScrollTo().assertIsSelected()
+        onNodeWithText("Custom amounts").performScrollTo().assertIsDisplayed()
         onNodeWithContentDescription("Delete").performClick()
         onNodeWithText("Delete this entry?").assertIsDisplayed()
         assertEquals(1, runBlocking { ledger.observeExpenses("space-1").first().size })

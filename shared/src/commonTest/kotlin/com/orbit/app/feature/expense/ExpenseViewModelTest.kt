@@ -77,6 +77,78 @@ class ExpenseViewModelTest {
     }
 
     @Test
+    fun moneyFieldsTakeOnlyDigitsAndSeparatorsAndWeightsOnlyDigits() = runTest {
+        signIn()
+        val vm = open()
+        vm.onAmountChange("12,50")
+        for (typed in listOf("12,50a", "-12", "12 ", "€12", "1e3")) vm.onAmountChange(typed)
+        assertEquals("12,50", vm.uiState.value.amount)
+        vm.onAmountChange("1.234,5")
+        assertEquals("1.234,5", vm.uiState.value.amount)
+        vm.selectSplit(ExpenseSplit.EXACT)
+        vm.onShareChange("ana", "x")
+        assertFalse("x" in vm.uiState.value.exact["ana"].orEmpty())
+        vm.selectSplit(ExpenseSplit.WEIGHTS)
+        vm.onShareChange("ana", "1,5")
+        vm.onShareChange("ana", "-2")
+        assertEquals("1", vm.uiState.value.shareInputs["ana"])
+        vm.onShareChange("ana", "3")
+        assertEquals("3", vm.uiState.value.shareInputs["ana"])
+    }
+
+    @Test
+    fun percentagesStartFromTheSplitAndMustAddUpToOneHundred() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.toggleMember("marc")
+        vm.selectSplit(ExpenseSplit.PERCENTAGES)
+        assertEquals(moneyInput(5000, locale), vm.uiState.value.shareInputs["ana"])
+        assertTrue(vm.uiState.value.canSave)
+        vm.onShareChange("ana", "60")
+        assertEquals(1000L, vm.uiState.value.splitProgress?.excess)
+        assertFalse(vm.uiState.value.canSave)
+        vm.onShareChange("bea", "")
+        assertEquals(setOf("bea"), vm.uiState.value.invalidShareIds)
+        vm.onShareChange("bea", "40")
+        assertEquals(mapOf("ana" to 600L, "bea" to 400L), vm.uiState.value.shares)
+        vm.selectSplit(ExpenseSplit.EXACT)
+        assertEquals(moneyInput(600, locale), vm.uiState.value.exact["ana"])
+        vm.save()
+        assertEquals(mapOf("ana" to 600L, "bea" to 400L), ledger.observeExpenses("space-1").first().single().split)
+    }
+
+    @Test
+    fun weightsStartAtOneAndAreKeptAcrossModes() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.openSplitPicker()
+        vm.selectSplit(ExpenseSplit.EQUAL)
+        assertFalse(vm.uiState.value.pickingSplit)
+        vm.openSplitPicker()
+        assertTrue(vm.uiState.value.pickingSplit)
+        vm.dismissSplitPicker()
+        assertFalse(vm.uiState.value.pickingSplit)
+        vm.openSplitPicker()
+        vm.selectSplit(ExpenseSplit.WEIGHTS)
+        assertFalse(vm.uiState.value.pickingSplit)
+        assertEquals(mapOf("ana" to 334L, "bea" to 333L, "marc" to 333L), vm.uiState.value.shares)
+        vm.onShareChange("ana", "2")
+        assertEquals(mapOf("ana" to 500L, "bea" to 250L, "marc" to 250L), vm.uiState.value.shares)
+        vm.onShareChange("bea", "")
+        assertEquals(setOf("bea"), vm.uiState.value.invalidShareIds)
+        assertFalse(vm.uiState.value.canSave)
+        vm.onShareChange("bea", "0")
+        vm.selectSplit(ExpenseSplit.EQUAL)
+        vm.onShareChange("ana", "9")
+        vm.selectSplit(ExpenseSplit.WEIGHTS)
+        assertEquals(mapOf("ana" to "2", "bea" to "0", "marc" to "1"), vm.uiState.value.shareInputs)
+        vm.save()
+        assertEquals(mapOf("ana" to 667L, "marc" to 333L), ledger.observeExpenses("space-1").first().single().split)
+    }
+
+    @Test
     fun exactAmountsMustMatchAndSwitchingModesKeepsTheEqualPreview() = runTest {
         signIn()
         val vm = open()
@@ -129,7 +201,7 @@ class ExpenseViewModelTest {
         vm.toggleMember("marc")
         assertEquals(mapOf("ana" to 500L, "bea" to 500L), vm.uiState.value.shares)
         vm.selectSplit(ExpenseSplit.EXACT)
-        vm.onShareChange("ana", "x")
+        vm.onShareChange("ana", "")
         assertEquals(mapOf("ana" to 0L, "bea" to 500L), vm.uiState.value.shares)
     }
 
@@ -141,7 +213,7 @@ class ExpenseViewModelTest {
         vm.onTitleChange("x".repeat(121))
         assertFalse(vm.uiState.value.canSave)
         vm.onTitleChange("Food")
-        vm.onAmountChange("-1")
+        vm.onAmountChange("0")
         assertFalse(vm.uiState.value.canSave)
         vm.onAmountChange(moneyInput(1000, locale))
         for (id in listOf("ana", "bea", "marc")) vm.toggleMember(id)

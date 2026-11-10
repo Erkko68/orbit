@@ -6,6 +6,7 @@ import com.orbit.app.core.Load
 import com.orbit.app.core.asLoad
 import com.orbit.app.core.attempt
 import com.orbit.app.core.deviceMoneyLocale
+import com.orbit.app.core.isMoneyInput
 import com.orbit.app.core.moneyInput
 import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.Expense
@@ -13,6 +14,8 @@ import com.orbit.app.domain.model.NewExpense
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ExpenseRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import com.orbit.app.domain.usecase.HUNDRED_PERCENT
+import com.orbit.app.domain.usecase.splitByWeights
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -96,10 +99,13 @@ class ExpenseViewModel(
     }
 
     fun onTitleChange(value: String) = edit { it.copy(title = value) }
-    fun onAmountChange(value: String) = edit { it.copy(amount = value) }
+    /** Amounts, percentages and weights take only what they can hold: a letter or a sign never reaches the state. */
+    fun onAmountChange(value: String) = edit { if (isMoneyInput(value)) it.copy(amount = value) else it }
     fun openPayerPicker() = edit { it.copy(pickingPayer = true) }
     fun dismissPayerPicker() = edit { it.copy(pickingPayer = false) }
     fun selectPayer(id: String) = edit { it.copy(paidBy = id, pickingPayer = false) }
+    fun openSplitPicker() = edit { it.copy(pickingSplit = true) }
+    fun dismissSplitPicker() = edit { it.copy(pickingSplit = false) }
     fun openDatePicker() = edit { it.copy(pickingDate = true) }
     fun dismissDatePicker() = edit { it.copy(pickingDate = false) }
 
@@ -107,18 +113,42 @@ class ExpenseViewModel(
     fun pickDate(utcMillis: Long) = edit {
         it.copy(date = Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date, pickingDate = false)
     }
+    /**
+     * Custom amounts and percentages start from the split on screen, so switching keeps what the user sees: €40 as
+     * 20 / 10 / 10 becomes 50 / 25 / 25 %. Without a split yet, percentages start equal. Weights keep what was typed.
+     * Picking one closes the sheet.
+     */
     fun selectSplit(mode: ExpenseSplit) = edit { state ->
-        val exact = if (mode == ExpenseSplit.EXACT && state.mode == ExpenseSplit.EQUAL) {
-            state.selected.associateWith { moneyInput(state.split?.get(it) ?: 0L, locale) }
-        } else state.exact
-        state.copy(mode = mode, exact = exact)
+        if (mode == state.mode) return@edit state.copy(pickingSplit = false)
+        val split = state.split
+        when (mode) {
+            ExpenseSplit.EXACT -> split?.let { state.copy(exact = state.inputs(it)) } ?: state
+            ExpenseSplit.PERCENTAGES -> state.copy(
+                percentages = state.inputs(
+                    splitByWeights(HUNDRED_PERCENT, split ?: state.selected.associateWith { 1L }).orEmpty(),
+                ),
+            )
+            else -> state
+        }.copy(mode = mode, pickingSplit = false)
     }
+
+    private fun ExpenseUiState.inputs(values: Map<String, Long>) =
+        selected.associateWith { moneyInput(values[it] ?: 0L, locale) }
 
     fun toggleMember(id: String) = edit {
         it.copy(selected = if (id in it.selected) it.selected - id else it.selected + id)
     }
 
-    fun onShareChange(id: String, value: String) = edit { it.copy(exact = it.exact + (id to value)) }
+    fun onShareChange(id: String, value: String) = edit {
+        val allowed = if (it.mode == ExpenseSplit.WEIGHTS) value.all { c -> c in '0'..'9' } else isMoneyInput(value)
+        if (!allowed) return@edit it
+        when (it.mode) {
+            ExpenseSplit.EQUAL -> it
+            ExpenseSplit.EXACT -> it.copy(exact = it.exact + (id to value))
+            ExpenseSplit.PERCENTAGES -> it.copy(percentages = it.percentages + (id to value))
+            ExpenseSplit.WEIGHTS -> it.copy(weights = it.weights + (id to value))
+        }
+    }
     fun requestDelete() {
         if (uiState.value.canDelete) edit { it.copy(deleteOpen = true) }
     }

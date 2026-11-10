@@ -51,9 +51,9 @@ flowchart TB
 - `domain/usecase/CalculateBalances.kt` is a pure computation of member balances and minimum-count payment
   proposals from the ledger (#56, [ledger calculation](../data/firestore-schema.md#spacesspaceidexpensesexpenseid)).
   It neither loads nor saves expenses; the Expenses screen consumes it in #57.
-- `domain/usecase/SplitExpense.kt` creates equal shares in uid order or validates exact shares against the
-  typed total without overflow (#54). `core/Money.kt` parses regional amounts directly into Long cents;
-  platform formatters display euros from exact decimal values, without a floating-point conversion.
+- `domain/usecase/SplitExpense.kt` creates equal shares in uid order, validates exact shares against the
+  typed total without overflow (#54), and turns weights (2 : 1 : 1) or percentages into cents (#55).
+  `core/Money.kt` parses regional amounts directly into Long cents; platform formatters display euros from exact decimal values, without a floating-point conversion.
 - **Data** implements the interfaces against Firestore and maps documents to models. The in-memory fakes that tests use live in `commonTest/…/testing/`, not here.
 
 A dependency only points down: a ViewModel never sees a Firestore class, and the domain never sees a ViewModel.
@@ -127,6 +127,10 @@ The exact-share mode is labelled "Custom amounts" in the form. It explains that 
 person owes and shows the assigned total, how much remains, or the excess. `ExpenseUiState.splitProgress`
 derives this preview from the selected shares using Long cents with an overflow check. It never adjusts
 shares automatically or persists a second total. Save still requires the existing exact-sum validation.
+
+Percentages and Weights (#55) are two more split modes beside them. Each row types a percentage or a whole weight
+and shows the amount it comes to; percentages must add up to exactly 100 %. Switching to Custom amounts or
+Percentages starts from the split on screen, so nothing the user sees changes.
 
 ## Dependency injection
 

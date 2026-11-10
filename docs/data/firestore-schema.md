@@ -256,8 +256,10 @@ calculation consumes those exact stored shares and never splits them again.
 `domain/usecase/SplitExpense.kt` supplies #54's equal and exact splits. Equal shares distribute leftover
 cents to distinct selected uids in sorted order. When cents are fewer than people, zero shares are omitted,
 as the schema requires positive stored shares. Exact input permits zero, omits it from storage, and must
-sum to the typed amount without overflowing Long. The expense form parses regional decimal/grouping
-separators without floating point and saves only after the user chooses Save. Editing starts with the
+sum to the typed amount without overflowing Long. Weights and percentages (#55, a percentage is a weight
+out of 10 000 hundredths) take each share's floor and give the leftover cents, one each, to positive weights
+in uid order. Only the cents are stored, so reopening one shows Custom amounts. The expense form parses
+regional decimal/grouping separators without floating point and saves only after the user chooses Save. Editing starts with the
 stored exact shares; deleting an entry uses the existing creator-or-manager permission.
 
 ### `invitations/{code}`

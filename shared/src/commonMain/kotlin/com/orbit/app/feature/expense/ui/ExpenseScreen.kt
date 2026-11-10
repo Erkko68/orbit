@@ -1,7 +1,7 @@
 package com.orbit.app.feature.expense.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -35,7 +35,7 @@ import org.koin.core.parameter.parametersOf
 /**
  * An expense, with the item's colour header and its title typed in place. Then amount first, as Splitwise does, who
  * paid and when (rows that open a sheet), and everyone it is split between with their share at the end, typed there
- * with custom amounts. Save at the bottom is the only write.
+ * as an amount, a percentage or a weight. Save at the bottom is the only write.
  */
 @Composable
 fun ExpenseScreen(
@@ -94,6 +94,7 @@ fun ExpenseScreen(
             }
         }
         if (state.pickingPayer) PayerSheet(state, viewModel)
+        if (state.pickingSplit) SplitSheet(state, viewModel)
         if (state.pickingDate) {
             OrbitSheet(
                 title = stringResource(Res.string.schedule_pick_date),
@@ -143,8 +144,8 @@ private fun ExpenseHeader(state: ExpenseUiState, viewModel: ExpenseViewModel, on
     )
 }
 
-/** Who paid and when, as the item form's Who and When: a labelled row whose sheet changes it. */
-private enum class ExpenseRow { PAYER, DATE }
+/** Who paid, when and how it is split, as the item form's Who and When: a labelled row whose sheet changes it. */
+private enum class ExpenseRow { PAYER, DATE, SPLIT }
 
 @Composable
 private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel) {
@@ -178,6 +179,15 @@ private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel) {
                 modifier = Modifier.fillMaxWidth(),
                 shape = OrbitShape.Sunny,
             )
+
+            ExpenseRow.SPLIT -> OrbitActionRow(
+                title = stringResource(Res.string.expense_split_mode),
+                supporting = stringResource(state.mode.label),
+                icon = Res.drawable.ic_tune,
+                onClick = viewModel::openSplitPicker,
+                modifier = Modifier.fillMaxWidth(),
+                shape = OrbitShape.Clover,
+            )
         }
     }
     OrbitHeading(
@@ -189,50 +199,74 @@ private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel) {
         titleStyle = MaterialTheme.typography.titleLarge,
     )
     SplitErrors(state)
-    Row(horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
-        OrbitFilterChip(
-            label = stringResource(Res.string.expense_equal),
-            selected = state.mode == ExpenseSplit.EQUAL,
-            onClick = { viewModel.selectSplit(ExpenseSplit.EQUAL) },
-        )
-        OrbitFilterChip(
-            label = stringResource(Res.string.expense_exact),
-            selected = state.mode == ExpenseSplit.EXACT,
-            onClick = { viewModel.selectSplit(ExpenseSplit.EXACT) },
-        )
-    }
     OrbitGroup(state.people, key = { it.id }, Modifier.fillMaxWidth()) { person ->
         SplitRow(person, state, viewModel)
     }
     if (state.failed && !state.deleteOpen) OrbitErrorText(stringResource(Res.string.expense_write_failed))
 }
 
-/** One person of the split: tap to leave them out. Their share sits at the end, or is typed there with custom amounts. */
+private val ExpenseSplit.label
+    get() = when (this) {
+        ExpenseSplit.EQUAL -> Res.string.expense_equal
+        ExpenseSplit.EXACT -> Res.string.expense_exact
+        ExpenseSplit.PERCENTAGES -> Res.string.expense_percentages
+        ExpenseSplit.WEIGHTS -> Res.string.expense_weights
+    }
+
+private val ExpenseSplit.hint
+    get() = when (this) {
+        ExpenseSplit.EQUAL -> Res.string.expense_equal_hint
+        ExpenseSplit.EXACT -> Res.string.expense_exact_hint
+        ExpenseSplit.PERCENTAGES -> Res.string.expense_percentages_hint
+        ExpenseSplit.WEIGHTS -> Res.string.expense_weights_hint
+    }
+
+/**
+ * One person of the split: tap to leave them out. Their share sits at the end, or is typed there. A percentage or a
+ * weight shows the amount it comes to under the name.
+ */
 @Composable
 private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: ExpenseViewModel) {
     val selected = person.id in state.selected
+    val typed = selected && state.mode != ExpenseSplit.EQUAL
     val toggle = { viewModel.toggleMember(person.id) }
     OrbitGroupRow(Modifier.fillMaxWidth(), onClick = if (state.submitting) null else toggle) {
         val face = person.face()
         OrbitAvatar(face.initials, face.color, photoUrl = face.photoUrl, shape = face.shape, size = OrbitAvatarSize.Medium)
-        Text(
-            text = person.name,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.titleMedium,
-            color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        if (selected && state.mode == ExpenseSplit.EXACT) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = person.name,
+                style = MaterialTheme.typography.titleMedium,
+                color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (typed && state.mode != ExpenseSplit.EXACT) {
+                Text(
+                    text = formatEuro(state.shares[person.id] ?: 0L),
+                    style = OrbitTheme.data.small,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (typed) {
+            val weight = state.mode == ExpenseSplit.WEIGHTS
             OrbitAmountField(
-                value = state.exact[person.id].orEmpty(),
+                value = state.shareInputs[person.id].orEmpty(),
                 onValueChange = { viewModel.onShareChange(person.id, it) },
-                description = stringResource(Res.string.expense_share, person.name),
-                placeholder = moneyInput(0, state.locale),
+                description = stringResource(
+                    if (weight) Res.string.expense_weight_share else Res.string.expense_share,
+                    person.name,
+                ),
+                placeholder = if (weight) "0" else moneyInput(0, state.locale),
                 enabled = !state.submitting,
                 isError = person.id in state.invalidShareIds,
-                prefix = state.currencyPrefix,
-                suffix = state.currencySuffix,
+                prefix = state.currencyPrefix.takeIf { state.mode == ExpenseSplit.EXACT },
+                suffix = when (state.mode) {
+                    ExpenseSplit.EXACT -> state.currencySuffix
+                    ExpenseSplit.PERCENTAGES -> stringResource(Res.string.expense_percent_sign)
+                    else -> null
+                },
             )
         } else {
             Text(
@@ -246,17 +280,40 @@ private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: Expense
     }
 }
 
-/** What is wrong with typed shares: one missing or invalid, or how far they are from the total. */
+/** What is wrong with typed shares: one missing or invalid, or how far they are from the total or from 100 %. */
 @Composable
 private fun SplitErrors(state: ExpenseUiState) {
-    if (state.mode != ExpenseSplit.EXACT || state.selected.isEmpty()) return
+    if (state.mode == ExpenseSplit.EQUAL || state.selected.isEmpty()) return
     val progress = state.splitProgress
-    if (progress == null) {
+    if (state.cents == null || state.invalidShareIds.isNotEmpty() || progress == null && state.mode != ExpenseSplit.WEIGHTS) {
         OrbitErrorText(stringResource(Res.string.expense_exact_help))
         return
     }
-    progress.remaining?.let { OrbitErrorText(stringResource(Res.string.expense_remaining, formatEuro(it))) }
-    progress.excess?.let { OrbitErrorText(stringResource(Res.string.expense_excess, formatEuro(it))) }
+    if (progress == null) return
+    val format: @Composable (Long) -> String = if (state.mode == ExpenseSplit.PERCENTAGES) {
+        { stringResource(Res.string.expense_percent, moneyInput(it, state.locale)) }
+    } else {
+        { formatEuro(it) }
+    }
+    progress.remaining?.let { OrbitErrorText(stringResource(Res.string.expense_remaining, format(it))) }
+    progress.excess?.let { OrbitErrorText(stringResource(Res.string.expense_excess, format(it))) }
+}
+
+/** How to split: every mode is a row with what it means, and tapping one picks it and closes the sheet. */
+@Composable
+private fun SplitSheet(state: ExpenseUiState, viewModel: ExpenseViewModel) {
+    OrbitSheet(
+        title = stringResource(Res.string.expense_split_mode),
+        closeDescription = stringResource(Res.string.close),
+        onDismiss = viewModel::dismissSplitPicker,
+    ) {
+        OrbitGroup(ExpenseSplit.entries, key = { it.name }, Modifier.fillMaxWidth()) { mode ->
+            OrbitGroupRow(Modifier.fillMaxWidth(), onClick = { viewModel.selectSplit(mode) }) {
+                OrbitHeading(stringResource(mode.label), stringResource(mode.hint), Modifier.weight(1f))
+                OrbitCheck(mode == state.mode, { viewModel.selectSplit(mode) }, stringResource(mode.label), compact = true)
+            }
+        }
+    }
 }
 
 /** Who paid: every person is a row, and tapping one picks them and closes the sheet. */

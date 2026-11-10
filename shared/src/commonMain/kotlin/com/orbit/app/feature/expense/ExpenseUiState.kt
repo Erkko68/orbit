@@ -7,6 +7,9 @@ import com.orbit.app.core.parseMoney
 import com.orbit.app.domain.model.Expense
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.validateExpense
+import com.orbit.app.domain.usecase.HUNDRED_PERCENT
+import com.orbit.app.domain.usecase.splitByPercentages
+import com.orbit.app.domain.usecase.splitByWeights
 import com.orbit.app.domain.usecase.splitEqually
 import com.orbit.app.domain.usecase.splitExactly
 import com.orbit.app.feature.item.ItemFace
@@ -14,7 +17,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
 
-enum class ExpenseSplit { EQUAL, EXACT }
+enum class ExpenseSplit { EQUAL, EXACT, PERCENTAGES, WEIGHTS }
 
 /** A preview of the user's exact shares. These amounts are never persisted separately. */
 data class ExpenseSplitProgress(val total: Long, val assigned: Long) {
@@ -36,6 +39,9 @@ data class ExpenseUiState(
     val mode: ExpenseSplit = ExpenseSplit.EQUAL,
     val selected: Set<String> = emptySet(),
     val exact: Map<String, String> = emptyMap(),
+    /** Typed percentages and weights. Neither is stored: they only become cents, as the custom amounts do. */
+    val percentages: Map<String, String> = emptyMap(),
+    val weights: Map<String, String> = emptyMap(),
     /** The members, and anyone who left but is still in the expense being edited. */
     val people: List<ItemFace> = emptyList(),
     val locale: MoneyLocale = MoneyLocale(".", ","),
@@ -45,6 +51,7 @@ data class ExpenseUiState(
     val failed: Boolean = false,
     val deleteOpen: Boolean = false,
     val pickingPayer: Boolean = false,
+    val pickingSplit: Boolean = false,
     val pickingDate: Boolean = false,
     val closed: Boolean = false,
 ) {
@@ -56,45 +63,72 @@ data class ExpenseUiState(
     val payer: ItemFace? get() = people.firstOrNull { it.id == paidBy }
     val dateMillis: Long? get() = date?.atStartOfDayIn(TimeZone.UTC)?.toEpochMilliseconds()
     val cents: Long? get() = parseMoney(amount, locale)?.takeIf { it > 0 }
+
+    /** What each person's field shows in the current mode. A weight left alone is 1. */
+    val shareInputs: Map<String, String>
+        get() = selected.associateWith { id ->
+            when (mode) {
+                ExpenseSplit.EQUAL -> ""
+                ExpenseSplit.EXACT -> exact[id].orEmpty()
+                ExpenseSplit.PERCENTAGES -> percentages[id].orEmpty()
+                ExpenseSplit.WEIGHTS -> weights[id] ?: "1"
+            }
+        }
+
+    /** A typed field as a number: cents, hundredths of a percent or a whole weight. Null when it is not valid. */
+    private fun typed(id: String): Long? {
+        val text = shareInputs[id] ?: return null
+        return when (mode) {
+            ExpenseSplit.EQUAL -> null
+            ExpenseSplit.EXACT -> parseMoney(text, locale)
+            ExpenseSplit.PERCENTAGES -> parseMoney(text, locale)?.takeIf { it <= HUNDRED_PERCENT }
+            ExpenseSplit.WEIGHTS -> text.trim().toLongOrNull()?.takeIf { it >= 0 }
+        }
+    }
+
     val invalidShareIds: Set<String>
-        get() = selected.filter { parseMoney(exact[it].orEmpty(), locale) == null }.toSet()
+        get() = if (mode == ExpenseSplit.EQUAL) emptySet() else selected.filter { typed(it) == null }.toSet()
+
+    /** How much of the whole the typed fields cover: the total in cents, or 100 % in hundredths. */
     val splitProgress: ExpenseSplitProgress?
         get() {
-            if (mode != ExpenseSplit.EXACT || selected.isEmpty()) return null
-            val total = cents ?: return null
+            if (selected.isEmpty()) return null
+            val whole = when (mode) {
+                ExpenseSplit.EXACT -> cents ?: return null
+                ExpenseSplit.PERCENTAGES -> HUNDRED_PERCENT
+                else -> return null
+            }
             var assigned = 0L
             for (id in selected) {
-                val share = parseMoney(exact[id].orEmpty(), locale) ?: return null
+                val share = typed(id) ?: return null
                 if (share > Long.MAX_VALUE - assigned) return null
                 assigned += share
             }
-            return ExpenseSplitProgress(total, assigned)
+            return ExpenseSplitProgress(whole, assigned)
         }
-    /** What the heading of the split says: how much of the total the shares cover, in either mode. */
+    /** What the heading of the split says: how much of the total the shares cover, in any mode. */
     val splitTotals: ExpenseSplitProgress?
-        get() = when (mode) {
-            ExpenseSplit.EXACT -> splitProgress
-            ExpenseSplit.EQUAL -> cents?.let { ExpenseSplitProgress(it, split?.values?.sum() ?: 0L) }
+        get() = if (mode == ExpenseSplit.EXACT) {
+            splitProgress
+        } else {
+            cents?.let { ExpenseSplitProgress(it, split?.values?.sum() ?: 0L) }
         }
     val split: Map<String, Long>?
         get() {
             val total = cents ?: return null
             if (selected.isEmpty() || selected.any { id -> people.none { it.id == id } }) return null
+            if (mode == ExpenseSplit.EQUAL) return splitEqually(total, selected)
+            val values = selected.associateWith { typed(it) ?: return null }
             return when (mode) {
-                ExpenseSplit.EQUAL -> splitEqually(total, selected)
-                ExpenseSplit.EXACT -> {
-                    val shares = selected.associateWith { parseMoney(exact[it].orEmpty(), locale) ?: return null }
-                    splitExactly(total, shares)
-                }
+                ExpenseSplit.EQUAL, ExpenseSplit.EXACT -> splitExactly(total, values)
+                ExpenseSplit.PERCENTAGES -> splitByPercentages(total, values)
+                ExpenseSplit.WEIGHTS -> splitByWeights(total, values)
             }
         }
-    /** What each person's row shows: their part of an equal split, what was typed for them, or nothing. */
+    /** What each person's row shows: what was typed with custom amounts, else their part of the split, or nothing. */
     val shares: Map<String, Long>
         get() = selected.associateWith { id ->
-            when (mode) {
-                ExpenseSplit.EQUAL -> split?.get(id) ?: 0L
-                ExpenseSplit.EXACT -> parseMoney(exact[id].orEmpty(), locale) ?: 0L
-            }
+            if (mode == ExpenseSplit.EXACT) typed(id) ?: 0L else split?.get(id) ?: 0L
         }
     val canSave: Boolean
         get() = !loading && !loadFailed && !missing && !submitting && !closed && member != null && date != null &&
