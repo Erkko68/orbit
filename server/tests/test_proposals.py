@@ -59,6 +59,18 @@ def test_a_plan_needs_no_space_and_an_item_no_modules():
 
 
 @pytest.mark.parametrize(
+    "recurrence",
+    [
+        {"unit": "day", "every": 2},
+        {"unit": "week", "every": 1, "weekdays": [1, 4]},
+        {"unit": "month", "every": 3, "dayOfMonth": 31, "until": "2027-12-31"},
+    ],
+)
+def test_an_item_repeats_by_days_weeks_or_months(recurrence):
+    assert errors(plan_with(item=item_with(schedule={"date": "2026-11-09"}, recurrence=recurrence))) == []
+
+
+@pytest.mark.parametrize(
     "plan",
     [
         {"items": []},
@@ -72,6 +84,16 @@ def test_a_plan_needs_no_space_and_an_item_no_modules():
         plan_with(item={"title": "Take out the bins"}),
         plan_with(item={"title": "Take out the bins", "modules": {}, "priority": "high"}),
         plan_with(item=item_with(recurrence={"every": "week"})),
+        plan_with(item=item_with(recurrence={"unit": "year", "every": 1})),
+        plan_with(item=item_with(recurrence={"unit": "day", "every": 0})),
+        plan_with(item=item_with(recurrence={"unit": "day", "every": 1, "weekdays": [1]})),
+        plan_with(item=item_with(recurrence={"unit": "week", "every": 1})),
+        plan_with(item=item_with(recurrence={"unit": "week", "every": 1, "weekdays": []})),
+        plan_with(item=item_with(recurrence={"unit": "week", "every": 1, "weekdays": [8]})),
+        plan_with(item=item_with(recurrence={"unit": "week", "every": 1, "weekdays": [1, 1]})),
+        plan_with(item=item_with(recurrence={"unit": "month", "every": 1})),
+        plan_with(item=item_with(recurrence={"unit": "month", "every": 1, "dayOfMonth": 32})),
+        plan_with(item=item_with(recurrence={"unit": "day", "every": 1, "until": "31/12/2027"})),
         plan_with(item=item_with(schedule={"time": "21:00"})),
         plan_with(item=item_with(schedule={"date": "9/11/2026"})),
         plan_with(item=item_with(schedule={"date": "2026-11-09", "time": "25:00"})),

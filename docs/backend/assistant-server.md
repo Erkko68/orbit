@@ -90,17 +90,18 @@ An item's modules are the ones the app has today, each at most once, in the shap
 | Module | Fields | Differs from what is stored |
 |---|---|---|
 | `schedule` | `date`, `time`, `endDate`, `durationMinutes` | Nothing |
+| `recurrence` | `unit` (`day`, `week`, `month`), `every`, `weekdays` for `week`, `dayOfMonth` for `month`, `until` | Nothing. Only with a schedule |
 | `assignment` | `mode`: `member` with `assignees`, or `anyone` | `assignees` are the members' handles in the request (`m1`, `m2`), never uids: the app maps them back ([#238](https://github.com/Erkko68/orbit/issues/238)). A new space has only the user, so its plan assigns to the user or to anyone |
 | `checklist` | `entries`: a list of `text` and `quantity` | A list in order, without ids or ticks: the app gives each entry its id and order |
 | `reminder` | `offsetsMinutes` | Nothing. Only with a schedule |
 
-The schemas say the shape: the fields, their types, the date and time formats, the handles. What depends on more than one field (no `time` with an `endDate`, an `endDate` after the `date`, a reminder only with a schedule, assignees who are in the request) the schemas cannot say to every model, so the server checks it before answering (#65) and the app checks it again with `validateItem` before saving.
+The schemas say the shape: the fields, their types, the date and time formats, the handles. What depends on more than one field (no `time` with an `endDate`, an `endDate` after the `date`, a reminder or a recurrence only with a schedule, an `until` not before the `date`, assignees who are in the request) the schemas cannot say to every model, so the server checks it before answering (#65) and the app checks it again with `validateItem` before saving.
 
 `proposals.py` loads the plan's schema with the space and item schemas written out in place (`PLAN_SCHEMA`), because a model is given one schema and cannot open the others. #66 hands it to the model at the end of the interview.
 
 ### Versions
 
-The plan says which version it follows (`"version": 1`), and `PLAN_VERSION` is that number on both sides: in `proposals.py` and in the app's `ProposalDocuments.kt`. A plan in a version the app does not read is not used: the interview shows it as `UNAVAILABLE`, with the manual path. A change an older app could misread, such as a new module, is a new version: new `*.v2.json` files next to the old ones, and the app's types with them. Recurrence, rotation, cost and effort join this way as each lands.
+The plan says which version it follows (`"version": 1`), and `PLAN_VERSION` is that number on both sides: in `proposals.py` and in the app's `ProposalDocuments.kt`. A plan in a version the app does not read is not used: the interview shows it as `UNAVAILABLE`, with the manual path. Until the assistant ships, version 1 changes in place: a new module (recurrence joined this way) goes into `item.v1.json`, its samples and the app's types in the same change. Once apps that read plans are released, a change an older app could misread, such as a new module, is a new version: new `*.v2.json` files next to the old ones, and the app's types with them.
 
 ### Samples
 

@@ -6,6 +6,7 @@
       "title": "Sacar la basura",
       "modules": {
         "schedule": {"date": "2026-11-09", "time": "21:00"},
+        "recurrence": {"unit": "week", "every": 1, "weekdays": [1, 4]},
         "assignment": {"mode": "anyone"},
         "reminder": {"offsetsMinutes": [30]}
       }
@@ -23,6 +24,7 @@
       "title": "Pagar el alquiler",
       "modules": {
         "schedule": {"date": "2026-12-01", "time": "10:00", "durationMinutes": 15},
+        "recurrence": {"unit": "month", "every": 1, "dayOfMonth": 1},
         "assignment": {"mode": "member", "assignees": ["m1"]},
         "reminder": {"offsetsMinutes": [0, 1440]}
       }
