@@ -20,6 +20,119 @@ import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ExpenseViewModelTest {
+    @Test
+    fun aTemporarilyInvalidTotalKeepsDraftsAndDisablesUnitConversion() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.selectSplit(ExpenseSplit.EXACT)
+        val amounts = vm.uiState.value.exact
+        val shares = vm.uiState.value.split
+        vm.onAmountChange("")
+        assertFalse(vm.uiState.value.canChangeUnit)
+        vm.selectUnit(ExpenseUnit.PERCENT)
+        assertEquals(ExpenseUnit.MONEY, vm.uiState.value.unit)
+        assertEquals(amounts, vm.uiState.value.exact)
+        vm.onAmountChange(moneyInput(1000, locale))
+        vm.selectUnit(ExpenseUnit.PERCENT)
+        val percentages = vm.uiState.value.shareInputs
+        vm.onAmountChange("")
+        vm.selectUnit(ExpenseUnit.MONEY)
+        assertEquals(ExpenseUnit.PERCENT, vm.uiState.value.unit)
+        assertEquals(percentages, vm.uiState.value.shareInputs)
+        vm.onAmountChange(moneyInput(1000, locale))
+        vm.selectUnit(ExpenseUnit.MONEY)
+        assertEquals(shares, vm.uiState.value.split)
+    }
+
+    @Test
+    fun unitSwitchesKeepEveryCentAndTheSelectedUnitControlsTotalChanges() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.selectSplit(ExpenseSplit.EXACT)
+        val original = vm.uiState.value.split
+        repeat(5) {
+            vm.selectUnit(ExpenseUnit.PERCENT)
+            assertEquals(original, vm.uiState.value.split)
+            vm.selectUnit(ExpenseUnit.MONEY)
+            assertEquals(original, vm.uiState.value.split)
+        }
+        vm.onAmountChange(moneyInput(2000, locale))
+        assertFalse(vm.uiState.value.canSave)
+        assertEquals(1000L, vm.uiState.value.splitProgress?.assigned)
+        vm.onAmountChange(moneyInput(1000, locale))
+        vm.selectUnit(ExpenseUnit.PERCENT)
+        vm.onAmountChange(moneyInput(2000, locale))
+        assertEquals(mapOf("ana" to 668L, "bea" to 666L, "marc" to 666L), vm.uiState.value.split)
+        assertTrue(vm.uiState.value.canSave)
+    }
+
+    @Test
+    fun percentagesNeedExactlyOneHundredAndPersistOnlyCentsThenReopenAsEuros() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.onAmountChange(moneyInput(4000, locale))
+        vm.selectSplit(ExpenseSplit.EXACT)
+        vm.selectUnit(ExpenseUnit.PERCENT)
+        vm.onShareChange("ana", "50")
+        vm.onShareChange("bea", "25")
+        vm.onShareChange("marc", "24")
+        assertFalse(vm.uiState.value.canSave)
+        vm.onShareChange("marc", "26")
+        assertTrue(vm.uiState.value.percentageExcess)
+        vm.onShareChange("marc", "25")
+        assertEquals(mapOf("ana" to 2000L, "bea" to 1000L, "marc" to 1000L), vm.uiState.value.split)
+        controlled.failWrites = true
+        vm.save()
+        assertTrue(vm.uiState.value.failed)
+        assertEquals("25", vm.uiState.value.shareInputs["marc"])
+        controlled.failWrites = false
+        vm.save()
+        val saved = ledger.observeExpenses("space-1").first().single()
+        val reopened = open(saved.id)
+        assertEquals(ExpenseSplit.EXACT, reopened.uiState.value.mode)
+        assertEquals(ExpenseUnit.MONEY, reopened.uiState.value.unit)
+        assertEquals(saved.split, reopened.uiState.value.split)
+    }
+
+    @Test
+    fun weightsAndSelectionKeepDraftValuesWithoutNormalizingPercentages() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.onAmountChange(moneyInput(4000, locale))
+        vm.selectSplit(ExpenseSplit.WEIGHTS)
+        vm.onShareChange("ana", "2")
+        assertEquals(mapOf("ana" to 2000L, "bea" to 1000L, "marc" to 1000L), vm.uiState.value.split)
+        vm.onShareChange("bea", "0")
+        assertFalse(vm.uiState.value.canSave)
+        vm.onShareChange("bea", "1")
+        vm.toggleMember("ana")
+        assertEquals(mapOf("bea" to 2000L, "marc" to 2000L), vm.uiState.value.split)
+        vm.toggleMember("ana")
+        assertEquals("2", vm.uiState.value.shareInputs["ana"])
+        vm.selectSplit(ExpenseSplit.EXACT)
+        vm.selectUnit(ExpenseUnit.PERCENT)
+        vm.toggleMember("ana")
+        assertFalse(vm.uiState.value.canSave)
+        vm.toggleMember("ana")
+        assertTrue(vm.uiState.value.canSave)
+        vm.onShareChange("ana", "")
+        assertEquals(setOf("ana"), vm.uiState.value.invalidShareIds)
+        vm.selectUnit(ExpenseUnit.MONEY)
+        vm.selectUnit(ExpenseUnit.PERCENT)
+        assertEquals("", vm.uiState.value.shareInputs["ana"])
+        assertEquals("25" + locale.decimal + "00", vm.uiState.value.shareInputs["bea"])
+        vm.selectSplit(ExpenseSplit.WEIGHTS)
+        vm.save()
+        assertEquals(
+            mapOf("ana" to 2000L, "bea" to 1000L, "marc" to 1000L),
+            ledger.observeExpenses("space-1").first().single().split
+        )
+    }
+
     private val auth = InMemoryAuthRepository()
     private val ledger = InMemoryExpenseRepository(auth)
     private val controlled = ControlledExpenseRepository(ledger)

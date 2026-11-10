@@ -1,7 +1,8 @@
 package com.orbit.app.feature.expense.ui
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -10,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextOverflow
@@ -23,6 +25,7 @@ import com.orbit.app.core.formatDate
 import com.orbit.app.core.formatEuro
 import com.orbit.app.core.moneyInput
 import com.orbit.app.feature.expense.ExpenseSplit
+import com.orbit.app.feature.expense.ExpenseUnit
 import com.orbit.app.feature.expense.ExpenseUiState
 import com.orbit.app.feature.expense.ExpenseViewModel
 import com.orbit.app.feature.item.ItemFace
@@ -132,7 +135,13 @@ private fun ExpenseHeader(state: ExpenseUiState, viewModel: ExpenseViewModel, on
         backDescription = stringResource(Res.string.back),
         onBack = onBack,
         trailing = if (state.canDelete) {
-            { OrbitIconButton(Res.drawable.ic_delete, stringResource(Res.string.item_delete), viewModel::requestDelete) }
+            {
+                OrbitIconButton(
+                    Res.drawable.ic_delete,
+                    stringResource(Res.string.item_delete),
+                    viewModel::requestDelete
+                )
+            }
         } else {
             null
         },
@@ -188,8 +197,10 @@ private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel) {
         modifier = Modifier.fillMaxWidth(),
         titleStyle = MaterialTheme.typography.titleLarge,
     )
-    SplitErrors(state)
-    Row(horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs)
+    ) {
         OrbitFilterChip(
             label = stringResource(Res.string.expense_equal),
             selected = state.mode == ExpenseSplit.EQUAL,
@@ -200,7 +211,29 @@ private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel) {
             selected = state.mode == ExpenseSplit.EXACT,
             onClick = { viewModel.selectSplit(ExpenseSplit.EXACT) },
         )
+        OrbitFilterChip(
+            label = stringResource(Res.string.expense_weights),
+            selected = state.mode == ExpenseSplit.WEIGHTS,
+            onClick = { viewModel.selectSplit(ExpenseSplit.WEIGHTS) },
+        )
     }
+    if (state.mode == ExpenseSplit.EXACT) {
+        OrbitUnitSelector(
+            firstLabel = stringResource(Res.string.expense_unit_euro),
+            secondLabel = stringResource(Res.string.expense_unit_percent),
+            firstDescription = stringResource(Res.string.expense_unit_euro_description),
+            secondDescription = stringResource(Res.string.expense_unit_percent_description),
+            secondSelected = state.unit == ExpenseUnit.PERCENT,
+            onSelect = { viewModel.selectUnit(if (it) ExpenseUnit.PERCENT else ExpenseUnit.MONEY) },
+            enabled = state.canChangeUnit,
+        )
+        if (state.unit == ExpenseUnit.PERCENT) PercentageSummary(state)
+    }
+    if (state.mode == ExpenseSplit.WEIGHTS) {
+        Text(stringResource(Res.string.expense_weights_help), style = MaterialTheme.typography.bodyMedium)
+        if (state.split == null) OrbitErrorText(stringResource(Res.string.expense_weights_invalid))
+    }
+    SplitErrors(state)
     OrbitGroup(state.people, key = { it.id }, Modifier.fillMaxWidth()) { person ->
         SplitRow(person, state, viewModel)
     }
@@ -214,27 +247,69 @@ private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: Expense
     val toggle = { viewModel.toggleMember(person.id) }
     OrbitGroupRow(Modifier.fillMaxWidth(), onClick = if (state.submitting) null else toggle) {
         val face = person.face()
-        OrbitAvatar(face.initials, face.color, photoUrl = face.photoUrl, shape = face.shape, size = OrbitAvatarSize.Medium)
-        Text(
-            text = person.name,
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.titleMedium,
-            color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        OrbitAvatar(
+            face.initials,
+            face.color,
+            photoUrl = face.photoUrl,
+            shape = face.shape,
+            size = OrbitAvatarSize.Medium
         )
-        if (selected && state.mode == ExpenseSplit.EXACT) {
-            OrbitAmountField(
-                value = state.exact[person.id].orEmpty(),
-                onValueChange = { viewModel.onShareChange(person.id, it) },
-                description = stringResource(Res.string.expense_share, person.name),
-                placeholder = moneyInput(0, state.locale),
-                enabled = !state.submitting,
-                isError = person.id in state.invalidShareIds,
-                prefix = state.currencyPrefix,
-                suffix = state.currencySuffix,
-            )
+        if (selected && state.mode != ExpenseSplit.EQUAL) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs)) {
+                Text(
+                    text = person.name,
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                val percent = state.percentageLabel(person.id)
+                OrbitAmountField(
+                    value = state.shareInputs[person.id].orEmpty(),
+                    onValueChange = { viewModel.onShareChange(person.id, it) },
+                    description = stringResource(
+                        if (state.mode == ExpenseSplit.WEIGHTS) Res.string.expense_weight_share else Res.string.expense_share,
+                        person.name
+                    ),
+                    placeholder = moneyInput(0, state.locale),
+                    modifier = Modifier.align(Alignment.End),
+                    enabled = !state.submitting,
+                    isError = person.id in state.invalidShareIds,
+                    prefix = when {
+                        state.mode == ExpenseSplit.WEIGHTS -> null
+                        state.unit == ExpenseUnit.MONEY -> state.currencyPrefix
+                        percent?.second == true -> stringResource(Res.string.expense_percent_difference_approx, "")
+                        else -> null
+                    },
+                    suffix = when {
+                        state.mode == ExpenseSplit.WEIGHTS -> null
+                        state.unit == ExpenseUnit.PERCENT -> stringResource(Res.string.expense_unit_percent)
+                        else -> state.currencySuffix
+                    },
+                )
+                val supporting = if (state.mode == ExpenseSplit.EXACT && state.unit == ExpenseUnit.MONEY) {
+                    percent?.let { (value, approximate) ->
+                        stringResource(
+                            if (approximate) Res.string.expense_percentage_approx else Res.string.expense_percentage_value,
+                            value
+                        )
+                    }
+                } else state.previewShares[person.id]?.let { formatEuro(it) }
+                Text(
+                    supporting ?: stringResource(Res.string.expense_share_unavailable), style = OrbitTheme.data.small,
+                    modifier = Modifier.align(Alignment.End),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+            }
         } else {
+            Text(
+                text = person.name,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+                color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             Text(
                 text = formatEuro(state.shares[person.id] ?: 0L),
                 style = OrbitTheme.data.medium,
@@ -259,6 +334,37 @@ private fun SplitErrors(state: ExpenseUiState) {
     progress.excess?.let { OrbitErrorText(stringResource(Res.string.expense_excess, formatEuro(it))) }
 }
 
+@Composable
+private fun PercentageSummary(state: ExpenseUiState) {
+    Text(stringResource(Res.string.expense_percent_help), style = MaterialTheme.typography.bodyMedium)
+    val progress = state.percentageProgress
+    if (progress == null) return
+    val rawAssigned = moneyInput(progress.whole, state.locale)
+    val assigned = if (progress.remainder != 0L) stringResource(
+        Res.string.expense_percent_difference_approx,
+        rawAssigned
+    ) else rawAssigned
+    Text(stringResource(Res.string.expense_percent_assigned, assigned), style = OrbitTheme.data.medium)
+    if (!state.percentagesMatched) {
+        val difference = moneyInput(state.percentageDifference ?: 0L, state.locale)
+        val text = when {
+            state.percentageDifferenceSmall -> stringResource(
+                Res.string.expense_percent_small_difference,
+                state.locale.decimal
+            )
+
+            progress.remainder != 0L -> stringResource(Res.string.expense_percent_difference_approx, difference)
+            else -> difference
+        }
+        OrbitErrorText(
+            stringResource(
+                if (state.percentageExcess) Res.string.expense_percent_excess else Res.string.expense_percent_remaining,
+                text
+            )
+        )
+    }
+}
+
 /** Who paid: every person is a row, and tapping one picks them and closes the sheet. */
 @Composable
 private fun PayerSheet(state: ExpenseUiState, viewModel: ExpenseViewModel) {
@@ -270,7 +376,13 @@ private fun PayerSheet(state: ExpenseUiState, viewModel: ExpenseViewModel) {
         OrbitGroup(state.people, key = { it.id }, Modifier.fillMaxWidth()) { person ->
             OrbitGroupRow(Modifier.fillMaxWidth(), onClick = { viewModel.selectPayer(person.id) }) {
                 val face = person.face()
-                OrbitAvatar(face.initials, face.color, photoUrl = face.photoUrl, shape = face.shape, size = OrbitAvatarSize.Medium)
+                OrbitAvatar(
+                    face.initials,
+                    face.color,
+                    photoUrl = face.photoUrl,
+                    shape = face.shape,
+                    size = OrbitAvatarSize.Medium
+                )
                 Text(person.name, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 OrbitCheck(person.id == state.paidBy, { viewModel.selectPayer(person.id) }, person.name, compact = true)
             }

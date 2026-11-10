@@ -91,6 +91,7 @@ Buttons and text fields are 56 dp tall (`ControlHeight`) and take the full width
 | `OrbitTextField`, `OrbitPasswordField` | Text input. Visibility of a password is the caller's state. |
 | `OrbitAddRow` | The row of a group that adds to it, typed in place |
 | `OrbitFilterChip` | One option of a filter row |
+| `OrbitUnitSelector` | A compact two-unit choice, such as euros or percentages: a sliding indicator and theme colours show selection, with named segments and 48 dp touch targets. Selection belongs to the caller; no extra rectangular press indication |
 | `OrbitColorPicker` | Picking a space's colour |
 | `OrbitNavigationBar` | The destinations of a space, in `OrbitScreen`'s `bottomBar` ([ADR 0005](../adr/0005-bottom-bar-inside-a-space.md)) |
 

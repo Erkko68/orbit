@@ -51,8 +51,8 @@ flowchart TB
 - `domain/usecase/CalculateBalances.kt` is a pure computation of member balances and minimum-count payment
   proposals from the ledger (#56, [ledger calculation](../data/firestore-schema.md#spacesspaceidexpensesexpenseid)).
   It neither loads nor saves expenses; the Expenses screen consumes it in #57.
-- `domain/usecase/SplitExpense.kt` creates equal shares in uid order or validates exact shares against the
-  typed total without overflow (#54). `core/Money.kt` parses regional amounts directly into Long cents;
+- `domain/usecase/SplitExpense.kt` creates equal shares in uid order, validates exact shares (#54), and converts
+  positive integer weights or percentages into cents (#55). `core/Money.kt` parses regional amounts directly into Long cents;
   platform formatters display euros from exact decimal values, without a floating-point conversion.
 - **Data** implements the interfaces against Firestore and maps documents to models. The in-memory fakes that tests use live in `commonTest/…/testing/`, not here.
 
@@ -127,6 +127,24 @@ The exact-share mode is labelled "Custom amounts" in the form. It explains that 
 person owes and shows the assigned total, how much remains, or the excess. `ExpenseUiState.splitProgress`
 derives this preview from the selected shares using Long cents with an overflow check. It never adjusts
 shares automatically or persists a second total. Save still requires the existing exact-sum validation.
+
+The form offers Equally, Custom amounts and Weights. Custom amounts contains a compact sliding euro/percent
+selector: one editable value per person, with the other unit underneath. Percentages accept the device's
+decimal separator and at most two decimal places, without a symbol or grouping. Their exact sum must be 100%.
+Weights are positive whole numbers (for example 2:1:1); a weight sum outside Long is rejected.
+
+Switching units retains cents and the exact reference ratio, rather than reparsing a displayed approximation.
+Untouched percentages keep that ratio; editing a percentage replaces only that person's ratio with the entered
+hundredths. Approximate values are identified, and a rounded display never makes an incomplete sum valid.
+Changing the total in euros keeps amounts; in percent it keeps ratios; weights keep their values and recalculate.
+Unit conversion requires a valid total. Clearing it temporarily retains all drafts in the current unit.
+Excluding a person in Custom amounts does not redistribute their share; reselecting restores their draft.
+New participants start at zero in Custom amounts and weight one in Weights.
+
+Conversion takes the whole-cent floors and assigns remaining cents in uid order among positive shares.
+Integer multiplication/division uses quotient and remainder without constructing an overflowing product.
+Only the existing uid-to-Long-cent map is saved. Reopening always shows Custom amounts in euros; no original
+percentages or weights are reconstructed, and no schema, repository or balance-calculation change is needed.
 
 ## Dependency injection
 
