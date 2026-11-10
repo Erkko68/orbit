@@ -72,31 +72,43 @@ def item_errors(item: object, handles: set[str]) -> list[str]:
 
 
 def _rule_errors(item: dict, handles: set[str]) -> list[str]:
-    errors = []
-    title = item["title"].strip()
-    if not title:
-        errors.append("the title is blank")
-    elif len(title) > TITLE_MAX_LENGTH:
-        errors.append("the title is too long")
     modules = item["modules"]
+    return _title_errors(item["title"]) + _date_errors(modules) + _people_and_entry_errors(modules, handles)
+
+
+def _title_errors(title: str) -> list[str]:
+    title = title.strip()
+    if not title:
+        return ["the title is blank"]
+    if len(title) > TITLE_MAX_LENGTH:
+        return ["the title is too long"]
+    return []
+
+
+def _date_errors(modules: dict) -> list[str]:
+    """The rules of the schedule, and of what needs one: a recurrence and a reminder."""
     schedule = modules.get("schedule")
+    if not schedule:
+        return [f"a {module} needs a schedule" for module in ("recurrence", "reminder") if module in modules]
+    until_text = modules.get("recurrence", {}).get("until")
     try:
-        start = date.fromisoformat(schedule["date"]) if schedule else None
-        end = date.fromisoformat(schedule["endDate"]) if schedule and "endDate" in schedule else None
-        until_text = modules.get("recurrence", {}).get("until")
+        start = date.fromisoformat(schedule["date"])
+        end = date.fromisoformat(schedule["endDate"]) if "endDate" in schedule else None
         until = date.fromisoformat(until_text) if until_text else None
     except ValueError:
-        return errors + ["a date is not on the calendar"]
-    if schedule and "time" in schedule and end:
+        return ["a date is not on the calendar"]
+    errors = []
+    if end and "time" in schedule:
         errors.append("a schedule with an endDate has no time")
-    if start and end and end <= start:
+    if end and end <= start:
         errors.append("the endDate is not after the date")
-    if "recurrence" in modules and not schedule:
-        errors.append("a recurrence needs a schedule")
-    if start and until and until < start:
+    if until and until < start:
         errors.append("the recurrence ends before the date")
-    if "reminder" in modules and not schedule:
-        errors.append("a reminder needs a schedule")
+    return errors
+
+
+def _people_and_entry_errors(modules: dict, handles: set[str]) -> list[str]:
+    errors = []
     outsiders = set(modules.get("assignment", {}).get("assignees", [])) - handles
     if outsiders:
         errors.append(f"{', '.join(sorted(outsiders))} not in the space")
@@ -118,35 +130,57 @@ def schema_errors(value: object, schema: dict, path: str = "") -> list[str]:
         return [f"{where} is not of type {expected}"]
     if "enum" in schema and value not in schema["enum"]:
         return [f"{where} is not one of {schema['enum']}"]
-    errors = []
     if isinstance(value, str):
-        if len(value) < schema.get("minLength", 0):
-            errors.append(f"{where} is too short")
-        if "maxLength" in schema and len(value) > schema["maxLength"]:
-            errors.append(f"{where} is too long")
-        if "pattern" in schema and not re.search(schema["pattern"], value):
-            errors.append(f"{where} does not match {schema['pattern']}")
+        return _string_errors(value, schema, where)
     if _is_type(value, "number"):
-        if "minimum" in schema and value < schema["minimum"]:
-            errors.append(f"{where} is below {schema['minimum']}")
-        if "maximum" in schema and value > schema["maximum"]:
-            errors.append(f"{where} is above {schema['maximum']}")
+        return _number_errors(value, schema, where)
     if isinstance(value, list):
-        if len(value) < schema.get("minItems", 0):
-            errors.append(f"{where} has too few entries")
-        if schema.get("uniqueItems") and len({json.dumps(entry, sort_keys=True) for entry in value}) < len(value):
-            errors.append(f"{where} repeats an entry")
-        if "items" in schema:
-            for index, entry in enumerate(value):
-                errors += schema_errors(entry, schema["items"], f"{path}[{index}]")
+        return _array_errors(value, schema, path)
     if isinstance(value, dict):
-        properties = schema.get("properties", {})
-        errors += [f"{_join(path, key)} is missing" for key in schema.get("required", []) if key not in value]
-        for key, entry in value.items():
-            if key in properties:
-                errors += schema_errors(entry, properties[key], _join(path, key))
-            elif schema.get("additionalProperties") is False:
-                errors.append(f"{_join(path, key)} is not allowed")
+        return _object_errors(value, schema, path)
+    return []
+
+
+def _string_errors(value: str, schema: dict, where: str) -> list[str]:
+    errors = []
+    if len(value) < schema.get("minLength", 0):
+        errors.append(f"{where} is too short")
+    if "maxLength" in schema and len(value) > schema["maxLength"]:
+        errors.append(f"{where} is too long")
+    if "pattern" in schema and not re.search(schema["pattern"], value):
+        errors.append(f"{where} does not match {schema['pattern']}")
+    return errors
+
+
+def _number_errors(value: int | float, schema: dict, where: str) -> list[str]:
+    errors = []
+    if "minimum" in schema and value < schema["minimum"]:
+        errors.append(f"{where} is below {schema['minimum']}")
+    if "maximum" in schema and value > schema["maximum"]:
+        errors.append(f"{where} is above {schema['maximum']}")
+    return errors
+
+
+def _array_errors(value: list, schema: dict, path: str) -> list[str]:
+    where = path or "the value"
+    errors = []
+    if len(value) < schema.get("minItems", 0):
+        errors.append(f"{where} has too few entries")
+    if schema.get("uniqueItems") and len({json.dumps(entry, sort_keys=True) for entry in value}) < len(value):
+        errors.append(f"{where} repeats an entry")
+    for index, entry in enumerate(value if "items" in schema else []):
+        errors += schema_errors(entry, schema["items"], f"{path}[{index}]")
+    return errors
+
+
+def _object_errors(value: dict, schema: dict, path: str) -> list[str]:
+    properties = schema.get("properties", {})
+    errors = [f"{_join(path, key)} is missing" for key in schema.get("required", []) if key not in value]
+    for key, entry in value.items():
+        if key in properties:
+            errors += schema_errors(entry, properties[key], _join(path, key))
+        elif schema.get("additionalProperties") is False:
+            errors.append(f"{_join(path, key)} is not allowed")
     return errors
 
 
