@@ -3,14 +3,12 @@ package com.orbit.app.feature.expense.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -146,16 +144,17 @@ private enum class ExpenseRow { PAYER, DATE, SPLIT }
 
 @Composable
 private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel) {
-    OrbitTextField(
+    OrbitMoneyField(
         value = state.amount,
         onValueChange = viewModel::onAmountChange,
-        placeholder = stringResource(Res.string.expense_amount),
+        label = stringResource(Res.string.expense_amount),
+        placeholder = state.amountPlaceholder,
         modifier = Modifier.fillMaxWidth(),
         enabled = !state.submitting,
-        isError = state.amount.isNotEmpty() && state.cents == null,
+        isError = state.amountInvalid,
+        errorText = stringResource(Res.string.expense_amount_invalid),
         prefix = state.currencyPrefix,
         suffix = state.currencySuffix,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
     )
     OrbitGroup(ExpenseRow.entries, key = { it.name }, Modifier.fillMaxWidth()) { row ->
         when (row) {

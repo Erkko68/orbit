@@ -355,6 +355,7 @@
     <string name="expense_title">Title</string>
     <string name="expense_title_placeholder">What was it for?</string>
     <string name="expense_amount">Amount</string>
+    <string name="expense_amount_invalid">Enter an amount above zero.</string>
     <string name="expense_paid_by">Paid by</string>
     <string name="expense_date">Date</string>
     <string name="expense_split">Split between</string>

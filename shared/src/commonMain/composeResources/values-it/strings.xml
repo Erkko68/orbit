@@ -355,6 +355,7 @@
     <string name="expense_title">Titolo</string>
     <string name="expense_title_placeholder">Per cosa?</string>
     <string name="expense_amount">Importo</string>
+    <string name="expense_amount_invalid">Inserisci un importo maggiore di zero.</string>
     <string name="expense_paid_by">Pagato da</string>
     <string name="expense_date">Data</string>
     <string name="expense_split">Dividi tra</string>

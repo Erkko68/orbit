@@ -355,6 +355,7 @@
     <string name="expense_title">Títol</string>
     <string name="expense_title_placeholder">En què s&apos;ha gastat?</string>
     <string name="expense_amount">Import</string>
+    <string name="expense_amount_invalid">Introdueix un import més gran que zero.</string>
     <string name="expense_paid_by">Pagat per</string>
     <string name="expense_date">Data</string>
     <string name="expense_split">Reparteix entre</string>

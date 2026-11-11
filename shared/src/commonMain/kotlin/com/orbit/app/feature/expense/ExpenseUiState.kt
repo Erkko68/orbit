@@ -63,6 +63,12 @@ data class ExpenseUiState(
     val dateMillis: Long? get() = date?.atStartOfDayIn(TimeZone.UTC)?.toEpochMilliseconds()
     val cents: Long? get() = parseMoney(amount, locale)?.takeIf { it > 0 }
 
+    /** What the empty amount shows: nothing yet, written the way the device writes money. */
+    val amountPlaceholder: String get() = "0${locale.decimal}00"
+
+    /** Something is typed that is not an amount above zero. */
+    val amountInvalid: Boolean get() = amount.isNotEmpty() && cents == null
+
     /** What each person's field shows in the current mode. A weight left alone is 1. */
     val shareInputs: Map<String, String>
         get() = selected.associateWith { id ->
