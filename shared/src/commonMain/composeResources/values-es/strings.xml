@@ -97,9 +97,7 @@
     <string name="space_headline_empty">Aún no hay nada en órbita</string>
     <string name="turn_label">Te toca</string>
     <string name="turn_label_due">Te toca · %1$s</string>
-    <string name="turn_finished">Hecho, ¡bien!</string>
     <string name="turn_action_done">Hecho</string>
-    <string name="turn_action_undo">Deshacer</string>
     <string name="filter_all">Todos</string>
     <string name="filter_mine">Míos</string>
     <string name="filter_lists">Listas</string>

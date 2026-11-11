@@ -97,9 +97,7 @@
     <string name="space_headline_empty">Encara no hi ha res en òrbita</string>
     <string name="turn_label">Et toca</string>
     <string name="turn_label_due">Et toca · %1$s</string>
-    <string name="turn_finished">Fet, molt bé!</string>
     <string name="turn_action_done">Fet</string>
-    <string name="turn_action_undo">Desfés</string>
     <string name="filter_all">Tots</string>
     <string name="filter_mine">Meus</string>
     <string name="filter_lists">Llistes</string>

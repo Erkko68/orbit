@@ -21,7 +21,6 @@ class OrbitTurnCardTest : ComposeTest() {
                     label = "Today",
                     title = "Bins",
                     actionText = "Done",
-                    finished = false,
                     onAction = { actions++ },
                     onOpen = { opens++ },
                     initials = "LC",

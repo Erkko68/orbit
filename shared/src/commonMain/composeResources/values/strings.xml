@@ -97,9 +97,7 @@
     <string name="space_headline_empty">Nothing in orbit yet</string>
     <string name="turn_label">Your turn</string>
     <string name="turn_label_due">Your turn · %1$s</string>
-    <string name="turn_finished">Done, nice one</string>
     <string name="turn_action_done">Done</string>
-    <string name="turn_action_undo">Undo</string>
     <string name="filter_all">All</string>
     <string name="filter_mine">Mine</string>
     <string name="filter_lists">Lists</string>

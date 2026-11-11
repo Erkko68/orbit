@@ -1,7 +1,6 @@
 package com.orbit.app.core.designsystem.component
 
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -40,19 +39,17 @@ private val FaceClearance = 76.dp
 private val ActionHeight = 56.dp
 private val ActionCorner = 28.dp
 private val ActionCornerPressed = 14.dp
-private val ActionRing = 2.dp
 
 /**
  * The one hero moment of the app: what is the user's to do now. Inverse fill, a burst in the partner colour, big type and one big action in the vivid one.
- * [label] says when, [title] what, and tapping the card calls [onOpen]. [actionText] is what [onAction] does, and once [finished] it
- * is the way back. [initials] and [photoUrl] are the user's. Use it once on a screen: the loud look only works if it stays rare.
+ * [label] says when, [title] what, and tapping the card calls [onOpen]. [actionText] is what [onAction] does.
+ * [initials] and [photoUrl] are the user's. Use it once on a screen: the loud look only works if it stays rare.
  */
 @Composable
 fun OrbitTurnCard(
     label: String,
     title: String,
     actionText: String,
-    finished: Boolean,
     onAction: () -> Unit,
     onOpen: () -> Unit,
     modifier: Modifier = Modifier,
@@ -100,20 +97,19 @@ fun OrbitTurnCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TurnAction(actionText, finished, enabled, onAction)
+                    TurnAction(actionText, enabled, onAction)
                 }
             }
         }
     }
 }
 
-/** A big pill whose corners tighten while pressed. Once finished it steps back to a ring. */
+/** A big pill whose corners tighten while pressed. */
 @Composable
-private fun TurnAction(text: String, finished: Boolean, enabled: Boolean, onClick: () -> Unit) {
+private fun TurnAction(text: String, enabled: Boolean, onClick: () -> Unit) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val corner by animateDpAsState(if (pressed) ActionCornerPressed else ActionCorner, OrbitMotion.spatial())
-    val onInverse = MaterialTheme.colorScheme.inverseOnSurface
     val vivid = OrbitTheme.accent.vivid
     Button(
         onClick = onClick,
@@ -121,12 +117,11 @@ private fun TurnAction(text: String, finished: Boolean, enabled: Boolean, onClic
         enabled = enabled,
         shape = RoundedCornerShape(corner),
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (finished) Color.Transparent else vivid,
-            contentColor = if (finished) onInverse else Ink,
-            disabledContainerColor = if (finished) Color.Transparent else vivid,
-            disabledContentColor = if (finished) onInverse else Ink,
+            containerColor = vivid,
+            contentColor = Ink,
+            disabledContainerColor = vivid,
+            disabledContentColor = Ink,
         ),
-        border = if (finished) BorderStroke(ActionRing, onInverse) else null,
         interactionSource = interaction,
     ) {
         Text(text, style = MaterialTheme.typography.titleMedium)

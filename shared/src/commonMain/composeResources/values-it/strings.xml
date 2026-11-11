@@ -97,9 +97,7 @@
     <string name="space_headline_empty">Ancora niente in orbita</string>
     <string name="turn_label">Tocca a te</string>
     <string name="turn_label_due">Tocca a te · %1$s</string>
-    <string name="turn_finished">Fatto, ottimo!</string>
     <string name="turn_action_done">Fatto</string>
-    <string name="turn_action_undo">Annulla</string>
     <string name="filter_all">Tutti</string>
     <string name="filter_mine">Miei</string>
     <string name="filter_lists">Liste</string>
