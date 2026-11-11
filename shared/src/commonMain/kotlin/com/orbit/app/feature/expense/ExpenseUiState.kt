@@ -30,7 +30,6 @@ data class ExpenseUiState(
     val loading: Boolean = true,
     val loadFailed: Boolean = false,
     val missing: Boolean = false,
-    val accent: Int? = null,
     val spaceName: String = "",
     val title: String = "",
     val amount: String = "",

@@ -16,7 +16,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.*
 import com.orbit.app.core.designsystem.theme.OrbitShape
-import com.orbit.app.core.designsystem.theme.OrbitSpaceColor
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.formatDate
@@ -47,76 +46,74 @@ fun ExpenseScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(state.closed) { if (state.closed) onBack() }
     val form = !state.loading && !state.loadFailed && !state.missing
-    OrbitSpaceColor(state.accent) {
-        OrbitScreen(
-            verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
-            topBar = {
-                if (form) {
-                    ExpenseHeader(state, viewModel, onBack)
-                } else {
-                    OrbitTopBar(
-                        stringResource(if (state.editing) Res.string.expense_edit else Res.string.expense_add),
-                        navigationIcon = {
-                            OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.back), onBack)
-                        },
-                    )
-                }
-            },
-            collapsingTopBar = true,
-            primaryAction = if (form) {
-                {
-                    OrbitButton(
-                        text = stringResource(Res.string.account_save),
-                        onClick = viewModel::save,
-                        modifier = Modifier.fillMaxWidth(),
-                        enabled = state.canSave,
-                    )
-                }
+    OrbitScreen(
+        verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
+        topBar = {
+            if (form) {
+                ExpenseHeader(state, viewModel, onBack)
             } else {
-                null
-            },
-            scrollable = true,
+                OrbitTopBar(
+                    stringResource(if (state.editing) Res.string.expense_edit else Res.string.expense_add),
+                    navigationIcon = {
+                        OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.back), onBack)
+                    },
+                )
+            }
+        },
+        collapsingTopBar = true,
+        primaryAction = if (form) {
+            {
+                OrbitButton(
+                    text = stringResource(Res.string.account_save),
+                    onClick = viewModel::save,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = state.canSave,
+                )
+            }
+        } else {
+            null
+        },
+        scrollable = true,
+    ) {
+        when {
+            state.loading -> OrbitLoadingState(stringResource(Res.string.expenses_loading), Modifier.fillMaxWidth())
+            state.loadFailed -> OrbitErrorState(
+                stringResource(Res.string.expenses_load_failed), stringResource(Res.string.load_failed_body),
+                stringResource(Res.string.retry), viewModel::retry, Modifier.fillMaxWidth(),
+            )
+
+            state.missing -> OrbitEmptyState(
+                stringResource(Res.string.expense_unavailable),
+                stringResource(Res.string.expense_unavailable_body),
+                Modifier.fillMaxWidth(),
+            )
+
+            else -> ExpenseFields(state, viewModel)
+        }
+    }
+    if (state.pickingPayer) PayerSheet(state, viewModel)
+    if (state.pickingSplit) SplitSheet(state, viewModel)
+    if (state.pickingDate) {
+        OrbitSheet(
+            title = stringResource(Res.string.schedule_pick_date),
+            closeDescription = stringResource(Res.string.close),
+            onDismiss = viewModel::dismissDatePicker,
         ) {
-            when {
-                state.loading -> OrbitLoadingState(stringResource(Res.string.expenses_loading), Modifier.fillMaxWidth())
-                state.loadFailed -> OrbitErrorState(
-                    stringResource(Res.string.expenses_load_failed), stringResource(Res.string.load_failed_body),
-                    stringResource(Res.string.retry), viewModel::retry, Modifier.fillMaxWidth(),
-                )
-
-                state.missing -> OrbitEmptyState(
-                    stringResource(Res.string.expense_unavailable),
-                    stringResource(Res.string.expense_unavailable_body),
-                    Modifier.fillMaxWidth(),
-                )
-
-                else -> ExpenseFields(state, viewModel)
-            }
+            OrbitDatePicker(state.dateMillis, stringResource(Res.string.schedule_pick), viewModel::pickDate)
         }
-        if (state.pickingPayer) PayerSheet(state, viewModel)
-        if (state.pickingSplit) SplitSheet(state, viewModel)
-        if (state.pickingDate) {
-            OrbitSheet(
-                title = stringResource(Res.string.schedule_pick_date),
-                closeDescription = stringResource(Res.string.close),
-                onDismiss = viewModel::dismissDatePicker,
-            ) {
-                OrbitDatePicker(state.dateMillis, stringResource(Res.string.schedule_pick), viewModel::pickDate)
-            }
-        }
-        if (state.deleteOpen) {
-            OrbitSheet(
-                title = stringResource(Res.string.expense_delete_title),
-                closeDescription = stringResource(Res.string.close),
-                onDismiss = viewModel::dismissDelete,
-                confirmText = stringResource(Res.string.item_delete),
-                onConfirm = viewModel::delete,
-                confirmEnabled = state.canDelete,
-                danger = true,
-            ) {
-                Text(stringResource(Res.string.expense_delete_body), style = MaterialTheme.typography.bodyLarge)
-                if (state.failed) OrbitErrorText(stringResource(Res.string.expense_write_failed))
-            }
+    }
+    if (state.deleteOpen) {
+        OrbitSheet(
+            title = stringResource(Res.string.expense_delete_title),
+            closeDescription = stringResource(Res.string.close),
+            onDismiss = viewModel::dismissDelete,
+            confirmText = stringResource(Res.string.item_delete),
+            onConfirm = viewModel::delete,
+            confirmEnabled = state.canDelete,
+            danger = true,
+        ) {
+            Text(stringResource(Res.string.expense_delete_body), style = MaterialTheme.typography.bodyLarge)
+            if (state.failed) OrbitErrorText(stringResource(Res.string.expense_write_failed))
         }
     }
 }

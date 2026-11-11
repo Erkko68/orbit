@@ -57,7 +57,6 @@ class SpaceHomeViewModel(
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
         form.copy(
             name = space?.name.orEmpty(),
-            accent = space?.accent,
             userInitials = initialsOf(user?.displayName.orEmpty()),
             userPhotoUrl = user?.photoUrl,
             faces = members.mapIndexed { index, member -> ItemFace(member.userId, member.displayName, index, member.photoUrl) },

@@ -59,7 +59,6 @@ class ExpenseViewModel(
         ExpenseUiState(
             loading = false,
             missing = space == null || member == null || (expenseId.isNotEmpty() && original == null),
-            accent = space?.accent,
             spaceName = space?.name.orEmpty(),
             title = original?.title.orEmpty(),
             amount = original?.let { moneyInput(it.total, locale) }.orEmpty(),
@@ -83,7 +82,6 @@ class ExpenseViewModel(
             loading = load == Load.Loading,
             loadFailed = load == Load.Failed,
             missing = context?.missing ?: false,
-            accent = context?.accent ?: state.accent,
             spaceName = context?.spaceName ?: state.spaceName,
             people = context?.people ?: state.people,
             original = context?.original ?: state.original,

@@ -129,9 +129,6 @@ internal val DarkColors = darkColorScheme(
     onError = Ink,
 )
 
-/** The stored accent of everything outside a space. Every index paints the same accent now (#293). */
-internal const val BrandAccent = 0
-
 /**
  * What the accent paints. [fill], [vivid] and [partner] always carry [Ink] text; [page] carries the theme's own ink;
  * [selected] and [done] are fills on a panel. Read the current one with `OrbitTheme.accent`.
@@ -163,7 +160,7 @@ data class OrbitColors(
     val onInfo: Color,
     /** Fills that tell people apart (avatars) and the badges of spaces. Text on them is always [Ink]. */
     val spaceAccents: List<Color>,
-    /** What the accent paints in this theme. */
+    /** What the accent paints in this theme, the same in every space: a space is told apart by its people (#293). */
     val brand: OrbitAccent,
     /** Ink for what must be read but stay quiet: an unticked check, an unselected tab. */
     val inkTertiary: Color,
@@ -176,10 +173,6 @@ data class OrbitColors(
 ) {
     /** The fill for [index] (a member's position, a space's badge), wrapping around the list. */
     fun spaceAccent(index: Int): Color = spaceAccents[index.mod(spaceAccents.size)]
-
-    /** What the accent paints. The same for every space: a space is told apart by its badge, not its colour (#293). */
-    @Suppress("UNUSED_PARAMETER")
-    fun accent(index: Int): OrbitAccent = brand
 }
 
 // Tones of the blue and the coral, alternating so two faces side by side differ. Ink is 8:1 or better on each.
