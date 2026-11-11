@@ -1,12 +1,10 @@
-"""The models the assistant can ask, each as a Generate. Which one is configuration, so #70 can switch without code."""
+"""The model the assistant asks, as a Generate. Which Gemma is configuration (ASSISTANT_MODEL), so #70 can switch without code."""
 
 import json
 from collections.abc import Mapping
 
 from assistant.interview import Generate
 from assistant.net import Post, post_json
-
-GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
 
 def openai_compatible(base_url: str, model: str, post: Post = post_json) -> Generate:
@@ -26,28 +24,6 @@ def openai_compatible(base_url: str, model: str, post: Post = post_json) -> Gene
     return generate
 
 
-def gemini(api_key: str, model: str, post: Post = post_json) -> Generate:
-    """Gemini through its REST API, with the key from the server's environment."""
-
-    def generate(prompt: str, schema: dict) -> object:
-        reply = post(
-            GEMINI.format(model=model),
-            {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"responseMimeType": "application/json", "responseJsonSchema": schema},
-            },
-            headers={"X-Goog-Api-Key": api_key},
-        )
-        return json.loads(reply["candidates"][0]["content"]["parts"][0]["text"])
-
-    return generate
-
-
 def from_env(env: Mapping[str, str]) -> Generate:
-    """The model [env] names: ASSISTANT_PROVIDER is `local` (the default, Ollama) or `gemini` (needs GEMINI_API_KEY)."""
-    provider = env.get("ASSISTANT_PROVIDER", "local")
-    if provider == "local":
-        return openai_compatible(env.get("MODEL_URL", "http://ollama:11434/v1"), env.get("ASSISTANT_MODEL", "gemma4:e2b"))
-    if provider == "gemini":
-        return gemini(env["GEMINI_API_KEY"], env.get("ASSISTANT_MODEL", "gemini-3.5-flash"))
-    raise ValueError(f"Unknown ASSISTANT_PROVIDER {provider!r}: use local or gemini")
+    """Gemma on the Ollama next to the server: MODEL_URL and ASSISTANT_MODEL name them."""
+    return openai_compatible(env.get("MODEL_URL", "http://ollama:11434/v1"), env.get("ASSISTANT_MODEL", "gemma4:e2b"))

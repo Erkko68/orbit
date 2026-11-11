@@ -1,6 +1,6 @@
 # ADR 0007: The assistant runs on our own server, next to its model
 
-- Status: Accepted
+- Status: Accepted, amended by #297 (Gemma only, no Gemini fallback)
 - Date: 2026-11-03
 - Issue: #258 (follows #43)
 
@@ -12,13 +12,14 @@ What stays fixed: the app never calls an AI provider directly, provider keys nev
 
 ## Decision
 
-**The assistant's backend is a small Python HTTP server in Docker, on Èric's server, next to the model it asks. The default model is Gemma 4, served by Ollama on the same machine; Gemini's free API is the fallback, by configuration.**
+**The assistant's backend is a small Python HTTP server in Docker, on Èric's server, next to the model it asks. The model is Gemma 4, served by Ollama on the same machine.**
 
 - **No card, no bill.** Firebase stays on the free Spark plan. The server asks Firebase Authentication itself whether an ID token is valid (Identity Toolkit's `accounts:lookup`), which needs an API key but no billing.
 - **Nothing to install.** The server is Python's standard library only, so its image runs no third-party code and has no dependencies to pin or patch.
 - **The server still decides.** It checks the caller's ID token on every request and keeps the quota and the kill switch on our side, as the Cloud Function would have.
 - **The callable shape stays.** `POST /interview` takes `{"data": …}` and answers `{"result": …}` or `{"error": {status, message, details}}`, with the same statuses (`UNAUTHENTICATED`, `UNAVAILABLE`), so #44 calls it the way it would call a callable.
-- **The model is configuration.** `ASSISTANT_PROVIDER=local` asks any OpenAI-compatible endpoint (Ollama with Gemma 4); `ASSISTANT_PROVIDER=gemini` asks Gemini with `GEMINI_API_KEY` from the server's environment. #70 compares them with the scenarios of #69.
+- **The model's size is configuration.** `ASSISTANT_MODEL` names the Gemma tag, which the stack pulls into Ollama when it starts. #70 compares sizes with the scenarios of #69.
+- **No cloud model.** Gemini's API was the fallback until #297. The team will only run Gemma on our server, so no provider key, no data sent to a third party, and nothing billed.
 - **The code from #43 carries over.** The question, its validation and their tests do not depend on where they run; only the wrapper changed, from `firebase-functions` to `http.server`.
 
 The code lives in `server/`; `firebase/` keeps what is deployed to Firebase (the rules).
@@ -35,6 +36,6 @@ The code lives in `server/`; `firebase/` keeps what is deployed to Firebase (the
 
 - The assistant is as available as Èric's server: if it is down, the app shows the assistant as unavailable and the manual path remains (every flow has one).
 - The server needs HTTPS in front of it (a reverse proxy on Èric's server) and its address in the app's configuration (#44).
-- A small model may plan worse than Gemini in Spanish, Catalan and English. If #69's scenarios show it, the switch is `ASSISTANT_PROVIDER=gemini`. Gemini's free tier may use the data to improve Google's products, so the AI consent (#71) has to say so if it becomes the model.
+- A small model may plan worse in Spanish, Catalan and English. If #69's scenarios show it, the switch is a bigger Gemma (`ASSISTANT_MODEL`), as far as Èric's server can run it.
 - Deploying is Docker on Èric's server (`server/compose.yaml`), not `firebase deploy`.
 - AGENTS.md's "Firebase only" now has one exception: this server, for the assistant only.

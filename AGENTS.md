@@ -59,7 +59,7 @@ This file holds the rules. The background to them (architecture, schema, roles, 
 - Money: `Long` minor units (cents), never `Double`.
 
 ## AI
-- The assistant runs on our own server, behind `server/` in Docker, next to its model: Gemma 4 on Ollama by default, Gemini's API by configuration ([ADR 0007](docs/adr/0007-assistant-on-our-own-server.md)). No on-device LLM.
+- The assistant runs on our own server, behind `server/` in Docker, next to its model: Gemma 4 on Ollama, its size by configuration ([ADR 0007](docs/adr/0007-assistant-on-our-own-server.md)). No on-device LLM.
 - The server checks the caller's Firebase ID token on every request, and enforces the quota and the kill switch.
 - AI output is always a proposal shown for review; only a user confirmation persists it.
 - Provider keys live only in the server's environment (a `.env` next to `server/compose.yaml`), never in the repo or the app.
