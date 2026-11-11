@@ -24,6 +24,7 @@ interface ExpenseRepository {
         paidBy: String,
         split: Map<String, Long>,
         date: LocalDate,
+        customAllocation: Map<String, Boolean>?,
     )
 
     suspend fun delete(spaceId: String, expenseId: String)

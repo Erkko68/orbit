@@ -123,14 +123,21 @@ Tests cover reactive balances, confirmation/cancellation, failed writes, retries
 UI tests exercise settling up, row alignment, large text and the four translated label sets. Android emulator tests
 check real text bounds with fake values. The user reports correct Android operation with real Firebase; iOS CI remains pending.
 
-The exact-share mode is labelled "Custom amounts" in the form. It explains that each amount is what that
-person owes and shows the assigned total, how much remains, or the excess. `ExpenseUiState.splitProgress`
-derives this preview from the selected shares using Long cents with an overflow check. It never adjusts
-shares automatically or persists a second total. Save still requires the existing exact-sum validation.
+The exact-share mode is labelled "Custom amounts" in the form. In it and in Percentages a share is manual or
+automatic (#283): an automatic share shows its amount greyed in an empty field, typing fixes it, the undo icon in
+the field releases it, and the automatic people divide what the fixed ones leave. `ExpenseUiState.splitProgress` says how much is assigned, missing or over, with no second stored
+total. Someone left out keeps their draft and status until the mode changes.
 
 Percentages and Weights (#55) are two more split modes beside them. Each row types a percentage or a whole weight
-and shows the amount it comes to; percentages must add up to exactly 100 %. Switching to Custom amounts or
-Percentages starts from the split on screen, so nothing the user sees changes.
+and shows the amount it comes to. The automatic percentage is the exact remainder, never its rounded label. Custom
+amounts round only among automatic people; mixed percentages floor each part and give the leftover cents by uid to
+parts that had a fraction. Weights and fully manual percentages keep #55's rounding. Everything is integer cents.
+
+Switching between Custom amounts and Percentages converts what is on screen, so a round trip may move a cent, and
+keeps who is automatic. Coming from Equal everyone is automatic, from Weights everyone is manual. A split that is not
+valid yet cannot be converted: the mode stays, with an error. The optional `customAllocation` map stores who is
+selected and automatic beside the cent split (ADR 0013). Reopening shows the saved cents in Custom amounts, and they
+change only when the amount, the people or a share does.
 
 ## Dependency injection
 

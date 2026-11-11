@@ -368,8 +368,12 @@
     <string name="expense_percent_sign">%</string>
     <string name="expense_percent">%1$s%</string>
     <string name="expense_equal_hint">Everyone pays the same.</string>
-    <string name="expense_exact_hint">Type what each person pays.</string>
-    <string name="expense_percentages_hint">Percentages that add up to 100%.</string>
+    <string name="expense_exact_hint">Type what some pay, and the rest share what is left.</string>
+    <string name="expense_percentages_hint">Percentages that add up to 100%. Changing mode can round the shares.</string>
+    <string name="expense_make_automatic_person">Make %1$s automatic</string>
+    <string name="expense_automatic_share">Automatic share for %1$s</string>
+    <string name="expense_conversion_failed">Complete a valid split before converting to this mode.</string>
+    <string name="expense_share_unavailable">—</string>
     <string name="expense_weights_hint">Whole numbers, such as 2 : 1 : 1.</string>
     <string name="expense_weight_share">Weight for %1$s</string>
     <string name="expense_share">Share for %1$s</string>

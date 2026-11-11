@@ -194,6 +194,7 @@ private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel) {
         modifier = Modifier.fillMaxWidth(),
         titleStyle = MaterialTheme.typography.titleLarge,
     )
+    if (state.conversionFailed) OrbitErrorText(stringResource(Res.string.expense_conversion_failed))
     SplitErrors(state)
     OrbitGroup(state.people, key = { it.id }, Modifier.fillMaxWidth()) { person ->
         SplitRow(person, state, viewModel)
@@ -219,7 +220,8 @@ private val ExpenseSplit.hint
 
 /**
  * One person of the split: tap to leave them out. Their share sits at the end, or is typed there. A percentage or a
- * weight shows the amount it comes to under the name.
+ * weight shows the amount it comes to under the name. An automatic custom share is the greyed amount in an empty
+ * field; typing fixes it, and the undo icon in a fixed one makes it automatic again.
  */
 @Composable
 private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: ExpenseViewModel) {
@@ -239,7 +241,11 @@ private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: Expense
             )
             if (typed && state.mode != ExpenseSplit.EXACT) {
                 Text(
-                    text = formatEuro(state.shares[person.id] ?: 0L),
+                    text = if (state.split == null) {
+                        stringResource(Res.string.expense_share_unavailable)
+                    } else {
+                        formatEuro(state.shares[person.id] ?: 0L)
+                    },
                     style = OrbitTheme.data.small,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -247,14 +253,23 @@ private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: Expense
         }
         if (typed) {
             val weight = state.mode == ExpenseSplit.WEIGHTS
+            val automatic = state.custom && person.id in state.automatic
             OrbitAmountField(
                 value = state.shareInputs[person.id].orEmpty(),
                 onValueChange = { viewModel.onShareChange(person.id, it) },
                 description = stringResource(
-                    if (weight) Res.string.expense_weight_share else Res.string.expense_share,
+                    when {
+                        weight -> Res.string.expense_weight_share
+                        automatic -> Res.string.expense_automatic_share
+                        else -> Res.string.expense_share
+                    },
                     person.name,
                 ),
-                placeholder = if (weight) "0" else moneyInput(0, state.locale),
+                placeholder = when {
+                    automatic -> state.automaticInputs[person.id] ?: stringResource(Res.string.expense_share_unavailable)
+                    weight -> "0"
+                    else -> moneyInput(0, state.locale)
+                },
                 enabled = !state.submitting,
                 isError = person.id in state.invalidShareIds,
                 prefix = state.currencyPrefix.takeIf { state.mode == ExpenseSplit.EXACT },
@@ -263,6 +278,8 @@ private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: Expense
                     ExpenseSplit.PERCENTAGES -> stringResource(Res.string.expense_percent_sign)
                     else -> null
                 },
+                onReset = if (state.custom && !automatic) ({ viewModel.makeAutomatic(person.id) }) else null,
+                resetDescription = stringResource(Res.string.expense_make_automatic_person, person.name),
             )
         } else {
             Text(

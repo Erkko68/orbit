@@ -51,7 +51,10 @@ class ExpenseViewModel(
         val space = allSpaces.firstOrNull { it.id == spaceId }
         val original = ledger.firstOrNull { it.id == expenseId }
         val member = members.firstOrNull { it.userId == user?.id }
-        val formerIds = original?.let { it.split.keys + it.paidBy }.orEmpty() - members.map { it.userId }.toSet()
+        val currentIds = members.map { it.userId }.toSet()
+        val knownIds = currentIds + space?.formerMembers.orEmpty().keys + original?.split.orEmpty().keys
+        val allocation = original?.customAllocation?.takeIf { it.keys.all { id -> id in knownIds } }
+        val formerIds = (original?.let { it.split.keys + it.paidBy }.orEmpty() + allocation.orEmpty().keys) - currentIds
         val people = members.mapIndexed { index, it -> ItemFace(it.userId, it.displayName, index, it.photoUrl) } +
             formerIds.sorted().mapIndexed { index, it ->
                 ItemFace(it, space?.formerMembers?.get(it) ?: it, members.size + index, null)
@@ -66,8 +69,11 @@ class ExpenseViewModel(
             date = original?.date ?: today,
             // Stored shares are authoritative: opening an edit never splits or rounds them again.
             mode = if (original == null) ExpenseSplit.EQUAL else ExpenseSplit.EXACT,
-            selected = original?.split?.keys ?: members.map { it.userId }.toSet(),
-            exact = original?.split?.mapValues { moneyInput(it.value, locale) }.orEmpty(),
+            selected = allocation?.keys ?: original?.split?.keys ?: currentIds,
+            exact = (allocation?.keys ?: original?.split?.keys).orEmpty().associateWith {
+                moneyInput(original?.split?.get(it) ?: 0L, locale)
+            },
+            automatic = allocation.orEmpty().filterValues { it }.keys,
             people = people,
             locale = locale,
             original = original,
@@ -92,13 +98,15 @@ class ExpenseViewModel(
     private fun edit(change: (ExpenseUiState) -> ExpenseUiState) {
         val current = uiState.value
         if (!current.submitting && !current.loading && !current.loadFailed && !current.closed) {
-            form.value = change(current).copy(failed = false)
+            form.value = change(current.copy(conversionFailed = false)).copy(failed = false)
         }
     }
 
     fun onTitleChange(value: String) = edit { it.copy(title = value) }
     /** Amounts, percentages and weights take only what they can hold: a letter or a sign never reaches the state. */
-    fun onAmountChange(value: String) = edit { if (isMoneyInput(value)) it.copy(amount = value) else it }
+    fun onAmountChange(value: String) = edit {
+        if (isMoneyInput(value) && value != it.amount) it.copy(amount = value, allocationChanged = true) else it
+    }
     fun openPayerPicker() = edit { it.copy(pickingPayer = true) }
     fun dismissPayerPicker() = edit { it.copy(pickingPayer = false) }
     fun selectPayer(id: String) = edit { it.copy(paidBy = id, pickingPayer = false) }
@@ -111,42 +119,61 @@ class ExpenseViewModel(
     fun pickDate(utcMillis: Long) = edit {
         it.copy(date = Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date, pickingDate = false)
     }
+
     /**
-     * Custom amounts and percentages start from the split on screen, so switching keeps what the user sees: €40 as
-     * 20 / 10 / 10 becomes 50 / 25 / 25 %. Without a split yet, percentages start equal. Weights keep what was typed.
-     * Picking one closes the sheet.
+     * Custom amounts and percentages start from the split on screen (#55's simple conversion, so a round trip may move
+     * a cent), or all automatic coming from Equal. Who is automatic stays between the two; from Weights nobody is.
+     * Drafts of people left out are dropped. A split that is not valid yet cannot be converted: it stays, with why.
      */
     fun selectSplit(mode: ExpenseSplit) = edit { state ->
         if (mode == state.mode) return@edit state.copy(pickingSplit = false)
+        val next = state.copy(
+            mode = mode,
+            exact = emptyMap(),
+            percentages = emptyMap(),
+            automatic = emptySet(),
+            allocationChanged = true,
+            pickingSplit = false,
+        )
+        if (!next.custom) return@edit next
+        if (state.mode == ExpenseSplit.EQUAL) return@edit next.copy(automatic = state.selected)
         val split = state.split
-        when (mode) {
-            ExpenseSplit.EXACT -> split?.let { state.copy(exact = state.inputs(it)) } ?: state
-            ExpenseSplit.PERCENTAGES -> state.copy(
-                percentages = state.inputs(
-                    splitByWeights(HUNDRED_PERCENT, split ?: state.selected.associateWith { 1L }).orEmpty(),
-                ),
-            )
-            else -> state
-        }.copy(mode = mode, pickingSplit = false)
+        val values = (if (mode == ExpenseSplit.PERCENTAGES) split?.let { splitByWeights(HUNDRED_PERCENT, it) } else split)
+            ?: return@edit state.copy(conversionFailed = true, pickingSplit = false)
+        val inputs = state.selected.associateWith { moneyInput(values[it] ?: 0L, state.locale) }
+        val automatic = if (state.custom) state.automatic else emptySet()
+        if (mode == ExpenseSplit.EXACT) next.copy(exact = inputs, automatic = automatic)
+        else next.copy(percentages = inputs, automatic = automatic)
     }
 
-    private fun ExpenseUiState.inputs(values: Map<String, Long>) =
-        selected.associateWith { moneyInput(values[it] ?: 0L, locale) }
-
+    /** Someone added back keeps their draft and status; someone new to a custom split starts automatic. */
     fun toggleMember(id: String) = edit {
-        it.copy(selected = if (id in it.selected) it.selected - id else it.selected + id)
+        if (it.people.none { person -> person.id == id }) return@edit it
+        if (id in it.selected) return@edit it.copy(selected = it.selected - id, allocationChanged = true)
+        val known = id in it.exact || id in it.percentages || id in it.automatic
+        it.copy(
+            selected = it.selected + id,
+            automatic = if (it.custom && !known) it.automatic + id else it.automatic,
+            allocationChanged = true,
+        )
     }
 
     fun onShareChange(id: String, value: String) = edit {
         val allowed = if (it.mode == ExpenseSplit.WEIGHTS) value.all { c -> c in '0'..'9' } else isMoneyInput(value)
-        if (!allowed) return@edit it
+        if (!allowed || id !in it.selected || value == it.shareInputs[id]) return@edit it
+        val state = it.copy(automatic = it.automatic - id, allocationChanged = true)
         when (it.mode) {
             ExpenseSplit.EQUAL -> it
-            ExpenseSplit.EXACT -> it.copy(exact = it.exact + (id to value))
-            ExpenseSplit.PERCENTAGES -> it.copy(percentages = it.percentages + (id to value))
-            ExpenseSplit.WEIGHTS -> it.copy(weights = it.weights + (id to value))
+            ExpenseSplit.EXACT -> state.copy(exact = it.exact + (id to value))
+            ExpenseSplit.PERCENTAGES -> state.copy(percentages = it.percentages + (id to value))
+            ExpenseSplit.WEIGHTS -> state.copy(weights = it.weights + (id to value))
         }
     }
+
+    fun makeAutomatic(id: String) = edit {
+        if (it.custom && id in it.selected) it.copy(automatic = it.automatic + id, allocationChanged = true) else it
+    }
+
     fun requestDelete() {
         if (uiState.value.canDelete) edit { it.copy(deleteOpen = true) }
     }
@@ -163,9 +190,14 @@ class ExpenseViewModel(
         submit(state, "Saving expense in $spaceId") {
             val date = requireNotNull(state.date)
             if (expenseId.isEmpty()) {
-                expenses.add(spaceId, NewExpense(state.title.trim(), state.paidBy, split, date))
+                expenses.add(
+                    spaceId, NewExpense(
+                        state.title.trim(), state.paidBy, split, date,
+                        customAllocation = state.customAllocation
+                    )
+                )
             } else {
-                expenses.edit(spaceId, expenseId, state.title.trim(), state.paidBy, split, date)
+                expenses.edit(spaceId, expenseId, state.title.trim(), state.paidBy, split, date, state.customAllocation)
             }
         }
     }

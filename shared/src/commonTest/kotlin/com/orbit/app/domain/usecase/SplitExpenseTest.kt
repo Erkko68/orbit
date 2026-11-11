@@ -9,6 +9,61 @@ import kotlin.test.assertTrue
 
 class SplitExpenseTest {
     @Test
+    fun customAllocationKeepsManualCentsAndOnlyRoundsAutomaticPeople() {
+        assertEquals(
+            mapOf("a" to 1000L, "b" to 1501L, "c" to 1500L),
+            allocateCustom(4001, mapOf("a" to 1000), setOf("c", "b"))
+        )
+        assertEquals(mapOf("b" to 40L), allocateCustom(40, mapOf("a" to 0), setOf("b")))
+        assertEquals(mapOf("a" to 40L), allocateCustom(40, mapOf("a" to 40), setOf("b", "c")))
+        assertEquals(mapOf("a" to 1L), allocateCustom(1, emptyMap(), setOf("c", "a", "b")))
+        assertNull(allocateCustom(40, mapOf("a" to 41), setOf("b")))
+        assertNull(allocateCustom(40, mapOf("a" to 39), emptySet()))
+        assertNull(allocateCustom(40, mapOf("a" to -1), setOf("b")))
+        assertNull(allocateCustom(40, mapOf("a" to 1), setOf("a")))
+        assertNull(allocateCustom(40, emptyMap(), emptySet()))
+        assertNull(allocateCustom(0, emptyMap(), setOf("a")))
+        assertNull(allocateCustom(Long.MAX_VALUE, mapOf("a" to Long.MAX_VALUE, "b" to 1), setOf("c")))
+    }
+
+    @Test
+    fun automaticPercentagesUseExactRemaindersAndDoNotMoveExactCentEntitlements() {
+        assertEquals(
+            mapOf("a" to 5L, "b" to 3L, "c" to 2L),
+            allocatePercentages(10, mapOf("a" to 5000), setOf("c", "b"))
+        )
+        assertEquals(
+            mapOf("a" to 3200L, "b" to 2400L, "c" to 1200L, "d" to 1200L),
+            allocatePercentages(8000, mapOf("a" to 4000, "b" to 3000), setOf("c", "d"))
+        )
+        assertEquals(mapOf("a" to 1L), allocatePercentages(1, emptyMap(), setOf("c", "b", "a")))
+        assertEquals(mapOf("a" to 7L), allocatePercentages(7, mapOf("a" to 10000), setOf("b")))
+        assertEquals(mapOf("b" to 7L), allocatePercentages(7, mapOf("a" to 0), setOf("b")))
+        assertNull(allocatePercentages(7, mapOf("a" to 10001), setOf("b")))
+        assertNull(allocatePercentages(7, mapOf("a" to -1), setOf("b")))
+        assertNull(allocatePercentages(7, mapOf("a" to 1), setOf("a")))
+        assertNull(allocatePercentages(0, emptyMap(), setOf("a")))
+        val manual = mapOf("a" to 5000L, "b" to 2500L, "c" to 2500L)
+        assertEquals(splitByPercentages(10, manual), allocatePercentages(10, manual, emptySet()))
+        assertNull(allocatePercentages(10, mapOf("a" to 9999), emptySet()))
+    }
+
+    @Test
+    fun allocationsConserveLongCentsAndIgnoreParticipantOrder() {
+        val random = Random(283)
+        repeat(500) {
+            val total = random.nextLong(1, Long.MAX_VALUE)
+            val manual = mapOf("a" to random.nextLong(0, HUNDRED_PERCENT + 1))
+            val automatic = setOf("b", "c", "d")
+            val result = requireNotNull(allocatePercentages(total, manual, automatic))
+            assertEquals(total, result.values.sum())
+            assertEquals(result, allocatePercentages(total, manual, automatic.reversed().toSet()))
+            assertEquals(splitEqually(total, automatic), allocatePercentages(total, emptyMap(), automatic))
+            assertEquals(total, requireNotNull(allocateCustom(total, mapOf("a" to total / 2), automatic)).values.sum())
+        }
+    }
+
+    @Test
     fun weightsGiveLeftoverCentsToPositiveWeightsInUidOrder() {
         assertEquals(
             mapOf("a" to 2000L, "b" to 1000L, "c" to 1000L),

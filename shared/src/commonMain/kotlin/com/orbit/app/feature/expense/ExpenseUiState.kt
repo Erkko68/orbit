@@ -3,15 +3,16 @@ package com.orbit.app.feature.expense
 import com.orbit.app.core.EURO
 import com.orbit.app.core.MoneyLocale
 import com.orbit.app.core.euroBeforeAmount
+import com.orbit.app.core.moneyInput
 import com.orbit.app.core.parseMoney
 import com.orbit.app.domain.model.Expense
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.validateExpense
 import com.orbit.app.domain.usecase.HUNDRED_PERCENT
-import com.orbit.app.domain.usecase.splitByPercentages
+import com.orbit.app.domain.usecase.allocateCustom
+import com.orbit.app.domain.usecase.allocatePercentages
 import com.orbit.app.domain.usecase.splitByWeights
 import com.orbit.app.domain.usecase.splitEqually
-import com.orbit.app.domain.usecase.splitExactly
 import com.orbit.app.feature.item.ItemFace
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
@@ -41,6 +42,11 @@ data class ExpenseUiState(
     /** Typed percentages and weights. Neither is stored: they only become cents, as the custom amounts do. */
     val percentages: Map<String, String> = emptyMap(),
     val weights: Map<String, String> = emptyMap(),
+    /** Who gets an even part of what the manual shares leave (#283). Kept while someone is left out. */
+    val automatic: Set<String> = emptySet(),
+    /** Opening an edit keeps its saved cents until the user changes the amount, the people or a share. */
+    val allocationChanged: Boolean = false,
+    val conversionFailed: Boolean = false,
     /** The members, and anyone who left but is still in the expense being edited. */
     val people: List<ItemFace> = emptyList(),
     val locale: MoneyLocale = MoneyLocale(".", ","),
@@ -55,6 +61,26 @@ data class ExpenseUiState(
     val closed: Boolean = false,
 ) {
     val editing: Boolean get() = original != null
+    val custom: Boolean get() = mode == ExpenseSplit.EXACT || mode == ExpenseSplit.PERCENTAGES
+    val customAllocation: Map<String, Boolean>?
+        get() = if (custom) selected.associateWith { it in automatic } else null
+    private val automaticIds: Set<String> get() = if (custom) selected.intersect(automatic) else emptySet()
+
+    private val manualValues: Map<String, Long>?
+        get() = (selected - automaticIds).associateWith { typed(it) ?: return null }
+
+    /** Approximate automatic percent labels never feed validation or allocation. */
+    private val automaticPercentage: Long?
+        get() {
+            val values = manualValues ?: return null
+            var remaining = HUNDRED_PERCENT
+            for (value in values.values) {
+                if (value > remaining) return null
+                remaining -= value
+            }
+            val count = automaticIds.size.takeIf { it > 0 } ?: return null
+            return remaining / count
+        }
 
     /** The euro sign on the side of the amount the device writes it. */
     val currencyPrefix: String? get() = EURO.takeIf { euroBeforeAmount() }
@@ -69,30 +95,39 @@ data class ExpenseUiState(
     /** Something is typed that is not an amount above zero. */
     val amountInvalid: Boolean get() = amount.isNotEmpty() && cents == null
 
-    /** What each person's field shows in the current mode. A weight left alone is 1. */
+    /** What each person's field shows in the current mode. A weight left alone is 1; an automatic share is empty. */
     val shareInputs: Map<String, String>
         get() = selected.associateWith { id ->
-            when (mode) {
-                ExpenseSplit.EQUAL -> ""
-                ExpenseSplit.EXACT -> exact[id].orEmpty()
-                ExpenseSplit.PERCENTAGES -> percentages[id].orEmpty()
-                ExpenseSplit.WEIGHTS -> weights[id] ?: "1"
+            when {
+                mode == ExpenseSplit.EQUAL || id in automaticIds -> ""
+                mode == ExpenseSplit.EXACT -> exact[id].orEmpty()
+                mode == ExpenseSplit.PERCENTAGES -> percentages[id].orEmpty()
+                else -> weights[id] ?: "1"
             }
         }
 
+    /** What an automatic share comes to, shown greyed in its empty field. Missing while the split is not valid. */
+    val automaticInputs: Map<String, String>
+        get() = automaticIds.mapNotNull { id ->
+            when (mode) {
+                ExpenseSplit.EXACT -> split?.let { moneyInput(it[id] ?: 0L, locale) }
+                else -> automaticPercentage?.takeIf { cents != null }?.let { moneyInput(it, locale) }
+            }?.let { id to it }
+        }.toMap()
+
     /** A typed field as a number: cents, hundredths of a percent or a whole weight. Null when it is not valid. */
     private fun typed(id: String): Long? {
-        val text = shareInputs[id] ?: return null
         return when (mode) {
             ExpenseSplit.EQUAL -> null
-            ExpenseSplit.EXACT -> parseMoney(text, locale)
-            ExpenseSplit.PERCENTAGES -> parseMoney(text, locale)?.takeIf { it <= HUNDRED_PERCENT }
-            ExpenseSplit.WEIGHTS -> text.trim().toLongOrNull()?.takeIf { it >= 0 }
+            ExpenseSplit.EXACT -> parseMoney(exact[id].orEmpty(), locale)
+            ExpenseSplit.PERCENTAGES -> parseMoney(percentages[id].orEmpty(), locale)?.takeIf { it <= HUNDRED_PERCENT }
+            ExpenseSplit.WEIGHTS -> (weights[id] ?: "1").trim().toLongOrNull()?.takeIf { it >= 0 }
         }
     }
 
     val invalidShareIds: Set<String>
-        get() = if (mode == ExpenseSplit.EQUAL) emptySet() else selected.filter { typed(it) == null }.toSet()
+        get() = if (mode == ExpenseSplit.EQUAL) emptySet() else (selected - automaticIds).filter { typed(it) == null }
+            .toSet()
 
     /** How much of the whole the typed fields cover: the total in cents, or 100 % in hundredths. */
     val splitProgress: ExpenseSplitProgress?
@@ -104,13 +139,14 @@ data class ExpenseUiState(
                 else -> return null
             }
             var assigned = 0L
-            for (id in selected) {
+            for (id in selected - automaticIds) {
                 val share = typed(id) ?: return null
                 if (share > Long.MAX_VALUE - assigned) return null
                 assigned += share
             }
-            return ExpenseSplitProgress(whole, assigned)
+            return ExpenseSplitProgress(whole, if (automaticIds.isNotEmpty() && assigned <= whole) whole else assigned)
         }
+
     /** What the heading of the split says: how much of the total the shares cover, in any mode. */
     val splitTotals: ExpenseSplitProgress?
         get() = if (mode == ExpenseSplit.EXACT) {
@@ -122,18 +158,20 @@ data class ExpenseUiState(
         get() {
             val total = cents ?: return null
             if (selected.isEmpty() || selected.any { id -> people.none { it.id == id } }) return null
+            if (mode == ExpenseSplit.EXACT && !allocationChanged && original != null) return original.split
             if (mode == ExpenseSplit.EQUAL) return splitEqually(total, selected)
-            val values = selected.associateWith { typed(it) ?: return null }
+            val values = manualValues ?: return null
             return when (mode) {
-                ExpenseSplit.EQUAL, ExpenseSplit.EXACT -> splitExactly(total, values)
-                ExpenseSplit.PERCENTAGES -> splitByPercentages(total, values)
+                ExpenseSplit.EQUAL, ExpenseSplit.EXACT -> allocateCustom(total, values, automaticIds)
+                ExpenseSplit.PERCENTAGES -> allocatePercentages(total, values, automaticIds)
                 ExpenseSplit.WEIGHTS -> splitByWeights(total, values)
             }
         }
+
     /** What each person's row shows: what was typed with custom amounts, else their part of the split, or nothing. */
     val shares: Map<String, Long>
         get() = selected.associateWith { id ->
-            if (mode == ExpenseSplit.EXACT) typed(id) ?: 0L else split?.get(id) ?: 0L
+            if (mode == ExpenseSplit.EXACT && id !in automaticIds) typed(id) ?: 0L else split?.get(id) ?: 0L
         }
     val canSave: Boolean
         get() = !loading && !loadFailed && !missing && !submitting && !closed && member != null && date != null &&

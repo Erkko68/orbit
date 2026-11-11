@@ -21,6 +21,7 @@ internal class ExpenseDocument(
     val createdAt: Timestamp.ServerTimestamp,
     val kind: String,
     val itemId: String? = null,
+    val customAllocation: Map<String, Boolean>? = null,
 )
 
 /** An expense's fields as read, each null when missing or not of the expected type. */
@@ -33,4 +34,5 @@ internal data class StoredExpense(
     val createdAt: Instant? = null,
     val kind: String? = null,
     val itemId: String? = null,
+    val customAllocation: Map<String, Boolean>? = null,
 )

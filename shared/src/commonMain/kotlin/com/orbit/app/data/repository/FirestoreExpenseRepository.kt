@@ -11,6 +11,7 @@ import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ExpenseRepository
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FieldPath
+import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -44,6 +45,7 @@ class FirestoreExpenseRepository(
         paidBy: String,
         split: Map<String, Long>,
         date: LocalDate,
+        customAllocation: Map<String, Boolean>?,
     ) {
         val document = expenses(spaceId).document(expenseId)
         writeLocally("A change to expense $expenseId") {
@@ -52,6 +54,7 @@ class FirestoreExpenseRepository(
                 FieldPath("paidBy") to paidBy
                 FieldPath("split") to split
                 FieldPath("date") to date.toString()
+                FieldPath("customAllocation") to (customAllocation ?: FieldValue.delete)
             }
         }
     }
@@ -73,6 +76,7 @@ class FirestoreExpenseRepository(
             createdAt = document.instant("createdAt"),
             kind = document.field("kind"),
             itemId = document.field("itemId"),
+            customAllocation = document.field("customAllocation"),
         )
         return mapExpense(document.id, stored).also {
             if (it == null) Logger.w { "Skipping the malformed expense ${document.id}" }

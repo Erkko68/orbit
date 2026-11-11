@@ -40,10 +40,11 @@ class ControlledExpenseRepository(private val delegate: ExpenseRepository) : Exp
         title: String,
         paidBy: String,
         split: Map<String, Long>,
-        date: LocalDate
+        date: LocalDate,
+        customAllocation: Map<String, Boolean>?,
     ) {
         beforeWrite()
-        delegate.edit(spaceId, expenseId, title, paidBy, split, date)
+        delegate.edit(spaceId, expenseId, title, paidBy, split, date, customAllocation)
     }
 
     override suspend fun delete(spaceId: String, expenseId: String) {
