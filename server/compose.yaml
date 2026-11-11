@@ -7,7 +7,8 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      # The host port: 8080 unless ASSISTANT_PORT says otherwise (8080 may be taken on the host).
+      - "${ASSISTANT_PORT:-8080}:8080"
     # Keys come from a .env file next to this one, never committed.
     environment:
       # An orbit-app-dev API key allowed to call the Identity Toolkit API: checks the callers' ID tokens.
