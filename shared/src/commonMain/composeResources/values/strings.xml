@@ -332,15 +332,10 @@
     <string name="space_settings">Space settings</string>
     <string name="space_settings_invite_body">A code or a link, valid for a week</string>
     <string name="space_settings_name">Space name</string>
-    <string name="space_settings_colour">Colour</string>
+    <string name="space_settings_colour">Badge</string>
     <string name="space_settings_save">Save</string>
     <string name="space_settings_failed">Could not save the changes. Try again.</string>
-    <string name="space_colour_violet">Violet</string>
-    <string name="space_colour_coral">Coral</string>
-    <string name="space_colour_teal">Teal</string>
-    <string name="space_colour_sun">Sun</string>
-    <string name="space_colour_blue">Blue</string>
-    <string name="space_colour_pink">Pink</string>
+    <string name="space_badge_option">Badge %1$d</string>
     <string name="cancel">Cancel</string>
     <string name="show">Show</string>
     <string name="hide">Hide</string>

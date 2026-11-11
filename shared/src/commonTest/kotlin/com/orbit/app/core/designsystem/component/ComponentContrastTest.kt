@@ -25,30 +25,24 @@ class ComponentContrastTest {
         "error on a panel" to (error to surfaceBright),
         "error on a field" to (error to surfaceContainer),
         "turn card and floating field" to (inverseOnSurface to inverseSurface),
-        "on the assistant's soft violet" to (onSecondaryContainer to secondaryContainer),
-        "the assistant's violet as text on a panel" to (secondary to surfaceBright),
+        "on the assistant's soft blue" to (onSecondaryContainer to secondaryContainer),
+        "the assistant's blue as text on a panel" to (secondary to surfaceBright),
     )
 
-    /** Each accent, over what it paints. The page and the planet carry the theme's ink, the fills always carry navy. */
-    private fun OrbitColors.textOnAccents(scheme: ColorScheme): Map<String, Pair<Color, Color>> =
-        accents.flatMapIndexed { index, accent ->
-            listOf(
-                "text on the page of accent $index" to (scheme.onSurface to accent.page),
-                "secondary text on the page of accent $index" to (scheme.onSurfaceVariant to accent.page),
-                "the section count and header on the planet of accent $index" to (scheme.onSurfaceVariant to accent.planet),
-                "the top bar on the planet of accent $index" to (scheme.onSurface to accent.planet),
-                "the add button of accent $index" to (Ink to accent.fill),
-                "a face in accent $index" to (Ink to spaceAccent(index)),
-                "a tile and a header on vivid $index" to (Ink to accent.vivid),
-                "the peek of a tile on vivid $index" to (InkSoft to accent.vivid),
-                "a tile on partner $index" to (Ink to accent.partner),
-                "the peek of a tile on partner $index" to (InkSoft to accent.partner),
-                "the selected tab of accent $index" to (scheme.onSurface to accent.selected),
-                "a row that is done in accent $index" to (scheme.onSurface to accent.done),
-                "the quiet title of a row that is done in accent $index" to (scheme.onSurfaceVariant to accent.done),
-                "the turn card's action on accent $index" to (Ink to accent.vivid),
-            )
-        }.toMap()
+    /** The accent, over what it paints, and each fill that tells spaces and people apart. The fills always carry navy. */
+    private fun OrbitColors.textOnAccents(scheme: ColorScheme): Map<String, Pair<Color, Color>> = mapOf(
+        "text on the page" to (scheme.onSurface to brand.page),
+        "secondary text on the page" to (scheme.onSurfaceVariant to brand.page),
+        "the add button" to (Ink to brand.fill),
+        "a tile and a header on vivid" to (Ink to brand.vivid),
+        "the peek of a header on vivid" to (InkSoft to brand.vivid),
+        "the turn card's partner" to (Ink to brand.partner),
+        "the selected tab" to (scheme.onSurface to brand.selected),
+        "a row that is done" to (scheme.onSurface to brand.done),
+        "the quiet title of a row that is done" to (scheme.onSurfaceVariant to brand.done),
+        "a balance to get back" to (Ink to credit),
+        "a balance owed" to (Ink to debit),
+    ) + spaceAccents.mapIndexed { index, fill -> "a face or a badge on fill $index" to (Ink to fill) }
 
     private fun OrbitColors.textOnStates(scheme: ColorScheme): Map<String, Pair<Color, Color>> = mapOf(
         "success pill" to (onSuccess to success),

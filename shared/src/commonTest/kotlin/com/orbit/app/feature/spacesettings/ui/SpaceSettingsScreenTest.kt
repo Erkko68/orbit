@@ -71,8 +71,8 @@ class SpaceSettingsScreenTest : ComposeTest() {
         showSettingsAs("ana@orbit.app")
 
         onNodeWithText("Flat 4B").assertIsDisplayed()
-        onNodeWithContentDescription("Coral").assertIsSelected()
-        onNodeWithContentDescription("Violet").assertIsNotSelected()
+        onNodeWithContentDescription("Badge 2").assertIsSelected()
+        onNodeWithContentDescription("Badge 1").assertIsNotSelected()
         onNodeWithText("Save").assertDoesNotExist()
         onNodeWithText("Invite people").performScrollTo().assertIsDisplayed()
         onNodeWithText("Delete space").performScrollTo().assertIsDisplayed()
@@ -123,8 +123,8 @@ class SpaceSettingsScreenTest : ComposeTest() {
         showSettingsAs("ana@orbit.app")
 
         onNode(hasSetTextAction()).performTextReplacement("Flat 4C")
-        onNodeWithContentDescription("Teal").performClick()
-        onNodeWithContentDescription("Teal").assertIsSelected()
+        onNodeWithContentDescription("Badge 3").performClick()
+        onNodeWithContentDescription("Badge 3").assertIsSelected()
         onNodeWithText("Save").performScrollTo().performClick()
 
         // Save going away is what says the save went through, so look at it before the repository.

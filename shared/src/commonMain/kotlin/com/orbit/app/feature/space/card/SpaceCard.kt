@@ -20,7 +20,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * One of the user's spaces as a card of its own colour, loaded by its own view model: its name, what the user has to do
+ * One of the user's spaces as a panel opened by its badge, loaded by its own view model: its name, what the user has to do
  * there and its members' faces.
  */
 @Composable
@@ -31,13 +31,13 @@ internal fun SpaceCard(
     viewModel: SpaceCardViewModel = koinViewModel(key = "space-card-$spaceId") { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val accent = OrbitTheme.colors.accent(state.accent)
+    val accent = OrbitTheme.accent
     OrbitSpaceTile(
         name = state.name,
+        initials = state.initials,
         line = spaceLine(state),
         detail = spaceDetail(state),
-        color = accent.vivid,
-        partner = accent.partner,
+        badge = OrbitTheme.colors.spaceAccent(state.accent),
         shape = memberShape(state.accent),
         faces = state.faces.mapIndexed { index, face ->
             OrbitFace(face.id, face.name, face.initials, Ink, memberShape(index), face.photoUrl, accent.vivid)

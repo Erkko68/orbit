@@ -6,85 +6,86 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.graphics.Color
 
 // The only place in the app where colors are defined. Contrast ratios are WCAG 2.x, and ComponentContrastTest checks them.
+//
+// Three key colours, each used as tones of one palette (#293): a cool neutral for the page, panels and text, the brand
+// blue and a warm coral. The number after a name is its tone, CIELAB L*: two tones 50 apart are at least 4.5:1, so the
+// tone alone says whether text can sit on a fill. Error is the system's own colour, outside the three.
 
-// Ink and paper: text and the primary action, whatever the space's colour is.
+// Ink and paper: text and the primary action, whatever the space.
 val Ink = Color(0xFF0E1230)
 val Paper = Color(0xFFF3F4F9)
 val White = Color(0xFFFFFFFF)
 /** The second line on a vivid fill: ink, a little softer. */
 val InkSoft = Color(0xFF2A2E4E)
 
-// Accents, in the order a space stores them: a stored index keeps its hue.
-private val Nebula = Color(0xFF9A92FF)
-private val Mars = Color(0xFFF0795A)
-private val Uranus = Color(0xFF38BFB2)
-private val Saturn = Color(0xFFE8B85A)
-private val Neptune = Color(0xFF5B8DEF)
-private val Venus = Color(0xFFE58BB0)
+// The cool neutral. Depth is its tones: the page, a panel on it, a sunk fill in the panel.
+private val Neutral6 = Color(0xFF131318)
+private val Neutral12 = Color(0xFF1F1F24)
+private val Neutral17 = Color(0xFF2A292F)
+private val Neutral20 = Color(0xFF303036)
+private val Neutral30 = Color(0xFF47464C)
+private val Neutral40 = Color(0xFF5E5E64)
+private val Neutral50 = Color(0xFF77767D)
+private val Neutral60 = Color(0xFF919097)
+private val Neutral70 = Color(0xFFABAAB2)
+private val Neutral80 = Color(0xFFC6C6CD)
+private val Neutral90 = Color(0xFFE2E2E9)
+private val Neutral94 = Color(0xFFEEEDF5)
+private val Neutral95 = Color(0xFFF1F0F8)
 
-// Light neutrals. Text on them is at least 5.8:1, and 4.5:1 on any tinted page.
-private val CanvasLight = Color(0xFFF3F4F8)
-private val SunkLight = Color(0xFFEFF0F5)
-private val HairLight = Color(0xFFE9EAF0)
-private val InkSecondaryLight = Color(0xFF4A4F69)
-private val InkTertiaryLight = Color(0xFF5F647E)
+// The brand blue.
+private val Blue10 = Color(0xFF011B3D)
+private val Blue17 = Color(0xFF022957)
+private val Blue25 = Color(0xFF023A77)
+private val Blue40 = Color(0xFF045DB7)
+private val Blue60 = Color(0xFF5D8EF1)
+private val Blue70 = Color(0xFF88A9FF)
+private val Blue80 = Color(0xFFB5C5FE)
+private val Blue90 = Color(0xFFDBE1FF)
+private val Blue95 = Color(0xFFEDF0FE)
 
-// Dark neutrals: panels step up from the canvas, and the sunk fill steps up again.
-private val CanvasDark = Color(0xFF0A0C18)
-private val PanelDark = Color(0xFF161A2C)
-private val SunkDark = Color(0xFF21263C)
-private val HairDark = Color(0xFF252A41)
-private val InkSecondaryDark = Color(0xFFB4B9CE)
-private val InkTertiaryDark = Color(0xFF989DB5)
+// The warm coral.
+private val Coral40 = Color(0xFFA63A22)
+private val Coral70 = Color(0xFFFF8B6C)
+private val Coral80 = Color(0xFFFEB5A0)
+private val Coral90 = Color(0xFFFFDBD1)
 
-// The assistant's violet.
-private val AssistLight = Color(0xFF4F46D8)
-private val AssistContainerLight = Color(0xFFE9E7FD)
-private val OnAssistContainerLight = Color(0xFF2B2494)
-private val AssistDark = Color(0xFFABA4FF)
-private val AssistContainerDark = Color(0xFF211E52)
-private val OnAssistContainerDark = Color(0xFFD9D6FF)
-
-private val SuccessLight = Color(0xFF0A7268)
-private val SuccessDark = Color(0xFF5FE0D2)
-private val WarningLight = Color(0xFF8A5A00)
-private val WarningDark = Color(0xFFFFD262)
 private val DangerLight = Color(0xFFB3261E)
 private val DangerDark = Color(0xFFFF8A80)
 
-// Surface roles: `surface` is the page, `surfaceBright` a panel and `surfaceContainer` the sunk fill of a field or
+// Surface roles: `surface` is the flat page, `surfaceBright` a panel and `surfaceContainer` the sunk fill of a field or
 // a chip. M3 components that default to the container roles read as panels or sunk fills without further styling.
-// `primary` is ink, not a brand colour: the accent belongs to the space, and text never depends on it.
+// `primary` is ink, not a brand colour: what matters most on a screen is the strongest contrast, not a hue.
 internal val LightColors = lightColorScheme(
     primary = Ink,
     onPrimary = White,
-    primaryContainer = SunkLight,
+    primaryContainer = Neutral95,
     onPrimaryContainer = Ink,
     inversePrimary = Paper,
-    secondary = AssistLight,
+    secondary = Blue40,
     onSecondary = White,
-    secondaryContainer = AssistContainerLight,
-    onSecondaryContainer = OnAssistContainerLight,
-    tertiary = SuccessLight,
+    secondaryContainer = Blue90,
+    onSecondaryContainer = Blue10,
+    tertiary = Coral40,
     onTertiary = White,
-    tertiaryContainer = SunkLight,
+    tertiaryContainer = Coral90,
     onTertiaryContainer = Ink,
-    background = CanvasLight,
+    background = Neutral94,
     onBackground = Ink,
-    surface = CanvasLight,
+    surface = Neutral94,
     onSurface = Ink,
-    surfaceVariant = SunkLight,
-    onSurfaceVariant = InkSecondaryLight,
+    surfaceVariant = Neutral95,
+    onSurfaceVariant = Neutral30,
     surfaceContainerLowest = White,
     surfaceContainerLow = White,
-    surfaceContainer = SunkLight,
+    surfaceContainer = Neutral95,
     surfaceContainerHigh = White,
-    surfaceContainerHighest = SunkLight,
+    surfaceContainerHighest = Neutral95,
     surfaceBright = White,
     inverseSurface = Ink,
     inverseOnSurface = White,
-    outline = InkTertiaryLight,
-    outlineVariant = HairLight,
+    outline = Neutral50,
+    outlineVariant = Neutral90,
     error = DangerLight,
     onError = White,
 )
@@ -92,58 +93,54 @@ internal val LightColors = lightColorScheme(
 internal val DarkColors = darkColorScheme(
     primary = Paper,
     onPrimary = Ink,
-    primaryContainer = SunkDark,
+    primaryContainer = Neutral17,
     onPrimaryContainer = Paper,
     inversePrimary = Ink,
-    secondary = AssistDark,
+    secondary = Blue80,
     onSecondary = Ink,
-    secondaryContainer = AssistContainerDark,
-    onSecondaryContainer = OnAssistContainerDark,
-    tertiary = SuccessDark,
+    secondaryContainer = Blue25,
+    onSecondaryContainer = Blue90,
+    tertiary = Coral80,
     onTertiary = Ink,
-    tertiaryContainer = SunkDark,
+    tertiaryContainer = Neutral17,
     onTertiaryContainer = Paper,
-    background = CanvasDark,
+    background = Neutral6,
     onBackground = Paper,
-    surface = CanvasDark,
+    surface = Neutral6,
     onSurface = Paper,
-    surfaceVariant = SunkDark,
-    onSurfaceVariant = InkSecondaryDark,
-    surfaceContainerLowest = PanelDark,
-    surfaceContainerLow = PanelDark,
-    surfaceContainer = SunkDark,
-    surfaceContainerHigh = PanelDark,
-    surfaceContainerHighest = SunkDark,
-    surfaceBright = PanelDark,
+    surfaceVariant = Neutral17,
+    onSurfaceVariant = Neutral80,
+    surfaceContainerLowest = Neutral12,
+    surfaceContainerLow = Neutral12,
+    surfaceContainer = Neutral17,
+    surfaceContainerHigh = Neutral12,
+    surfaceContainerHighest = Neutral17,
+    surfaceBright = Neutral12,
     inverseSurface = Paper,
     inverseOnSurface = Ink,
-    outline = InkTertiaryDark,
-    outlineVariant = HairDark,
+    outline = Neutral60,
+    outlineVariant = Neutral20,
     error = DangerDark,
     onError = Ink,
 )
 
-/** The stored accent of everything outside a space: blue, because violet belongs to the assistant. */
-internal const val BrandAccent = 4
+/** The stored accent of everything outside a space. Every index paints the same accent now (#293). */
+internal const val BrandAccent = 0
 
 /**
- * What a space's colour paints. [fill], [vivid] and [partner] always carry [Ink] text; [page] and [planet] carry the
- * theme's own ink; [selected] and [done] are fills on a panel. Read the current one with `OrbitTheme.accent`.
+ * What the accent paints. [fill], [vivid] and [partner] always carry [Ink] text; [page] carries the theme's own ink;
+ * [selected] and [done] are fills on a panel. Read the current one with `OrbitTheme.accent`.
  */
 @Immutable
 data class OrbitAccent(
-    /** Avatars, the add button and the mark. Decorative on the page: under 3:1 there. */
+    /** Avatars, the add button and the mark. Decorative on the page. */
     val fill: Color,
-    /** The loud fills of lists and chores. */
+    /** The loud fills: a colour header, a selected day, the turn card's action. */
     val vivid: Color,
-    /** The fill that sits next to [vivid]. */
+    /** The warm fill that sits next to [vivid]. */
     val partner: Color,
-    /** The page behind the panels. */
+    /** The page behind the panels: one flat colour. */
     val page: Color,
-    /** The disc behind the header. */
-    val planet: Color,
-    /** The soft ring around [planet]. */
-    val halo: Color,
     /** The selected tab of the bar. */
     val selected: Color,
     /** A row that is done. */
@@ -159,10 +156,10 @@ data class OrbitColors(
     val onWarning: Color,
     val info: Color,
     val onInfo: Color,
-    /** Per-space identity fills (avatars, the colour picker). Text on them is always [Ink]. */
+    /** Fills that tell people apart (avatars) and the badges of spaces. Text on them is always [Ink]. */
     val spaceAccents: List<Color>,
-    /** What each entry of [spaceAccents] paints in this theme. */
-    val accents: List<OrbitAccent>,
+    /** What the accent paints in this theme. */
+    val brand: OrbitAccent,
     /** Ink for what must be read but stay quiet: an unticked check, an unselected tab. */
     val inkTertiary: Color,
     /** The soft shadow of panels. */
@@ -172,87 +169,57 @@ data class OrbitColors(
     /** A balance that owes money, as a whole row. Text on it is always [Ink]. */
     val debit: Color,
 ) {
-    /** The accent for [index] (a space's `accent`, a member's position), wrapping around the list. */
+    /** The fill for [index] (a member's position, a space's badge), wrapping around the list. */
     fun spaceAccent(index: Int): Color = spaceAccents[index.mod(spaceAccents.size)]
 
-    /** What the accent at [index] paints, wrapping around the list. */
-    fun accent(index: Int): OrbitAccent = accents[index.mod(accents.size)]
+    /** What the accent paints. The same for every space: a space is told apart by its badge, not its colour (#293). */
+    @Suppress("UNUSED_PARAMETER")
+    fun accent(index: Int): OrbitAccent = brand
 }
 
-/** A plain sRGB mix, as CSS `color-mix(in srgb, …)`: the audited ratios are for these exact values. */
-private fun Color.mixedWith(other: Color, amount: Float) = Color(
-    red = red + (other.red - red) * amount,
-    green = green + (other.green - green) * amount,
-    blue = blue + (other.blue - blue) * amount,
-)
-
-private val SpaceAccents = listOf(Nebula, Mars, Uranus, Saturn, Neptune, Venus)
-
-// Ink is 8:1 or better on every vivid and partner fill.
-private val VividFills = listOf(
-    Color(0xFFB1A6FF),
-    Color(0xFFFF9A78),
-    Color(0xFF4BDFCB),
-    Color(0xFFFFD262),
-    Color(0xFF86B6FF),
-    Color(0xFFFFA3C8),
-)
-private val PartnerFills = listOf(
-    Color(0xFFC9F06B),
-    Color(0xFFFFD86B),
-    Color(0xFFFFB4D2),
-    Color(0xFF9FBEFF),
-    Color(0xFFD4F26E),
-    Color(0xFFA9EFD6),
-)
-
-private fun accents(canvas: Color, panel: Color, pageAmount: Float) = SpaceAccents.indices.map { index ->
-    val fill = SpaceAccents[index]
-    OrbitAccent(
-        fill = fill,
-        vivid = VividFills[index],
-        partner = PartnerFills[index],
-        page = canvas.mixedWith(fill, pageAmount),
-        planet = canvas.mixedWith(fill, PlanetAmount),
-        halo = fill.copy(alpha = HaloAlpha),
-        selected = panel.mixedWith(fill, SelectedAmount),
-        done = panel.mixedWith(VividFills[index], DoneAmount),
-    )
-}
-
-private const val PageAmountLight = 0.20f
-private const val PageAmountDark = 0.16f
-private const val PlanetAmount = 0.34f
-private const val HaloAlpha = 0.12f
-private const val SelectedAmount = 0.22f
-private const val DoneAmount = 0.22f
+// Tones of the blue and the coral, alternating so two faces side by side differ. Ink is 8:1 or better on each.
+private val SpaceAccents = listOf(Blue80, Coral80, Blue70, Coral70, Blue90, Coral90)
 
 internal val LightOrbitColors = OrbitColors(
-    success = SuccessLight,
+    success = Blue40,
     onSuccess = White,
-    warning = WarningLight,
+    warning = Coral40,
     onWarning = White,
-    info = AssistLight,
+    info = Blue40,
     onInfo = White,
     spaceAccents = SpaceAccents,
-    accents = accents(CanvasLight, White, PageAmountLight),
-    inkTertiary = InkTertiaryLight,
+    brand = OrbitAccent(
+        fill = Blue60,
+        vivid = Blue80,
+        partner = Coral80,
+        page = Neutral94,
+        selected = Blue90,
+        done = Blue95,
+    ),
+    inkTertiary = Neutral40,
     shadow = Ink,
-    credit = VividFills[2],
-    debit = VividFills[1],
+    credit = Blue80,
+    debit = Coral80,
 )
 
 internal val DarkOrbitColors = OrbitColors(
-    success = SuccessDark,
+    success = Blue80,
     onSuccess = Ink,
-    warning = WarningDark,
+    warning = Coral80,
     onWarning = Ink,
-    info = AssistDark,
+    info = Blue80,
     onInfo = Ink,
     spaceAccents = SpaceAccents,
-    accents = accents(CanvasDark, PanelDark, PageAmountDark),
-    inkTertiary = InkTertiaryDark,
+    brand = OrbitAccent(
+        fill = Blue70,
+        vivid = Blue80,
+        partner = Coral80,
+        page = Neutral6,
+        selected = Blue25,
+        done = Blue17,
+    ),
+    inkTertiary = Neutral70,
     shadow = Color.Black,
-    credit = VividFills[2],
-    debit = VividFills[1],
+    credit = Blue80,
+    debit = Coral80,
 )

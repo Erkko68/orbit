@@ -332,15 +332,10 @@
     <string name="space_settings">Configuració de l&apos;espai</string>
     <string name="space_settings_invite_body">Un codi o un enllaç, vàlid una setmana</string>
     <string name="space_settings_name">Nom de l&apos;espai</string>
-    <string name="space_settings_colour">Color</string>
+    <string name="space_settings_colour">Insígnia</string>
     <string name="space_settings_save">Desa</string>
     <string name="space_settings_failed">No s&apos;han pogut desar els canvis. Torna-ho a provar.</string>
-    <string name="space_colour_violet">Violeta</string>
-    <string name="space_colour_coral">Corall</string>
-    <string name="space_colour_teal">Verd blavós</string>
-    <string name="space_colour_sun">Sol</string>
-    <string name="space_colour_blue">Blau</string>
-    <string name="space_colour_pink">Rosa</string>
+    <string name="space_badge_option">Insígnia %1$d</string>
     <string name="cancel">Cancel·la</string>
     <string name="show">Mostra</string>
     <string name="hide">Amaga</string>
