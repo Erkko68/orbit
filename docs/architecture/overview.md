@@ -7,7 +7,7 @@ flowchart LR
     android["androidApp<br/>Application, Activity"] --> shared
     ios["iosApp<br/>SwiftUI entry, Xcode project"] --> shared
     shared["shared<br/>all app code: UI, ViewModels,<br/>domain, data, DI"] --> firebase[("Firebase<br/>Auth · Firestore")]
-    server["server<br/>assistant (Python, Docker)"] --> model[("Gemma 4 on Ollama,<br/>or Gemini")]
+    server["server<br/>assistant (Python, Docker)"] --> model[("Gemma 4 on Ollama")]
     server -. "checks ID tokens" .-> firebase
     shared -. "POST /interview (Sprint 2)" .-> server
 ```
