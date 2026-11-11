@@ -73,7 +73,7 @@ The request's `data` carries every answer so far, `{"answers": [{questionId, sel
 
 ### The app's side
 
-`ServerAssistantRepository` (`shared/…/data/repository/`) posts to `ASSISTANT_SERVER_URL` with the user's ID token, through Ktor, and waits up to three minutes for a small model. No connection reads as a network error, and a reply that is not the callable shape (a proxy's error page) as `UNAVAILABLE`. `ASSISTANT_SERVER_URL` is a placeholder (`https://assistant.orbit.invalid`) until the server has its domain; set it there.
+`ServerAssistantRepository` (`shared/…/data/repository/`) posts to `ASSISTANT_SERVER_URL` with the user's ID token, through Ktor, and waits up to three minutes for a small model. No connection reads as a network error, and a reply that is not the callable shape (a proxy's error page) as `UNAVAILABLE`. `ASSISTANT_SERVER_URL` is `https://orbit.biri.es`, the Cloudflare tunnel to our server.
 
 ## The catalogue
 

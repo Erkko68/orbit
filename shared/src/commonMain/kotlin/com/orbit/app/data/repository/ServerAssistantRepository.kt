@@ -17,11 +17,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.content.TextContent
 import kotlinx.coroutines.CancellationException
 
-/**
- * Where the assistant server answers (ADR 0007): HTTPS behind the reverse proxy on Èric's server. Pending its domain;
- * until then every call fails as no connection, and the manual path stays.
- */
-internal const val ASSISTANT_SERVER_URL = "https://assistant.orbit.invalid"
+/** Where the assistant server answers (ADR 0007): HTTPS through the Cloudflare tunnel to Èric's server. */
+internal const val ASSISTANT_SERVER_URL = "https://orbit.biri.es"
 
 /** Calls `POST /interview` on the assistant server, as the signed-in user. */
 class ServerAssistantRepository(
