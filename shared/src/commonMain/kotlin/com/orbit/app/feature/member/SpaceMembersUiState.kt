@@ -24,6 +24,8 @@ data class SpaceMembersUiState(
     val failed: Boolean = false,
     /** The member whose role the sheet is picking, while it is open. */
     val pickingRole: SpaceMember? = null,
+    /** The member the user is about to take out of the space, while the dialog asks (#264). */
+    val removing: SpaceMember? = null,
     /** The admin the user is about to hand the space to, while the dialog asks. */
     val transferTo: SpaceMember? = null,
     /** The user ticked that only the new owner can give the space back. */
@@ -69,4 +71,6 @@ data class SpaceMember(
     val canChangeRole: Boolean = false,
     /** The user owns the space and this is an admin, to whom they can hand it. */
     val canTakeOwnership: Boolean = false,
+    /** The user may take this member out of the space: the owner anyone else, an admin a plain member (#264). */
+    val canRemove: Boolean = false,
 )

@@ -43,6 +43,11 @@ internal class FakeSpaceRepository(
         error("Has no signed-in user: leave through InMemorySpaceRepository")
     }
 
+    override suspend fun removeMember(spaceId: String, userId: String, displayName: String) {
+        writeFailure?.let { throw it }
+        error("Has no members: remove through InMemorySpaceRepository")
+    }
+
     override suspend fun deleteSpace(spaceId: String) {
         writeFailure?.let { throw it }
         error("Has no signed-in user: delete through InMemorySpaceRepository")

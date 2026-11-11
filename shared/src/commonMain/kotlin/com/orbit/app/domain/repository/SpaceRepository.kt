@@ -46,6 +46,13 @@ interface SpaceRepository {
      */
     suspend fun leaveSpace(spaceId: String)
 
+    /**
+     * Takes [userId], another member, out of the space. The owner removes anyone else; an admin removes a plain
+     * member; the owner is never removed. The space keeps [displayName] among its former members, which is what
+     * its history shows, so the caller passes the name it already has. Throws when it is not allowed.
+     */
+    suspend fun removeMember(spaceId: String, userId: String, displayName: String)
+
     /** Deletes the space for every member. Only the owner can. Throws when it is not allowed. */
     suspend fun deleteSpace(spaceId: String)
 
