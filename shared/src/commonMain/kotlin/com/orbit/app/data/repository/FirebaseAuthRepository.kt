@@ -10,6 +10,7 @@ import com.orbit.app.data.mapper.signInException
 import com.orbit.app.data.mapper.userProfileDocument
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
+import com.orbit.app.domain.model.DISPLAY_NAME_MAX_LENGTH
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import dev.gitlive.firebase.auth.AuthCredential
@@ -100,7 +101,7 @@ class FirebaseAuthRepository(
      * they belong to in a single batch, so profile copies never drift (ADR 0002).
      */
     override suspend fun updateDisplayName(displayName: String) {
-        val trimmed = displayName.trim()
+        val trimmed = displayName.trim().take(DISPLAY_NAME_MAX_LENGTH)
         require(trimmed.isNotBlank()) { "A display name is required" }
         val user = signedInUser()
 

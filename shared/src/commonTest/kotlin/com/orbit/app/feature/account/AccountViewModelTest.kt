@@ -3,6 +3,7 @@ package com.orbit.app.feature.account
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.CredentialsError
+import com.orbit.app.domain.model.DISPLAY_NAME_MAX_LENGTH
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
@@ -366,6 +367,16 @@ class AccountViewModelTest {
         assertEquals(listOf("ana@orbit.app"), spaces.observeMembers(alone).first().map { it.userId })
         assertEquals(2, spaces.observeMembers(shared).first().size)
         assertEquals("ana@orbit.app", auth.session.first()?.id)
+    }
+
+    @Test
+    fun aNameStopsAtItsLongestLength() = runTest {
+        val viewModel = observe(signedIn())
+        viewModel.openEditName()
+
+        viewModel.onNameChange("A".repeat(DISPLAY_NAME_MAX_LENGTH + 5))
+
+        assertEquals(DISPLAY_NAME_MAX_LENGTH, viewModel.uiState.value.nameDraft.length)
     }
 
     @Test

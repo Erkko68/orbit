@@ -113,7 +113,7 @@ The signed-in user's private profile. Only its owner reads or writes it.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `displayName` | string | yes | |
+| `displayName` | string | yes | At most 30 characters (`DISPLAY_NAME_MAX_LENGTH`). The app cuts a longer Google or email name to fit. |
 | `photoUrl` | string | no | From Google sign-in |
 | `language` | string | yes | `es`, `ca`, `it` or `en`, from the phone. Refreshed on every sign-in. For the server only: the app reads the phone's. |
 | `timeZone` | string | yes | IANA id, from the phone. Same as `language`. |

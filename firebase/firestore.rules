@@ -25,6 +25,13 @@ service cloud.firestore {
       return /databases/$(database)/documents/spaces/$(spaceId)/members/$(uid);
     }
 
+    // A display name fits the layouts that show it: DISPLAY_NAME_MAX_LENGTH in the app (#293). Checked only when it
+    // is written, so a profile from before the limit keeps working.
+    function fitsName() {
+      let name = request.resource.data.get('displayName', '');
+      return name.size() <= 30 || (resource != null && name == resource.data.get('displayName', ''));
+    }
+
     // The fields an update changes.
     function changedKeys() {
       return request.resource.data.diff(resource.data).affectedKeys();
@@ -73,7 +80,8 @@ service cloud.firestore {
     // ── users/{uid}: the private profile, read and written by its owner only ────────────────────────
 
     match /users/{uid} {
-      allow read, write: if isUser(uid);
+      allow read, delete: if isUser(uid);
+      allow create, update: if isUser(uid) && fitsName();
     }
 
     // ── spaces/{spaceId} ──────────────────────────────────────────────────────────────────────────
@@ -226,11 +234,13 @@ service cloud.firestore {
         }
 
         allow read: if isMember(spaceId);
-        allow create: if (isSpaceCreator() && request.auth.uid == memberId && request.resource.data.role == 'owner')
-          || joinsAsMember();
+        allow create: if fitsName() && (
+          (isSpaceCreator() && request.auth.uid == memberId && request.resource.data.role == 'owner')
+          || joinsAsMember()
+        );
         // A member edits their own profile copy and the role stays. Only the owner sets the role of anyone
         // else to admin or member: an admin makes no admins. Nobody becomes owner this way: only a transfer does.
-        allow update: if keepsJoin() && (
+        allow update: if fitsName() && keepsJoin() && (
           (isMember(spaceId) && request.auth.uid == memberId && request.resource.data.role == resource.data.role) ||
           (isOwner(spaceId) && resource.data.role != 'owner' && request.resource.data.role in ['admin', 'member']) ||
           handsOwnership()

@@ -1,5 +1,8 @@
 package com.orbit.app.domain.model
 
+/** The longest display name, so a name never breaks a layout that shows it (#293). `firestore.rules` checks the same. */
+const val DISPLAY_NAME_MAX_LENGTH = 30
+
 /**
  * The signed-in user's profile. [email] is the sign-in account's, not part of the profile document. The
  * document also keeps the phone's language and time zone, for the server; the app reads them from the phone.

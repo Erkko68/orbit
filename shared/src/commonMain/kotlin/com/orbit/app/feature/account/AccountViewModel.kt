@@ -2,6 +2,7 @@ package com.orbit.app.feature.account
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.orbit.app.domain.model.DISPLAY_NAME_MAX_LENGTH
 import com.orbit.app.domain.model.validateNewPassword
 import com.orbit.app.domain.model.validatePasswordChange
 import com.orbit.app.domain.repository.AuthRepository
@@ -41,7 +42,9 @@ class AccountViewModel(
         AccountUiState(dialog = AccountSheetKind.EDIT_NAME, nameDraft = uiState.value.name)
     }
 
-    fun onNameChange(name: String) = form.update { it.copy(nameDraft = name, authError = null) }
+    /** The field stops at [DISPLAY_NAME_MAX_LENGTH], so a name never breaks a layout that shows it (#293). */
+    fun onNameChange(name: String) =
+        form.update { it.copy(nameDraft = name.take(DISPLAY_NAME_MAX_LENGTH), authError = null) }
 
     fun saveName() {
         val state = uiState.value
