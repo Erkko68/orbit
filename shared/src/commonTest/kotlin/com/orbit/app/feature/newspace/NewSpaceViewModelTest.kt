@@ -32,19 +32,19 @@ class NewSpaceViewModelTest {
     }
 
     @Test
-    fun createsASpaceInTheColourPickedAndOpensIt() = runTest {
+    fun createsASpaceWithTheNextBadgeAndOpensIt() = runTest {
         val auth = InMemoryAuthRepository()
         auth.signIn("ana@orbit.app", "secret")
         val spaces = InMemorySpaceRepository(auth)
+        spaces.createSpace("Studio", accent = 0)
         val viewModel = NewSpaceViewModel(spaces, PendingInvitation())
 
         viewModel.onNameChange("  Flat 4B ")
-        viewModel.selectAccent(3)
         viewModel.createSpace()
 
-        val created = spaces.observeSpaces().first().single()
+        val created = spaces.observeSpaces().first().single { it.name != "Studio" }
         assertEquals("Flat 4B", created.name)
-        assertEquals(3, created.accent)
+        assertEquals(1, created.accent)
         assertEquals(created.id, viewModel.uiState.value.openSpaceId)
         assertFalse(viewModel.uiState.value.creating)
     }

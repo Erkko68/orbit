@@ -4,8 +4,6 @@ import com.orbit.app.domain.model.JoinError
 
 data class NewSpaceUiState(
     val name: String = "",
-    /** The colour picked for the space, which the screen takes on as a preview. */
-    val accent: Int = 0,
     val creating: Boolean = false,
     /** The last create failed. Cleared by the next edit or attempt. */
     val createFailed: Boolean = false,

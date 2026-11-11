@@ -3,6 +3,7 @@ package com.orbit.app.feature.account
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.CredentialsError
+import com.orbit.app.domain.model.DISPLAY_NAME_MAX_LENGTH
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
@@ -23,6 +24,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.error_current_password_wrong
+import orbit.shared.generated.resources.error_email_in_use
 import orbit.shared.generated.resources.error_network
 import orbit.shared.generated.resources.error_unknown
 import orbit.shared.generated.resources.error_weak_password
@@ -209,10 +211,10 @@ class AccountViewModelTest {
         val gate = CompletableDeferred<Unit>()
         var deletes = 0
         val slow = object : AuthRepository by auth {
-            override suspend fun deleteAccount(currentPassword: String?) {
+            override suspend fun deleteAccount() {
                 deletes++
                 gate.await()
-                auth.deleteAccount(currentPassword)
+                auth.deleteAccount()
             }
         }
         val viewModel = observe(slow)
@@ -344,6 +346,90 @@ class AccountViewModelTest {
         assertFalse(viewModel.uiState.value.submitting)
         assertEquals("ana@orbit.app", auth.session.first()?.id)
         assertEquals(2, spaces.observeMembers(owned).first().size)
+    }
+
+    @Test
+    fun aWrongPasswordLeavesEverySpaceAsItWas() = runTest {
+        val auth = InMemoryAuthRepository()
+        val spaces = InMemorySpaceRepository(auth)
+        auth.register("bob@orbit.app", "secret", "Bob")
+        val shared = spaces.createSpace("Flat 4B", accent = 0)
+        auth.register("ana@orbit.app", "secret", "Ana López")
+        spaces.addMember(shared, Member("ana@orbit.app", "Ana López", photoUrl = null, role = Role.MEMBER))
+        val alone = spaces.createSpace("Studio", accent = 1)
+        val viewModel = observe(auth, spaces)
+        viewModel.openDeleteAccount()
+        viewModel.onDeletePasswordChange("not-it")
+
+        viewModel.deleteAccount()
+
+        assertEquals(Res.string.error_current_password_wrong, viewModel.uiState.value.deletePasswordError)
+        assertEquals(listOf("ana@orbit.app"), spaces.observeMembers(alone).first().map { it.userId })
+        assertEquals(2, spaces.observeMembers(shared).first().size)
+        assertEquals("ana@orbit.app", auth.session.first()?.id)
+    }
+
+    @Test
+    fun aNameStopsAtItsLongestLength() = runTest {
+        val viewModel = observe(signedIn())
+        viewModel.openEditName()
+
+        viewModel.onNameChange("A".repeat(DISPLAY_NAME_MAX_LENGTH + 5))
+
+        assertEquals(DISPLAY_NAME_MAX_LENGTH, viewModel.uiState.value.nameDraft.length)
+    }
+
+    @Test
+    fun aGoogleAccountSetsAPasswordWithoutACurrentOne() = runTest {
+        val auth = InMemoryAuthRepository().apply { signInWithGoogle() }
+        val viewModel = observe(auth)
+
+        viewModel.openChangePassword()
+        viewModel.onNewPasswordChange("a-new-secret")
+        viewModel.onConfirmationChange("a-new-secret")
+        viewModel.changePassword()
+
+        assertTrue(viewModel.uiState.value.hasPassword)
+        assertNull(viewModel.uiState.value.dialog)
+    }
+
+    @Test
+    fun aFirstPasswordFollowsTheNewPasswordRules() = runTest {
+        val auth = InMemoryAuthRepository().apply { signInWithGoogle() }
+        val viewModel = observe(auth)
+
+        viewModel.openChangePassword()
+        viewModel.onNewPasswordChange("short")
+        viewModel.onConfirmationChange("short")
+        viewModel.changePassword()
+
+        assertEquals(listOf(CredentialsError.ShortPassword), viewModel.uiState.value.passwordErrors)
+        assertFalse(viewModel.uiState.value.hasPassword)
+    }
+
+    @Test
+    fun connectsGoogleToAPasswordAccount() = runTest {
+        val auth = signedIn()
+        val viewModel = observe(auth)
+        assertFalse(viewModel.uiState.value.signsInWithGoogle)
+
+        viewModel.openConnectGoogle()
+        assertEquals(AccountSheetKind.CONNECT_GOOGLE, viewModel.uiState.value.dialog)
+        viewModel.connectGoogle()
+
+        assertTrue(viewModel.uiState.value.signsInWithGoogle)
+        assertNull(viewModel.uiState.value.dialog)
+    }
+
+    @Test
+    fun aFailedConnectStaysInTheSheet() = runTest {
+        val viewModel = observe(FailingAuthRepository(AuthException(AuthError.EMAIL_IN_USE), user = ana))
+        viewModel.openConnectGoogle()
+
+        viewModel.connectGoogle()
+
+        assertEquals(AccountSheetKind.CONNECT_GOOGLE, viewModel.uiState.value.dialog)
+        assertEquals(Res.string.error_email_in_use, viewModel.uiState.value.dialogError)
     }
 
     @Test

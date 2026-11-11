@@ -2,19 +2,17 @@ package com.orbit.app.feature.account
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.orbit.app.data.repository.requireUser
-import com.orbit.app.domain.model.AuthError
-import com.orbit.app.domain.model.AuthException
-import com.orbit.app.domain.model.Role
+import com.orbit.app.domain.model.DISPLAY_NAME_MAX_LENGTH
+import com.orbit.app.domain.model.validateNewPassword
 import com.orbit.app.domain.model.validatePasswordChange
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.SpaceRepository
+import com.orbit.app.domain.usecase.closeAccount
 import com.orbit.app.feature.auth.executeAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -36,6 +34,7 @@ class AccountViewModel(
             email = user?.email.orEmpty(),
             photoUrl = user?.photoUrl,
             hasPassword = user?.hasPassword != false,
+            signsInWithGoogle = user?.signsInWithGoogle != false,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountUiState())
 
@@ -43,7 +42,9 @@ class AccountViewModel(
         AccountUiState(dialog = AccountSheetKind.EDIT_NAME, nameDraft = uiState.value.name)
     }
 
-    fun onNameChange(name: String) = form.update { it.copy(nameDraft = name, authError = null) }
+    /** The field stops at [DISPLAY_NAME_MAX_LENGTH], so a name never breaks a layout that shows it (#293). */
+    fun onNameChange(name: String) =
+        form.update { it.copy(nameDraft = name.take(DISPLAY_NAME_MAX_LENGTH), authError = null) }
 
     fun saveName() {
         val state = uiState.value
@@ -63,16 +64,31 @@ class AccountViewModel(
 
     fun togglePasswordsVisibility() = form.update { it.copy(passwordsVisible = !it.passwordsVisible) }
 
+    /** Changes the password, or sets the first one of an account that only signs in with Google (#293). */
     fun changePassword() {
         val state = form.value
         if (state.submitting) return
-        val errors = validatePasswordChange(state.currentPassword, state.newPassword, state.confirmation)
+        val setting = !uiState.value.hasPassword
+        val errors = if (setting) {
+            validateNewPassword(state.newPassword, state.confirmation)
+        } else {
+            validatePasswordChange(state.currentPassword, state.newPassword, state.confirmation)
+        }
         if (errors.isNotEmpty()) {
             form.update { it.copy(passwordErrors = errors, authError = null) }
             return
         }
-        submit("Changing the password") { auth.changePassword(state.currentPassword, state.newPassword) }
+        if (setting) {
+            submit("Setting a password") { auth.setPassword(state.newPassword) }
+        } else {
+            submit("Changing the password") { auth.changePassword(state.currentPassword, state.newPassword) }
+        }
     }
+
+    fun openConnectGoogle() = form.update { AccountUiState(dialog = AccountSheetKind.CONNECT_GOOGLE) }
+
+    /** Opens Google's account picker; the one picked becomes another way into this account (#293). */
+    fun connectGoogle() = submit("Connecting Google") { auth.linkGoogle() }
 
     fun openDeleteAccount() = form.update { AccountUiState(dialog = AccountSheetKind.DELETE_ACCOUNT) }
 
@@ -90,7 +106,7 @@ class AccountViewModel(
         form.update { it.copy(submitting = true, authError = null, handOver = emptyList()) }
         viewModelScope.launch {
             var handOver = emptyList<String>()
-            val error = executeAuth("Deleting the account") { handOver = erase(state.deletePassword) }
+            val error = executeAuth("Deleting the account") { handOver = closeAccount(auth, spaces, state.deletePassword) }
             form.update {
                 when {
                     error != null -> it.copy(submitting = false, authError = error)
@@ -99,28 +115,6 @@ class AccountViewModel(
                 }
             }
         }
-    }
-
-    /**
-     * Empties the account out of every space and then deletes it, in the order decided for #188: the spaces
-     * where the user is alone, then their other memberships, then the account itself. Each step stands on
-     * its own, so a run that stops halfway can simply be run again. Returns the names of the spaces that
-     * have to be handed over first, and then nothing is deleted at all.
-     */
-    private suspend fun erase(password: String): List<String> {
-        val me = auth.requireUser()
-        // The sheet holds Delete back until there is a password, so an empty one only reaches here by mistake.
-        if (me.hasPassword && password.isBlank()) throw AuthException(AuthError.WRONG_CREDENTIALS)
-        val mine = spaces.observeSpaces().first()
-        val owned = mine.filter { space ->
-            spaces.observeMembers(space.id).first().firstOrNull { it.userId == me.id }?.role == Role.OWNER
-        }
-        val shared = owned.filter { it.memberIds.size > 1 }
-        if (shared.isNotEmpty()) return shared.map { it.name }
-        owned.forEach { spaces.deleteSpace(it.id) }
-        (mine - owned.toSet()).forEach { spaces.leaveSpace(it.id) }
-        auth.deleteAccount(password.takeIf { me.hasPassword })
-        return emptyList()
     }
 
     /** Closes the open dialog and forgets what was typed in it, unless its write is still running. */

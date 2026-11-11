@@ -23,8 +23,8 @@ fun OrbitTonalButton(
         enabled = enabled,
         shape = MaterialTheme.shapes.medium,
         colors = ButtonDefaults.buttonColors(
-            containerColor = colors.surfaceContainer,
-            contentColor = colors.onSurface,
+            containerColor = colors.secondaryContainer,
+            contentColor = colors.onSecondaryContainer,
         ),
     ) {
         Text(text, style = MaterialTheme.typography.titleSmall)

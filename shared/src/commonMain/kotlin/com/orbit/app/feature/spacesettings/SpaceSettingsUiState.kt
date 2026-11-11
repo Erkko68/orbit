@@ -3,20 +3,18 @@ package com.orbit.app.feature.spacesettings
 import com.orbit.app.domain.model.Role
 
 /**
- * The settings screen of a space: an owner or admin edits its name and colour, anyone sees its members, the owner
- * deletes it and everyone else leaves it.
+ * The settings screen of a space: an owner or admin renames it in a sheet and invites people, anyone sees its members,
+ * the owner deletes it and everyone else leaves it.
  */
 data class SpaceSettingsUiState(
     /** The user's role in the space. Null until the members load, and for someone outside it. */
     val role: Role? = null,
     /** The space's name as saved. */
     val spaceName: String = "",
-    /** The space's colour as saved, null until it has loaded. */
-    val accent: Int? = null,
-    /** The name being typed, until it is saved. */
+    /** The rename sheet is open. */
+    val renaming: Boolean = false,
+    /** The name being typed in it, until it is saved. */
     val nameDraft: String? = null,
-    /** The colour being picked, until it is saved. */
-    val accentDraft: Int? = null,
     val saving: Boolean = false,
     /** The last save failed. Cleared by the next edit or attempt. */
     val failed: Boolean = false,
@@ -29,7 +27,7 @@ data class SpaceSettingsUiState(
     /** The user left or deleted the space, so the app goes back to the list of spaces. */
     val gone: Boolean = false,
 ) {
-    /** An owner or admin edits the name and colour. */
+    /** An owner or admin edits the name. */
     val canEdit: Boolean get() = role?.managesSpace == true
 
     /** The owner's way out is deleting the space for everyone; everyone else leaves it. */
@@ -37,12 +35,9 @@ data class SpaceSettingsUiState(
 
     val name: String get() = nameDraft ?: spaceName
 
-    /** The colour the screen shows: the one being picked, or the saved one. */
-    val shownAccent: Int? get() = accentDraft ?: accent
-
-    /** Something differs from what is saved, so Save shows. */
+    /** Something differs from what is saved, so Save can go. */
     val changed: Boolean
-        get() = (nameDraft != null && nameDraft.trim() != spaceName) || (accentDraft != null && accentDraft != accent)
+        get() = nameDraft != null && nameDraft.trim() != spaceName
 
     val canSave: Boolean get() = canEdit && changed && name.isNotBlank() && !saving
 }

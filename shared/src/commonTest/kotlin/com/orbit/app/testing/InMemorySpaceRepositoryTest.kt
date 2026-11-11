@@ -105,29 +105,23 @@ class InMemorySpaceRepositoryTest {
     private suspend fun spaceOf(spaceId: String) = spaces.observeSpaces().first().single { it.id == spaceId }
 
     @Test
-    fun theOwnerChangesTheNameAndTheColour() = runTest {
+    fun theOwnerRenamesTheSpace() = runTest {
         val id = teamOfTwo()
 
-        spaces.updateSpace(id, name = "Flat 4C", accent = 3)
+        spaces.renameSpace(id, "Flat 4C")
 
         assertEquals("Flat 4C", spaceOf(id).name)
-        assertEquals(3, spaceOf(id).accent)
     }
 
     @Test
-    fun anAdminChangesOnlyTheFieldGiven() = runTest {
+    fun anAdminRenamesTheSpace() = runTest {
         val id = teamOfTwo()
         spaces.changeRole(id, "ben@orbit.app", Role.ADMIN)
         auth.signOut()
         auth.signIn("ben@orbit.app", "secret")
 
-        spaces.updateSpace(id, name = null, accent = 2)
-        assertEquals("Flat 4B", spaceOf(id).name)
-        assertEquals(2, spaceOf(id).accent)
-
-        spaces.updateSpace(id, name = "Flat 4D", accent = null)
+        spaces.renameSpace(id, "Flat 4D")
         assertEquals("Flat 4D", spaceOf(id).name)
-        assertEquals(2, spaceOf(id).accent)
     }
 
     @Test
@@ -136,16 +130,15 @@ class InMemorySpaceRepositoryTest {
         auth.signOut()
         auth.signIn("ben@orbit.app", "secret")
 
-        assertFailsWith<IllegalStateException> { spaces.updateSpace(id, name = "Mine now", accent = null) }
+        assertFailsWith<IllegalStateException> { spaces.renameSpace(id, "Mine now") }
         assertEquals("Flat 4B", spaceOf(id).name)
     }
 
     @Test
-    fun refusesABlankNameAndAnEditThatChangesNothing() = runTest {
+    fun refusesABlankName() = runTest {
         val id = teamOfTwo()
 
-        assertFailsWith<IllegalArgumentException> { spaces.updateSpace(id, name = "   ", accent = null) }
-        assertFailsWith<IllegalArgumentException> { spaces.updateSpace(id, name = null, accent = null) }
+        assertFailsWith<IllegalArgumentException> { spaces.renameSpace(id, "   ") }
         assertEquals("Flat 4B", spaceOf(id).name)
     }
 
@@ -154,13 +147,13 @@ class InMemorySpaceRepositoryTest {
         val id = teamOfTwo()
         auth.signOut()
 
-        assertFailsWith<IllegalStateException> { spaces.updateSpace(id, name = "Flat 4C", accent = null) }
+        assertFailsWith<IllegalStateException> { spaces.renameSpace(id, "Flat 4C") }
     }
 
     @Test
     fun everyoneInTheSpaceSeesTheChange() = runTest {
         val id = teamOfTwo()
-        spaces.updateSpace(id, name = "Flat 4C", accent = null)
+        spaces.renameSpace(id, "Flat 4C")
         auth.signOut()
         auth.signIn("ben@orbit.app", "secret")
 

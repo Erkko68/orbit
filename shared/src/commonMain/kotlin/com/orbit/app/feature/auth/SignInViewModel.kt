@@ -12,14 +12,9 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** Holds the sign-in form. Signing in moves the auth gate, so success needs no state here. */
-class SignInViewModel(private val auth: AuthRepository) : ViewModel(), AuthLinkForm {
+class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(SignInUiState())
     val uiState: StateFlow<SignInUiState> = _uiState.asStateFlow()
-
-    /** Submissions and the link sheet, both shared with the other auth form (#173). */
-    private val form = AuthForm(auth, _uiState, viewModelScope)
-
-    override val linking get() = form.linking
 
     fun onEmailChange(email: String) =
         _uiState.update { it.copy(email = email, errors = emptyList(), authError = null) }
@@ -40,9 +35,9 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel(), AuthLinkF
         submit("Sign-in") { auth.signIn(form.email.trim(), form.password) }
     }
 
-    override fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
+    fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
 
-    /** Opens the reset dialog on whatever address the form already has (#217). */
+    /** Opens the reset sheet on whatever address the form already has (#217). */
     fun openPasswordReset() {
         if (_uiState.value.submitting) return
         _uiState.update {
@@ -59,13 +54,13 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel(), AuthLinkF
     fun onResetEmailChange(email: String) =
         _uiState.update { it.copy(resetEmail = email, resetErrors = emptyList(), resetError = null) }
 
-    /** Closes the dialog, unless the link is already going out. */
+    /** Closes the sheet, unless the link is already going out. */
     fun dismissPasswordReset() {
         if (!_uiState.value.resetSending) _uiState.update { it.copy(resetOpen = false) }
     }
 
     /**
-     * Sends the link. The dialog then says it went, whether or not the address has an account, so nobody
+     * Sends the link. The sheet then says it went, whether or not the address has an account, so nobody
      * learns which addresses are registered; only a failure of the request itself is shown.
      */
     fun sendPasswordReset() {
@@ -83,6 +78,13 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel(), AuthLinkF
         }
     }
 
-    /** Runs [call] unless one is running; the form then shows whatever it left behind. */
-    private fun submit(what: String, call: suspend () -> Unit) = form.submit(what, call)
+    /** Runs [call] unless one is running. A failure stays in the form as [SignInUiState.authError]. */
+    private fun submit(what: String, call: suspend () -> Unit) {
+        if (_uiState.value.submitting) return
+        _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
+        viewModelScope.launch {
+            val authError = executeAuth(what, call)
+            _uiState.update { it.copy(submitting = false, authError = authError) }
+        }
+    }
 }

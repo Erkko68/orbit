@@ -20,17 +20,19 @@ internal class FailingAuthRepository(
 
     override suspend fun changePassword(currentPassword: String, newPassword: String) = throw failure
 
-    override suspend fun deleteAccount(currentPassword: String?) = throw failure
+    override suspend fun linkGoogle() = throw failure
+
+    override suspend fun setPassword(newPassword: String) = throw failure
+
+    override suspend fun reauthenticate(currentPassword: String?) = throw failure
+
+    override suspend fun deleteAccount() = throw failure
 
     override suspend fun acceptAiConsent() = throw failure
 
     override suspend fun idToken(): String = throw failure
 
     override suspend fun signInWithGoogle() = throw failure
-
-    override suspend fun linkGoogleWithPassword(email: String, password: String) = throw failure
-
-    override suspend fun setPasswordWithGoogle(email: String, password: String) = throw failure
 
     override suspend fun sendPasswordReset(email: String) = throw failure
 

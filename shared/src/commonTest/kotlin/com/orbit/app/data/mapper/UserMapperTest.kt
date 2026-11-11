@@ -1,6 +1,7 @@
 package com.orbit.app.data.mapper
 
 import com.orbit.app.core.deviceLanguage
+import com.orbit.app.domain.model.DISPLAY_NAME_MAX_LENGTH
 import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -19,6 +20,16 @@ class UserMapperTest {
         assertEquals("user-123", user.id)
         assertEquals("Alice Wonderland", user.displayName)
         assertEquals("https://example.com/alice.png", user.photoUrl)
+    }
+
+    @Test
+    fun aLongNameIsCutToFitWhereverItComesFrom() {
+        val long = "Maria del Carmen Rodriguez de la Fuente"
+        val fitted = long.take(DISPLAY_NAME_MAX_LENGTH)
+
+        assertEquals(fitted, mapUser(id = "u", displayName = long, photoUrl = null).displayName)
+        assertEquals(fitted, mapUser(id = "u", displayName = null, photoUrl = null, fallbackDisplayName = long).displayName)
+        assertEquals(fitted, userProfileDocument(displayName = long)["displayName"])
     }
 
     @Test

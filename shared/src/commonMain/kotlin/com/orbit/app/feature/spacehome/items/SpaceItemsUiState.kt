@@ -48,7 +48,10 @@ data class SpaceItem(
     val dueDate: LocalDate? = null,
     val dueTime: LocalTime? = null,
     val checklist: SpaceItemChecklist? = null,
-)
+) {
+    /** Still to do and its day has passed: its row says so in its own tone (#293). */
+    fun isOverdue(today: LocalDate?): Boolean = !done && today != null && dueDate != null && dueDate < today
+}
 
 /** How far along a list is. */
 data class SpaceItemChecklist(val done: Int, val total: Int)

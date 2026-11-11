@@ -29,7 +29,7 @@ class ExpenseScreenTest : ComposeTest() {
         runBlocking { auth.register("ana", "secret", "Ana") }
         val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
         setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
-        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo().performTextInput(moneyInput(4000, locale))
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo().performTextInput(moneyInput(4000, locale))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
         onNodeWithText("Split").performScrollTo().performClick()
         onNodeWithText("Whole numbers, such as 2 : 1 : 1.").assertIsDisplayed()
@@ -116,7 +116,7 @@ class ExpenseScreenTest : ComposeTest() {
         val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
         var closed = false
         setContent { OrbitTheme { ExpenseScreen("space-1", "", { closed = true }, vm) } }
-        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo()
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo()
             .performTextInput(moneyInput(1240, deviceMoneyLocale()))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
         assertTrue(runBlocking { ledger.observeExpenses("space-1").first().isEmpty() })
@@ -136,7 +136,7 @@ class ExpenseScreenTest : ComposeTest() {
         runBlocking { auth.register("ana", "secret", "Ana") }
         val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
         setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
-        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo()
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo()
             .performTextInput(moneyInput(1000, deviceMoneyLocale()))
         onNodeWithText(formatEuro(334)).performScrollTo().assertIsDisplayed()
         onAllNodesWithText(formatEuro(333)).onFirst().performScrollTo().assertIsDisplayed()
@@ -172,7 +172,7 @@ class ExpenseScreenTest : ComposeTest() {
         val ledger = ControlledExpenseRepository(InMemoryExpenseRepository(auth)).apply { failWrites = true }
         val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
         setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
-        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo()
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo()
             .performTextInput(moneyInput(1240, deviceMoneyLocale()))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
         onNodeWithText("Save").performClick()

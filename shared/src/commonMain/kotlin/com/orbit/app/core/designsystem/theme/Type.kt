@@ -64,6 +64,8 @@ internal fun orbitTypography(): Typography {
 /** Martian Mono, as the voice of amounts, times and dates. */
 @Immutable
 data class OrbitDataTypography(
+    /** The amount a form is about, such as an expense's total: the biggest number on the screen. */
+    val display: TextStyle,
     /** A number to pick, such as a time on a wheel. */
     val large: TextStyle,
     /** An amount in a row. */
@@ -79,6 +81,7 @@ internal fun orbitDataTypography(): OrbitDataTypography {
     return remember(medium, semibold) {
         val mono = FontFamily(medium, semibold)
         OrbitDataTypography(
+            display = style(mono, 44, 52, FontWeight.SemiBold, -0.04f),
             large = style(mono, 20, 26, FontWeight.SemiBold, -0.02f),
             medium = style(mono, 14, 18, FontWeight.SemiBold, -0.02f),
             small = style(mono, 11, 14, FontWeight.Medium, 0.02f),

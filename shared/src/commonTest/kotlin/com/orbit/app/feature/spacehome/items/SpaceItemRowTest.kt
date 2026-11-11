@@ -18,11 +18,22 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalTestApi::class)
 class SpaceItemRowTest : ComposeTest() {
     private val today = LocalDate(2026, 11, 2)
+
+    @Test
+    fun onlyAnOpenItemPastItsDayIsOverdue() {
+        val yesterday = SpaceItem("1", "Bins", dueDate = LocalDate(2026, 11, 1))
+
+        assertTrue(yesterday.isOverdue(today))
+        assertFalse(yesterday.copy(done = true).isOverdue(today))
+        assertFalse(yesterday.copy(dueDate = today).isOverdue(today))
+        assertFalse(yesterday.copy(dueDate = null).isOverdue(today))
+    }
 
     private fun androidx.compose.ui.test.ComposeUiTest.showRow(
         item: SpaceItem,

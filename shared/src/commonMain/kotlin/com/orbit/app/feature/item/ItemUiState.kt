@@ -54,8 +54,6 @@ data class ItemUiState(
     val failed: Boolean = false,
     val submitting: Boolean = false,
     val spaceName: String? = null,
-    /** The space's colour, null until it has loaded. */
-    val accent: Int? = null,
     val memberNames: Map<String, String> = emptyMap(),
     val members: List<Member> = emptyList(),
     val currentUserId: String? = null,

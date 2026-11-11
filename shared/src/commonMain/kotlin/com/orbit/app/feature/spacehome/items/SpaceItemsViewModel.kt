@@ -46,16 +46,13 @@ class SpaceItemsViewModel(
     private val showingDone = MutableStateFlow(false)
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
-    /** The item the user just finished from the turn card, which stays there so they can undo it. */
-    private val finishedTurn = MutableStateFlow<String?>(null)
-
     // Members only decorate the rows: a slow or failed read must not hide the items.
     private val memberIds = flow { emitAll(spaces.observeMembers(spaceId)) }
         .onStart { emit(emptyList()) }
         .orOnFailure("Loading assignees for items in space $spaceId", emptyList())
 
-    private val request = combine(filter, finishedTurn, actionFailed, submitting, showingDone) { filter, finished, failed, busy, done ->
-        Request(filter, finished, failed, busy, done)
+    private val request = combine(filter, actionFailed, submitting, showingDone) { filter, failed, busy, done ->
+        Request(filter, failed, busy, done)
     }
 
     val uiState: StateFlow<SpaceItemsUiState> = combine(
@@ -65,7 +62,7 @@ class SpaceItemsViewModel(
         auth.session,
     ) { load, request, members, user ->
         val visible = load.valueOrNull.orEmpty().filter { request.filter.matches(it, user?.id) }
-        val turn = visible.firstOrNull { it.id == request.finishedTurn } ?: visible.nextTurn(user?.id)
+        val turn = visible.nextTurn(user?.id)
         SpaceItemsUiState(
             filter = request.filter,
             loading = load == Load.Loading,
@@ -103,16 +100,12 @@ class SpaceItemsViewModel(
         if (done) complete(itemId) else reopen(itemId)
     }
 
-    /** Finishes what the turn card shows and keeps it there, or undoes it once finished. */
-    fun toggleTurn() {
-        val turn = uiState.value.turn ?: return
-        if (turn.done) {
-            finishedTurn.value = null
-            reopen(turn.id)
-        } else {
-            finishedTurn.value = turn.id
-            complete(turn.id)
-        }
+    /**
+     * Finishes what the turn card shows, for everyone it is assigned to: the card moves on to the next turn, and
+     * the finished item is undone from the Done section like any other (#293).
+     */
+    fun finishTurn() {
+        uiState.value.turn?.let { complete(it.id) }
     }
 
     fun retry() {
@@ -135,7 +128,6 @@ class SpaceItemsViewModel(
 
     private data class Request(
         val filter: ItemFilter,
-        val finishedTurn: String?,
         val failed: Boolean,
         val submitting: Boolean,
         val showingDone: Boolean,

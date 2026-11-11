@@ -8,20 +8,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * Holds the create-account form. Registering signs the new user in, which moves the auth gate, so
  * success needs no state here. The form asks for no name, so the profile starts with the part of the
  * email before the `@`, which the account screen can edit later.
  */
-class CreateAccountViewModel(private val auth: AuthRepository) : ViewModel(), AuthLinkForm {
+class CreateAccountViewModel(private val auth: AuthRepository) : ViewModel() {
     private val _uiState = MutableStateFlow(CreateAccountUiState())
     val uiState: StateFlow<CreateAccountUiState> = _uiState.asStateFlow()
-
-    /** Submissions and the link sheet, both shared with the other auth form (#173). */
-    private val form = AuthForm(auth, _uiState, viewModelScope)
-
-    override val linking get() = form.linking
 
     fun onEmailChange(email: String) =
         _uiState.update { it.copy(email = email, errors = emptyList(), authError = null) }
@@ -48,8 +44,15 @@ class CreateAccountViewModel(private val auth: AuthRepository) : ViewModel(), Au
         submit("Registration") { auth.register(email, form.password, displayName = email.substringBefore('@')) }
     }
 
-    override fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
+    fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
 
-    /** Runs [call] unless one is running; the form then shows whatever it left behind. */
-    private fun submit(what: String, call: suspend () -> Unit) = form.submit(what, call)
+    /** Runs [call] unless one is running. A failure stays in the form as [CreateAccountUiState.authError]. */
+    private fun submit(what: String, call: suspend () -> Unit) {
+        if (_uiState.value.submitting) return
+        _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
+        viewModelScope.launch {
+            val authError = executeAuth(what, call)
+            _uiState.update { it.copy(submitting = false, authError = authError) }
+        }
+    }
 }

@@ -10,6 +10,7 @@ import com.orbit.app.domain.model.invitationCodeOf
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -28,15 +29,19 @@ class NewSpaceViewModel(
 
     fun onNameChange(name: String) = form.update { it.copy(name = name, createFailed = false) }
 
-    fun selectAccent(accent: Int) = form.update { it.copy(accent = accent) }
-
-    /** Creates a space owned by the signed-in user. */
+    /**
+     * Creates a space owned by the signed-in user. It takes the badge after the user's other spaces, so the tiles
+     * differ without a picker (#293).
+     */
     fun createSpace() {
         val current = form.value
         if (!current.canCreate) return
         form.update { it.copy(creating = true, createFailed = false) }
         viewModelScope.launch {
-            attempt("Creating a space") { repository.createSpace(current.name.trim(), current.accent) }
+            attempt("Creating a space") {
+                val next = repository.observeSpaces().first().size
+                repository.createSpace(current.name.trim(), next)
+            }
                 .onSuccess { id -> form.update { it.copy(creating = false, openSpaceId = id) } }
                 .onFailure { form.update { it.copy(creating = false, createFailed = true) } }
         }

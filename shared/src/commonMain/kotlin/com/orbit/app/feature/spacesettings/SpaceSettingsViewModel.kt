@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** The settings of a space: an owner or admin changes its name and colour, the owner deletes it, anyone else leaves. */
+/** The settings of a space: an owner or admin renames it, the owner deletes it, anyone else leaves. */
 class SpaceSettingsViewModel(
     private val spaceId: String,
     private val spaces: SpaceRepository,
@@ -34,24 +34,29 @@ class SpaceSettingsViewModel(
         form.copy(
             role = members.firstOrNull { it.userId == user?.id }?.role,
             spaceName = space?.name.orEmpty(),
-            accent = space?.accent,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceSettingsUiState())
 
+    /** Opens the rename sheet on the name as saved, for an owner or admin. */
+    fun openRename() {
+        val state = uiState.value
+        if (state.canEdit) form.update { it.copy(renaming = true, nameDraft = state.spaceName, failed = false) }
+    }
+
+    /** Closes the rename sheet and forgets what was typed, unless the save is still running. */
+    fun dismissRename() = form.update { if (it.saving) it else it.copy(renaming = false, nameDraft = null, failed = false) }
+
     fun onNameChange(name: String) = form.update { it.copy(nameDraft = name, failed = false) }
 
-    fun onAccentChange(accent: Int) = form.update { it.copy(accentDraft = accent, failed = false) }
-
-    /** Saves what changed, and only that. A failure keeps what was typed and says so. */
+    /** Saves the new name and closes the sheet. A failure keeps what was typed and says so. */
     fun save() {
         val state = uiState.value
         if (!state.canSave) return
-        val name = state.name.trim().takeIf { it != state.spaceName }
-        val accent = state.accentDraft?.takeIf { it != state.accent }
+        val name = state.name.trim()
         form.update { it.copy(saving = true, failed = false) }
         viewModelScope.launch {
-            attempt("Saving the settings of space $spaceId") { spaces.updateSpace(spaceId, name, accent) }
-                .onSuccess { form.update { it.copy(nameDraft = null, accentDraft = null, saving = false) } }
+            attempt("Saving the settings of space $spaceId") { spaces.renameSpace(spaceId, name) }
+                .onSuccess { form.update { it.copy(renaming = false, nameDraft = null, saving = false) } }
                 .onFailure { form.update { it.copy(saving = false, failed = true) } }
         }
     }

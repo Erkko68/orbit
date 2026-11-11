@@ -36,7 +36,7 @@ internal class FakeSpaceRepository(
 
     override suspend fun joinSpace(code: String): String = error("Not used by these tests")
 
-    override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) = error("Not used by these tests")
+    override suspend fun renameSpace(spaceId: String, name: String) = error("Not used by these tests")
 
     override suspend fun leaveSpace(spaceId: String) {
         writeFailure?.let { throw it }

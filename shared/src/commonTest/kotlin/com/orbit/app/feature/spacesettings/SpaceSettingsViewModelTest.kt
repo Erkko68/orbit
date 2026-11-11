@@ -26,8 +26,8 @@ class SpaceSettingsViewModelTest {
     private val auth = InMemoryAuthRepository()
     private val spaces = InMemorySpaceRepository(auth)
 
-    /** What the ViewModel asked the repository to write: the name and the colour, null when left alone. */
-    private val writes = mutableListOf<Pair<String?, Int?>>()
+    /** The names the ViewModel asked the repository to write. */
+    private val writes = mutableListOf<String>()
 
     @BeforeTest
     fun setUp() {
@@ -46,9 +46,9 @@ class SpaceSettingsViewModelTest {
 
     /** The real repository, noting what it is asked to write. */
     private fun recording() = object : SpaceRepository by spaces {
-        override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) {
-            writes += name to accent
-            spaces.updateSpace(spaceId, name, accent)
+        override suspend fun renameSpace(spaceId: String, name: String) {
+            writes += name
+            spaces.renameSpace(spaceId, name)
         }
     }
 
@@ -86,44 +86,57 @@ class SpaceSettingsViewModelTest {
     }
 
     @Test
-    fun showsTheNameAndColourTheSpaceHasNow() = runTest {
+    fun showsTheNameTheSpaceHasNow() = runTest {
         flat()
         val state = settingsViewModel().uiState.value
         assertEquals("Flat 4B", state.name)
-        assertEquals(1, state.shownAccent)
         assertFalse(state.changed)
         assertFalse(state.canSave)
     }
 
     @Test
-    fun savesTheNewNameAndColourThenShowsWhatIsSaved() = runTest {
+    fun renamesInASheetThatClosesOnceSaved() = runTest {
+        flat()
+        val viewModel = settingsViewModel(recording())
+
+        viewModel.openRename()
+        assertTrue(viewModel.uiState.value.renaming)
+        assertEquals("Flat 4B", viewModel.uiState.value.name)
+        viewModel.onNameChange("Flat 5C")
+        viewModel.save()
+
+        assertFalse(viewModel.uiState.value.renaming)
+        assertEquals(listOf("Flat 5C"), writes)
+    }
+
+    @Test
+    fun closingTheSheetForgetsWhatWasTyped() = runTest {
+        flat()
+        val viewModel = settingsViewModel()
+        viewModel.openRename()
+        viewModel.onNameChange("Flat 5C")
+
+        viewModel.dismissRename()
+
+        assertFalse(viewModel.uiState.value.renaming)
+        assertEquals("Flat 4B", viewModel.uiState.value.name)
+    }
+
+    @Test
+    fun savesTheNewNameThenShowsWhatIsSaved() = runTest {
         flat()
         val viewModel = settingsViewModel(recording())
         viewModel.onNameChange("  Flat 5C ")
-        viewModel.onAccentChange(3)
         assertTrue(viewModel.uiState.value.canSave)
 
         viewModel.save()
 
-        assertEquals(listOf<Pair<String?, Int?>>("Flat 5C" to 3), writes)
+        assertEquals(listOf("Flat 5C"), writes)
         assertEquals("Flat 5C", spaceNow().name)
         val state = viewModel.uiState.value
         assertEquals("Flat 5C", state.name)
-        assertEquals(3, state.shownAccent)
         assertFalse(state.changed)
         assertFalse(state.saving)
-    }
-
-    @Test
-    fun writesOnlyTheFieldThatChanged() = runTest {
-        flat()
-        val viewModel = settingsViewModel(recording())
-        viewModel.onAccentChange(4)
-        viewModel.save()
-        viewModel.onNameChange("Flat 5C")
-        viewModel.save()
-
-        assertEquals(listOf<Pair<String?, Int?>>(null to 4, "Flat 5C" to null), writes)
     }
 
     @Test
@@ -155,7 +168,7 @@ class SpaceSettingsViewModelTest {
     fun keepsWhatWasTypedAndSaysSoWhenSavingFailsUntilTheNextEdit() = runTest {
         flat()
         val offline = object : SpaceRepository by spaces {
-            override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) =
+            override suspend fun renameSpace(spaceId: String, name: String) =
                 error("Could not reach the server")
         }
         val viewModel = settingsViewModel(offline)

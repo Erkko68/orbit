@@ -55,14 +55,13 @@ class SpaceHomeViewModelTest {
     }
 
     @Test
-    fun showsTheSpaceItsColourAndTheUsersAvatar() = runTest {
+    fun showsTheSpaceAndTheUsersAvatar() = runTest {
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
         val id = spaces.createSpace("Flat 4B", accent = 2)
 
         val state = SpaceHomeViewModel(id, spaces, items, lastSpace, auth).uiState.first { it.name.isNotEmpty() }
 
         assertEquals("Flat 4B", state.name)
-        assertEquals(2, state.accent)
         assertEquals("AL", state.userInitials)
     }
 
@@ -167,7 +166,6 @@ class SpaceHomeViewModelTest {
 
         val state = viewModel.uiState.value
         assertEquals("", state.name)
-        assertNull(state.accent)
         assertNull(state.headline)
     }
 }

@@ -29,6 +29,10 @@ fun validateRegistration(email: String, password: String, confirmation: String):
 fun validatePasswordChange(current: String, new: String, confirmation: String): List<CredentialsError> =
     listOfNotNull(CredentialsError.BlankPassword.takeIf { current.isEmpty() }) + newPasswordErrors(new, confirmation)
 
+/** The checks before setting a first password on an account that only signs in with Google: as for a new account. */
+fun validateNewPassword(password: String, confirmation: String): List<CredentialsError> =
+    newPasswordErrors(password, confirmation)
+
 private fun newPasswordErrors(password: String, confirmation: String): List<CredentialsError> = listOfNotNull(
     CredentialsError.ShortPassword.takeIf { password.length < MIN_PASSWORD_LENGTH },
     CredentialsError.PasswordsDiffer.takeIf { confirmation != password },

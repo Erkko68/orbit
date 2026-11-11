@@ -18,7 +18,6 @@ import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.component.memberShape
 import com.orbit.app.core.designsystem.theme.Ink
-import com.orbit.app.core.designsystem.theme.OrbitSpaceColor
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.feature.member.SpaceMember
 import com.orbit.app.feature.member.SpaceMembersViewModel
@@ -56,63 +55,61 @@ fun MemberScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val member = state.members.firstOrNull { it.id == userId }
-    OrbitSpaceColor(member?.index) {
-        OrbitScreen(
-            topBar = {
-                if (member != null) {
-                    MemberHeader(member, state.spaceName, onBack)
-                } else {
-                    OrbitTopBar(
-                        title = state.spaceName,
-                        navigationIcon = { OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.back), onBack) },
-                    )
-                }
-            },
-            scrollable = true,
-        ) {
-            when {
-                member != null -> {
-                    if (member.canChangeRole) {
-                        OrbitActionRow(
-                            title = stringResource(Res.string.member_role),
-                            supporting = stringResource(member.role),
-                            icon = Res.drawable.ic_lock,
-                            onClick = { viewModel.openRoles(member.id) },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    if (member.canRemove) {
-                        OrbitActionRow(
-                            title = stringResource(Res.string.member_remove, member.name),
-                            icon = Res.drawable.ic_remove,
-                            onClick = { viewModel.askRemove(member.id) },
-                            danger = true,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                    if (state.roleFailed(member.id) && state.pickingRole == null && state.transferTo == null &&
-                        state.removing == null
-                    ) {
-                        OrbitErrorText(stringResource(Res.string.member_role_failed))
-                    }
-                    MemberActivity(spaceId, userId, onOpenItem)
-                }
-
-                state.loading -> OrbitLoadingState(stringResource(Res.string.member_loading), Modifier.fillMaxWidth())
-                state.loadFailed -> OrbitErrorState(
-                    title = stringResource(Res.string.member_load_failed),
-                    body = stringResource(Res.string.load_failed_body),
-                    retryText = stringResource(Res.string.retry),
-                    onRetry = viewModel::retry,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                else -> OrbitEmptyState(
-                    title = stringResource(Res.string.member_not_found),
-                    body = stringResource(Res.string.member_not_found_body),
-                    modifier = Modifier.fillMaxWidth(),
+    OrbitScreen(
+        topBar = {
+            if (member != null) {
+                MemberHeader(member, state.spaceName, onBack)
+            } else {
+                OrbitTopBar(
+                    title = state.spaceName,
+                    navigationIcon = { OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.back), onBack) },
                 )
             }
+        },
+        scrollable = true,
+    ) {
+        when {
+            member != null -> {
+                if (member.canChangeRole) {
+                    OrbitActionRow(
+                        title = stringResource(Res.string.member_role),
+                        supporting = stringResource(member.role),
+                        icon = Res.drawable.ic_lock,
+                        onClick = { viewModel.openRoles(member.id) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                if (member.canRemove) {
+                    OrbitActionRow(
+                        title = stringResource(Res.string.member_remove, member.name),
+                        icon = Res.drawable.ic_remove,
+                        onClick = { viewModel.askRemove(member.id) },
+                        danger = true,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+                if (state.roleFailed(member.id) && state.pickingRole == null && state.transferTo == null &&
+                    state.removing == null
+                ) {
+                    OrbitErrorText(stringResource(Res.string.member_role_failed))
+                }
+                MemberActivity(spaceId, userId, onOpenItem)
+            }
+
+            state.loading -> OrbitLoadingState(stringResource(Res.string.member_loading), Modifier.fillMaxWidth())
+            state.loadFailed -> OrbitErrorState(
+                title = stringResource(Res.string.member_load_failed),
+                body = stringResource(Res.string.load_failed_body),
+                retryText = stringResource(Res.string.retry),
+                onRetry = viewModel::retry,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            else -> OrbitEmptyState(
+                title = stringResource(Res.string.member_not_found),
+                body = stringResource(Res.string.member_not_found_body),
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
     state.pickingRole?.let { RoleSheet(it, state, viewModel) }

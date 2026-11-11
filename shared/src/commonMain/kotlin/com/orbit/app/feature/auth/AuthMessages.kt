@@ -5,7 +5,6 @@ import com.orbit.app.domain.model.CredentialsError
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.error_email_blank
 import orbit.shared.generated.resources.error_email_in_use
-import orbit.shared.generated.resources.error_different_google_account
 import orbit.shared.generated.resources.error_email_invalid
 import orbit.shared.generated.resources.error_network
 import orbit.shared.generated.resources.error_password_blank
@@ -31,7 +30,6 @@ internal fun AuthError.message(): StringResource = when (this) {
     AuthError.INVALID_EMAIL -> Res.string.error_email_invalid
     AuthError.EMAIL_IN_USE -> Res.string.error_email_in_use
     AuthError.WEAK_PASSWORD -> Res.string.error_weak_password
-    AuthError.DIFFERENT_GOOGLE_ACCOUNT -> Res.string.error_different_google_account
     AuthError.NETWORK -> Res.string.error_network
     AuthError.UNKNOWN -> Res.string.error_unknown
 }

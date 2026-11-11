@@ -64,5 +64,4 @@ fun CreateAccountScreen(onSignIn: () -> Unit, viewModel: CreateAccountViewModel 
             enabled = !state.submitting,
         )
     }
-    AccountLinkSheetFor(state.link, viewModel)
 }
