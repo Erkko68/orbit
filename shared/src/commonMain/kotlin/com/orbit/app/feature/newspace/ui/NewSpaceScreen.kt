@@ -16,11 +16,9 @@ import com.orbit.app.core.designsystem.component.OrbitLabeledDivider
 import com.orbit.app.core.designsystem.component.OrbitMark
 import com.orbit.app.core.designsystem.component.OrbitMarkSize
 import com.orbit.app.core.designsystem.component.OrbitScreen
-import com.orbit.app.core.designsystem.component.OrbitSpaceColorPicker
 import com.orbit.app.core.designsystem.component.OrbitTextField
 import com.orbit.app.core.designsystem.component.OrbitTonalButton
 import com.orbit.app.core.designsystem.component.OrbitTopBar
-import com.orbit.app.core.designsystem.theme.OrbitSpaceColor
 import com.orbit.app.feature.newspace.NewSpaceUiState
 import com.orbit.app.feature.newspace.NewSpaceViewModel
 import orbit.shared.generated.resources.Res
@@ -53,22 +51,20 @@ fun NewSpaceScreen(
     LaunchedEffect(state.openSpaceId) {
         state.openSpaceId?.let(onOpenSpace)
     }
-    OrbitSpaceColor(state.accent) {
-        OrbitScreen(
-            topBar = {
-                OrbitTopBar(
-                    title = "",
-                    navigationIcon = { OrbitIconButton(Res.drawable.ic_close, stringResource(Res.string.close), onClose) },
-                )
-            },
-            scrollable = true,
-        ) {
-            OrbitMark(size = OrbitMarkSize.Large)
-            OrbitHero(stringResource(Res.string.spaces_new), Modifier.fillMaxWidth())
-            CreateCard(state, viewModel)
-            OrbitLabeledDivider(stringResource(Res.string.or))
-            JoinCard(state, viewModel)
-        }
+    OrbitScreen(
+        topBar = {
+            OrbitTopBar(
+                title = "",
+                navigationIcon = { OrbitIconButton(Res.drawable.ic_close, stringResource(Res.string.close), onClose) },
+            )
+        },
+        scrollable = true,
+    ) {
+        OrbitMark(size = OrbitMarkSize.Large)
+        OrbitHero(stringResource(Res.string.spaces_new), Modifier.fillMaxWidth())
+        CreateCard(state, viewModel)
+        OrbitLabeledDivider(stringResource(Res.string.or))
+        JoinCard(state, viewModel)
     }
 }
 
@@ -84,7 +80,6 @@ private fun CreateCard(state: NewSpaceUiState, viewModel: NewSpaceViewModel) {
             supportingText = if (state.createFailed) stringResource(Res.string.spaces_create_failed) else null,
             leadingIcon = Res.drawable.ic_home,
         )
-        OrbitSpaceColorPicker(state.accent, viewModel::selectAccent)
         OrbitButton(
             text = stringResource(Res.string.spaces_create),
             onClick = viewModel::createSpace,

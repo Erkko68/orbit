@@ -63,13 +63,12 @@ class NewSpaceScreenTest : ComposeTest() {
         onNodeWithText("Create space").performScrollTo().assertIsNotEnabled()
 
         onAllNodes(hasSetTextAction())[0].performTextInput("Flat 4B")
-        onNodeWithContentDescription("Badge 3").performScrollTo().performClick()
         onNodeWithText("Create space").performScrollTo().assertIsEnabled().performClick()
         waitForIdle()
 
         val space = runBlocking { spaces.observeSpaces().first() }.single()
         assertEquals(space.id, opened)
-        assertEquals(2, space.accent)
+        assertEquals(0, space.accent)
     }
 
     @Test

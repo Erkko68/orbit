@@ -9,7 +9,7 @@ import androidx.compose.ui.graphics.Color
 //
 // Three key colours, each used as tones of one palette (#293): a cool neutral for the page, panels and text, the brand
 // blue and a warm coral. The number after a name is its tone, CIELAB L*: two tones 50 apart are at least 4.5:1, so the
-// tone alone says whether text can sit on a fill. Error is the system's own colour, outside the three.
+// tone alone says whether text can sit on a fill. Error and the two balance fills are the only colours outside the three.
 
 // Ink and paper: text and the primary action, whatever the space.
 val Ink = Color(0xFF0E1230)
@@ -43,6 +43,10 @@ private val Blue70 = Color(0xFF88A9FF)
 private val Blue80 = Color(0xFFB5C5FE)
 private val Blue90 = Color(0xFFDBE1FF)
 private val Blue95 = Color(0xFFEDF0FE)
+
+// A balance is the one meaning with its own pair, as in every money app: teal to get back, coral owed (#293).
+private val CreditFill = Color(0xFF4BDFCB)
+private val DebitFill = Color(0xFFFF9A78)
 
 // The warm coral.
 private val Coral40 = Color(0xFFA63A22)
@@ -198,8 +202,8 @@ internal val LightOrbitColors = OrbitColors(
     ),
     inkTertiary = Neutral40,
     shadow = Ink,
-    credit = Blue80,
-    debit = Coral80,
+    credit = CreditFill,
+    debit = DebitFill,
 )
 
 internal val DarkOrbitColors = OrbitColors(
@@ -220,6 +224,6 @@ internal val DarkOrbitColors = OrbitColors(
     ),
     inkTertiary = Neutral70,
     shadow = Color.Black,
-    credit = Blue80,
-    debit = Coral80,
+    credit = CreditFill,
+    debit = DebitFill,
 )
