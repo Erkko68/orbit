@@ -28,5 +28,7 @@ internal class FailingAuthRepository(
 
     override suspend fun signInWithGoogle() = throw failure
 
+    override suspend fun sendPasswordReset(email: String) = throw failure
+
     override suspend fun signOut() = error("No connection")
 }

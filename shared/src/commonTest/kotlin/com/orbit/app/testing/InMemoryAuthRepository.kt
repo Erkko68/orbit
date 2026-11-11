@@ -30,6 +30,14 @@ class InMemoryAuthRepository : AuthRepository {
 
     override suspend fun signInWithGoogle() = register("google@orbit.app", password = "", displayName = "Google User")
 
+    /** The addresses a reset link was asked for, so a test can see one went out (#217). */
+    val passwordResets = mutableListOf<String>()
+
+    /** Never fails for an unknown address: the real one stays silent about those too. */
+    override suspend fun sendPasswordReset(email: String) {
+        passwordResets += email.trim()
+    }
+
     override suspend fun signOut() {
         user.value = null
     }

@@ -12,6 +12,14 @@
     <string name="sign_in_subtitle">Inicia la sessió per accedir als teus espais compartits.</string>
     <string name="sign_in_email">Adreça electrònica</string>
     <string name="sign_in_password">Contrasenya</string>
+    <string name="sign_in_forgot_password">Has oblidat la contrasenya?</string>
+    <string name="reset_title">Restableix la contrasenya</string>
+    <string name="reset_email">Adre&#231;a de correu del compte</string>
+    <string name="reset_body">T&apos;enviarem un enlla&#231; per crear-ne una de nova.</string>
+    <string name="reset_send">Envia l&apos;enlla&#231;</string>
+    <string name="reset_cancel">Cancel&#183;la</string>
+    <string name="reset_close">Tanca</string>
+    <string name="reset_sent">Si %1$s t&#233; un compte, l&apos;enlla&#231; ja &#233;s a cam&#237;. Mira tamb&#233; la bústia de correu brossa.</string>
     <string name="sign_in">Inicia la sessió</string>
     <string name="sign_in_google">Continua amb Google</string>
     <string name="sign_in_new">És el primer cop que fas servir Orbit?</string>

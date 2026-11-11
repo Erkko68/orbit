@@ -12,6 +12,14 @@
     <string name="sign_in_subtitle">Inicia sesión para acceder a tus espacios compartidos.</string>
     <string name="sign_in_email">Correo electrónico</string>
     <string name="sign_in_password">Contraseña</string>
+    <string name="sign_in_forgot_password">&#191;Olvidaste la contrase&#241;a?</string>
+    <string name="reset_title">Restablecer la contrase&#241;a</string>
+    <string name="reset_email">Correo electr&#243;nico de la cuenta</string>
+    <string name="reset_body">Te enviaremos un enlace para crear una nueva.</string>
+    <string name="reset_send">Enviar enlace</string>
+    <string name="reset_cancel">Cancelar</string>
+    <string name="reset_close">Cerrar</string>
+    <string name="reset_sent">Si %1$s tiene una cuenta, el enlace va en camino. Mira tambi&#233;n la carpeta de spam.</string>
     <string name="sign_in">Iniciar sesión</string>
     <string name="sign_in_google">Continuar con Google</string>
     <string name="sign_in_new">¿Es tu primera vez en Orbit?</string>

@@ -37,6 +37,13 @@ interface AuthRepository {
     /** The signed-in user's Firebase ID token, which the assistant server checks (ADR 0007). Throws when signed out. */
     suspend fun idToken(): String
 
+    /**
+     * Emails [email] a link to set a new password (#217). An address with no account is not a failure and
+     * nothing is sent for it: callers must answer the same either way, so nobody learns which addresses are
+     * registered. Throws when the request itself fails, for example without a connection.
+     */
+    suspend fun sendPasswordReset(email: String)
+
     /** Shows the platform's Google account picker. Does nothing when the user closes it. */
     suspend fun signInWithGoogle()
 

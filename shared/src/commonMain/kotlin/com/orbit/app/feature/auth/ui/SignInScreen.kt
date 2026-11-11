@@ -7,10 +7,12 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitPasswordField
+import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.feature.auth.SignInViewModel
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.sign_in
 import orbit.shared.generated.resources.sign_in_create_account
+import orbit.shared.generated.resources.sign_in_forgot_password
 import orbit.shared.generated.resources.sign_in_new
 import orbit.shared.generated.resources.sign_in_password
 import orbit.shared.generated.resources.sign_in_subtitle
@@ -42,6 +44,11 @@ fun SignInScreen(onCreateAccount: () -> Unit, viewModel: SignInViewModel = koinV
             isError = state.passwordError != null,
             supportingText = state.passwordError?.let { stringResource(it) },
         )
+        OrbitTextButton(
+            text = stringResource(Res.string.sign_in_forgot_password),
+            onClick = viewModel::openPasswordReset,
+            enabled = !state.submitting,
+        )
         OrbitButton(
             text = stringResource(Res.string.sign_in),
             onClick = viewModel::signIn,
@@ -49,4 +56,5 @@ fun SignInScreen(onCreateAccount: () -> Unit, viewModel: SignInViewModel = koinV
             enabled = !state.submitting,
         )
     }
+    if (state.resetOpen) PasswordResetDialog(state, viewModel)
 }
