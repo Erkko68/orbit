@@ -38,7 +38,7 @@ class SpaceSettingsScreenTest : ComposeTest() {
     private var gone = 0
     private val opened = mutableListOf<String>()
 
-    /** Ana owns Flat 4B, in the second colour (Coral). Ben is an admin of it and Cy a plain member. */
+    /** Ana owns Flat 4B. Ben is an admin of it and Cy a plain member. */
     private fun ComposeUiTest.showSettingsAs(email: String, repository: SpaceRepository = spaces) {
         runBlocking {
             auth.signIn("ana@orbit.app", "secret")
@@ -71,8 +71,6 @@ class SpaceSettingsScreenTest : ComposeTest() {
         showSettingsAs("ana@orbit.app")
 
         onNodeWithText("Flat 4B").assertIsDisplayed()
-        onNodeWithContentDescription("Badge 2").assertIsSelected()
-        onNodeWithContentDescription("Badge 1").assertIsNotSelected()
         onNodeWithText("Save").assertDoesNotExist()
         onNodeWithText("Invite people").performScrollTo().assertIsDisplayed()
         onNodeWithText("Delete space").performScrollTo().assertIsDisplayed()
@@ -119,18 +117,15 @@ class SpaceSettingsScreenTest : ComposeTest() {
     }
 
     @Test
-    fun savesTheNewNameAndColour() = runComposeUiTest {
+    fun savesTheNewName() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
 
         onNode(hasSetTextAction()).performTextReplacement("Flat 4C")
-        onNodeWithContentDescription("Badge 3").performClick()
-        onNodeWithContentDescription("Badge 3").assertIsSelected()
         onNodeWithText("Save").performScrollTo().performClick()
 
         // Save going away is what says the save went through, so look at it before the repository.
         onNodeWithText("Save").assertDoesNotExist()
         assertEquals("Flat 4C", spaceNow().name)
-        assertEquals(2, spaceNow().accent)
     }
 
     @Test
@@ -145,7 +140,7 @@ class SpaceSettingsScreenTest : ComposeTest() {
     @Test
     fun saysWhenTheChangesCouldNotBeSaved() = runComposeUiTest {
         val offline = object : SpaceRepository by spaces {
-            override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) =
+            override suspend fun renameSpace(spaceId: String, name: String) =
                 error("Could not reach the server")
         }
         showSettingsAs("ana@orbit.app", offline)

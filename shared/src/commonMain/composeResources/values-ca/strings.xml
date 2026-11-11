@@ -329,13 +329,13 @@
     <string name="delete_space_failed">No s&apos;ha pogut suprimir l&apos;espai. Torna-ho a provar.</string>
     <string name="space_settings_leave">Surt de l&apos;espai</string>
     <string name="space_settings_delete">Suprimeix l&apos;espai</string>
+    <string name="space_settings_leave_body">Deixes de veure'l. El que hi has afegit es queda.</string>
+    <string name="space_settings_delete_body">Elimina'l per a tothom, amb tot el que conté.</string>
     <string name="space_settings">Configuració de l&apos;espai</string>
     <string name="space_settings_invite_body">Un codi o un enllaç, vàlid una setmana</string>
     <string name="space_settings_name">Nom de l&apos;espai</string>
-    <string name="space_settings_colour">Insígnia</string>
     <string name="space_settings_save">Desa</string>
     <string name="space_settings_failed">No s&apos;han pogut desar els canvis. Torna-ho a provar.</string>
-    <string name="space_badge_option">Insígnia %1$d</string>
     <string name="cancel">Cancel·la</string>
     <string name="show">Mostra</string>
     <string name="hide">Amaga</string>

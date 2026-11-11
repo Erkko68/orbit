@@ -12,9 +12,18 @@ data class SpaceCardUiState(
     val dueToday: Int? = null,
     val openCount: Int? = null,
 ) {
-    /** What the space's badge says, so it is told apart at a glance (#293). */
+    /** What the space's badge says when nobody else is in it yet. */
     val initials: String get() = initialsOf(name)
+
+    /** Who the user shares the space with: their faces tell the space apart at a glance (#293). */
+    val others: List<SpaceCardFace> get() = faces.filterNot { it.isYou }
 }
 
 /** A member on the card: their photo, or their initials until it loads or when there is none. */
-data class SpaceCardFace(val id: String, val name: String, val initials: String, val photoUrl: String?)
+data class SpaceCardFace(
+    val id: String,
+    val name: String,
+    val initials: String,
+    val photoUrl: String?,
+    val isYou: Boolean = false,
+)

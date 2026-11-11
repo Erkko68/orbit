@@ -52,7 +52,7 @@ class SpaceCardViewModel(
             // A member's photo is copied when they join, so the user's own is taken from their account, which is current.
             faces = members.map { member ->
                 val photoUrl = if (member.userId == user?.id) user.photoUrl ?: member.photoUrl else member.photoUrl
-                SpaceCardFace(member.userId, member.displayName, initialsOf(member.displayName), photoUrl)
+                SpaceCardFace(member.userId, member.displayName, initialsOf(member.displayName), photoUrl, isYou = member.userId == user?.id)
             },
             dueToday = loaded?.count { item -> user != null && item.isDueFor(user.id, today) },
             openCount = loaded?.count { it.status is ItemStatus.Open },

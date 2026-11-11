@@ -329,13 +329,13 @@
     <string name="delete_space_failed">Could not delete the space. Try again.</string>
     <string name="space_settings_leave">Leave space</string>
     <string name="space_settings_delete">Delete space</string>
+    <string name="space_settings_leave_body">You stop seeing it. What you added stays.</string>
+    <string name="space_settings_delete_body">Remove it for everyone, with everything in it.</string>
     <string name="space_settings">Space settings</string>
     <string name="space_settings_invite_body">A code or a link, valid for a week</string>
     <string name="space_settings_name">Space name</string>
-    <string name="space_settings_colour">Badge</string>
     <string name="space_settings_save">Save</string>
     <string name="space_settings_failed">Could not save the changes. Try again.</string>
-    <string name="space_badge_option">Badge %1$d</string>
     <string name="cancel">Cancel</string>
     <string name="show">Show</string>
     <string name="hide">Hide</string>

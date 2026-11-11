@@ -34,24 +34,20 @@ class SpaceSettingsViewModel(
         form.copy(
             role = members.firstOrNull { it.userId == user?.id }?.role,
             spaceName = space?.name.orEmpty(),
-            accent = space?.accent,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceSettingsUiState())
 
     fun onNameChange(name: String) = form.update { it.copy(nameDraft = name, failed = false) }
 
-    fun onAccentChange(accent: Int) = form.update { it.copy(accentDraft = accent, failed = false) }
-
-    /** Saves what changed, and only that. A failure keeps what was typed and says so. */
+    /** Saves the new name. A failure keeps what was typed and says so. */
     fun save() {
         val state = uiState.value
         if (!state.canSave) return
-        val name = state.name.trim().takeIf { it != state.spaceName }
-        val accent = state.accentDraft?.takeIf { it != state.accent }
+        val name = state.name.trim()
         form.update { it.copy(saving = true, failed = false) }
         viewModelScope.launch {
-            attempt("Saving the settings of space $spaceId") { spaces.updateSpace(spaceId, name, accent) }
-                .onSuccess { form.update { it.copy(nameDraft = null, accentDraft = null, saving = false) } }
+            attempt("Saving the settings of space $spaceId") { spaces.renameSpace(spaceId, name) }
+                .onSuccess { form.update { it.copy(nameDraft = null, saving = false) } }
                 .onFailure { form.update { it.copy(saving = false, failed = true) } }
         }
     }

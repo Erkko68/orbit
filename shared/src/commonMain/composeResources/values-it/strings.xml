@@ -329,13 +329,13 @@
     <string name="delete_space_failed">Impossibile eliminare lo spazio. Riprova.</string>
     <string name="space_settings_leave">Lascia spazio</string>
     <string name="space_settings_delete">Elimina spazio</string>
+    <string name="space_settings_leave_body">Smetti di vederlo. Quello che hai aggiunto resta.</string>
+    <string name="space_settings_delete_body">Eliminalo per tutti, con tutto ciò che contiene.</string>
     <string name="space_settings">Impostazioni dello spazio</string>
     <string name="space_settings_invite_body">Un codice o un link, valido una settimana</string>
     <string name="space_settings_name">Nome dello spazio</string>
-    <string name="space_settings_colour">Badge</string>
     <string name="space_settings_save">Salva</string>
     <string name="space_settings_failed">Impossibile salvare le modifiche. Riprova.</string>
-    <string name="space_badge_option">Badge %1$d</string>
     <string name="cancel">Annulla</string>
     <string name="show">Mostra</string>
     <string name="hide">Nascondi</string>

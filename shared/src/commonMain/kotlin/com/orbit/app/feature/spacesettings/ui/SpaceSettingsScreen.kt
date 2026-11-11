@@ -20,12 +20,10 @@ import com.orbit.app.core.designsystem.component.OrbitGroupRow
 import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitSectionHeader
-import com.orbit.app.core.designsystem.component.OrbitSpaceColorPicker
-import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.core.designsystem.component.OrbitTextField
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.component.memberShape
-import com.orbit.app.core.designsystem.theme.OrbitSpaceColor
+import com.orbit.app.core.designsystem.theme.OrbitShape
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.share.TextSharer
 import com.orbit.app.feature.member.SpaceMember
@@ -42,7 +40,9 @@ import orbit.shared.generated.resources.delete_space_confirm
 import orbit.shared.generated.resources.delete_space_failed
 import orbit.shared.generated.resources.delete_space_title
 import orbit.shared.generated.resources.ic_arrow_back
+import orbit.shared.generated.resources.ic_delete
 import orbit.shared.generated.resources.ic_home
+import orbit.shared.generated.resources.ic_logout
 import orbit.shared.generated.resources.ic_person_add
 import orbit.shared.generated.resources.invite_title
 import orbit.shared.generated.resources.leave_body
@@ -53,11 +53,14 @@ import orbit.shared.generated.resources.member_you
 import orbit.shared.generated.resources.members_members
 import orbit.shared.generated.resources.space_settings
 import orbit.shared.generated.resources.space_settings_delete
+import orbit.shared.generated.resources.space_settings_delete_body
 import orbit.shared.generated.resources.space_settings_failed
 import orbit.shared.generated.resources.space_settings_invite_body
 import orbit.shared.generated.resources.space_settings_leave
+import orbit.shared.generated.resources.space_settings_leave_body
 import orbit.shared.generated.resources.space_settings_name
 import orbit.shared.generated.resources.space_settings_save
+import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import org.koin.compose.viewmodel.koinViewModel
@@ -86,51 +89,75 @@ fun SpaceSettingsScreen(
     LaunchedEffect(state.gone) {
         if (state.gone) onGone()
     }
-    OrbitSpaceColor(state.shownAccent) {
-        OrbitScreen(
-            topBar = {
-                OrbitTopBar(
-                    title = stringResource(Res.string.space_settings),
-                    navigationIcon = { OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.back), onBack) },
-                )
-            },
-            scrollable = true,
-        ) {
-            if (state.canEdit) Identity(state, viewModel)
-            if (members.members.isNotEmpty()) {
-                OrbitSectionHeader(
-                    title = stringResource(Res.string.members_members),
-                    modifier = Modifier.fillMaxWidth(),
-                    count = members.members.size.toString(),
-                )
-                OrbitGroup(members.byRole.flatMap { it.members }, key = { it.id }, modifier = Modifier.fillMaxWidth()) {
-                    MemberRow(it, onOpenMember)
-                }
+    OrbitScreen(
+        topBar = {
+            OrbitTopBar(
+                title = stringResource(Res.string.space_settings),
+                navigationIcon = { OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.back), onBack) },
+            )
+        },
+        scrollable = true,
+    ) {
+        if (state.canEdit) Identity(state, viewModel)
+        if (members.members.isNotEmpty()) {
+            OrbitSectionHeader(
+                title = stringResource(Res.string.members_members),
+                modifier = Modifier.fillMaxWidth(),
+                count = members.members.size.toString(),
+            )
+            OrbitGroup(members.byRole.flatMap { it.members }, key = { it.id }, modifier = Modifier.fillMaxWidth()) {
+                MemberRow(it, onOpenMember)
             }
-            if (invite.canInvite) {
+        }
+        // What the user can do with the space, as rows of one group like the account's (#293).
+        val actions = listOfNotNull(
+            SpaceAction(
+                title = stringResource(Res.string.invite_title),
+                supporting = stringResource(Res.string.space_settings_invite_body),
+                icon = Res.drawable.ic_person_add,
+                shape = OrbitShape.Cookie,
+                onClick = inviteViewModel::open,
+            ).takeIf { invite.canInvite },
+            SpaceAction(
+                title = stringResource(if (state.deletes) Res.string.space_settings_delete else Res.string.space_settings_leave),
+                supporting = stringResource(
+                    if (state.deletes) Res.string.space_settings_delete_body else Res.string.space_settings_leave_body,
+                ),
+                icon = if (state.deletes) Res.drawable.ic_delete else Res.drawable.ic_logout,
+                shape = OrbitShape.Burst,
+                onClick = viewModel::confirmExit,
+                danger = true,
+            ).takeIf { state.role != null },
+        )
+        if (actions.isNotEmpty()) {
+            OrbitGroup(actions, key = { it.title }, modifier = Modifier.fillMaxWidth()) { action ->
                 OrbitActionRow(
-                    title = stringResource(Res.string.invite_title),
-                    supporting = stringResource(Res.string.space_settings_invite_body),
-                    icon = Res.drawable.ic_person_add,
-                    onClick = inviteViewModel::open,
+                    title = action.title,
+                    supporting = action.supporting,
+                    icon = action.icon,
+                    shape = action.shape,
+                    danger = action.danger,
+                    onClick = action.onClick,
                     modifier = Modifier.fillMaxWidth(),
-                )
-            }
-            if (state.role != null) {
-                OrbitTextButton(
-                    text = stringResource(if (state.deletes) Res.string.space_settings_delete else Res.string.space_settings_leave),
-                    onClick = viewModel::confirmExit,
-                    modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.error,
                 )
             }
         }
-        if (invite.open) InviteSheet(invite, inviteViewModel, sharer)
     }
+    if (invite.open) InviteSheet(invite, inviteViewModel, sharer)
     if (state.confirmingExit) ExitDialog(state, viewModel)
 }
 
-/** The name and colour, which an owner or admin changes. Save shows once something differs from what is saved. */
+/** One thing the user can do with the space. */
+private class SpaceAction(
+    val title: String,
+    val supporting: String,
+    val icon: DrawableResource,
+    val shape: OrbitShape,
+    val onClick: () -> Unit,
+    val danger: Boolean = false,
+)
+
+/** The name, which an owner or admin changes. Save shows once something differs from what is saved. */
 @Composable
 private fun Identity(state: SpaceSettingsUiState, viewModel: SpaceSettingsViewModel) {
     OrbitTextField(
@@ -142,7 +169,6 @@ private fun Identity(state: SpaceSettingsUiState, viewModel: SpaceSettingsViewMo
         supportingText = if (state.failed) stringResource(Res.string.space_settings_failed) else null,
         leadingIcon = Res.drawable.ic_home,
     )
-    state.shownAccent?.let { OrbitSpaceColorPicker(it, viewModel::onAccentChange) }
     if (state.changed) {
         OrbitButton(
             text = stringResource(Res.string.space_settings_save),

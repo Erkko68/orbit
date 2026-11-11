@@ -20,7 +20,7 @@ import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * One of the user's spaces as a panel opened by its badge, loaded by its own view model: its name, what the user has to do
+ * One of the user's spaces as a panel led by the faces of the people in it, loaded by its own view model: its name, what the user has to do
  * there and its members' faces.
  */
 @Composable
@@ -39,7 +39,7 @@ internal fun SpaceCard(
         detail = spaceDetail(state),
         badge = OrbitTheme.colors.spaceAccent(state.accent),
         shape = memberShape(state.accent),
-        faces = state.faces.mapIndexed { index, face ->
+        faces = state.others.mapIndexed { index, face ->
             OrbitFace(face.id, face.name, face.initials, Ink, memberShape(index), face.photoUrl, accent.vivid)
         },
         onClick = onClick,
