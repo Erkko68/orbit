@@ -17,8 +17,6 @@
     <string name="reset_email">Account email address</string>
     <string name="reset_body">We will send a link to set a new password.</string>
     <string name="reset_send">Send link</string>
-    <string name="reset_cancel">Cancel</string>
-    <string name="reset_close">Close</string>
     <string name="reset_sent">If %1$s has an account, the link is on its way. Look in the spam folder too.</string>
     <string name="sign_in">Sign in</string>
     <string name="sign_in_google">Continue with Google</string>

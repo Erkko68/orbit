@@ -17,8 +17,6 @@
     <string name="reset_email">Email dell&apos;account</string>
     <string name="reset_body">Ti invieremo un link per crearne una nuova.</string>
     <string name="reset_send">Invia il link</string>
-    <string name="reset_cancel">Annulla</string>
-    <string name="reset_close">Chiudi</string>
     <string name="reset_sent">Se %1$s ha un account, il link &#232; in arrivo. Controlla anche la posta indesiderata.</string>
     <string name="sign_in">Accedi</string>
     <string name="sign_in_google">Continua con Google</string>

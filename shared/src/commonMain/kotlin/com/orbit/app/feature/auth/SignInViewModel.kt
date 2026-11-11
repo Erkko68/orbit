@@ -37,7 +37,7 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
 
     fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
 
-    /** Opens the reset dialog on whatever address the form already has (#217). */
+    /** Opens the reset sheet on whatever address the form already has (#217). */
     fun openPasswordReset() {
         if (_uiState.value.submitting) return
         _uiState.update {
@@ -54,13 +54,13 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
     fun onResetEmailChange(email: String) =
         _uiState.update { it.copy(resetEmail = email, resetErrors = emptyList(), resetError = null) }
 
-    /** Closes the dialog, unless the link is already going out. */
+    /** Closes the sheet, unless the link is already going out. */
     fun dismissPasswordReset() {
         if (!_uiState.value.resetSending) _uiState.update { it.copy(resetOpen = false) }
     }
 
     /**
-     * Sends the link. The dialog then says it went, whether or not the address has an account, so nobody
+     * Sends the link. The sheet then says it went, whether or not the address has an account, so nobody
      * learns which addresses are registered; only a failure of the request itself is shown.
      */
     fun sendPasswordReset() {

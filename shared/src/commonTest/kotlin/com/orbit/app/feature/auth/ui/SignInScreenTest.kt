@@ -156,7 +156,7 @@ class SignInScreenTest : ComposeTest() {
         onNodeWithText("Reset your password").assertIsDisplayed()
         onNodeWithText("We will send a link to set a new password.").assertIsDisplayed()
         onNodeWithText("Account email address").assertIsDisplayed()
-        onNodeWithText("Cancel").assertIsEnabled()
+        onNodeWithContentDescription("Close").assertIsEnabled()
     }
 
     @Test
@@ -172,7 +172,7 @@ class SignInScreenTest : ComposeTest() {
         onNodeWithText(
             "If ana@orbit.app has an account, the link is on its way. Look in the spam folder too.",
         ).assertIsDisplayed()
-        onNodeWithText("Close").assertIsEnabled()
+        onNodeWithContentDescription("Close").assertIsEnabled()
         onNodeWithText("Send link").assertDoesNotExist()
     }
 
@@ -203,7 +203,7 @@ class SignInScreenTest : ComposeTest() {
         showSignIn()
         onNodeWithText("Forgot password?").performScrollTo().performClick()
 
-        onNodeWithText("Cancel").performClick()
+        onNodeWithContentDescription("Close").performClick()
 
         onNodeWithText("Reset your password").assertDoesNotExist()
     }
