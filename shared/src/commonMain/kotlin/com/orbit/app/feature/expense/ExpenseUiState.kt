@@ -31,7 +31,6 @@ data class ExpenseUiState(
     val loading: Boolean = true,
     val loadFailed: Boolean = false,
     val missing: Boolean = false,
-    val accent: Int? = null,
     val spaceName: String = "",
     val title: String = "",
     val amount: String = "",
@@ -43,10 +42,9 @@ data class ExpenseUiState(
     /** Typed percentages and weights. Neither is stored: they only become cents, as the custom amounts do. */
     val percentages: Map<String, String> = emptyMap(),
     val weights: Map<String, String> = emptyMap(),
-    /** Retained by UID while a person is deselected. Only selected entries are persisted. */
+    /** Who gets an even part of what the manual shares leave (#283). Kept while someone is left out. */
     val automatic: Set<String> = emptySet(),
-    /** The unit of a deselected person's draft, so switching mode cannot reinterpret its text. */
-    val deselectedModes: Map<String, ExpenseSplit> = emptyMap(),
+    /** Opening an edit keeps its saved cents until the user changes the amount, the people or a share. */
     val allocationChanged: Boolean = false,
     val conversionFailed: Boolean = false,
     /** The members, and anyone who left but is still in the expense being edited. */
@@ -91,22 +89,31 @@ data class ExpenseUiState(
     val dateMillis: Long? get() = date?.atStartOfDayIn(TimeZone.UTC)?.toEpochMilliseconds()
     val cents: Long? get() = parseMoney(amount, locale)?.takeIf { it > 0 }
 
-    /** What each person's field shows in the current mode. A weight left alone is 1. */
+    /** What the empty amount shows: nothing yet, written the way the device writes money. */
+    val amountPlaceholder: String get() = "0${locale.decimal}00"
+
+    /** Something is typed that is not an amount above zero. */
+    val amountInvalid: Boolean get() = amount.isNotEmpty() && cents == null
+
+    /** What each person's field shows in the current mode. A weight left alone is 1; an automatic share is empty. */
     val shareInputs: Map<String, String>
         get() = selected.associateWith { id ->
-            when (mode) {
-                ExpenseSplit.EQUAL -> ""
-                ExpenseSplit.EXACT -> if (id in automaticIds) {
-                    split?.let { moneyInput(it[id] ?: 0L, locale) }.orEmpty()
-                } else exact[id].orEmpty()
-
-                ExpenseSplit.PERCENTAGES -> if (id in automaticIds) {
-                    automaticPercentage?.takeIf { cents != null }?.let { moneyInput(it, locale) }.orEmpty()
-                } else percentages[id].orEmpty()
-
-                ExpenseSplit.WEIGHTS -> weights[id] ?: "1"
+            when {
+                mode == ExpenseSplit.EQUAL || id in automaticIds -> ""
+                mode == ExpenseSplit.EXACT -> exact[id].orEmpty()
+                mode == ExpenseSplit.PERCENTAGES -> percentages[id].orEmpty()
+                else -> weights[id] ?: "1"
             }
         }
+
+    /** What an automatic share comes to, shown greyed in its empty field. Missing while the split is not valid. */
+    val automaticInputs: Map<String, String>
+        get() = automaticIds.mapNotNull { id ->
+            when (mode) {
+                ExpenseSplit.EXACT -> split?.let { moneyInput(it[id] ?: 0L, locale) }
+                else -> automaticPercentage?.takeIf { cents != null }?.let { moneyInput(it, locale) }
+            }?.let { id to it }
+        }.toMap()
 
     /** A typed field as a number: cents, hundredths of a percent or a whole weight. Null when it is not valid. */
     private fun typed(id: String): Long? {
@@ -174,8 +181,7 @@ data class ExpenseUiState(
                         paidBy,
                         it,
                         cents ?: 0,
-                        people.map { person -> person.id }, customAllocation
-                    ).isEmpty()
+                        people.map { person -> person.id }).isEmpty()
                 } == true
     val canDelete: Boolean
         get() = original?.let { member != null && (it.createdBy == member.userId || member.role.managesSpace) } == true &&

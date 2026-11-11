@@ -125,17 +125,11 @@ class FirestoreSpaceRepository(
         return invitation.spaceId
     }
 
-    /** Writes only the fields that changed. The rules decide who may. */
-    override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) {
-        require(name != null || accent != null) { "Nothing to change" }
-        require(name == null || name.isNotBlank()) { "A space needs a name" }
+    /** Writes only the name. The rules decide who may. */
+    override suspend fun renameSpace(spaceId: String, name: String) {
+        require(name.isNotBlank()) { "A space needs a name" }
         val space = firestore.collection(SPACES).document(spaceId)
-        writeLocally("Settings of space $spaceId") {
-            space.updateFields {
-                if (name != null) "name" to name
-                if (accent != null) "accent" to accent
-            }
-        }
+        writeLocally("Renaming space $spaceId") { space.updateFields { "name" to name } }
     }
 
     /**

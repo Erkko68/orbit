@@ -18,8 +18,6 @@ import org.jetbrains.compose.resources.StringResource
 /** The header of a space and its selected destination. The items have their own state. */
 data class SpaceHomeUiState(
     val name: String = "",
-    /** The space's colour, null until it has loaded. */
-    val accent: Int? = null,
     /** The signed-in user, for the account avatar in the top bar. */
     val userInitials: String = "",
     val userPhotoUrl: String? = null,

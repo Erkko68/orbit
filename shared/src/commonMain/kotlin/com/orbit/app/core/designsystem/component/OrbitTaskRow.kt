@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
@@ -17,7 +18,8 @@ private const val TITLE_LINES = 2
  * of [summary] and [label] (when it is due, how far along a list is) one under the other, and the [faces] of who has it
  * at the end of the row.
  * [checkDescription] says what the check does for screen readers. A row that is [checked] is tinted and its title goes
- * quiet.
+ * quiet. An [overdue] one paints its [label] in the error colour; the label still says the date, so colour is not
+ * the only sign.
  */
 @Composable
 fun OrbitTaskRow(
@@ -31,6 +33,7 @@ fun OrbitTaskRow(
     label: String? = null,
     faces: List<OrbitFace> = emptyList(),
     enabled: Boolean = true,
+    overdue: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
     OrbitGroupRow(modifier, onClick = onClick, done = checked) {
@@ -52,7 +55,15 @@ fun OrbitTaskRow(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            label?.let { Text(it, style = OrbitTheme.data.small, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+            label?.let {
+                Text(
+                    text = it,
+                    style = OrbitTheme.data.small,
+                    color = if (overdue) scheme.error else Color.Unspecified,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         if (faces.isNotEmpty()) OrbitFaceStack(faces)
     }

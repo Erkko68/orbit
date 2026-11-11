@@ -82,7 +82,7 @@ class ItemViewModel(
         auth.session,
     ) { all, members, user ->
         val space = all.firstOrNull { it.id == spaceId }
-        ItemContext(space?.name, space?.accent, members, user?.id)
+        ItemContext(space?.name, members, user?.id)
     }.onStart { emit(ItemContext()) }
 
     val uiState: StateFlow<ItemUiState> = combine(item, context, form, draft) { load, context, form, draft ->
@@ -97,7 +97,6 @@ class ItemViewModel(
             loadFailed = load == Load.Failed,
             notFound = !isNew && load is Load.Loaded && loaded == null,
             spaceName = context.spaceName,
-            accent = context.accent,
             memberNames = context.members.associate { it.userId to it.displayName },
             members = context.members,
             currentUserId = context.currentUserId,
@@ -493,7 +492,6 @@ class ItemViewModel(
 
     private data class ItemContext(
         val spaceName: String? = null,
-        val accent: Int? = null,
         val members: List<Member> = emptyList(),
         val currentUserId: String? = null,
     )

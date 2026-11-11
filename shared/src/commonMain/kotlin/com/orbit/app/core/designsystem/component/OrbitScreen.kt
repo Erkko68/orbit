@@ -33,7 +33,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -51,13 +50,9 @@ import kotlin.math.roundToInt
 private val FloatingClearance = 104.dp
 
 // The one decoration: a soft planet past the top right corner, behind the header.
-private val PlanetRadius = 180.dp
-private val PlanetRight = 150.dp
-private val PlanetTop = 130.dp
-private val HaloWidth = 36.dp
 
 /**
- * Base layout of every screen: the space's colour as the page, the planet behind the header, the scaffold, the screen
+ * Base layout of every screen: the flat page, the scaffold, the screen
  * gutter, the gap between panels and the scrolling. The gutter belongs here, so nothing touches the edge of the screen
  * by accident: only what is passed as [topBar] or [bottomBar] can. [topBar] is usually an [OrbitTopBar] or an
  * [OrbitColorHeader], [bottomBar] an [OrbitNavigationBar] and [floatingActionButton] an [OrbitAddButton]. A [scrollable]
@@ -81,18 +76,10 @@ fun OrbitScreen(
     list: (LazyListScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
-    val accent = OrbitTheme.accent
-    val page by animateColorAsState(accent.page, OrbitMotion.effects())
-    val planet by animateColorAsState(accent.planet, OrbitMotion.effects())
-    val halo by animateColorAsState(accent.halo, OrbitMotion.effects())
+    val page by animateColorAsState(OrbitTheme.accent.page, OrbitMotion.effects())
     val collapse = remember { TopBarCollapse() }
     Box(
-        modifier.fillMaxSize().background(page).drawBehind {
-            val radius = PlanetRadius.toPx()
-            val center = Offset(size.width + PlanetRight.toPx() - radius, radius - PlanetTop.toPx())
-            drawCircle(halo, radius + HaloWidth.toPx(), center)
-            drawCircle(planet, radius, center)
-        }.then(if (collapsingTopBar) Modifier.nestedScroll(collapse) else Modifier),
+        modifier.fillMaxSize().background(page).then(if (collapsingTopBar) Modifier.nestedScroll(collapse) else Modifier),
     ) {
         Scaffold(
             topBar = if (collapsingTopBar) {

@@ -38,6 +38,19 @@ describe('User private profiles', () => {
     assert.strictEqual(doc.data().displayName, 'Alice');
   });
 
+  it('refuses a display name longer than 30 characters, but keeps an older one working', async () => {
+    const aliceDb = testEnv.authenticatedContext('alice').firestore();
+    const alice = aliceDb.collection('users').doc('alice');
+    await assertSucceeds(alice.set({ displayName: 'A'.repeat(30) }));
+    await assertFails(alice.set({ displayName: 'A'.repeat(31) }));
+    await assertFails(alice.update({ displayName: 'B'.repeat(31) }));
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('users').doc('alice').set({ displayName: 'C'.repeat(40) });
+    });
+    await assertSucceeds(alice.update({ aiConsentAt: new Date() }));
+  });
+
   it('denies a user from reading or writing another user profile', async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await context.firestore().collection('users').doc('alice').set({ displayName: 'Alice' });

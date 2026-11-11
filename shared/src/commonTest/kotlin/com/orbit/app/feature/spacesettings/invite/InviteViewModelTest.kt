@@ -113,16 +113,44 @@ class InviteViewModelTest {
     }
 
     @Test
-    fun revokingTheInvitationLeavesNoneToShare() = runTest {
+    fun openingMakesACodeWhenThereIsNone() = runTest {
+        val spaces = ownedSpace()
+        val invitations = InMemoryInvitationRepository(auth)
+        val viewModel = inviteViewModel(spaces, invitations)
+
+        viewModel.open()
+
+        assertTrue(viewModel.uiState.value.open)
+        val made = invitations.observeInvitations("space-1").first().single()
+        assertEquals(made.code, viewModel.uiState.value.invitation?.code)
+    }
+
+    @Test
+    fun openingKeepsTheCodeThatStillWorks() = runTest {
+        val spaces = ownedSpace()
+        val works = invitation("WORKS234", expiresAt = Clock.System.now() + 3.days)
+        val invitations = FailingInvitationRepository(listOf(works))
+        val viewModel = inviteViewModel(spaces, invitations)
+
+        viewModel.open()
+
+        assertEquals("WORKS234", viewModel.uiState.value.invitation?.code)
+        assertNull(viewModel.uiState.value.failure)
+    }
+
+    @Test
+    fun aNewCodeRevokesTheOldOne() = runTest {
         val spaces = ownedSpace()
         val invitations = InMemoryInvitationRepository(auth)
         val viewModel = inviteViewModel(spaces, invitations)
         viewModel.createInvitation()
+        val old = viewModel.uiState.value.invitation?.code
 
-        viewModel.revokeInvitation()
+        viewModel.renewInvitation()
 
-        assertNull(viewModel.uiState.value.invitation)
-        assertTrue(invitations.observeInvitations("space-1").first().single().revoked)
+        val all = invitations.observeInvitations("space-1").first()
+        assertTrue(all.single { it.code == old }.revoked)
+        assertEquals(all.single { !it.revoked }.code, viewModel.uiState.value.invitation?.code)
     }
 
     @Test
@@ -167,14 +195,14 @@ class InviteViewModelTest {
     }
 
     @Test
-    fun saysWhenTheInvitationCouldNotBeRevoked() = runTest {
+    fun saysWhenANewCodeCouldNotBeMade() = runTest {
         val spaces = ownedSpace()
         val works = invitation("WORKS234", expiresAt = Clock.System.now() + 3.days)
         val viewModel = inviteViewModel(spaces, FailingInvitationRepository(listOf(works)))
 
-        viewModel.revokeInvitation()
+        viewModel.renewInvitation()
 
-        assertEquals(InviteFailure.REVOKE, viewModel.uiState.value.failure)
+        assertEquals(InviteFailure.RENEW, viewModel.uiState.value.failure)
         assertFalse(viewModel.uiState.value.busy)
         assertEquals("WORKS234", viewModel.uiState.value.invitation?.code)
     }
@@ -209,11 +237,11 @@ class InviteViewModelTest {
     }
 
     @Test
-    fun revokingWithNothingToRevokeDoesNothing() = runTest {
+    fun aNewCodeWithNothingToReplaceDoesNothing() = runTest {
         val spaces = ownedSpace()
         val viewModel = inviteViewModel(spaces, FailingInvitationRepository())
 
-        viewModel.revokeInvitation()
+        viewModel.renewInvitation()
 
         assertNull(viewModel.uiState.value.failure)
     }

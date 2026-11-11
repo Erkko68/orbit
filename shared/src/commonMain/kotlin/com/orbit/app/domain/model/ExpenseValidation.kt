@@ -10,7 +10,6 @@ sealed interface ExpenseError {
     data class NonPositiveShare(val memberId: String) : ExpenseError
     data class ShareNotMember(val memberId: String) : ExpenseError
     data object SharesDoNotAddUp : ExpenseError
-    data object InvalidAllocation : ExpenseError
 }
 
 /**
@@ -24,23 +23,18 @@ fun validateExpense(
     split: Map<String, Long>,
     total: Long,
     memberIds: Collection<String>,
-    customAllocation: Map<String, Boolean>? = null,
 ): List<ExpenseError> = titleErrors(title) +
+    listOfNotNull(
+        ExpenseError.PayerNotMember.takeIf { paidBy !in memberIds },
+        ExpenseError.NoShares.takeIf { split.isEmpty() },
+        ExpenseError.SharesDoNotAddUp.takeIf { split.isNotEmpty() && split.values.sum() != total },
+    ) +
+    split.flatMap { (memberId, cents) ->
         listOfNotNull(
-            ExpenseError.PayerNotMember.takeIf { paidBy !in memberIds },
-            ExpenseError.NoShares.takeIf { split.isEmpty() },
-            ExpenseError.InvalidAllocation.takeIf {
-                customAllocation != null && (customAllocation.isEmpty() ||
-                        !customAllocation.keys.containsAll(split.keys) || customAllocation.keys.any { it !in memberIds })
-            },
-            ExpenseError.SharesDoNotAddUp.takeIf { split.isNotEmpty() && split.values.sum() != total },
-        ) +
-        split.flatMap { (memberId, cents) ->
-            listOfNotNull(
-                ExpenseError.NonPositiveShare(memberId).takeIf { cents <= 0 },
-                ExpenseError.ShareNotMember(memberId).takeIf { memberId !in memberIds },
-            )
-        }
+            ExpenseError.NonPositiveShare(memberId).takeIf { cents <= 0 },
+            ExpenseError.ShareNotMember(memberId).takeIf { memberId !in memberIds },
+        )
+    }
 
 private fun titleErrors(title: String): List<ExpenseError> {
     val trimmed = title.trim()

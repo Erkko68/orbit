@@ -2,24 +2,20 @@ package com.orbit.app.data.repository
 
 import co.touchlab.kermit.Logger
 import com.orbit.app.data.auth.GoogleAuthClient
-import com.orbit.app.data.auth.GoogleAuthCredential
-import com.orbit.app.data.auth.googleIdentity
 import com.orbit.app.data.mapper.devicePreferencesDocument
 import com.orbit.app.data.mapper.googleSignInException
 import com.orbit.app.data.mapper.mapUser
 import com.orbit.app.data.mapper.registerException
 import com.orbit.app.data.mapper.signInException
 import com.orbit.app.data.mapper.userProfileDocument
-import com.orbit.app.domain.model.AccountLinkException
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
-import com.orbit.app.domain.model.LinkProof
+import com.orbit.app.domain.model.DISPLAY_NAME_MAX_LENGTH
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import dev.gitlive.firebase.auth.AuthCredential
 import dev.gitlive.firebase.auth.EmailAuthProvider
 import dev.gitlive.firebase.auth.FirebaseAuth
-import dev.gitlive.firebase.auth.FirebaseAuthUserCollisionException
 import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.firestore.DocumentSnapshot
@@ -32,12 +28,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.update
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FirebaseAuthRepository(
@@ -48,17 +47,14 @@ class FirebaseAuthRepository(
     /** Lives as long as the app: this repository is a singleton. */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    /**
-     * The Google credential of a sign-in that collided with a password account, kept so linking it after
-     * the password is typed does not open the account picker a second time (#173).
-     */
-    private var pendingGoogle: GoogleAuthCredential? = null
+    /** Counts the links made here: the auth state does not change with one, so [session] maps the user again. */
+    private val linked = MutableStateFlow(0)
 
     /**
      * The signed-in user from their `users/{uid}` document, with the Firebase account filling what it lacks.
      * Every collector shares one listener, which stops a few seconds after the last one leaves.
      */
-    override val session: Flow<User?> = auth.authStateChanged.flatMapLatest { firebaseUser ->
+    override val session: Flow<User?> = combine(auth.authStateChanged, linked) { user, _ -> user }.flatMapLatest { firebaseUser ->
         if (firebaseUser == null) {
             flowOf(null)
         } else {
@@ -77,12 +73,7 @@ class FirebaseAuthRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            val failure = signInException(e)
-            // The account may be a Google one without a password: an offer to link, not a wrong password (#173).
-            if (failure.error == AuthError.WRONG_CREDENTIALS && signsInWithGoogleOnly(email)) {
-                throw AccountLinkException(email, LinkProof.GOOGLE, e)
-            }
-            throw failure
+            throw signInException(e)
         }
         val user = result.user ?: auth.currentUser
         if (user != null) {
@@ -110,7 +101,7 @@ class FirebaseAuthRepository(
      * they belong to in a single batch, so profile copies never drift (ADR 0002).
      */
     override suspend fun updateDisplayName(displayName: String) {
-        val trimmed = displayName.trim()
+        val trimmed = displayName.trim().take(DISPLAY_NAME_MAX_LENGTH)
         require(trimmed.isNotBlank()) { "A display name is required" }
         val user = signedInUser()
 
@@ -148,16 +139,41 @@ class FirebaseAuthRepository(
         }
     }
 
+    /** Does nothing when the user closes the account picker. */
+    override suspend fun linkGoogle() {
+        val google = googleAuthClient.getCredential() ?: return
+        link(GoogleAuthProvider.credential(google.idToken, google.accessToken)) { googleSignInException(it) }
+    }
+
+    override suspend fun setPassword(newPassword: String) {
+        val email = checkNotNull(signedInUser().email) { "The account has no email to set a password for" }
+        link(EmailAuthProvider.credential(email, newPassword)) { registerException(it) }
+    }
+
+    /** Adds [credential] as another way into the signed-in account, which keeps its `uid` (#293). */
+    private suspend fun link(credential: AuthCredential, failure: (Exception) -> Exception) {
+        try {
+            signedInUser().linkWithCredential(credential)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw failure(e)
+        }
+        linked.update { it + 1 }
+    }
+
+    override suspend fun reauthenticate(currentPassword: String?) {
+        val user = signedInUser()
+        if (currentPassword != null) reauthenticate(user, currentPassword) else reauthenticateWithGoogle(user)
+    }
+
     /**
-     * Deletes the profile document and then the account itself (#188). The caller has already left or deleted
-     * the spaces: what is left here is `users/{uid}` and the Firebase account, in that order, so a run that
-     * stops halfway can simply be run again. Firebase wants a recent sign-in before it deletes an account,
-     * so this proves [currentPassword], or asks Google again for an account that signs in that way.
+     * Deletes `users/{uid}` and then the Firebase account (#188), in that order: once the account is gone its
+     * profile can no longer be written, and a run that stops halfway can simply be run again.
      */
-    override suspend fun deleteAccount(currentPassword: String?) {
+    override suspend fun deleteAccount() {
         val user = signedInUser()
         firestore.collection(USERS).document(user.uid).delete()
-        if (currentPassword != null) reauthenticate(user, currentPassword) else reauthenticateWithGoogle(user)
         try {
             user.delete()
         } catch (e: CancellationException) {
@@ -199,99 +215,9 @@ class FirebaseAuthRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            throw googleCollision(google, e)
+            throw googleSignInException(e)
         }
-        pendingGoogle = null
         ensureUserProfile(checkNotNull(result.user) { "No user returned after Google sign-in" })
-    }
-
-    /**
-     * Signs in with the password, which proves the account is the user's, and links the Google credential
-     * that collided with it to that same account, so its `uid`, profile and spaces are the ones they keep.
-     */
-    override suspend fun linkGoogleWithPassword(email: String, password: String) {
-        val google = pendingGoogle ?: googleAuthClient.getCredential() ?: return
-        requireGoogleAddress(google, email)
-        signIn(email, password)
-        linkCredential(GoogleAuthProvider.credential(google.idToken, google.accessToken)) { googleSignInException(it) }
-        pendingGoogle = null
-        ensureUserProfile(signedInUser())
-    }
-
-    /** Signing in with Google proves the account is the user's; the password is then linked to it. */
-    override suspend fun setPasswordWithGoogle(email: String, password: String) {
-        val google = googleAuthClient.getCredential() ?: return
-        requireGoogleAddress(google, email)
-        val result = try {
-            auth.signInWithCredential(GoogleAuthProvider.credential(google.idToken, google.accessToken))
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            throw googleCollision(google, e)
-        }
-        linkCredential(EmailAuthProvider.credential(email.trim(), password)) { registerException(it) }
-        ensureUserProfile(checkNotNull(result.user) { "No user returned after Google sign-in" })
-    }
-
-    /**
-     * What a refused Google sign-in means: an address that already has a password account is an offer to
-     * link it, with the credential kept for [linkGoogleWithPassword]. A token that proves no address
-     * cannot be linked to anything, so that stays the plain failure.
-     */
-    private fun googleCollision(google: GoogleAuthCredential, cause: Exception): Exception {
-        if (cause is FirebaseAuthUserCollisionException) {
-            val identity = googleIdentity(google.idToken)
-            if (identity != null && identity.emailVerified) {
-                pendingGoogle = google
-                return AccountLinkException(identity.email, LinkProof.PASSWORD, cause)
-            }
-            Logger.w(cause) { "A Google sign-in collided with an account, but its token proves no address" }
-        }
-        return googleSignInException(cause)
-    }
-
-    /** Refuses a Google account that is not the address being linked, so another user's account is never joined. */
-    private fun requireGoogleAddress(google: GoogleAuthCredential, email: String) {
-        val identity = googleIdentity(google.idToken) ?: return
-        if (!identity.email.equals(email.trim(), ignoreCase = true)) {
-            throw AuthException(AuthError.DIFFERENT_GOOGLE_ACCOUNT)
-        }
-    }
-
-    /**
-     * Adds [credential] as another way into the signed-in account. A provider the account already has is
-     * no failure: pressing the button twice leaves the one account linked.
-     */
-    private suspend fun linkCredential(credential: AuthCredential, failure: (Throwable) -> Exception) {
-        val user = signedInUser()
-        try {
-            user.linkWithCredential(credential)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            if (e is FirebaseAuthUserCollisionException &&
-                user.providerData.any { it.providerId == credential.providerId }
-            ) {
-                Logger.d { "${credential.providerId} is already linked to ${user.uid}" }
-                return
-            }
-            throw failure(e)
-        }
-    }
-
-    /**
-     * Whether [email] signs in with Google and has no password. Firebase's answer is a hint, not a secret:
-     * a failed or empty answer (its email enumeration protection) leaves the sign-in a wrong password.
-     */
-    @Suppress("DEPRECATION")
-    private suspend fun signsInWithGoogleOnly(email: String): Boolean = try {
-        val methods = auth.fetchSignInMethodsForEmail(email)
-        GOOGLE_PROVIDER in methods && PASSWORD_PROVIDER !in methods
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        Logger.d(e) { "Could not read the sign-in methods of an address" }
-        false
     }
 
     /**
@@ -380,11 +306,10 @@ class FirebaseAuthRepository(
         email = email,
         aiConsent = profile?.instant("aiConsentAt") != null,
         hasPassword = providerData.any { it.providerId == PASSWORD_PROVIDER },
+        signsInWithGoogle = providerData.any { it.providerId == GOOGLE_PROVIDER },
     )
 }
 
-/** Firebase's name for the Google provider, as `fetchSignInMethodsForEmail` and `providerData` give it. */
-private const val GOOGLE_PROVIDER = "google.com"
-
-/** Firebase's name for the email and password provider. */
+/** Firebase's names for the email and password provider and for Google, as `providerData` gives them. */
 private const val PASSWORD_PROVIDER = "password"
+private const val GOOGLE_PROVIDER = "google.com"

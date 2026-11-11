@@ -17,20 +17,11 @@
     <string name="reset_email">Email dell&apos;account</string>
     <string name="reset_body">Ti invieremo un link per crearne una nuova.</string>
     <string name="reset_send">Invia il link</string>
-    <string name="reset_cancel">Annulla</string>
-    <string name="reset_close">Chiudi</string>
     <string name="reset_sent">Se %1$s ha un account, il link &#232; in arrivo. Controlla anche la posta indesiderata.</string>
     <string name="sign_in">Accedi</string>
     <string name="sign_in_google">Continua con Google</string>
     <string name="sign_in_new">È la tua prima volta su Orbit?</string>
     <string name="sign_in_create_account">Crea account</string>
-    <!-- Un solo account per entrambi i modi di accedere -->
-    <string name="link_password_title">Un account, due modi per accedere</string>
-    <string name="link_password_body">%1$s accede già con una password. Inseriscila una volta e Google ti farà entrare nello stesso account.</string>
-    <string name="link_password_confirm">Collega Google</string>
-    <string name="link_google_title">Questo account usa Google</string>
-    <string name="link_google_body">%1$s accede con Google. Continua con Google oppure imposta una password per lo stesso account.</string>
-    <string name="link_google_confirm">Imposta password</string>
     <!-- Account -->
     <string name="account_title">Account</string>
     <string name="account_back">Torna agli spazi</string>
@@ -40,6 +31,11 @@
     <string name="account_save">Salva</string>
     <string name="account_change_password">Cambia password</string>
     <string name="account_change_password_body">Usa almeno 8 caratteri.</string>
+    <string name="account_set_password">Imposta una password</string>
+    <string name="account_set_password_body">Accedi anche con la tua email, oltre che con Google.</string>
+    <string name="account_connect_google">Collega Google</string>
+    <string name="account_connect_google_body">Accedi anche con Google, oltre che con la tua email.</string>
+    <string name="account_connect_google_warning">Scegli l&apos;account Google con cui accedere. I tuoi spazi restano come sono.</string>
     <string name="account_current_password">Password attuale</string>
     <string name="account_new_password">Nuova password</string>
     <string name="account_sign_out">Esci</string>
@@ -69,7 +65,6 @@
     <string name="error_current_password_wrong">Questa non è la tua password attuale.</string>
     <string name="error_email_in_use">Esiste già un account con questo indirizzo email.</string>
     <string name="error_weak_password">Scegli una password più sicura.</string>
-    <string name="error_different_google_account">Questo è un altro account Google. Scegli quello con questo indirizzo.</string>
     <string name="error_network">Connessione assente. Controlla internet e riprova.</string>
     <string name="error_unknown">Qualcosa è andato storto. Riprova.</string>
     <!-- Spaces -->
@@ -102,9 +97,7 @@
     <string name="space_headline_empty">Ancora niente in orbita</string>
     <string name="turn_label">Tocca a te</string>
     <string name="turn_label_due">Tocca a te · %1$s</string>
-    <string name="turn_finished">Fatto, ottimo!</string>
     <string name="turn_action_done">Fatto</string>
-    <string name="turn_action_undo">Annulla</string>
     <string name="filter_all">Tutti</string>
     <string name="filter_mine">Miei</string>
     <string name="filter_lists">Liste</string>
@@ -268,15 +261,13 @@
     <string name="reminder_remove">Rimuovi %1$s</string>
     <string name="reminder_add">Aggiungi promemoria</string>
     <string name="invite_title">Invita persone</string>
-    <string name="invite_none">Crea un link e un codice. Chiunque li abbia può unirsi a questo spazio per una settimana, o finché non li revochi.</string>
-    <string name="invite_create">Crea invito</string>
     <string name="invite_code_label">Codice di invito</string>
-    <string name="invite_valid">Valido per una settimana, o finché non lo revochi.</string>
+    <string name="invite_valid">Chiunque abbia questo codice o link può unirsi per una settimana.</string>
     <string name="invite_share">Condividi</string>
-    <string name="invite_revoke">Revoca</string>
+    <string name="invite_renew">Nuovo codice</string>
     <string name="invite_share_message">Unisciti a “%1$s” su Orbit: apri %2$s o inserisci il codice %3$s.</string>
     <string name="invite_create_failed">Impossibile creare l&apos;invito. Riprova.</string>
-    <string name="invite_revoke_failed">Impossibile revocare l&apos;invito. Riprova.</string>
+    <string name="invite_renew_failed">Impossibile creare un nuovo codice. Riprova.</string>
     <string name="notification_permission_title">Le notifiche sono disattivate</string>
     <string name="notification_permission_body">Orbit può inviarti promemoria solo se consenti le notifiche. Attivale nelle impostazioni.</string>
     <string name="notification_permission_open_settings">Apri impostazioni</string>
@@ -336,18 +327,13 @@
     <string name="delete_space_failed">Impossibile eliminare lo spazio. Riprova.</string>
     <string name="space_settings_leave">Lascia spazio</string>
     <string name="space_settings_delete">Elimina spazio</string>
+    <string name="space_settings_leave_body">Smetti di vederlo. Quello che hai aggiunto resta.</string>
+    <string name="space_settings_delete_body">Eliminalo per tutti, con tutto ciò che contiene.</string>
     <string name="space_settings">Impostazioni dello spazio</string>
     <string name="space_settings_invite_body">Un codice o un link, valido una settimana</string>
     <string name="space_settings_name">Nome dello spazio</string>
-    <string name="space_settings_colour">Colore</string>
     <string name="space_settings_save">Salva</string>
     <string name="space_settings_failed">Impossibile salvare le modifiche. Riprova.</string>
-    <string name="space_colour_violet">Viola</string>
-    <string name="space_colour_coral">Corallo</string>
-    <string name="space_colour_teal">Verde petrolio</string>
-    <string name="space_colour_sun">Sole</string>
-    <string name="space_colour_blue">Blu</string>
-    <string name="space_colour_pink">Rosa</string>
     <string name="cancel">Annulla</string>
     <string name="show">Mostra</string>
     <string name="hide">Nascondi</string>
@@ -369,6 +355,7 @@
     <string name="expense_title">Titolo</string>
     <string name="expense_title_placeholder">Per cosa?</string>
     <string name="expense_amount">Importo</string>
+    <string name="expense_amount_invalid">Inserisci un importo maggiore di zero.</string>
     <string name="expense_paid_by">Pagato da</string>
     <string name="expense_date">Data</string>
     <string name="expense_split">Dividi tra</string>
@@ -381,13 +368,10 @@
     <string name="expense_percent_sign">%</string>
     <string name="expense_percent">%1$s%</string>
     <string name="expense_equal_hint">Tutti pagano lo stesso.</string>
-    <string name="expense_exact_hint">Scrivi quanto paga ciascuno.</string>
+    <string name="expense_exact_hint">Scrivi quanto pagano alcuni, e gli altri si dividono il resto.</string>
     <string name="expense_percentages_hint">Percentuali che sommano al 100%. Cambiare modalità può arrotondare le quote.</string>
-    <string name="expense_automatic">Automatica</string>
-    <string name="expense_manual">Manuale</string>
-    <string name="expense_make_automatic">Automatizza</string>
     <string name="expense_make_automatic_person">Rendi automatica la quota di %1$s</string>
-    <string name="expense_allocation_hint">Modificare una quota la fissa. Le quote automatiche dividono il residuo.</string>
+    <string name="expense_automatic_share">Quota automatica di %1$s</string>
     <string name="expense_conversion_failed">Completa una divisione valida prima di convertirla in questa modalità.</string>
     <string name="expense_share_unavailable">—</string>
     <string name="expense_weights_hint">Numeri interi, ad esempio 2 : 1 : 1.</string>

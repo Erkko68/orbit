@@ -4,23 +4,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class ExpenseValidationTest {
-    @Test
-    fun allocationIncludesEveryDebtAndOnlyKnownSelectedPeople() {
-        val split = mapOf("ana" to 1L)
-        assertEquals(
-            emptyList(), validateExpense(
-                "Food", "ana", split, 1, listOf("ana", "ben"),
-                mapOf("ana" to true, "ben" to false)
-            )
-        )
-        for (invalid in listOf(emptyMap(), mapOf("ben" to true), mapOf("ana" to true, "unknown" to false))) {
-            assertEquals(
-                listOf(ExpenseError.InvalidAllocation),
-                validateExpense("Food", "ana", split, 1, listOf("ana", "ben"), invalid)
-            )
-        }
-    }
-
 
     private val members = listOf("ana", "ben")
 

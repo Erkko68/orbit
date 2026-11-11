@@ -123,25 +123,21 @@ Tests cover reactive balances, confirmation/cancellation, failed writes, retries
 UI tests exercise settling up, row alignment, large text and the four translated label sets. Android emulator tests
 check real text bounds with fake values. The user reports correct Android operation with real Firebase; iOS CI remains pending.
 
-The exact-share mode is labelled "Custom amounts" in the form. Editing a share makes it manual; automatic
-selected people divide the remainder (#283). `Make automatic` releases a manual share, including manual zero.
-Empty manual input remains incomplete. `ExpenseUiState.splitProgress` derives complete, missing or excess
-allocation without a second stored total. Deselection retains drafts and status by UID during the form session.
+The exact-share mode is labelled "Custom amounts" in the form. In it and in Percentages a share is manual or
+automatic (#283): an automatic share shows its amount greyed in an empty field, typing fixes it, the undo icon in
+the field releases it, and the automatic people divide what the fixed ones leave. `ExpenseUiState.splitProgress` says how much is assigned, missing or over, with no second stored
+total. Someone left out keeps their draft and status until the mode changes.
 
 Percentages and Weights (#55) are two more split modes beside them. Each row types a percentage or a whole weight
-and shows the amount it comes to. Manual percentages plus the exact automatic remainder cover 100 %;
-approximate automatic labels never feed the computation. Custom cents round only among automatic people;
-mixed percentage allocation floors exact entitlements and gives residual cents by UID only to fractional
-entitlements. Fully manual percentages and Weights retain #55's rounding. All calculations use integers.
+and shows the amount it comes to. The automatic percentage is the exact remainder, never its rounded label. Custom
+amounts round only among automatic people; mixed percentages floor each part and give the leftover cents by uid to
+parts that had a fraction. Weights and fully manual percentages keep #55's rounding. Everything is integer cents.
 
-The existing simple conversion between Custom amounts and Percentages is intentionally finite precision:
-switching mode may change individual cents, even on a round trip. Status is retained; no hidden exact-ratio
-engine restores earlier values. Invalid conversions keep the current mode and draft with an error. Equal
-initializes custom participants as automatic; Weights initializes them as manual. Leaving for Equal/Weights
-abandons the previous custom draft. One optional `customAllocation` UID-to-boolean map persists selection
-(including zeros) and intent alongside the authoritative cent split (ADR 0012). Reopening starts in Custom
-amounts without recalculating; title/payer/date changes preserve saved cents. Missing/unsupported metadata
-falls back to manual shares. The existing repository/cache and explicit Save flow handle all writes.
+Switching between Custom amounts and Percentages converts what is on screen, so a round trip may move a cent, and
+keeps who is automatic. Coming from Equal everyone is automatic, from Weights everyone is manual. A split that is not
+valid yet cannot be converted: the mode stays, with an error. The optional `customAllocation` map stores who is
+selected and automatic beside the cent split (ADR 0013). Reopening shows the saved cents in Custom amounts, and they
+change only when the amount, the people or a share does.
 
 ## Dependency injection
 

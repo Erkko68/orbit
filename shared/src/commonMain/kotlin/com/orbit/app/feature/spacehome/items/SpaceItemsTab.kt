@@ -32,8 +32,6 @@ import orbit.shared.generated.resources.space_items_loading
 import orbit.shared.generated.resources.space_items_open
 import orbit.shared.generated.resources.space_items_todo
 import orbit.shared.generated.resources.turn_action_done
-import orbit.shared.generated.resources.turn_action_undo
-import orbit.shared.generated.resources.turn_finished
 import orbit.shared.generated.resources.turn_label
 import orbit.shared.generated.resources.turn_label_due
 import org.jetbrains.compose.resources.pluralStringResource
@@ -82,7 +80,7 @@ internal fun SpaceItemsTab(
         if (state.failed) {
             OrbitErrorText(stringResource(Res.string.item_action_failed))
         }
-        state.turn?.let { turn -> TurnCard(turn, state, viewModel::toggleTurn, onOpen = { onOpenItem(turn.id) }) }
+        state.turn?.let { turn -> TurnCard(turn, state, viewModel::finishTurn, onOpen = { onOpenItem(turn.id) }) }
         if (state.todo.isNotEmpty()) {
             OrbitSectionHeader(
                 title = stringResource(Res.string.space_items_todo),
@@ -122,14 +120,9 @@ private fun Rows(items: List<SpaceItem>, state: SpaceItemsUiState, viewModel: Sp
 private fun TurnCard(turn: SpaceItem, state: SpaceItemsUiState, onAction: () -> Unit, onOpen: () -> Unit) {
     val due = turn.dueDate?.let { itemDueLabel(it, state.today) }
     OrbitTurnCard(
-        label = when {
-            turn.done -> stringResource(Res.string.turn_finished)
-            due != null -> stringResource(Res.string.turn_label_due, due)
-            else -> stringResource(Res.string.turn_label)
-        },
+        label = due?.let { stringResource(Res.string.turn_label_due, it) } ?: stringResource(Res.string.turn_label),
         title = turn.title,
-        actionText = stringResource(if (turn.done) Res.string.turn_action_undo else Res.string.turn_action_done),
-        finished = turn.done,
+        actionText = stringResource(Res.string.turn_action_done),
         onAction = onAction,
         onOpen = onOpen,
         initials = state.userInitials.ifEmpty { null },

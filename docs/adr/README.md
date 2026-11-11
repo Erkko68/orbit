@@ -16,7 +16,8 @@ An ADR records one decision that shapes the code: the context, what was decided,
 | [0009](0009-only-the-owner-changes-roles.md) | Only the owner changes roles, and the space goes only to an admin | Accepted |
 | [0010](0010-standard-navigation-and-one-item-form.md) | Places are screens on the stack, and an item is one fixed form | Accepted |
 | [0011](0011-a-recurring-item-rolls-forward.md) | Completing a recurring item rolls the same item forward, and the completion goes to the history | Accepted |
-| [0012](0012-expense-allocation-intent.md) | Expense allocation intent is optional metadata beside authoritative cents | Proposed |
+| [0012](0012-three-colours-and-a-flat-page.md) | Three colours on a flat page, and a space is told apart by its people | Accepted |
+| [0013](0013-expense-allocation-intent.md) | Expense allocation intent is optional metadata beside authoritative cents | Proposed |
 
 ## Writing one
 

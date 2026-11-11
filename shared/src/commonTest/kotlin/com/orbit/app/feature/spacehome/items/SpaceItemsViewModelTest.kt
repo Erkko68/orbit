@@ -4,6 +4,7 @@ import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.ItemModules
+import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Recurrence
@@ -396,23 +397,17 @@ class SpaceItemsViewModelTest {
     }
 
     @Test
-    fun finishingTheTurnKeepsItOnTheCardUntilItIsUndone() = runTest {
+    fun finishingTheTurnMovesTheCardOnToTheNext() = runTest {
         auth.signIn("ana@orbit.app", "secret")
         assignedTask("First", ANA, LocalDate(2026, 11, 3))
         assignedTask("Next", ANA, LocalDate(2026, 11, 4))
         val viewModel = SpaceItemsViewModel("space-1", items, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
-        viewModel.toggleTurn()
+        viewModel.finishTurn()
 
-        assertEquals("First", viewModel.uiState.value.turn?.title)
-        assertEquals(true, viewModel.uiState.value.turn?.done)
-        assertEquals(listOf("Next"), viewModel.uiState.value.items.map { it.title })
-
-        viewModel.toggleTurn()
-
-        assertEquals("First", viewModel.uiState.value.turn?.title)
-        assertEquals(false, viewModel.uiState.value.turn?.done)
+        assertEquals("Next", viewModel.uiState.value.turn?.title)
+        assertTrue(items.observeItems("space-1").first().single { it.title == "First" }.status is ItemStatus.Done)
     }
 
     @Test
@@ -423,7 +418,7 @@ class SpaceItemsViewModelTest {
         val viewModel = SpaceItemsViewModel("space-1", FailingItemRepository(items = open), spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
-        viewModel.toggleTurn()
+        viewModel.finishTurn()
 
         assertEquals(false, viewModel.uiState.value.turn?.done)
         assertTrue(viewModel.uiState.value.failed)

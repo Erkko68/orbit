@@ -1,6 +1,7 @@
 package com.orbit.app.data.mapper
 
 import com.orbit.app.core.deviceLanguage
+import com.orbit.app.domain.model.DISPLAY_NAME_MAX_LENGTH
 import com.orbit.app.domain.model.User
 import kotlinx.datetime.TimeZone
 
@@ -14,13 +15,16 @@ internal fun mapUser(
     email: String? = null,
     aiConsent: Boolean = false,
     hasPassword: Boolean = false,
+    signsInWithGoogle: Boolean = false,
 ) = User(
     id = id,
-    displayName = displayName?.ifBlank { null } ?: fallbackDisplayName?.ifBlank { null }.orEmpty(),
+    // A name from Google, an email or a profile from before the limit is cut to fit, and so is every copy of it.
+    displayName = (displayName?.ifBlank { null } ?: fallbackDisplayName?.ifBlank { null }.orEmpty()).take(DISPLAY_NAME_MAX_LENGTH),
     photoUrl = photoUrl ?: fallbackPhotoUrl,
     email = email,
     aiConsent = aiConsent,
     hasPassword = hasPassword,
+    signsInWithGoogle = signsInWithGoogle,
 )
 
 internal fun userProfileDocument(
@@ -29,7 +33,7 @@ internal fun userProfileDocument(
     language: String = deviceLanguage(),
     timeZone: TimeZone = TimeZone.currentSystemDefault(),
 ): Map<String, Any?> = buildMap {
-    put("displayName", displayName)
+    put("displayName", displayName.trim().take(DISPLAY_NAME_MAX_LENGTH))
     if (photoUrl != null) put("photoUrl", photoUrl)
     put("language", language)
     put("timeZone", timeZone.id)

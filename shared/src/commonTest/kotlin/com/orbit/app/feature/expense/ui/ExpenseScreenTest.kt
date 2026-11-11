@@ -5,10 +5,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.v2.runComposeUiTest
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
@@ -66,54 +64,13 @@ class ExpenseScreenTest : ComposeTest() {
                 }
             }
         }
-        for (name in listOf("Valerio Bianchi", "Alessandra Maria")) {
-            val layouts = mutableListOf<TextLayoutResult>()
-            onAllNodesWithText(name, useUnmergedTree = true).onLast().performScrollTo()
-                .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
-            assertReadable(layouts.single())
-        }
-        val actionLayouts = mutableListOf<TextLayoutResult>()
-        onNodeWithText("Automate", useUnmergedTree = true).performScrollTo()
-            .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(actionLayouts) }
-        assertReadable(actionLayouts.single())
-        val action = onNodeWithContentDescription("Make Valerio Bianchi automatic").fetchSemanticsNode().boundsInRoot
+        // Main's one-line row: the undo icon sits inside the field, and the field stays on screen.
+        val root = onRoot().fetchSemanticsNode().boundsInRoot
         val field = onNodeWithContentDescription("Share for Valerio Bianchi").fetchSemanticsNode().boundsInRoot
-        assertTrue(action.right <= field.left || action.bottom <= field.top, "Action and amount never overlap")
-        assertTrue(field.right <= onRoot().fetchSemanticsNode().boundsInRoot.right)
-        onAllNodesWithContentDescription("Share for Valerio Bianchi").assertCountEquals(1)
-    }
-
-    private fun assertReadable(layout: TextLayoutResult) {
-        assertFalse(layout.didOverflowHeight)
-        assertEquals(layout.layoutInput.text.length, layout.getLineEnd(layout.lineCount - 1, visibleEnd = true))
-        for (line in 0 until layout.lineCount) {
-            assertFalse(layout.isLineEllipsized(line))
-            // Paragraph positions are fractional pixels; the measured size is a whole pixel.
-            assertTrue(
-                layout.getLineRight(line) <= layout.size.width + 1,
-                "Text exceeds its bounds: ${layout.layoutInput.text}"
-            )
-        }
-    }
-
-    @Test
-    fun payerSelectionFinishesTheSheetAnimationBeforeRemovingIt() = runComposeUiTest {
-        val auth = InMemoryAuthRepository()
-        val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER)
-        runBlocking { auth.register("ana", "secret", "Ana") }
-        val vm = ExpenseViewModel("space-1", "", InMemoryExpenseRepository(auth), spaces, auth)
-        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
-        onNodeWithText("Paid by").performScrollTo().performClick()
-        waitForIdle()
-        mainClock.autoAdvance = false
-        onAllNodesWithContentDescription("bea").onLast().performClick()
-        assertTrue(vm.uiState.value.pickingPayer)
-        assertEquals("ana", vm.uiState.value.paidBy)
-        mainClock.advanceTimeBy(1_000)
-        waitForIdle()
-        assertFalse(vm.uiState.value.pickingPayer)
-        assertEquals("bea", vm.uiState.value.paidBy)
-        mainClock.autoAdvance = true
+        val reset = onNodeWithContentDescription("Make Valerio Bianchi automatic").fetchSemanticsNode().boundsInRoot
+        assertTrue(reset.left >= field.left && reset.right <= field.right, "The undo icon is inside the field")
+        assertTrue(field.right <= root.right)
+        onNodeWithContentDescription("Automatic share for Alessandra Maria").assertExists()
     }
 
     @Test
@@ -125,16 +82,16 @@ class ExpenseScreenTest : ComposeTest() {
         runBlocking { auth.register("ana", "secret", "Ana") }
         val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
         setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
-        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo().performTextInput(moneyInput(4000, locale))
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo().performTextInput(moneyInput(4000, locale))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
         onNodeWithText("Split").performScrollTo().performClick()
         onNodeWithText("Custom amounts").performClick()
-        onNodeWithContentDescription("Share for ana").performScrollTo().performClick()
+        onNodeWithContentDescription("Automatic share for ana").performScrollTo().performClick()
         assertEquals(setOf("ana", "bea", "marc"), vm.uiState.value.automatic)
-        onNodeWithContentDescription("Share for ana").performTextReplacement("16")
-        onNodeWithText("Manual").performScrollTo().assertIsDisplayed()
+        onNodeWithContentDescription("Automatic share for ana").performTextInput("16")
+        onNodeWithContentDescription("Make ana automatic").assertExists()
         assertEquals(mapOf("ana" to 1600L, "bea" to 1200L, "marc" to 1200L), vm.uiState.value.split)
-        onNodeWithContentDescription("Share for bea").performScrollTo().performTextReplacement("10")
+        onNodeWithContentDescription("Automatic share for bea").performScrollTo().performTextInput("10")
         onNodeWithContentDescription("Make ana automatic").performScrollTo().performClick()
         assertEquals(setOf("ana", "marc"), vm.uiState.value.automatic)
         onNodeWithContentDescription("Share for bea").performScrollTo().performTextInput("0")
@@ -157,7 +114,7 @@ class ExpenseScreenTest : ComposeTest() {
         runBlocking { auth.register("ana", "secret", "Ana") }
         val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
         setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
-        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo().performTextInput(moneyInput(4000, locale))
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo().performTextInput(moneyInput(4000, locale))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
         onNodeWithText("Split").performScrollTo().performClick()
         onNodeWithText("Whole numbers, such as 2 : 1 : 1.").assertIsDisplayed()
@@ -244,7 +201,7 @@ class ExpenseScreenTest : ComposeTest() {
         val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
         var closed = false
         setContent { OrbitTheme { ExpenseScreen("space-1", "", { closed = true }, vm) } }
-        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo()
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo()
             .performTextInput(moneyInput(1240, deviceMoneyLocale()))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
         assertTrue(runBlocking { ledger.observeExpenses("space-1").first().isEmpty() })
@@ -264,7 +221,7 @@ class ExpenseScreenTest : ComposeTest() {
         runBlocking { auth.register("ana", "secret", "Ana") }
         val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
         setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
-        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo()
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo()
             .performTextInput(moneyInput(1000, deviceMoneyLocale()))
         onNodeWithText(formatEuro(334)).performScrollTo().assertIsDisplayed()
         onAllNodesWithText(formatEuro(333)).onFirst().performScrollTo().assertIsDisplayed()
@@ -300,7 +257,7 @@ class ExpenseScreenTest : ComposeTest() {
         val ledger = ControlledExpenseRepository(InMemoryExpenseRepository(auth)).apply { failWrites = true }
         val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
         setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
-        onNode(hasSetTextAction() and hasText("Amount")).performScrollTo()
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo()
             .performTextInput(moneyInput(1240, deviceMoneyLocale()))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
         onNodeWithText("Save").performClick()

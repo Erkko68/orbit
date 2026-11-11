@@ -26,7 +26,6 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
@@ -40,14 +39,10 @@ import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.ic_close
 
-/** Run a selection only after this sheet has finished its exit animation. */
-val LocalOrbitSheetClose = staticCompositionLocalOf<(() -> Unit) -> Unit> { error("No OrbitSheet") }
-
 /**
  * A task over the screen, the way Material 3 does it on a phone: a sheet that rises from the bottom edge, as tall as its
  * content, and closes with a swipe, a tap outside, back or the close button. Whether it is open is the caller's state:
- * show it while it is, and close it in [onDismiss]. A selection uses [LocalOrbitSheetClose] to finish hiding before
- * removing the sheet. With [confirmText] it ends in one action, in red when [danger].
+ * show it while it is, and close it in [onDismiss]. With [confirmText] it ends in one action, in red when [danger].
  * A short task of several steps, such as picking a date and then a time, stays in one sheet: pass [onBack] on the
  * steps after the first, and show them in [OrbitSheetPages], so the sheet changes in place and never opens a second
  * one on top. A section of the app is a screen of its own, never a sheet with pages.
@@ -70,13 +65,7 @@ fun OrbitSheet(
 ) {
     val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    val closeWith: (() -> Unit) -> Unit = { afterClose ->
-        scope.launch {
-            state.hide()
-            if (!state.isVisible) afterClose()
-        }
-    }
-    val close: () -> Unit = { closeWith(onDismiss) }
+    val close: () -> Unit = { scope.launch { state.hide() }.invokeOnCompletion { onDismiss() } }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier,
@@ -86,7 +75,7 @@ fun OrbitSheet(
         contentColor = MaterialTheme.colorScheme.onSurface,
         dragHandle = null,
     ) {
-        CompositionLocalProvider(LocalInsideCard provides true, LocalOrbitSheetClose provides closeWith) {
+        CompositionLocalProvider(LocalInsideCard provides true) {
             Column(Modifier.imePadding().verticalScroll(rememberScrollState())) {
                 Box {
                     SheetTitle(title, closeDescription, close, backDescription, onBack)
@@ -152,7 +141,7 @@ fun <T> OrbitSheetPages(page: T, modifier: Modifier = Modifier, content: @Compos
         modifier = modifier,
         transitionSpec = {
             (fadeIn(OrbitMotion.effects()) + slideInHorizontally(OrbitMotion.spatial()) { it / SLIDE_FRACTION }) togetherWith
-                    fadeOut(OrbitMotion.effects())
+                fadeOut(OrbitMotion.effects())
         },
         contentAlignment = Alignment.TopStart,
     ) { shown ->

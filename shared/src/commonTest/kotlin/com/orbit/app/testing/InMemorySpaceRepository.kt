@@ -57,15 +57,14 @@ class InMemorySpaceRepository(
         }
     }
 
-    override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) {
-        require(name != null || accent != null) { "Nothing to change" }
-        require(name == null || name.isNotBlank()) { "A space needs a name" }
+    override suspend fun renameSpace(spaceId: String, name: String) {
+        require(name.isNotBlank()) { "A space needs a name" }
         val actorId = auth.requireUser().id
         check(members.value[spaceId].orEmpty().firstOrNull { it.userId == actorId }?.role?.managesSpace == true) {
             "Only an owner or admin can edit a space"
         }
         spaces.update { all ->
-            all.map { if (it.id == spaceId) it.copy(name = name ?: it.name, accent = accent ?: it.accent) else it }
+            all.map { if (it.id == spaceId) it.copy(name = name) else it }
         }
     }
 

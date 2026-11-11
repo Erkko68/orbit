@@ -6,19 +6,19 @@ Orbit follows the look of Material 3 Expressive through its own tokens and wrapp
 
 | File | Defines |
 |---|---|
-| `theme/Color.kt` | The palette, the light and dark schemes, `OrbitTheme.colors` (success, warning, info, `spaceAccents`) and `OrbitTheme.accent`, what a space's colour paints. The only file with color values. |
+| `theme/Color.kt` | The palette, the light and dark schemes, `OrbitTheme.colors` (success, warning, info, `spaceAccents`, `credit`, `debit`) and `OrbitTheme.accent`, what the accent paints. Three tonal palettes, a neutral, the brand blue and a coral, named by tone ([ADR 0012](../adr/0012-three-colours-and-a-flat-page.md)). The only file with color values. |
 | `theme/Type.kt` | Type roles in Jost, headlines bold and titles and labels semibold, and `OrbitTheme.data` in Martian Mono for amounts, times and dates. |
 | `theme/Shape.kt` | Cards `large`, controls `medium`, what is loud `extraLarge`. |
 | `theme/OrbitShape.kt` | The expressive shapes (cookie, clover, squircle…) and the morph between them. |
 | `theme/Spacing.kt` | `OrbitSpacing`: `xs` 4, `sm` 8, `md` 16, `lg` 24, `xl` 32 dp. Every padding and gap is one of these. |
 | `theme/Motion.kt` | `OrbitMotion.spatial()` and `OrbitMotion.effects()` for animations. |
-| `theme/OrbitTheme.kt` | `OrbitTheme { }`, which every piece of UI is wrapped in. Brand colors only, no wallpaper color. `OrbitSpaceColor` paints what it wraps in a space's colour. |
+| `theme/OrbitTheme.kt` | `OrbitTheme { }`, which every piece of UI is wrapped in. Brand colors only, no wallpaper color. |
 
 Every text and background pair passes WCAG AA (4.5:1) in both themes. `ComponentContrastTest` checks the pairs the components use.
 
 ## Depth
 
-The space's colour is the page, and neutral panels sit on it with a shadow you only just see and no outline. Everything keeps the gutter to the screen edges, and only a top or bottom bar touches them. A panel is an `OrbitCard` or the rows of an `OrbitGroup`. Panels never nest. Vivid fills are for what is touched every day: a header, a list tile, a space tile, and the turn card as the one hero moment.
+The page is one flat neutral, and panels sit on it one tone lighter, with a shadow you only just see and no outline; a field in a panel is a tone deeper. Everything keeps the gutter to the screen edges, and only a top or bottom bar touches them. A panel is an `OrbitCard` or the rows of an `OrbitGroup`. Panels never nest. Vivid fills are for what is touched every day: a header, a balance, and the turn card as the one hero moment.
 
 ## Components
 
@@ -57,14 +57,15 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | `OrbitDetailsField` | The long text of something, on a panel as tall as its text |
 | `OrbitDatePicker` | A calendar on a page of an `OrbitSheet`, with the button that confirms the day. The schedule of an item and the date of an expense use it |
 | `OrbitTimeWheel` | A length of time on two small wheels, 0 to 99 hours and minutes. Scroll one, or tap a number to type it. What is picked is `UiState`. It fits at the end of an `OrbitGroupRow` |
-| `OrbitSpaceColorPicker` | The colour of a space, under its label |
-| `OrbitSpaceTile` | A space as a card in its own colour, with its shape at the top right and its members' faces |
+| `OrbitSpaceTile` | A space as a panel led by the faces of the people in it, or its initials on a shape while it is only the user's |
+| `OrbitMoneyField` | The amount a form is about, such as an expense's total: its own panel with a big number in the data type |
+| `OrbitCodeTiles` | A short code, one character per tile, coming in tile by tile when it is made |
 | `OrbitTurnCard` | The one hero moment: what is the user's to do now |
 | `OrbitQuestionCard` | A question with answer chips (the assistant) |
 | `OrbitAvatar` | A member's photo or initials |
 | `OrbitFaceStack` | Who has something: up to four still faces and "+N". Tappable as one button, as in a space's top bar |
 | `OrbitShapeBadge` | An icon or the mark on an expressive shape |
-| `OrbitMark` | The Orbit logo in the space's colour |
+| `OrbitMark` | The Orbit logo in the accent |
 
 ### States
 
@@ -82,7 +83,7 @@ Buttons and text fields are 56 dp tall (`ControlHeight`) and take the full width
 | Component | Use it for |
 |---|---|
 | `OrbitButton` | The one primary action |
-| `OrbitTonalButton` | A secondary action, a sign-in provider; shared rows can supply a shape and a compact label/padding variant while retaining the control height and theme colours |
+| `OrbitTonalButton` | A secondary action on a blue container, a sign-in provider; shared rows can supply a shape and a compact label/padding variant while retaining the control height and theme colours |
 | `OrbitTextButton` | A tertiary text action |
 | `OrbitAddButton` | The one way to add something, floating in the same place on every screen |
 | `OrbitIconButton` | An icon-only action, named for screen readers |
@@ -91,7 +92,6 @@ Buttons and text fields are 56 dp tall (`ControlHeight`) and take the full width
 | `OrbitTextField`, `OrbitPasswordField` | Text input. Visibility of a password is the caller's state. |
 | `OrbitAddRow` | The row of a group that adds to it, typed in place |
 | `OrbitFilterChip` | One option of a filter row |
-| `OrbitColorPicker` | Picking a space's colour |
 | `OrbitNavigationBar` | The destinations of a space, in `OrbitScreen`'s `bottomBar` ([ADR 0005](../adr/0005-bottom-bar-inside-a-space.md)) |
 
 ## Adding a component

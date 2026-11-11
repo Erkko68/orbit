@@ -84,6 +84,7 @@ class ExpenseViewModelTest {
         val vm = open()
         vm.fill()
         vm.selectSplit(ExpenseSplit.EXACT)
+        vm.onShareChange("ana", "1")
         vm.onShareChange("ana", "")
         assertFalse("ana" in vm.uiState.value.automatic)
         assertEquals("", vm.uiState.value.exact["ana"])
@@ -143,40 +144,21 @@ class ExpenseViewModelTest {
     }
 
     @Test
-    fun deselectedManualDraftKeepsItsUnitAcrossModeChanges() = runTest {
+    fun aDeselectedDraftComesBackInItsModeAndIsDroppedOnAModeChange() = runTest {
         signIn()
         val vm = open()
         vm.fill()
         vm.selectSplit(ExpenseSplit.EXACT)
         vm.onShareChange("ana", moneyInput(400, locale))
         vm.toggleMember("ana")
-        vm.selectSplit(ExpenseSplit.PERCENTAGES)
-        vm.toggleMember("ana")
-        assertEquals(moneyInput(4000, locale), vm.uiState.value.percentages["ana"])
-        assertEquals(400L, vm.uiState.value.split?.get("ana"))
-        vm.toggleMember("ana")
-        vm.selectSplit(ExpenseSplit.EXACT)
         vm.toggleMember("ana")
         assertEquals(moneyInput(400, locale), vm.uiState.value.exact["ana"])
         assertFalse("ana" in vm.uiState.value.automatic)
-    }
-
-    @Test
-    fun invalidDeselectedDraftCanBeRecoveredInItsOriginalMode() = runTest {
-        signIn()
-        val vm = open()
-        vm.fill()
-        vm.selectSplit(ExpenseSplit.EXACT)
-        vm.onShareChange("ana", "")
         vm.toggleMember("ana")
         vm.selectSplit(ExpenseSplit.PERCENTAGES)
         vm.toggleMember("ana")
-        assertTrue(vm.uiState.value.conversionFailed)
-        assertFalse("ana" in vm.uiState.value.selected)
-        vm.selectSplit(ExpenseSplit.EXACT)
-        vm.toggleMember("ana")
-        assertEquals("", vm.uiState.value.exact["ana"])
-        assertFalse(vm.uiState.value.canSave)
+        assertTrue("ana" in vm.uiState.value.automatic)
+        assertTrue(vm.uiState.value.canSave)
     }
 
     @Test
@@ -310,7 +292,7 @@ class ExpenseViewModelTest {
         vm.fill()
         vm.toggleMember("marc")
         vm.selectSplit(ExpenseSplit.PERCENTAGES)
-        assertEquals(moneyInput(5000, locale), vm.uiState.value.shareInputs["ana"])
+        assertEquals(moneyInput(5000, locale), vm.uiState.value.automaticInputs["ana"])
         assertTrue(vm.uiState.value.canSave)
         vm.onShareChange("ana", "60")
         assertTrue(vm.uiState.value.canSave)
@@ -363,7 +345,7 @@ class ExpenseViewModelTest {
         val vm = open()
         vm.fill()
         vm.selectSplit(ExpenseSplit.EXACT)
-        assertEquals(moneyInput(334, locale), vm.uiState.value.exact["ana"])
+        assertEquals(moneyInput(334, locale), vm.uiState.value.automaticInputs["ana"])
         assertTrue(vm.uiState.value.canSave)
         vm.onShareChange("ana", moneyInput(400, locale))
         assertTrue(vm.uiState.value.canSave)
@@ -410,6 +392,7 @@ class ExpenseViewModelTest {
         vm.toggleMember("marc")
         assertEquals(mapOf("ana" to 500L, "bea" to 500L), vm.uiState.value.shares)
         vm.selectSplit(ExpenseSplit.EXACT)
+        vm.onShareChange("ana", "1")
         vm.onShareChange("ana", "")
         assertEquals(mapOf("ana" to 0L, "bea" to 0L), vm.uiState.value.shares)
     }

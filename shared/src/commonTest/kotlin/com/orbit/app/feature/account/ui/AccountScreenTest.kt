@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
@@ -50,6 +51,7 @@ class AccountScreenTest : ComposeTest() {
         onNodeWithText("Ana López").assertIsDisplayed()
         onNodeWithText("ana@orbit.app").assertIsDisplayed()
         onNodeWithText("Change password").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Connect Google").performScrollTo().assertIsDisplayed()
         onNodeWithText("Sign out").performScrollTo().assertIsDisplayed()
         onNodeWithText("Delete account").performScrollTo().assertIsDisplayed()
     }
@@ -126,13 +128,32 @@ class AccountScreenTest : ComposeTest() {
         onNodeWithText("Something went wrong. Try again.").assertIsDisplayed()
     }
     @Test
-    fun anAccountThatOnlySignsInWithGoogleIsNotOfferedAPasswordChange() = runComposeUiTest {
+    fun anAccountThatOnlySignsInWithGoogleSetsAPasswordInstead() = runComposeUiTest {
         val google = InMemoryAuthRepository().apply { runBlocking { signInWithGoogle() } }
         show(google)
 
         onNodeWithText("Edit name").performScrollTo().assertIsDisplayed()
         onNodeWithText("Delete account").performScrollTo().assertIsDisplayed()
         onNodeWithText("Change password").assertDoesNotExist()
+        onNodeWithText("Connect Google").assertDoesNotExist()
+
+        onNodeWithText("Set a password").performScrollTo().performClick()
+        onNodeWithText("Current password").assertDoesNotExist()
+        onNodeWithText("New password").performTextInput("a-new-secret")
+        onNodeWithText("Confirm password").performTextInput("a-new-secret")
+        dialogButton("Set a password").performScrollTo().performClick()
+
+        onNodeWithText("Change password").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun connectsGoogleFromItsSheet() = runComposeUiTest {
+        show()
+
+        onNodeWithText("Connect Google").performScrollTo().performClick()
+        onNodeWithText("Continue with Google").performClick()
+
+        onNodeWithText("Connect Google").assertDoesNotExist()
     }
 
     @Test

@@ -13,22 +13,27 @@ import orbit.shared.generated.resources.account_change_password
 import orbit.shared.generated.resources.account_change_password_body
 import orbit.shared.generated.resources.account_current_password
 import orbit.shared.generated.resources.account_new_password
+import orbit.shared.generated.resources.account_set_password
 import orbit.shared.generated.resources.close
 import orbit.shared.generated.resources.create_account_confirm
 import org.jetbrains.compose.resources.stringResource
 
-/** Changes the password: the current one, then the new one twice. Each error shows under its field. */
+/**
+ * Changes the password: the current one, then the new one twice. Each error shows under its field. An account that
+ * only signs in with Google has no current one, so the same sheet sets its first password (#293).
+ */
 @Composable
 internal fun ChangePasswordSheet(state: AccountUiState, viewModel: AccountViewModel) {
+    val title = stringResource(if (state.hasPassword) Res.string.account_change_password else Res.string.account_set_password)
     OrbitSheet(
-        title = stringResource(Res.string.account_change_password),
+        title = title,
         closeDescription = stringResource(Res.string.close),
         onDismiss = viewModel::dismissDialog,
-        confirmText = stringResource(Res.string.account_change_password),
+        confirmText = title,
         onConfirm = viewModel::changePassword,
         confirmEnabled = !state.submitting,
     ) {
-        OrbitPasswordField(
+        if (state.hasPassword) OrbitPasswordField(
             value = state.currentPassword,
             onValueChange = viewModel::onCurrentPasswordChange,
             placeholder = stringResource(Res.string.account_current_password),

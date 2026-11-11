@@ -14,6 +14,9 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 /** Every text color the base components draw passes WCAG AA (4.5:1) on each fill they draw it on. */
+/** The smallest step between two surfaces that the eye still reads as one on top of the other. */
+private const val SURFACE_STEP = 1.15f
+
 class ComponentContrastTest {
 
     private fun ColorScheme.textOnFill(): Map<String, Pair<Color, Color>> = mapOf(
@@ -25,30 +28,24 @@ class ComponentContrastTest {
         "error on a panel" to (error to surfaceBright),
         "error on a field" to (error to surfaceContainer),
         "turn card and floating field" to (inverseOnSurface to inverseSurface),
-        "on the assistant's soft violet" to (onSecondaryContainer to secondaryContainer),
-        "the assistant's violet as text on a panel" to (secondary to surfaceBright),
+        "on the assistant's soft blue" to (onSecondaryContainer to secondaryContainer),
+        "the assistant's blue as text on a panel" to (secondary to surfaceBright),
     )
 
-    /** Each accent, over what it paints. The page and the planet carry the theme's ink, the fills always carry navy. */
-    private fun OrbitColors.textOnAccents(scheme: ColorScheme): Map<String, Pair<Color, Color>> =
-        accents.flatMapIndexed { index, accent ->
-            listOf(
-                "text on the page of accent $index" to (scheme.onSurface to accent.page),
-                "secondary text on the page of accent $index" to (scheme.onSurfaceVariant to accent.page),
-                "the section count and header on the planet of accent $index" to (scheme.onSurfaceVariant to accent.planet),
-                "the top bar on the planet of accent $index" to (scheme.onSurface to accent.planet),
-                "the add button of accent $index" to (Ink to accent.fill),
-                "a face in accent $index" to (Ink to spaceAccent(index)),
-                "a tile and a header on vivid $index" to (Ink to accent.vivid),
-                "the peek of a tile on vivid $index" to (InkSoft to accent.vivid),
-                "a tile on partner $index" to (Ink to accent.partner),
-                "the peek of a tile on partner $index" to (InkSoft to accent.partner),
-                "the selected tab of accent $index" to (scheme.onSurface to accent.selected),
-                "a row that is done in accent $index" to (scheme.onSurface to accent.done),
-                "the quiet title of a row that is done in accent $index" to (scheme.onSurfaceVariant to accent.done),
-                "the turn card's action on accent $index" to (Ink to accent.vivid),
-            )
-        }.toMap()
+    /** The accent, over what it paints, and each fill that tells spaces and people apart. The fills always carry navy. */
+    private fun OrbitColors.textOnAccents(scheme: ColorScheme): Map<String, Pair<Color, Color>> = mapOf(
+        "text on the page" to (scheme.onSurface to brand.page),
+        "secondary text on the page" to (scheme.onSurfaceVariant to brand.page),
+        "the add button" to (Ink to brand.fill),
+        "a tile and a header on vivid" to (Ink to brand.vivid),
+        "the peek of a header on vivid" to (InkSoft to brand.vivid),
+        "the turn card's partner" to (Ink to brand.partner),
+        "the selected tab" to (scheme.onSurface to brand.selected),
+        "a row that is done" to (scheme.onSurface to brand.done),
+        "the quiet title of a row that is done" to (scheme.onSurfaceVariant to brand.done),
+        "a balance to get back" to (Ink to credit),
+        "a balance owed" to (Ink to debit),
+    ) + spaceAccents.mapIndexed { index, fill -> "a face or a badge on fill $index" to (Ink to fill) }
 
     private fun OrbitColors.textOnStates(scheme: ColorScheme): Map<String, Pair<Color, Color>> = mapOf(
         "success pill" to (onSuccess to success),
@@ -56,6 +53,22 @@ class ComponentContrastTest {
         "info" to (onInfo to info),
         "an unselected tab" to (inkTertiary to scheme.surfaceBright),
     )
+
+    /**
+     * Surfaces that must stand apart from what they sit on, though they carry no text of their own: the page, a panel
+     * on it, a field in the panel, and a tonal button wherever it goes. A flat page makes these the only depth (#293).
+     */
+    private fun ColorScheme.surfaceSteps(): Map<String, Pair<Color, Color>> = mapOf(
+        "a panel on the page" to (surfaceBright to surface),
+        "a field or a chip in a panel" to (surfaceContainer to surfaceBright),
+        "a tonal button on the page" to (secondaryContainer to surface),
+        "a tonal button on a panel" to (secondaryContainer to surfaceBright),
+    )
+
+    private fun assertStandsApart(pairs: Map<String, Pair<Color, Color>>) = pairs.forEach { (use, colors) ->
+        val ratio = contrast(colors.first, colors.second)
+        assertTrue(ratio >= SURFACE_STEP, "$use is $ratio:1")
+    }
 
     private fun contrast(a: Color, b: Color): Float {
         val lighter = maxOf(a.luminance(), b.luminance())
@@ -67,6 +80,12 @@ class ComponentContrastTest {
         val ratio = contrast(colors.first, colors.second)
         assertTrue(ratio >= 4.5f, "$use is $ratio:1")
     }
+
+    @Test
+    fun lightSurfacesStandApart() = assertStandsApart(LightColors.surfaceSteps())
+
+    @Test
+    fun darkSurfacesStandApart() = assertStandsApart(DarkColors.surfaceSteps())
 
     @Test
     fun lightSchemeIsAA() = assertAA(LightColors.textOnFill())

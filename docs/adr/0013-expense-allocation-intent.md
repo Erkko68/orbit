@@ -1,4 +1,4 @@
-# ADR 0012: Expense allocation intent is optional metadata beside authoritative cents
+# ADR 0013: Expense allocation intent is optional metadata beside authoritative cents
 
 - Status: Proposed
 - Date: 2026-11-10

@@ -8,7 +8,6 @@ import com.orbit.app.core.attempt
 import com.orbit.app.core.deviceMoneyLocale
 import com.orbit.app.core.isMoneyInput
 import com.orbit.app.core.moneyInput
-import com.orbit.app.core.parseMoney
 import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.Expense
 import com.orbit.app.domain.model.NewExpense
@@ -16,7 +15,6 @@ import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ExpenseRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.domain.usecase.HUNDRED_PERCENT
-import com.orbit.app.domain.usecase.MAX_WEIGHT_SUM
 import com.orbit.app.domain.usecase.splitByWeights
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,13 +56,12 @@ class ExpenseViewModel(
         val allocation = original?.customAllocation?.takeIf { it.keys.all { id -> id in knownIds } }
         val formerIds = (original?.let { it.split.keys + it.paidBy }.orEmpty() + allocation.orEmpty().keys) - currentIds
         val people = members.mapIndexed { index, it -> ItemFace(it.userId, it.displayName, index, it.photoUrl) } +
-                formerIds.sorted().mapIndexed { index, it ->
-                    ItemFace(it, space?.formerMembers?.get(it) ?: it, members.size + index, null)
-                }
+            formerIds.sorted().mapIndexed { index, it ->
+                ItemFace(it, space?.formerMembers?.get(it) ?: it, members.size + index, null)
+            }
         ExpenseUiState(
             loading = false,
             missing = space == null || member == null || (expenseId.isNotEmpty() && original == null),
-            accent = space?.accent,
             spaceName = space?.name.orEmpty(),
             title = original?.title.orEmpty(),
             amount = original?.let { moneyInput(it.total, locale) }.orEmpty(),
@@ -91,7 +88,6 @@ class ExpenseViewModel(
             loading = load == Load.Loading,
             loadFailed = load == Load.Failed,
             missing = context?.missing ?: false,
-            accent = context?.accent ?: state.accent,
             spaceName = context?.spaceName ?: state.spaceName,
             people = context?.people ?: state.people,
             original = context?.original ?: state.original,
@@ -107,12 +103,10 @@ class ExpenseViewModel(
     }
 
     fun onTitleChange(value: String) = edit { it.copy(title = value) }
-
     /** Amounts, percentages and weights take only what they can hold: a letter or a sign never reaches the state. */
     fun onAmountChange(value: String) = edit {
         if (isMoneyInput(value) && value != it.amount) it.copy(amount = value, allocationChanged = true) else it
     }
-
     fun openPayerPicker() = edit { it.copy(pickingPayer = true) }
     fun dismissPayerPicker() = edit { it.copy(pickingPayer = false) }
     fun selectPayer(id: String) = edit { it.copy(paidBy = id, pickingPayer = false) }
@@ -127,65 +121,41 @@ class ExpenseViewModel(
     }
 
     /**
-     * Keep #55's simple conversion, with its finite precision. Status is separate from a displayed input.
-     * An invalid custom/weighted split cannot be converted: keep its draft and explain why.
+     * Custom amounts and percentages start from the split on screen (#55's simple conversion, so a round trip may move
+     * a cent), or all automatic coming from Equal. Who is automatic stays between the two; from Weights nobody is.
+     * Drafts of people left out are dropped. A split that is not valid yet cannot be converted: it stays, with why.
      */
     fun selectSplit(mode: ExpenseSplit) = edit { state ->
         if (mode == state.mode) return@edit state.copy(pickingSplit = false)
-        val split = state.split
-        val custom = mode == ExpenseSplit.EXACT || mode == ExpenseSplit.PERCENTAGES
-        if (!custom) return@edit state.copy(
-            mode = mode, automatic = emptySet(), exact = emptyMap(),
-            percentages = emptyMap(), deselectedModes = emptyMap(), allocationChanged = true, pickingSplit = false
+        val next = state.copy(
+            mode = mode,
+            exact = emptyMap(),
+            percentages = emptyMap(),
+            automatic = emptySet(),
+            allocationChanged = true,
+            pickingSplit = false,
         )
-        if (split == null && state.mode != ExpenseSplit.EQUAL) {
-            return@edit state.copy(conversionFailed = true, pickingSplit = false)
-        }
-        val automatic = when (state.mode) {
-            ExpenseSplit.EQUAL -> state.selected
-            ExpenseSplit.WEIGHTS -> emptySet()
-            else -> state.automatic
-        }
-        val converted = if (mode == ExpenseSplit.PERCENTAGES && state.mode != ExpenseSplit.EQUAL) {
-            splitByWeights(HUNDRED_PERCENT, split.orEmpty())
-                ?: return@edit state.copy(conversionFailed = true, pickingSplit = false)
-        } else split.orEmpty()
-        val next = if (mode == ExpenseSplit.EXACT) state.copy(exact = state.exact + state.inputs(converted))
-        else state.copy(percentages = state.percentages + state.inputs(converted))
-        next.copy(mode = mode, automatic = automatic, allocationChanged = true, pickingSplit = false)
+        if (!next.custom) return@edit next
+        if (state.mode == ExpenseSplit.EQUAL) return@edit next.copy(automatic = state.selected)
+        val split = state.split
+        val values = (if (mode == ExpenseSplit.PERCENTAGES) split?.let { splitByWeights(HUNDRED_PERCENT, it) } else split)
+            ?: return@edit state.copy(conversionFailed = true, pickingSplit = false)
+        val inputs = state.selected.associateWith { moneyInput(values[it] ?: 0L, state.locale) }
+        val automatic = if (state.custom) state.automatic else emptySet()
+        if (mode == ExpenseSplit.EXACT) next.copy(exact = inputs, automatic = automatic)
+        else next.copy(percentages = inputs, automatic = automatic)
     }
 
-    private fun ExpenseUiState.inputs(values: Map<String, Long>) =
-        selected.associateWith { moneyInput(values[it] ?: 0L, locale) }
-
+    /** Someone added back keeps their draft and status; someone new to a custom split starts automatic. */
     fun toggleMember(id: String) = edit {
         if (it.people.none { person -> person.id == id }) return@edit it
-        if (id in it.selected) return@edit it.copy(
-            selected = it.selected - id,
-            deselectedModes = it.deselectedModes + (id to it.mode), allocationChanged = true
-        )
+        if (id in it.selected) return@edit it.copy(selected = it.selected - id, allocationChanged = true)
         val known = id in it.exact || id in it.percentages || id in it.automatic
-        val restored = it.restoreDraft(id) ?: return@edit it.copy(conversionFailed = true)
-        restored.copy(
+        it.copy(
             selected = it.selected + id,
-            automatic = if (it.custom && !known) it.automatic + id else it.automatic, allocationChanged = true
+            automatic = if (it.custom && !known) it.automatic + id else it.automatic,
+            allocationChanged = true,
         )
-    }
-
-    /** Convert a deselected manual draft only when it is included again. Invalid drafts remain recoverable. */
-    private fun ExpenseUiState.restoreDraft(id: String): ExpenseUiState? {
-        val from = deselectedModes[id]?.takeIf { it == ExpenseSplit.EXACT || it == ExpenseSplit.PERCENTAGES }
-        if (!custom || from == null || from == mode || id in automatic) return this
-        val text = if (from == ExpenseSplit.EXACT) exact[id] else percentages[id]
-        val value = parseMoney(text.orEmpty(), locale) ?: return null
-        val total = cents ?: return null
-        val whole = if (from == ExpenseSplit.EXACT) total else HUNDRED_PERCENT
-        if (value > whole || from == ExpenseSplit.EXACT && total > MAX_WEIGHT_SUM) return null
-        val target = if (mode == ExpenseSplit.EXACT) total else HUNDRED_PERCENT
-        // Same quotient/remainder arithmetic as #55, without storing conversion ratios.
-        val converted = moneyInput(target / whole * value + target % whole * value / whole, locale)
-        return if (mode == ExpenseSplit.EXACT) copy(exact = exact + (id to converted))
-        else copy(percentages = percentages + (id to converted))
     }
 
     fun onShareChange(id: String, value: String) = edit {

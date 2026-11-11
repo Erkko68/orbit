@@ -67,7 +67,7 @@ Firebase deploys one rules file and the language has no imports, so the file is 
 
 ### `users/{uid}`
 
-Read and written by its owner only.
+Read and written by its owner only. A `displayName` written is at most 30 characters (`fitsName`, `DISPLAY_NAME_MAX_LENGTH` in the app); one written before the limit stays valid until it changes.
 
 ### `spaces/{spaceId}`
 
@@ -106,6 +106,7 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 - **Create:** the space's creator making their own `owner` membership (in the batch that creates the space), or someone joining (below). An owner or admin cannot add a member directly.
 - **Update:** a member changing their own document without changing their role; the owner changing anyone else between `admin` and `member`; or the member half of a transfer (above). Outside a transfer nobody sets `owner` and the role of the owner never changes. Never the `invitationCode` or `joinedAt`, which are set once with the join.
 - **Delete:** a member leaving (above, not the owner); the owner removing anyone else; an admin removing a plain member.
+- **Name:** a create or update that writes `displayName` keeps it to 30 characters, as for the profile.
 
 ### `spaces/{spaceId}/items/{itemId}`
 
@@ -127,12 +128,9 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 - **Update:** a member, keeping the creation fields, `kind` and `itemId`, a settlement's `paidBy`, and valid fields.
 - **Delete:** the expense's creator, an admin or the owner.
 
-Optional `customAllocation` (#283, ADR 0012) records selection and automatic/manual intent, never amounts.
-Rules accept absence for legacy clients/documents, reject null, empty maps and non-boolean values, require
-every split key, and restrict keys to current members, former members or debt ids in the submitted split.
-The last exception preserves the existing treatment of debt participants: these rules still do not validate
-each monetary share or its membership (below). The domain/editor validates metadata against its known
-participants. Updating or deleting this field does not relax creation-field or authorization checks.
+Optional `customAllocation` (#283, ADR 0013) records who is selected and automatic, never amounts. When present it
+is a non-empty map of booleans that covers every `split` key, and its keys are current or former members or in the
+`split`.
 
 ### `invitations/{code}`
 
@@ -149,7 +147,7 @@ Rules cannot loop, and some checks cost a document read per write. These are lef
 - The shape of each module (dates, modes, entries). An unknown or malformed module is skipped when read, never trusted.
 - That `assignment.assigneeId` is a member.
 - That an expense's payer and shares belong to members, and that each share is above zero. Rules cannot loop over a split, and members who left keep their shares. Balances credit the payer with the sum of the shares, so a bad document cannot create money (ADR 0003).
-- The `users/{uid}` fields.
+- The `users/{uid}` fields, apart from the length of `displayName`.
 - The size of a space: the plan cap of 8 members is not enforced, so a valid invitation fills a space past it.
 
 ## Running the tests

@@ -29,7 +29,6 @@ import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.component.orbitGroup
 import com.orbit.app.core.designsystem.component.orbitItem
 import com.orbit.app.core.designsystem.theme.OrbitShape
-import com.orbit.app.core.designsystem.theme.OrbitSpaceColor
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.notification.permission.RequireNotificationPermission
 import com.orbit.app.domain.model.ChecklistEntry
@@ -100,28 +99,26 @@ fun ItemScreen(
     DisposableEffect(viewModel) {
         onDispose { viewModel.saveDrafts() }
     }
-    OrbitSpaceColor(state.accent) {
-        OrbitScreen(
-            topBar = {
-                if (state.loaded) {
-                    ItemHeader(state, viewModel, onBack)
-                } else {
-                    OrbitTopBar(
-                        title = state.spaceName.orEmpty(),
-                        navigationIcon = { OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.item_back), onBack) },
-                    )
-                }
-            },
-            primaryAction = primaryAction(state, viewModel),
-            collapsingTopBar = true,
-            list = { itemBody(state, viewModel, spaceId, itemId) },
-        )
-        state.scheduleEditor?.let { editor -> ScheduleEditorSheet(editor, state, viewModel) }
-        state.checklistEditor?.let { editor -> ChecklistEditorSheet(editor, state, viewModel) }
-        if (state.pickingMember) AssigneeSheet(state, viewModel)
-        if (state.editingReminder) ReminderSheet(state, viewModel)
-        if (state.confirmingDelete) DeleteItemSheet(state, viewModel)
-    }
+    OrbitScreen(
+        topBar = {
+            if (state.loaded) {
+                ItemHeader(state, viewModel, onBack)
+            } else {
+                OrbitTopBar(
+                    title = state.spaceName.orEmpty(),
+                    navigationIcon = { OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.item_back), onBack) },
+                )
+            }
+        },
+        primaryAction = primaryAction(state, viewModel),
+        collapsingTopBar = true,
+        list = { itemBody(state, viewModel, spaceId, itemId) },
+    )
+    state.scheduleEditor?.let { editor -> ScheduleEditorSheet(editor, state, viewModel) }
+    state.checklistEditor?.let { editor -> ChecklistEditorSheet(editor, state, viewModel) }
+    if (state.pickingMember) AssigneeSheet(state, viewModel)
+    if (state.editingReminder) ReminderSheet(state, viewModel)
+    if (state.confirmingDelete) DeleteItemSheet(state, viewModel)
     if (state.askNotifications) {
         RequireNotificationPermission(onResult = { viewModel.onNotificationsAnswered() })
     }

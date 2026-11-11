@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -26,7 +27,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
 
-/** The invitation sheet of the settings: an owner or admin creates, shares and revokes the link of a space. */
+/**
+ * The invitation sheet of the settings: an owner or admin shares the code and link of a space. Opening it makes one
+ * when there is none, so sharing is one step (#293), and a new code replaces the old one.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class InviteViewModel(
     private val spaceId: String,
@@ -79,17 +83,27 @@ class InviteViewModel(
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InviteUiState())
 
+    /** Opens the sheet on the invitation that works now, or makes one once the invitations show there is none. */
     fun open() {
-        if (uiState.value.canInvite) form.update { it.copy(open = true) }
+        if (!uiState.value.canInvite) return
+        form.update { it.copy(open = true, failure = null) }
+        viewModelScope.launch {
+            val loaded = uiState.first { !it.loading }
+            if (loaded.open && loaded.invitation == null) createInvitation()
+        }
     }
 
     fun dismiss() = form.update { it.copy(open = false, failure = null) }
 
     fun createInvitation() = submit(InviteFailure.CREATE) { invitations.createInvitation(spaceId) }
 
-    fun revokeInvitation() {
+    /** Revokes the code being shared and makes a new one, so whoever had the old one can no longer join. */
+    fun renewInvitation() {
         val code = uiState.value.invitation?.code ?: return
-        submit(InviteFailure.REVOKE) { invitations.revokeInvitation(code) }
+        submit(InviteFailure.RENEW) {
+            invitations.revokeInvitation(code)
+            invitations.createInvitation(spaceId)
+        }
     }
 
     private fun submit(onFailure: InviteFailure, action: suspend () -> Unit) {

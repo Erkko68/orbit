@@ -41,6 +41,7 @@ internal fun SpaceItemRow(
         label = spaceItemLabel(item, today)?.uppercase(),
         faces = item.faces.map { it.face() },
         enabled = !submitting,
+        overdue = item.isOverdue(today),
     )
 }
 

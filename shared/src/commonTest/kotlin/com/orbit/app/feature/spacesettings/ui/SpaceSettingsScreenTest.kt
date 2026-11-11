@@ -38,7 +38,7 @@ class SpaceSettingsScreenTest : ComposeTest() {
     private var gone = 0
     private val opened = mutableListOf<String>()
 
-    /** Ana owns Flat 4B, in the second colour (Coral). Ben is an admin of it and Cy a plain member. */
+    /** Ana owns Flat 4B. Ben is an admin of it and Cy a plain member. */
     private fun ComposeUiTest.showSettingsAs(email: String, repository: SpaceRepository = spaces) {
         runBlocking {
             auth.signIn("ana@orbit.app", "secret")
@@ -71,8 +71,6 @@ class SpaceSettingsScreenTest : ComposeTest() {
         showSettingsAs("ana@orbit.app")
 
         onNodeWithText("Flat 4B").assertIsDisplayed()
-        onNodeWithContentDescription("Coral").assertIsSelected()
-        onNodeWithContentDescription("Violet").assertIsNotSelected()
         onNodeWithText("Save").assertDoesNotExist()
         onNodeWithText("Invite people").performScrollTo().assertIsDisplayed()
         onNodeWithText("Delete space").performScrollTo().assertIsDisplayed()
@@ -115,43 +113,43 @@ class SpaceSettingsScreenTest : ComposeTest() {
 
         onNodeWithText("Invite people").performScrollTo().performClick()
 
-        onNodeWithText("Create invitation").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Share").performScrollTo().assertIsDisplayed()
     }
 
     @Test
-    fun savesTheNewNameAndColour() = runComposeUiTest {
+    fun savesTheNewName() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
 
+        onNodeWithText("Edit name").performScrollTo().performClick()
         onNode(hasSetTextAction()).performTextReplacement("Flat 4C")
-        onNodeWithContentDescription("Teal").performClick()
-        onNodeWithContentDescription("Teal").assertIsSelected()
-        onNodeWithText("Save").performScrollTo().performClick()
+        onNodeWithText("Save").performClick()
 
-        // Save going away is what says the save went through, so look at it before the repository.
+        // The sheet closing is what says the save went through, so look at it before the repository.
         onNodeWithText("Save").assertDoesNotExist()
         assertEquals("Flat 4C", spaceNow().name)
-        assertEquals(2, spaceNow().accent)
     }
 
     @Test
     fun cannotSaveABlankName() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
 
+        onNodeWithText("Edit name").performScrollTo().performClick()
         onNode(hasSetTextAction()).performTextReplacement("   ")
 
-        onNodeWithText("Save").performScrollTo().assertIsNotEnabled()
+        onNodeWithText("Save").assertIsNotEnabled()
     }
 
     @Test
     fun saysWhenTheChangesCouldNotBeSaved() = runComposeUiTest {
         val offline = object : SpaceRepository by spaces {
-            override suspend fun updateSpace(spaceId: String, name: String?, accent: Int?) =
+            override suspend fun renameSpace(spaceId: String, name: String) =
                 error("Could not reach the server")
         }
         showSettingsAs("ana@orbit.app", offline)
+        onNodeWithText("Edit name").performScrollTo().performClick()
         onNode(hasSetTextAction()).performTextReplacement("Flat 4C")
 
-        onNodeWithText("Save").performScrollTo().performClick()
+        onNodeWithText("Save").performClick()
 
         onNodeWithText("Could not save the changes. Try again.").assertIsDisplayed()
         onNodeWithText("Save").assertIsEnabled()

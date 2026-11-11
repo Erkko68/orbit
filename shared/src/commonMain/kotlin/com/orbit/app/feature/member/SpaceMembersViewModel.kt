@@ -61,11 +61,7 @@ class SpaceMembersViewModel(
                 isYou = !other,
                 canChangeRole = owns && other && member.role != Role.OWNER,
                 canTakeOwnership = owns && other && member.role == Role.ADMIN,
-                canRemove = other && when (mine) {
-                    Role.OWNER -> member.role != Role.OWNER
-                    Role.ADMIN -> member.role == Role.MEMBER
-                    else -> false
-                },
+                canRemove = other && mine?.removes(member.role) == true,
             )
         }
         SpaceMembersUiState(

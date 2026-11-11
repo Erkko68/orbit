@@ -26,7 +26,7 @@ erDiagram
     SPACE {
         string spaceId PK "auto id, made on the device"
         string name
-        int accent "index into spaceAccents"
+        int accent "the badge, index into spaceAccents"
         array memberIds "uids"
         map formerMembers "uid to name, optional"
         string createdBy FK
@@ -113,7 +113,7 @@ The signed-in user's private profile. Only its owner reads or writes it.
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `displayName` | string | yes | |
+| `displayName` | string | yes | At most 30 characters (`DISPLAY_NAME_MAX_LENGTH`). The app cuts a longer Google or email name to fit. |
 | `photoUrl` | string | no | From Google sign-in |
 | `language` | string | yes | `es`, `ca`, `it` or `en`, from the phone. Refreshed on every sign-in. For the server only: the app reads the phone's. |
 | `timeZone` | string | yes | IANA id, from the phone. Same as `language`. |
@@ -127,7 +127,7 @@ The email is not stored: it comes from the Firebase Auth account.
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `name` | string | yes | Not blank |
-| `accent` | integer | yes | Index into `OrbitTheme.colors.spaceAccents`, not a color |
+| `accent` | integer | yes | The badge of a space with no one else in it: the index of its fill in `OrbitTheme.colors.spaceAccents` and of its shape. Taken automatically, the one after the user's other spaces ([ADR 0012](../adr/0012-three-colours-and-a-flat-page.md)) |
 | `memberIds` | array of uid | yes | Kept in step with the `members` subcollection, in the same batch. At most 8 (plan cap). |
 | `formerMembers` | map of uid to string | no | The name of each member who left, written with the leave. Their member document is gone, but their balance still shows. A member who rejoins keeps an entry, and their member document wins. |
 | `createdBy` | uid | yes | Never changes |
@@ -237,11 +237,7 @@ An entry of the ledger. Balances are derived from these on the device and never 
 
 A document without a required field, with an empty `split` or with a malformed `date` is skipped when read.
 
-Absent, unreadable or unsupported allocation metadata falls back to manual saved shares; it never drops an
-otherwise valid expense. The mapper checks coverage and non-blank ids; the editor also checks current/former
-membership, retaining existing debt participants. Reopening starts in Custom amounts with saved cents as-is,
-including automatic shares, until an allocation-related action occurs. Title, payer and date edits do not
-redistribute the debt. Zero participants survive through metadata. No bulk migration is needed (ADR 0012).
+A missing or malformed `customAllocation` reads as every saved share manual; it never drops the expense (ADR 0013).
 
 `domain/usecase/CalculateBalances.kt` derives `Balances` from the ledger and the current member ids (#56).
 Each stored share credits its payer and debits the member who owes it; the payer's own share cancels out.
@@ -265,13 +261,11 @@ cents to distinct selected uids in sorted order. When cents are fewer than peopl
 as the schema requires positive stored shares. Exact input permits zero, omits it from storage, and must
 sum to the typed amount without overflowing Long. Weights and percentages (#55, a percentage is a weight
 out of 10 000 hundredths) take each share's floor and give the leftover cents, one each, to positive weights
-in uid order. In #283's mixed allocation, Custom amounts instead divides only remaining cents between automatic
-people; Percentages divides the exact remaining proportion and gives residual cents only to fractional
-entitlements in uid order. Fully manual percentage rounding stays as in #55. The simple mode conversion may
-round individual cents; exact no-input round trips are not promised. Only cents carry monetary value, so reopening
-shows Custom amounts. The expense form parses regional decimal/grouping separators without floating point and
-saves only after the user chooses Save. Editing starts with the
-stored exact shares; deleting an entry uses the existing creator-or-manager permission.
+in uid order. With automatic shares (#283), Custom amounts splits only what the manual cents leave among the
+automatic people, and Percentages splits the exact remaining percentage and gives the leftover cents by uid to parts
+with a fraction. Only cents are stored, so reopening one shows Custom amounts. The expense form parses regional
+decimal/grouping separators without floating point and saves only after the user chooses Save. Editing starts with
+the stored exact shares; deleting an entry uses the existing creator-or-manager permission.
 
 ### `invitations/{code}`
 
@@ -309,10 +303,11 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `observeMembers` | `spaces/{id}/members` | Listener, retried for a few seconds while refused |
 | `createSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: the space (`ownerId` the creator) and the owner's membership |
 | `joinSpace` | `invitations/{code}`, then `spaces/{id}` and `spaces/{id}/members/{uid}` | A `get` of the invitation from the server, a check of the user's spaces, then one batch: `memberIds` gets the user (`arrayUnion`) and the member document names the invitation. Awaited, never queued offline. |
-| `updateSpace` | `spaces/{id}` | `update` of only the fields that changed: `name`, `accent`, or both |
+| `renameSpace` | `spaces/{id}` | `update` of `name` |
 | `changeRole` | `spaces/{id}/members/{uid}` | `update` of `role` |
 | `transferOwnership` | `spaces/{id}`, `spaces/{id}/members/{new owner}`, `spaces/{id}/members/{uid}` | One batch: `ownerId`, the new owner's `role: owner`, the caller's `role: admin` |
 | `leaveSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: `memberIds` loses the user (`arrayRemove`), `formerMembers.<uid>` keeps their name and their member document is deleted. Not for the owner. |
+| `removeMember` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch, as `leaveSpace` but by an owner or admin for someone else: `memberIds` loses them, `formerMembers.<uid>` keeps their name and their member document is deleted. Who may remove whom is `Role.removes`, and the rules enforce the same (#264). |
 | `deleteSpace` | `spaces/{id}` | `delete` of the space document only: its members and items stay, unreadable (ADR 0004) |
 
 ### `FirestoreItemRepository`

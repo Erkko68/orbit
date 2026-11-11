@@ -16,7 +16,6 @@ import com.orbit.app.core.designsystem.component.OrbitNavigationBar
 import com.orbit.app.core.designsystem.component.OrbitNavigationDestination
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitTopBar
-import com.orbit.app.core.designsystem.theme.OrbitSpaceColor
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.feature.item.ui.face
 import com.orbit.app.feature.item.ui.itemDateLabel
@@ -68,68 +67,66 @@ fun SpaceHomeScreen(
     viewModel: SpaceHomeViewModel = koinViewModel { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    OrbitSpaceColor(state.accent) {
-        OrbitScreen(
-            topBar = {
-                OrbitTopBar(
-                    title = state.name,
-                    onTitleClick = onBack,
-                    onTitleClickLabel = stringResource(Res.string.space_back),
-                    actions = {
-                        val settings = stringResource(Res.string.space_settings)
-                        OrbitFaceStack(state.faces.map { it.face() }, onClick = onOpenSettings, clickLabel = settings)
-                        OrbitIconButton(Res.drawable.ic_tune, settings, onOpenSettings)
-                        OrbitAvatarButton(
-                            initials = state.userInitials,
-                            photoUrl = state.userPhotoUrl,
-                            accent = OrbitTheme.accent.fill,
-                            contentDescription = stringResource(Res.string.account_title),
-                            onClick = onOpenAccount,
-                        )
-                    },
-                )
-            },
-            bottomBar = {
-                OrbitNavigationBar(
-                    destinations = SpaceHomeTab.entries.map {
-                        OrbitNavigationDestination(stringResource(it.label), it.icon, it.selectedIcon)
-                    },
-                    selectedIndex = state.tab.ordinal,
-                    onSelect = { viewModel.selectTab(SpaceHomeTab.entries[it]) },
-                )
-            },
-            floatingActionButton = {
-                if (state.canAddItem) {
-                    OrbitAddMenu(
-                        expanded = state.addMenuOpen,
-                        onExpandedChange = { open -> if (open) viewModel.openAddMenu() else viewModel.closeAddMenu() },
-                        contentDescription = stringResource(Res.string.space_new_item),
-                        closeDescription = stringResource(Res.string.close),
-                        actions = listOf(
-                            OrbitAddMenuAction(stringResource(Res.string.space_new_task), Res.drawable.ic_task, onNewItem),
-                            OrbitAddMenuAction(stringResource(Res.string.space_assistant), Res.drawable.ic_sparkle, onOpenAssistant),
-                        ),
+    OrbitScreen(
+        topBar = {
+            OrbitTopBar(
+                title = state.name,
+                onTitleClick = onBack,
+                onTitleClickLabel = stringResource(Res.string.space_back),
+                actions = {
+                    val settings = stringResource(Res.string.space_settings)
+                    OrbitFaceStack(state.faces.map { it.face() }, onClick = onOpenSettings, clickLabel = settings)
+                    OrbitIconButton(Res.drawable.ic_tune, settings, onOpenSettings)
+                    OrbitAvatarButton(
+                        initials = state.userInitials,
+                        photoUrl = state.userPhotoUrl,
+                        accent = OrbitTheme.accent.fill,
+                        contentDescription = stringResource(Res.string.account_title),
+                        onClick = onOpenAccount,
                     )
-                } else {
-                    OrbitAddButton(stringResource(Res.string.expense_add), onNewExpense)
-                }
-            },
-            scrollable = true,
-        ) {
-            when (state.tab) {
-                SpaceHomeTab.CALENDAR -> {
-                    OrbitHero(
-                        title = headlineText(state),
-                        datum = state.today?.let { itemDateLabel(it) },
-                        modifier = Modifier.fillMaxWidth(),
-                    )
-                    SpaceCalendarTab(spaceId, onOpenItem, Modifier.fillMaxWidth())
-                }
-
-                SpaceHomeTab.TASKS -> SpaceItemsTab(spaceId, onOpenItem, Modifier.fillMaxWidth())
-
-                SpaceHomeTab.EXPENSES -> SpaceExpensesTab(spaceId, onOpenExpense, Modifier.fillMaxWidth())
+                },
+            )
+        },
+        bottomBar = {
+            OrbitNavigationBar(
+                destinations = SpaceHomeTab.entries.map {
+                    OrbitNavigationDestination(stringResource(it.label), it.icon, it.selectedIcon)
+                },
+                selectedIndex = state.tab.ordinal,
+                onSelect = { viewModel.selectTab(SpaceHomeTab.entries[it]) },
+            )
+        },
+        floatingActionButton = {
+            if (state.canAddItem) {
+                OrbitAddMenu(
+                    expanded = state.addMenuOpen,
+                    onExpandedChange = { open -> if (open) viewModel.openAddMenu() else viewModel.closeAddMenu() },
+                    contentDescription = stringResource(Res.string.space_new_item),
+                    closeDescription = stringResource(Res.string.close),
+                    actions = listOf(
+                        OrbitAddMenuAction(stringResource(Res.string.space_new_task), Res.drawable.ic_task, onNewItem),
+                        OrbitAddMenuAction(stringResource(Res.string.space_assistant), Res.drawable.ic_sparkle, onOpenAssistant),
+                    ),
+                )
+            } else {
+                OrbitAddButton(stringResource(Res.string.expense_add), onNewExpense)
             }
+        },
+        scrollable = true,
+    ) {
+        when (state.tab) {
+            SpaceHomeTab.CALENDAR -> {
+                OrbitHero(
+                    title = headlineText(state),
+                    datum = state.today?.let { itemDateLabel(it) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                SpaceCalendarTab(spaceId, onOpenItem, Modifier.fillMaxWidth())
+            }
+
+            SpaceHomeTab.TASKS -> SpaceItemsTab(spaceId, onOpenItem, Modifier.fillMaxWidth())
+
+            SpaceHomeTab.EXPENSES -> SpaceExpensesTab(spaceId, onOpenExpense, Modifier.fillMaxWidth())
         }
     }
 }
