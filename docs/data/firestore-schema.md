@@ -26,7 +26,7 @@ erDiagram
     SPACE {
         string spaceId PK "auto id, made on the device"
         string name
-        int accent "index into spaceAccents"
+        int accent "the badge, index into spaceAccents"
         array memberIds "uids"
         map formerMembers "uid to name, optional"
         string createdBy FK
@@ -127,7 +127,7 @@ The email is not stored: it comes from the Firebase Auth account.
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `name` | string | yes | Not blank |
-| `accent` | integer | yes | Index into `OrbitTheme.colors.spaceAccents`, not a color |
+| `accent` | integer | yes | The badge of a space with no one else in it: the index of its fill in `OrbitTheme.colors.spaceAccents` and of its shape. Taken automatically, the one after the user's other spaces ([ADR 0012](../adr/0012-three-colours-and-a-flat-page.md)) |
 | `memberIds` | array of uid | yes | Kept in step with the `members` subcollection, in the same batch. At most 8 (plan cap). |
 | `formerMembers` | map of uid to string | no | The name of each member who left, written with the leave. Their member document is gone, but their balance still shows. A member who rejoins keeps an entry, and their member document wins. |
 | `createdBy` | uid | yes | Never changes |
@@ -298,7 +298,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `observeMembers` | `spaces/{id}/members` | Listener, retried for a few seconds while refused |
 | `createSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: the space (`ownerId` the creator) and the owner's membership |
 | `joinSpace` | `invitations/{code}`, then `spaces/{id}` and `spaces/{id}/members/{uid}` | A `get` of the invitation from the server, a check of the user's spaces, then one batch: `memberIds` gets the user (`arrayUnion`) and the member document names the invitation. Awaited, never queued offline. |
-| `updateSpace` | `spaces/{id}` | `update` of only the fields that changed: `name`, `accent`, or both |
+| `renameSpace` | `spaces/{id}` | `update` of `name` |
 | `changeRole` | `spaces/{id}/members/{uid}` | `update` of `role` |
 | `transferOwnership` | `spaces/{id}`, `spaces/{id}/members/{new owner}`, `spaces/{id}/members/{uid}` | One batch: `ownerId`, the new owner's `role: owner`, the caller's `role: admin` |
 | `leaveSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: `memberIds` loses the user (`arrayRemove`), `formerMembers.<uid>` keeps their name and their member document is deleted. Not for the owner. |
