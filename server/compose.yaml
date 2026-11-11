@@ -13,6 +13,8 @@ services:
     environment:
       # An orbit-app-dev API key allowed to call the Identity Toolkit API: checks the callers' ID tokens.
       FIREBASE_API_KEY: ${FIREBASE_API_KEY:?set FIREBASE_API_KEY in .env}
+      # The server's public address (https://…), sent as Referer for a key restricted to that website.
+      PUBLIC_URL: ${PUBLIC_URL:-}
       ASSISTANT_MODEL: ${ASSISTANT_MODEL:-gemma4:e2b}
       MODEL_URL: http://ollama:11434/v1
     depends_on:

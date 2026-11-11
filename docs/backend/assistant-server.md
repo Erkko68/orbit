@@ -121,6 +121,7 @@ The plan says which version it follows (`"version": 1`), and `PLAN_VERSION` is t
 | Variable | Default | |
 |---|---|---|
 | `FIREBASE_API_KEY` | | An `orbit-app-dev` API key allowed to call the Identity Toolkit API, to check ID tokens. Make one for the server in Google Cloud (Credentials → API key → restrict to Identity Toolkit API): the apps' keys are restricted to the apps. In `.env`, never committed |
+| `PUBLIC_URL` | | The server's public address (`https://…`). Sent as `Referer` on the token check, so the key can be restricted to that website |
 | `HOST`, `PORT` | `0.0.0.0`, `8080` | Where the server listens |
 | `ASSISTANT_MODEL` | `gemma4:e2b` | The Gemma tag in Ollama. The stack pulls it when it starts. `gemma4:e2b` is Gemma 4's smallest, made for phones, so it runs on a CPU in little memory; `gemma4:e4b` is the next size up |
 | `MODEL_URL` | `http://ollama:11434/v1` | Ollama's OpenAI-compatible endpoint |
