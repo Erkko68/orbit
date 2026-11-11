@@ -12,10 +12,25 @@
     <string name="sign_in_subtitle">Accedi per continuare nei tuoi spazi condivisi.</string>
     <string name="sign_in_email">Indirizzo email</string>
     <string name="sign_in_password">Password</string>
+    <string name="sign_in_forgot_password">Password dimenticata?</string>
+    <string name="reset_title">Reimposta la password</string>
+    <string name="reset_email">Email dell&apos;account</string>
+    <string name="reset_body">Ti invieremo un link per crearne una nuova.</string>
+    <string name="reset_send">Invia il link</string>
+    <string name="reset_cancel">Annulla</string>
+    <string name="reset_close">Chiudi</string>
+    <string name="reset_sent">Se %1$s ha un account, il link &#232; in arrivo. Controlla anche la posta indesiderata.</string>
     <string name="sign_in">Accedi</string>
     <string name="sign_in_google">Continua con Google</string>
     <string name="sign_in_new">È la tua prima volta su Orbit?</string>
     <string name="sign_in_create_account">Crea account</string>
+    <!-- Un solo account per entrambi i modi di accedere -->
+    <string name="link_password_title">Un account, due modi per accedere</string>
+    <string name="link_password_body">%1$s accede già con una password. Inseriscila una volta e Google ti farà entrare nello stesso account.</string>
+    <string name="link_password_confirm">Collega Google</string>
+    <string name="link_google_title">Questo account usa Google</string>
+    <string name="link_google_body">%1$s accede con Google. Continua con Google oppure imposta una password per lo stesso account.</string>
+    <string name="link_google_confirm">Imposta password</string>
     <!-- Account -->
     <string name="account_title">Account</string>
     <string name="account_back">Torna agli spazi</string>
@@ -54,6 +69,7 @@
     <string name="error_current_password_wrong">Questa non è la tua password attuale.</string>
     <string name="error_email_in_use">Esiste già un account con questo indirizzo email.</string>
     <string name="error_weak_password">Scegli una password più sicura.</string>
+    <string name="error_different_google_account">Questo è un altro account Google. Scegli quello con questo indirizzo.</string>
     <string name="error_network">Connessione assente. Controlla internet e riprova.</string>
     <string name="error_unknown">Qualcosa è andato storto. Riprova.</string>
     <!-- Spaces -->
@@ -300,6 +316,12 @@
     <string name="transfer_acknowledge">Capisco che solo %1$s può restituirmelo</string>
     <string name="transfer_confirm">Passalo</string>
     <string name="transfer_cancel">Annulla</string>
+    <string name="member_remove">Rimuovi %1$s</string>
+    <string name="member_remove_title">Rimuovere %1$s?</string>
+    <string name="member_remove_body">%1$s perder&#224; l&apos;accesso a %2$s. Ci&#242; che ha aggiunto resta nello spazio.</string>
+    <string name="member_remove_confirm">Rimuovi</string>
+    <string name="member_remove_cancel">Annulla</string>
+    <string name="member_remove_failed">Impossibile rimuovere. Riprova.</string>
     <string name="member_empty_title">Ancora niente</string>
     <string name="member_empty_body">Qui vedrai cosa ha e cosa completa.</string>
     <string name="member_has">Ha</string>

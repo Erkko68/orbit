@@ -132,6 +132,9 @@ class SessionViewModelTest {
 
         override suspend fun leaveSpace(spaceId: String) = error("Not used by these tests")
 
+        override suspend fun removeMember(spaceId: String, userId: String, displayName: String) =
+            error("Not used by these tests")
+
         override suspend fun deleteSpace(spaceId: String) = error("Not used by these tests")
 
         override suspend fun transferOwnership(spaceId: String, userId: String) = error("Not used by these tests")

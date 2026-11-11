@@ -2,18 +2,24 @@ package com.orbit.app.data.repository
 
 import co.touchlab.kermit.Logger
 import com.orbit.app.data.auth.GoogleAuthClient
+import com.orbit.app.data.auth.GoogleAuthCredential
+import com.orbit.app.data.auth.googleIdentity
 import com.orbit.app.data.mapper.devicePreferencesDocument
 import com.orbit.app.data.mapper.googleSignInException
 import com.orbit.app.data.mapper.mapUser
 import com.orbit.app.data.mapper.registerException
 import com.orbit.app.data.mapper.signInException
 import com.orbit.app.data.mapper.userProfileDocument
+import com.orbit.app.domain.model.AccountLinkException
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
+import com.orbit.app.domain.model.LinkProof
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
+import dev.gitlive.firebase.auth.AuthCredential
 import dev.gitlive.firebase.auth.EmailAuthProvider
 import dev.gitlive.firebase.auth.FirebaseAuth
+import dev.gitlive.firebase.auth.FirebaseAuthUserCollisionException
 import dev.gitlive.firebase.auth.FirebaseUser
 import dev.gitlive.firebase.auth.GoogleAuthProvider
 import dev.gitlive.firebase.firestore.DocumentSnapshot
@@ -43,6 +49,12 @@ class FirebaseAuthRepository(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     /**
+     * The Google credential of a sign-in that collided with a password account, kept so linking it after
+     * the password is typed does not open the account picker a second time (#173).
+     */
+    private var pendingGoogle: GoogleAuthCredential? = null
+
+    /**
      * The signed-in user from their `users/{uid}` document, with the Firebase account filling what it lacks.
      * Every collector shares one listener, which stops a few seconds after the last one leaves.
      */
@@ -65,7 +77,12 @@ class FirebaseAuthRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            throw signInException(e)
+            val failure = signInException(e)
+            // The account may be a Google one without a password: an offer to link, not a wrong password (#173).
+            if (failure.error == AuthError.WRONG_CREDENTIALS && signsInWithGoogleOnly(email)) {
+                throw AccountLinkException(email, LinkProof.GOOGLE, e)
+            }
+            throw failure
         }
         val user = result.user ?: auth.currentUser
         if (user != null) {
@@ -182,9 +199,99 @@ class FirebaseAuthRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            throw googleSignInException(e)
+            throw googleCollision(google, e)
         }
+        pendingGoogle = null
         ensureUserProfile(checkNotNull(result.user) { "No user returned after Google sign-in" })
+    }
+
+    /**
+     * Signs in with the password, which proves the account is the user's, and links the Google credential
+     * that collided with it to that same account, so its `uid`, profile and spaces are the ones they keep.
+     */
+    override suspend fun linkGoogleWithPassword(email: String, password: String) {
+        val google = pendingGoogle ?: googleAuthClient.getCredential() ?: return
+        requireGoogleAddress(google, email)
+        signIn(email, password)
+        linkCredential(GoogleAuthProvider.credential(google.idToken, google.accessToken)) { googleSignInException(it) }
+        pendingGoogle = null
+        ensureUserProfile(signedInUser())
+    }
+
+    /** Signing in with Google proves the account is the user's; the password is then linked to it. */
+    override suspend fun setPasswordWithGoogle(email: String, password: String) {
+        val google = googleAuthClient.getCredential() ?: return
+        requireGoogleAddress(google, email)
+        val result = try {
+            auth.signInWithCredential(GoogleAuthProvider.credential(google.idToken, google.accessToken))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw googleCollision(google, e)
+        }
+        linkCredential(EmailAuthProvider.credential(email.trim(), password)) { registerException(it) }
+        ensureUserProfile(checkNotNull(result.user) { "No user returned after Google sign-in" })
+    }
+
+    /**
+     * What a refused Google sign-in means: an address that already has a password account is an offer to
+     * link it, with the credential kept for [linkGoogleWithPassword]. A token that proves no address
+     * cannot be linked to anything, so that stays the plain failure.
+     */
+    private fun googleCollision(google: GoogleAuthCredential, cause: Exception): Exception {
+        if (cause is FirebaseAuthUserCollisionException) {
+            val identity = googleIdentity(google.idToken)
+            if (identity != null && identity.emailVerified) {
+                pendingGoogle = google
+                return AccountLinkException(identity.email, LinkProof.PASSWORD, cause)
+            }
+            Logger.w(cause) { "A Google sign-in collided with an account, but its token proves no address" }
+        }
+        return googleSignInException(cause)
+    }
+
+    /** Refuses a Google account that is not the address being linked, so another user's account is never joined. */
+    private fun requireGoogleAddress(google: GoogleAuthCredential, email: String) {
+        val identity = googleIdentity(google.idToken) ?: return
+        if (!identity.email.equals(email.trim(), ignoreCase = true)) {
+            throw AuthException(AuthError.DIFFERENT_GOOGLE_ACCOUNT)
+        }
+    }
+
+    /**
+     * Adds [credential] as another way into the signed-in account. A provider the account already has is
+     * no failure: pressing the button twice leaves the one account linked.
+     */
+    private suspend fun linkCredential(credential: AuthCredential, failure: (Throwable) -> Exception) {
+        val user = signedInUser()
+        try {
+            user.linkWithCredential(credential)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            if (e is FirebaseAuthUserCollisionException &&
+                user.providerData.any { it.providerId == credential.providerId }
+            ) {
+                Logger.d { "${credential.providerId} is already linked to ${user.uid}" }
+                return
+            }
+            throw failure(e)
+        }
+    }
+
+    /**
+     * Whether [email] signs in with Google and has no password. Firebase's answer is a hint, not a secret:
+     * a failed or empty answer (its email enumeration protection) leaves the sign-in a wrong password.
+     */
+    @Suppress("DEPRECATION")
+    private suspend fun signsInWithGoogleOnly(email: String): Boolean = try {
+        val methods = auth.fetchSignInMethodsForEmail(email)
+        GOOGLE_PROVIDER in methods && PASSWORD_PROVIDER !in methods
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Logger.d(e) { "Could not read the sign-in methods of an address" }
+        false
     }
 
     /**
@@ -224,6 +331,25 @@ class FirebaseAuthRepository(
         }
     }
 
+    /**
+     * Firebase refuses an address it has no account for, which would tell a stranger who is registered. That
+     * answer is swallowed: the caller cannot tell it from a link that was sent, which is the point (#217).
+     */
+    override suspend fun sendPasswordReset(email: String) {
+        try {
+            auth.sendPasswordResetEmail(email.trim())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val failure = signInException(e)
+            if (failure.error == AuthError.WRONG_CREDENTIALS) {
+                Logger.d { "A password reset was asked for an address with no account" }
+                return
+            }
+            throw failure
+        }
+    }
+
     override suspend fun signOut() {
         auth.signOut()
     }
@@ -257,5 +383,8 @@ class FirebaseAuthRepository(
     )
 }
 
-/** The id Firebase gives the email-and-password sign-in method. */
+/** Firebase's name for the Google provider, as `fetchSignInMethodsForEmail` and `providerData` give it. */
+private const val GOOGLE_PROVIDER = "google.com"
+
+/** Firebase's name for the email and password provider. */
 private const val PASSWORD_PROVIDER = "password"

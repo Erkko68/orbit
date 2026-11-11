@@ -1,5 +1,6 @@
 package com.orbit.app.feature.member
 
+import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.FakeSpaceRepository
@@ -56,6 +57,8 @@ class SpaceMembersViewModelTest {
     )
 
     private fun SpaceMembersViewModel.canChange() = uiState.value.members.filter { it.canChangeRole }.map { it.id }
+
+    private fun SpaceMembersViewModel.canRemove() = uiState.value.members.filter { it.canRemove }.map { it.id }
 
     @Test
     fun showsTheOwnerOfANewSpace() = runTest {
@@ -276,4 +279,87 @@ class SpaceMembersViewModelTest {
         assertFalse(state.transferAcknowledged)
         assertEquals(Role.OWNER, state.members.single { it.id == "ana@orbit.app" }.currentRole)
     }
+
+    @Test
+    fun theOwnerRemovesAnyoneElseAndAnAdminOnlyAPlainMember() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        assertEquals(listOf("ben@orbit.app", "cy@orbit.app"), membersViewModel(team()).canRemove())
+
+        auth.signOut()
+        auth.signIn("ben@orbit.app", "secret")
+        assertEquals(listOf("cy@orbit.app"), membersViewModel(team()).canRemove())
+
+        auth.signOut()
+        auth.signIn("cy@orbit.app", "secret")
+        assertTrue(membersViewModel(team()).canRemove().isEmpty())
+    }
+
+    @Test
+    fun nobodyIsSignedInSoNobodyCanBeRemoved() = runTest {
+        assertTrue(membersViewModel(team()).canRemove().isEmpty())
+    }
+
+    @Test
+    fun takesAMemberOutOfTheSpaceOnceTheDialogIsConfirmed() = runTest {
+        val spaces = InMemorySpaceRepository(auth)
+        auth.register("ana@orbit.app", "secret", displayName = "Ana")
+        val id = spaces.createSpace("Flat 4B", accent = 0)
+        spaces.addMember(id, Member("cy@orbit.app", "Cy", photoUrl = null, role = Role.MEMBER))
+        val viewModel = membersViewModel(spaces)
+
+        viewModel.askRemove("cy@orbit.app")
+        assertEquals("cy@orbit.app", viewModel.uiState.value.removing?.id)
+        viewModel.removeMember()
+
+        assertNull(viewModel.uiState.value.removing)
+        assertEquals(listOf("ana@orbit.app"), viewModel.uiState.value.members.map { it.id })
+    }
+
+    @Test
+    fun keepsTheDialogOpenAndSaysSoWhenRemovingFails() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Could not reach the server")))
+
+        viewModel.askRemove("cy@orbit.app")
+        viewModel.removeMember()
+
+        val state = viewModel.uiState.value
+        assertEquals("cy@orbit.app", state.removing?.id)
+        assertTrue(state.roleFailed("cy@orbit.app"))
+        assertFalse(state.busy)
+    }
+
+    @Test
+    fun aPlainMemberCannotEvenOpenTheRemoveDialog() = runTest {
+        auth.signIn("cy@orbit.app", "secret")
+        val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Must not be called")))
+
+        viewModel.askRemove("ben@orbit.app")
+
+        assertNull(viewModel.uiState.value.removing)
+    }
+
+    @Test
+    fun confirmingWithNoDialogOpenRemovesNobody() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Must not be called")))
+
+        viewModel.removeMember()
+
+        assertNull(viewModel.uiState.value.removing)
+        assertFalse(viewModel.uiState.value.failed)
+    }
+
+    @Test
+    fun cancellingTheDialogLeavesEveryoneWhereTheyWere() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val viewModel = membersViewModel(team(writeFailure = IllegalStateException("Must not be called")))
+
+        viewModel.askRemove("cy@orbit.app")
+        viewModel.cancelRemove()
+
+        assertNull(viewModel.uiState.value.removing)
+        assertEquals(3, viewModel.uiState.value.members.size)
+    }
+
 }

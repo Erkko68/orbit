@@ -27,11 +27,13 @@ import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.back
 import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.ic_lock
+import orbit.shared.generated.resources.ic_remove
 import orbit.shared.generated.resources.load_failed_body
 import orbit.shared.generated.resources.member_load_failed
 import orbit.shared.generated.resources.member_loading
 import orbit.shared.generated.resources.member_not_found
 import orbit.shared.generated.resources.member_not_found_body
+import orbit.shared.generated.resources.member_remove
 import orbit.shared.generated.resources.member_role
 import orbit.shared.generated.resources.member_role_failed
 import orbit.shared.generated.resources.retry
@@ -79,7 +81,18 @@ fun MemberScreen(
                             modifier = Modifier.fillMaxWidth(),
                         )
                     }
-                    if (state.roleFailed(member.id) && state.pickingRole == null && state.transferTo == null) {
+                    if (member.canRemove) {
+                        OrbitActionRow(
+                            title = stringResource(Res.string.member_remove, member.name),
+                            icon = Res.drawable.ic_remove,
+                            onClick = { viewModel.askRemove(member.id) },
+                            danger = true,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                    if (state.roleFailed(member.id) && state.pickingRole == null && state.transferTo == null &&
+                        state.removing == null
+                    ) {
                         OrbitErrorText(stringResource(Res.string.member_role_failed))
                     }
                     MemberActivity(spaceId, userId, onOpenItem)
@@ -103,6 +116,7 @@ fun MemberScreen(
         }
     }
     state.pickingRole?.let { RoleSheet(it, state, viewModel) }
+    state.removing?.let { RemoveMemberDialog(it, state.spaceName, state, viewModel) }
     state.transferTo?.let { TransferDialog(it, state.spaceName, state, viewModel) }
 }
 

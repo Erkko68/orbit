@@ -138,6 +138,7 @@ val firebaseTestStubs = tasks.register("firebaseTestStubs") {
                     """
                     void *FIRAuthErrorDomain = 0;
                     void *FIRFirestoreErrorDomain = 0;
+                    void *OBJC_CLASS_${'$'}_FIRActionCodeSettings = 0;
                     void *OBJC_CLASS_${'$'}_FIRAuth = 0;
                     void *OBJC_CLASS_${'$'}_FIREmailAuthProvider = 0;
                     void *OBJC_CLASS_${'$'}_FIRAuthDataResult = 0;
@@ -145,6 +146,7 @@ val firebaseTestStubs = tasks.register("firebaseTestStubs") {
                     void *OBJC_CLASS_${'$'}_FIRDocumentChange = 0;
                     void *OBJC_CLASS_${'$'}_FIRDocumentReference = 0;
                     void *OBJC_CLASS_${'$'}_FIRDocumentSnapshot = 0;
+                    void *OBJC_CLASS_${'$'}_FIREmailAuthProvider = 0;
                     void *OBJC_CLASS_${'$'}_FIRFieldPath = 0;
                     void *OBJC_CLASS_${'$'}_FIRFieldValue = 0;
                     void *OBJC_CLASS_${'$'}_FIRFilter = 0;

@@ -12,10 +12,25 @@
     <string name="sign_in_subtitle">Inicia la sessió per accedir als teus espais compartits.</string>
     <string name="sign_in_email">Adreça electrònica</string>
     <string name="sign_in_password">Contrasenya</string>
+    <string name="sign_in_forgot_password">Has oblidat la contrasenya?</string>
+    <string name="reset_title">Restableix la contrasenya</string>
+    <string name="reset_email">Adre&#231;a de correu del compte</string>
+    <string name="reset_body">T&apos;enviarem un enlla&#231; per crear-ne una de nova.</string>
+    <string name="reset_send">Envia l&apos;enlla&#231;</string>
+    <string name="reset_cancel">Cancel&#183;la</string>
+    <string name="reset_close">Tanca</string>
+    <string name="reset_sent">Si %1$s t&#233; un compte, l&apos;enlla&#231; ja &#233;s a cam&#237;. Mira tamb&#233; la bústia de correu brossa.</string>
     <string name="sign_in">Inicia la sessió</string>
     <string name="sign_in_google">Continua amb Google</string>
     <string name="sign_in_new">És el primer cop que fas servir Orbit?</string>
     <string name="sign_in_create_account">Crea un compte</string>
+    <!-- Un sol compte per a les dues maneres d'entrar -->
+    <string name="link_password_title">Un compte, dues maneres d'entrar</string>
+    <string name="link_password_body">%1$s ja inicia la sessió amb contrasenya. Introdueix-la un cop i Google et donarà accés al mateix compte.</string>
+    <string name="link_password_confirm">Vincula Google</string>
+    <string name="link_google_title">Aquest compte fa servir Google</string>
+    <string name="link_google_body">%1$s inicia la sessió amb Google. Continua amb Google o crea una contrasenya per al mateix compte.</string>
+    <string name="link_google_confirm">Crea una contrasenya</string>
     <!-- Account -->
     <string name="account_title">Compte</string>
     <string name="account_back">Torna als espais</string>
@@ -54,6 +69,7 @@
     <string name="error_current_password_wrong">Aquesta no és la teva contrasenya actual.</string>
     <string name="error_email_in_use">Ja existeix un compte amb aquesta adreça electrònica.</string>
     <string name="error_weak_password">Tria una contrasenya més segura.</string>
+    <string name="error_different_google_account">Aquest és un altre compte de Google. Tria el d'aquest correu electrònic.</string>
     <string name="error_network">No hi ha connexió. Comprova internet i torna-ho a provar.</string>
     <string name="error_unknown">Alguna cosa ha fallat. Torna-ho a provar.</string>
     <!-- Spaces -->
@@ -300,6 +316,12 @@
     <string name="transfer_acknowledge">Entenc que només %1$s me l&apos;hi pot tornar</string>
     <string name="transfer_confirm">Passa-l&apos;hi</string>
     <string name="transfer_cancel">Cancel·la</string>
+    <string name="member_remove">Treu %1$s</string>
+    <string name="member_remove_title">Vols treure %1$s?</string>
+    <string name="member_remove_body">%1$s perdr&#224; l&apos;acc&#233;s a %2$s. El que hi ha afegit es queda a l&apos;espai.</string>
+    <string name="member_remove_confirm">Treu-lo</string>
+    <string name="member_remove_cancel">Cancel&#183;la</string>
+    <string name="member_remove_failed">No s&apos;ha pogut treure. Torna-ho a provar.</string>
     <string name="member_empty_title">Encara no hi ha res</string>
     <string name="member_empty_body">Aquí veuràs el que té i el que acaba.</string>
     <string name="member_has">Té</string>
