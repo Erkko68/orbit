@@ -302,6 +302,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `changeRole` | `spaces/{id}/members/{uid}` | `update` of `role` |
 | `transferOwnership` | `spaces/{id}`, `spaces/{id}/members/{new owner}`, `spaces/{id}/members/{uid}` | One batch: `ownerId`, the new owner's `role: owner`, the caller's `role: admin` |
 | `leaveSpace` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: `memberIds` loses the user (`arrayRemove`), `formerMembers.<uid>` keeps their name and their member document is deleted. Not for the owner. |
+| `removeMember` | `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch, as `leaveSpace` but by an owner or admin for someone else: `memberIds` loses them, `formerMembers.<uid>` keeps their name and their member document is deleted. Who may remove whom is `Role.removes`, and the rules enforce the same (#264). |
 | `deleteSpace` | `spaces/{id}` | `delete` of the space document only: its members and items stay, unreadable (ADR 0004) |
 
 ### `FirestoreItemRepository`
