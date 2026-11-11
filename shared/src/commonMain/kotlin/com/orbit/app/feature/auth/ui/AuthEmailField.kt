@@ -15,11 +15,16 @@ import org.jetbrains.compose.resources.stringResource
 
 /** The email field of sign-in and create account, with the [error] under it when there is one. */
 @Composable
-internal fun AuthEmailField(value: String, onValueChange: (String) -> Unit, error: StringResource?) {
+internal fun AuthEmailField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    error: StringResource?,
+    placeholder: StringResource = Res.string.sign_in_email,
+) {
     OrbitTextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = stringResource(Res.string.sign_in_email),
+        placeholder = stringResource(placeholder),
         modifier = Modifier.fillMaxWidth(),
         isError = error != null,
         supportingText = error?.let { stringResource(it) },

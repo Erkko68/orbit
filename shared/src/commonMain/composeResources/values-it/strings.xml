@@ -12,6 +12,14 @@
     <string name="sign_in_subtitle">Accedi per continuare nei tuoi spazi condivisi.</string>
     <string name="sign_in_email">Indirizzo email</string>
     <string name="sign_in_password">Password</string>
+    <string name="sign_in_forgot_password">Password dimenticata?</string>
+    <string name="reset_title">Reimposta la password</string>
+    <string name="reset_email">Email dell&apos;account</string>
+    <string name="reset_body">Ti invieremo un link per crearne una nuova.</string>
+    <string name="reset_send">Invia il link</string>
+    <string name="reset_cancel">Annulla</string>
+    <string name="reset_close">Chiudi</string>
+    <string name="reset_sent">Se %1$s ha un account, il link &#232; in arrivo. Controlla anche la posta indesiderata.</string>
     <string name="sign_in">Accedi</string>
     <string name="sign_in_google">Continua con Google</string>
     <string name="sign_in_new">È la tua prima volta su Orbit?</string>
@@ -306,6 +314,12 @@
     <string name="transfer_acknowledge">Capisco che solo %1$s può restituirmelo</string>
     <string name="transfer_confirm">Passalo</string>
     <string name="transfer_cancel">Annulla</string>
+    <string name="member_remove">Rimuovi %1$s</string>
+    <string name="member_remove_title">Rimuovere %1$s?</string>
+    <string name="member_remove_body">%1$s perder&#224; l&apos;accesso a %2$s. Ci&#242; che ha aggiunto resta nello spazio.</string>
+    <string name="member_remove_confirm">Rimuovi</string>
+    <string name="member_remove_cancel">Annulla</string>
+    <string name="member_remove_failed">Impossibile rimuovere. Riprova.</string>
     <string name="member_empty_title">Ancora niente</string>
     <string name="member_empty_body">Qui vedrai cosa ha e cosa completa.</string>
     <string name="member_has">Ha</string>

@@ -12,6 +12,14 @@
     <string name="sign_in_subtitle">Sign in to continue to your shared spaces.</string>
     <string name="sign_in_email">Email address</string>
     <string name="sign_in_password">Password</string>
+    <string name="sign_in_forgot_password">Forgot password?</string>
+    <string name="reset_title">Reset your password</string>
+    <string name="reset_email">Account email address</string>
+    <string name="reset_body">We will send a link to set a new password.</string>
+    <string name="reset_send">Send link</string>
+    <string name="reset_cancel">Cancel</string>
+    <string name="reset_close">Close</string>
+    <string name="reset_sent">If %1$s has an account, the link is on its way. Look in the spam folder too.</string>
     <string name="sign_in">Sign in</string>
     <string name="sign_in_google">Continue with Google</string>
     <string name="sign_in_new">New to Orbit?</string>
@@ -306,6 +314,12 @@
     <string name="transfer_acknowledge">I understand only %1$s can give it back</string>
     <string name="transfer_confirm">Hand it over</string>
     <string name="transfer_cancel">Cancel</string>
+    <string name="member_remove">Remove %1$s</string>
+    <string name="member_remove_title">Remove %1$s?</string>
+    <string name="member_remove_body">%1$s loses access to %2$s. What they added stays in the space.</string>
+    <string name="member_remove_confirm">Remove</string>
+    <string name="member_remove_cancel">Cancel</string>
+    <string name="member_remove_failed">Could not remove them. Try again.</string>
     <string name="member_empty_title">Nothing here yet</string>
     <string name="member_empty_body">What they have and what they finish shows up here.</string>
     <string name="member_has">Has</string>

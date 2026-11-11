@@ -18,6 +18,9 @@ sealed interface CredentialsError {
 fun validateSignIn(email: String, password: String): List<CredentialsError> =
     emailErrors(email) + listOfNotNull(CredentialsError.BlankPassword.takeIf { password.isEmpty() })
 
+/** The check before sending a password reset: an address is there and looks like one (#217). */
+fun validateEmail(email: String): List<CredentialsError> = emailErrors(email)
+
 /** The checks before creating an account: a valid email, a long enough password, typed twice the same. */
 fun validateRegistration(email: String, password: String, confirmation: String): List<CredentialsError> =
     emailErrors(email) + newPasswordErrors(password, confirmation)

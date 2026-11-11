@@ -279,6 +279,25 @@ class FirebaseAuthRepository(
         }
     }
 
+    /**
+     * Firebase refuses an address it has no account for, which would tell a stranger who is registered. That
+     * answer is swallowed: the caller cannot tell it from a link that was sent, which is the point (#217).
+     */
+    override suspend fun sendPasswordReset(email: String) {
+        try {
+            auth.sendPasswordResetEmail(email.trim())
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            val failure = signInException(e)
+            if (failure.error == AuthError.WRONG_CREDENTIALS) {
+                Logger.d { "A password reset was asked for an address with no account" }
+                return
+            }
+            throw failure
+        }
+    }
+
     override suspend fun signOut() {
         auth.signOut()
     }

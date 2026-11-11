@@ -193,4 +193,66 @@ class SignInScreenTest : ComposeTest() {
 
         onNodeWithText("Choose a stronger password.").assertIsDisplayed()
     }
+
+    @Test
+    fun offersToResetAForgottenPassword() = runComposeUiTest {
+        showSignIn()
+
+        onNodeWithText("Forgot password?").performScrollTo().performClick()
+
+        onNodeWithText("Reset your password").assertIsDisplayed()
+        onNodeWithText("We will send a link to set a new password.").assertIsDisplayed()
+        onNodeWithText("Account email address").assertIsDisplayed()
+        onNodeWithText("Cancel").assertIsEnabled()
+    }
+
+    @Test
+    fun sendsTheResetLinkAndSaysTheSameWhoeverTheAddressIs() = runComposeUiTest {
+        val auth = InMemoryAuthRepository()
+        showSignIn(auth)
+        onNodeWithText("Forgot password?").performScrollTo().performClick()
+        onNodeWithText("Account email address").performTextInput("ana@orbit.app")
+
+        onNodeWithText("Send link").performClick()
+
+        assertEquals(listOf("ana@orbit.app"), auth.passwordResets)
+        onNodeWithText(
+            "If ana@orbit.app has an account, the link is on its way. Look in the spam folder too.",
+        ).assertIsDisplayed()
+        onNodeWithText("Close").assertIsEnabled()
+        onNodeWithText("Send link").assertDoesNotExist()
+    }
+
+    @Test
+    fun saysWhenTheAddressIsNotAnAddress() = runComposeUiTest {
+        showSignIn()
+        onNodeWithText("Forgot password?").performScrollTo().performClick()
+        onNodeWithText("Account email address").performTextInput("ana")
+
+        onNodeWithText("Send link").performClick()
+
+        onNodeWithText("Enter a valid email address.").assertIsDisplayed()
+    }
+
+    @Test
+    fun saysWhenTheResetLinkCouldNotBeSent() = runComposeUiTest {
+        showSignIn(FailingAuthRepository(AuthException(AuthError.NETWORK)))
+        onNodeWithText("Forgot password?").performScrollTo().performClick()
+        onNodeWithText("Account email address").performTextInput("ana@orbit.app")
+
+        onNodeWithText("Send link").performClick()
+
+        onNodeWithText("No connection. Check your internet and try again.").assertIsDisplayed()
+    }
+
+    @Test
+    fun closesTheResetDialog() = runComposeUiTest {
+        showSignIn()
+        onNodeWithText("Forgot password?").performScrollTo().performClick()
+
+        onNodeWithText("Cancel").performClick()
+
+        onNodeWithText("Reset your password").assertDoesNotExist()
+    }
+
 }
