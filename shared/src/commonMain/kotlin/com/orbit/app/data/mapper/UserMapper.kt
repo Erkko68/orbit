@@ -14,6 +14,7 @@ internal fun mapUser(
     email: String? = null,
     aiConsent: Boolean = false,
     hasPassword: Boolean = false,
+    signsInWithGoogle: Boolean = false,
 ) = User(
     id = id,
     displayName = displayName?.ifBlank { null } ?: fallbackDisplayName?.ifBlank { null }.orEmpty(),
@@ -21,6 +22,7 @@ internal fun mapUser(
     email = email,
     aiConsent = aiConsent,
     hasPassword = hasPassword,
+    signsInWithGoogle = signsInWithGoogle,
 )
 
 internal fun userProfileDocument(

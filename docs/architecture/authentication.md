@@ -49,6 +49,19 @@ Registering is the email path with `createUserWithEmailAndPassword`, and it writ
 
 A failed read of the profile writes nothing, so an existing profile is never overwritten by the Google one. Language and time zone come from the phone, never from a picker.
 
+## One account, two ways in
+
+Firebase keeps one account per address, so the app does no linking at sign-in (#293). Google signs in to the account that already has the address, and an account that only signs in with Google gets a password from "Forgot password" (#217). Linking is manual, from the account screen while signed in, where the user has already proven the account is theirs:
+
+- **Connect Google**, for an account without it: `linkGoogle` links the picked Google account to the signed-in one (`linkWithCredential`). A Google account that already belongs to another Orbit account is `EMAIL_IN_USE`.
+- **Set a password**, for an account that only signs in with Google: `setPassword` links an email credential for its own address. It is the change-password sheet without the current password.
+
+The auth state does not change with a link, so the repository counts the links it made and `session` maps the user again, with `hasPassword` and `signsInWithGoogle` read from `providerData`.
+
+## Deleting the account
+
+`closeAccount` (a domain use case) refuses while the user owns a space with other people in it, and returns those spaces to hand over. Otherwise it calls `reauthenticate` (the password, or Google again) before anything is deleted, so a wrong password changes nothing. Then it deletes the spaces where the user is alone, leaves the others, and `deleteAccount` deletes `users/{uid}` and the Firebase account (#188, #293).
+
 ## The session
 
 `AuthRepository.session` is the signed-in `User`, or `null`. It follows Firebase's auth state and, while signed in, listens to the user's `users/{uid}` document; the Firebase account fills in a missing name or photo.

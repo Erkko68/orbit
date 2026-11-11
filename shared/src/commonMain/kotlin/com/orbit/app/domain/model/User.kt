@@ -16,4 +16,6 @@ data class User(
      * to change, and nothing to re-enter before it is deleted (#188).
      */
     val hasPassword: Boolean = false,
+    /** Google is one of the account's ways in. Without it, the account screen offers to connect it (#293). */
+    val signsInWithGoogle: Boolean = false,
 )

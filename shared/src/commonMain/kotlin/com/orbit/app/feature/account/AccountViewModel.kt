@@ -2,6 +2,7 @@ package com.orbit.app.feature.account
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.orbit.app.domain.model.validateNewPassword
 import com.orbit.app.domain.model.validatePasswordChange
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -32,6 +33,7 @@ class AccountViewModel(
             email = user?.email.orEmpty(),
             photoUrl = user?.photoUrl,
             hasPassword = user?.hasPassword != false,
+            signsInWithGoogle = user?.signsInWithGoogle != false,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountUiState())
 
@@ -59,16 +61,31 @@ class AccountViewModel(
 
     fun togglePasswordsVisibility() = form.update { it.copy(passwordsVisible = !it.passwordsVisible) }
 
+    /** Changes the password, or sets the first one of an account that only signs in with Google (#293). */
     fun changePassword() {
         val state = form.value
         if (state.submitting) return
-        val errors = validatePasswordChange(state.currentPassword, state.newPassword, state.confirmation)
+        val setting = !uiState.value.hasPassword
+        val errors = if (setting) {
+            validateNewPassword(state.newPassword, state.confirmation)
+        } else {
+            validatePasswordChange(state.currentPassword, state.newPassword, state.confirmation)
+        }
         if (errors.isNotEmpty()) {
             form.update { it.copy(passwordErrors = errors, authError = null) }
             return
         }
-        submit("Changing the password") { auth.changePassword(state.currentPassword, state.newPassword) }
+        if (setting) {
+            submit("Setting a password") { auth.setPassword(state.newPassword) }
+        } else {
+            submit("Changing the password") { auth.changePassword(state.currentPassword, state.newPassword) }
+        }
     }
+
+    fun openConnectGoogle() = form.update { AccountUiState(dialog = AccountSheetKind.CONNECT_GOOGLE) }
+
+    /** Opens Google's account picker; the one picked becomes another way into this account (#293). */
+    fun connectGoogle() = submit("Connecting Google") { auth.linkGoogle() }
 
     fun openDeleteAccount() = form.update { AccountUiState(dialog = AccountSheetKind.DELETE_ACCOUNT) }
 

@@ -22,6 +22,10 @@ import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.account_back
 import orbit.shared.generated.resources.account_change_password
 import orbit.shared.generated.resources.account_change_password_body
+import orbit.shared.generated.resources.account_connect_google_body
+import orbit.shared.generated.resources.account_connect_google
+import orbit.shared.generated.resources.account_set_password_body
+import orbit.shared.generated.resources.account_set_password
 import orbit.shared.generated.resources.account_delete
 import orbit.shared.generated.resources.account_delete_body
 import orbit.shared.generated.resources.account_edit_name
@@ -31,6 +35,7 @@ import orbit.shared.generated.resources.account_sign_out_body
 import orbit.shared.generated.resources.account_title
 import orbit.shared.generated.resources.ic_delete
 import orbit.shared.generated.resources.ic_edit
+import orbit.shared.generated.resources.ic_link
 import orbit.shared.generated.resources.ic_lock
 import orbit.shared.generated.resources.ic_logout
 import org.jetbrains.compose.resources.DrawableResource
@@ -77,7 +82,8 @@ fun AccountScreen(onBack: () -> Unit, viewModel: AccountViewModel = koinViewMode
         verticalArrangement = Arrangement.spacedBy(OrbitSpacing.lg),
         scrollable = true,
     ) {
-        // An account that only signs in with Google has no password to change (#188).
+        // An account that only signs in with Google sets a password instead of changing one, and one without
+        // Google can connect it: both ways in reach the same account (#293).
         AccountGroup(
             *listOfNotNull(
                 AccountAction(
@@ -87,13 +93,30 @@ fun AccountScreen(onBack: () -> Unit, viewModel: AccountViewModel = koinViewMode
                     shape = OrbitShape.Cookie,
                     onClick = viewModel::openEditName,
                 ),
+                if (state.hasPassword) {
+                    AccountAction(
+                        title = stringResource(Res.string.account_change_password),
+                        supporting = stringResource(Res.string.account_change_password_body),
+                        icon = Res.drawable.ic_lock,
+                        shape = OrbitShape.Clover,
+                        onClick = viewModel::openChangePassword,
+                    )
+                } else {
+                    AccountAction(
+                        title = stringResource(Res.string.account_set_password),
+                        supporting = stringResource(Res.string.account_set_password_body),
+                        icon = Res.drawable.ic_lock,
+                        shape = OrbitShape.Clover,
+                        onClick = viewModel::openChangePassword,
+                    )
+                },
                 AccountAction(
-                    title = stringResource(Res.string.account_change_password),
-                    supporting = stringResource(Res.string.account_change_password_body),
-                    icon = Res.drawable.ic_lock,
-                    shape = OrbitShape.Clover,
-                    onClick = viewModel::openChangePassword,
-                ).takeIf { state.hasPassword },
+                    title = stringResource(Res.string.account_connect_google),
+                    supporting = stringResource(Res.string.account_connect_google_body),
+                    icon = Res.drawable.ic_link,
+                    shape = OrbitShape.Flower,
+                    onClick = viewModel::openConnectGoogle,
+                ).takeIf { !state.signsInWithGoogle },
             ).toTypedArray(),
         )
         AccountGroup(
@@ -117,6 +140,7 @@ fun AccountScreen(onBack: () -> Unit, viewModel: AccountViewModel = koinViewMode
     when (state.dialog) {
         AccountSheetKind.EDIT_NAME -> EditNameSheet(state, viewModel)
         AccountSheetKind.CHANGE_PASSWORD -> ChangePasswordSheet(state, viewModel)
+        AccountSheetKind.CONNECT_GOOGLE -> ConnectGoogleSheet(state, viewModel)
         AccountSheetKind.SIGN_OUT -> SignOutSheet(state, viewModel)
         AccountSheetKind.DELETE_ACCOUNT -> DeleteAccountSheet(state, viewModel)
         null -> Unit

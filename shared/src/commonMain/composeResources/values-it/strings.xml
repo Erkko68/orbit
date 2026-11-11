@@ -33,6 +33,11 @@
     <string name="account_save">Salva</string>
     <string name="account_change_password">Cambia password</string>
     <string name="account_change_password_body">Usa almeno 8 caratteri.</string>
+    <string name="account_set_password">Imposta una password</string>
+    <string name="account_set_password_body">Accedi anche con la tua email, oltre che con Google.</string>
+    <string name="account_connect_google">Collega Google</string>
+    <string name="account_connect_google_body">Accedi anche con Google, oltre che con la tua email.</string>
+    <string name="account_connect_google_warning">Scegli l'account Google con cui accedere. I tuoi spazi restano come sono.</string>
     <string name="account_current_password">Password attuale</string>
     <string name="account_new_password">Nuova password</string>
     <string name="account_sign_out">Esci</string>

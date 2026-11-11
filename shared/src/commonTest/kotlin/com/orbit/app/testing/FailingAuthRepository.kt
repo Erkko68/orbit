@@ -20,6 +20,10 @@ internal class FailingAuthRepository(
 
     override suspend fun changePassword(currentPassword: String, newPassword: String) = throw failure
 
+    override suspend fun linkGoogle() = throw failure
+
+    override suspend fun setPassword(newPassword: String) = throw failure
+
     override suspend fun reauthenticate(currentPassword: String?) = throw failure
 
     override suspend fun deleteAccount() = throw failure

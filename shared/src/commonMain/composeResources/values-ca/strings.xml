@@ -33,6 +33,11 @@
     <string name="account_save">Desa</string>
     <string name="account_change_password">Canvia la contrasenya</string>
     <string name="account_change_password_body">Fes servir almenys 8 caràcters.</string>
+    <string name="account_set_password">Crea una contrasenya</string>
+    <string name="account_set_password_body">Inicia la sessió també amb el teu correu, a més de Google.</string>
+    <string name="account_connect_google">Connecta Google</string>
+    <string name="account_connect_google_body">Inicia la sessió també amb Google, a més del teu correu.</string>
+    <string name="account_connect_google_warning">Tria el compte de Google amb què iniciaràs la sessió. Els teus espais no canvien.</string>
     <string name="account_current_password">Contrasenya actual</string>
     <string name="account_new_password">Contrasenya nova</string>
     <string name="account_sign_out">Tanca la sessió</string>

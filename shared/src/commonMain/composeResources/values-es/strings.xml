@@ -33,6 +33,11 @@
     <string name="account_save">Guardar</string>
     <string name="account_change_password">Cambiar contraseña</string>
     <string name="account_change_password_body">Usa al menos 8 caracteres.</string>
+    <string name="account_set_password">Crear una contraseña</string>
+    <string name="account_set_password_body">Inicia sesión también con tu correo, además de Google.</string>
+    <string name="account_connect_google">Conectar Google</string>
+    <string name="account_connect_google_body">Inicia sesión también con Google, además de tu correo.</string>
+    <string name="account_connect_google_warning">Elige la cuenta de Google con la que iniciar sesión. Tus espacios no cambian.</string>
     <string name="account_current_password">Contraseña actual</string>
     <string name="account_new_password">Nueva contraseña</string>
     <string name="account_sign_out">Cerrar sesión</string>

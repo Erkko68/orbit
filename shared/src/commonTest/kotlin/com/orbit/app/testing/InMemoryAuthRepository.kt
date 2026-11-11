@@ -29,7 +29,19 @@ class InMemoryAuthRepository : AuthRepository {
         )
     }
 
-    override suspend fun signInWithGoogle() = register("google@orbit.app", password = "", displayName = "Google User")
+    override suspend fun signInWithGoogle() {
+        register("google@orbit.app", password = "", displayName = "Google User")
+        user.value = requireUser().copy(signsInWithGoogle = true)
+    }
+
+    override suspend fun linkGoogle() {
+        user.value = requireUser().copy(signsInWithGoogle = true)
+    }
+
+    override suspend fun setPassword(newPassword: String) {
+        user.value = requireUser().copy(hasPassword = true)
+        password = newPassword
+    }
 
     /** The addresses a reset link was asked for, so a test can see one went out (#217). */
     val passwordResets = mutableListOf<String>()

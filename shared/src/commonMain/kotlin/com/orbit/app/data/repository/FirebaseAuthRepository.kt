@@ -12,6 +12,7 @@ import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
+import dev.gitlive.firebase.auth.AuthCredential
 import dev.gitlive.firebase.auth.EmailAuthProvider
 import dev.gitlive.firebase.auth.FirebaseAuth
 import dev.gitlive.firebase.auth.FirebaseUser
@@ -26,12 +27,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.update
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class FirebaseAuthRepository(
@@ -42,11 +46,14 @@ class FirebaseAuthRepository(
     /** Lives as long as the app: this repository is a singleton. */
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
+    /** Counts the links made here: the auth state does not change with one, so [session] maps the user again. */
+    private val linked = MutableStateFlow(0)
+
     /**
      * The signed-in user from their `users/{uid}` document, with the Firebase account filling what it lacks.
      * Every collector shares one listener, which stops a few seconds after the last one leaves.
      */
-    override val session: Flow<User?> = auth.authStateChanged.flatMapLatest { firebaseUser ->
+    override val session: Flow<User?> = combine(auth.authStateChanged, linked) { user, _ -> user }.flatMapLatest { firebaseUser ->
         if (firebaseUser == null) {
             flowOf(null)
         } else {
@@ -129,6 +136,29 @@ class FirebaseAuthRepository(
         } catch (e: Exception) {
             throw signInException(e)
         }
+    }
+
+    /** Does nothing when the user closes the account picker. */
+    override suspend fun linkGoogle() {
+        val google = googleAuthClient.getCredential() ?: return
+        link(GoogleAuthProvider.credential(google.idToken, google.accessToken)) { googleSignInException(it) }
+    }
+
+    override suspend fun setPassword(newPassword: String) {
+        val email = checkNotNull(signedInUser().email) { "The account has no email to set a password for" }
+        link(EmailAuthProvider.credential(email, newPassword)) { registerException(it) }
+    }
+
+    /** Adds [credential] as another way into the signed-in account, which keeps its `uid` (#293). */
+    private suspend fun link(credential: AuthCredential, failure: (Exception) -> Exception) {
+        try {
+            signedInUser().linkWithCredential(credential)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            throw failure(e)
+        }
+        linked.update { it + 1 }
     }
 
     override suspend fun reauthenticate(currentPassword: String?) {
@@ -275,8 +305,10 @@ class FirebaseAuthRepository(
         email = email,
         aiConsent = profile?.instant("aiConsentAt") != null,
         hasPassword = providerData.any { it.providerId == PASSWORD_PROVIDER },
+        signsInWithGoogle = providerData.any { it.providerId == GOOGLE_PROVIDER },
     )
 }
 
-/** Firebase's name for the email and password provider, as `providerData` gives it. */
+/** Firebase's names for the email and password provider and for Google, as `providerData` gives them. */
 private const val PASSWORD_PROVIDER = "password"
+private const val GOOGLE_PROVIDER = "google.com"

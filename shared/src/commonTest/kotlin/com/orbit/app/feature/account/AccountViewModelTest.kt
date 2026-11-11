@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.error_current_password_wrong
+import orbit.shared.generated.resources.error_email_in_use
 import orbit.shared.generated.resources.error_network
 import orbit.shared.generated.resources.error_unknown
 import orbit.shared.generated.resources.error_weak_password
@@ -365,6 +366,59 @@ class AccountViewModelTest {
         assertEquals(listOf("ana@orbit.app"), spaces.observeMembers(alone).first().map { it.userId })
         assertEquals(2, spaces.observeMembers(shared).first().size)
         assertEquals("ana@orbit.app", auth.session.first()?.id)
+    }
+
+    @Test
+    fun aGoogleAccountSetsAPasswordWithoutACurrentOne() = runTest {
+        val auth = InMemoryAuthRepository().apply { signInWithGoogle() }
+        val viewModel = observe(auth)
+
+        viewModel.openChangePassword()
+        viewModel.onNewPasswordChange("a-new-secret")
+        viewModel.onConfirmationChange("a-new-secret")
+        viewModel.changePassword()
+
+        assertTrue(viewModel.uiState.value.hasPassword)
+        assertNull(viewModel.uiState.value.dialog)
+    }
+
+    @Test
+    fun aFirstPasswordFollowsTheNewPasswordRules() = runTest {
+        val auth = InMemoryAuthRepository().apply { signInWithGoogle() }
+        val viewModel = observe(auth)
+
+        viewModel.openChangePassword()
+        viewModel.onNewPasswordChange("short")
+        viewModel.onConfirmationChange("short")
+        viewModel.changePassword()
+
+        assertEquals(listOf(CredentialsError.ShortPassword), viewModel.uiState.value.passwordErrors)
+        assertFalse(viewModel.uiState.value.hasPassword)
+    }
+
+    @Test
+    fun connectsGoogleToAPasswordAccount() = runTest {
+        val auth = signedIn()
+        val viewModel = observe(auth)
+        assertFalse(viewModel.uiState.value.signsInWithGoogle)
+
+        viewModel.openConnectGoogle()
+        assertEquals(AccountSheetKind.CONNECT_GOOGLE, viewModel.uiState.value.dialog)
+        viewModel.connectGoogle()
+
+        assertTrue(viewModel.uiState.value.signsInWithGoogle)
+        assertNull(viewModel.uiState.value.dialog)
+    }
+
+    @Test
+    fun aFailedConnectStaysInTheSheet() = runTest {
+        val viewModel = observe(FailingAuthRepository(AuthException(AuthError.EMAIL_IN_USE), user = ana))
+        viewModel.openConnectGoogle()
+
+        viewModel.connectGoogle()
+
+        assertEquals(AccountSheetKind.CONNECT_GOOGLE, viewModel.uiState.value.dialog)
+        assertEquals(Res.string.error_email_in_use, viewModel.uiState.value.dialogError)
     }
 
     @Test

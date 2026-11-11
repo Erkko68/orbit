@@ -26,6 +26,19 @@ interface AuthRepository {
     suspend fun changePassword(currentPassword: String, newPassword: String)
 
     /**
+     * Connects the Google account the user picks to the signed-in account, which keeps its `uid`, profile and
+     * spaces (#293). Does nothing when the picker is closed. Throws [com.orbit.app.domain.model.AuthError.EMAIL_IN_USE]
+     * when that Google account already signs in to another Orbit account.
+     */
+    suspend fun linkGoogle()
+
+    /**
+     * Gives an account that only signs in with Google a password for its own address (#293). Throws
+     * [com.orbit.app.domain.model.AuthError.WEAK_PASSWORD] when Firebase refuses it.
+     */
+    suspend fun setPassword(newPassword: String)
+
+    /**
      * Proves the signed-in user is the account's owner, as Firebase wants shortly before deleting it:
      * [currentPassword] for an account that has one, or null to ask Google again for one that only signs in
      * that way. Throws [com.orbit.app.domain.model.AuthError.WRONG_CREDENTIALS] when it does not check out.

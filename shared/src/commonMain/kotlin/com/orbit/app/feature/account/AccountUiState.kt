@@ -9,7 +9,7 @@ import orbit.shared.generated.resources.error_current_password_wrong
 import org.jetbrains.compose.resources.StringResource
 
 /** The task over the account screen, one at a time. */
-enum class AccountSheetKind { EDIT_NAME, CHANGE_PASSWORD, SIGN_OUT, DELETE_ACCOUNT }
+enum class AccountSheetKind { EDIT_NAME, CHANGE_PASSWORD, CONNECT_GOOGLE, SIGN_OUT, DELETE_ACCOUNT }
 
 data class AccountUiState(
     /** The signed-in user, from the session. */
@@ -28,6 +28,8 @@ data class AccountUiState(
     val deletePassword: String = "",
     /** The account signs in with a password: it can be changed, and it is asked for before deleting. */
     val hasPassword: Boolean = true,
+    /** Google is one of the account's ways in; until it is, the screen offers to connect it. */
+    val signsInWithGoogle: Boolean = true,
     /**
      * The spaces the user owns with other people in them. While there is one, the account is not deleted:
      * an owner never leaves, so these are handed over or deleted first (ADR 0004).
