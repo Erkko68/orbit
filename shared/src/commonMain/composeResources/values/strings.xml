@@ -50,6 +50,8 @@
     <string name="account_delete_body">Permanently remove your account and your data.</string>
     <string name="account_delete_title">Delete your account?</string>
     <string name="account_delete_warning">You will leave all your spaces, and this cannot be undone.</string>
+    <string name="account_delete_password">Your password</string>
+    <string name="account_delete_hand_over">Hand these spaces over to someone else first, or delete them: %1$s</string>
     <!-- Create account -->
     <string name="create_account_title">Create your account</string>
     <string name="create_account_subtitle">Get started and organize your shared spaces together.</string>

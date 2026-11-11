@@ -50,6 +50,8 @@
     <string name="account_delete_body">Elimina definitivamente il tuo account e i tuoi dati.</string>
     <string name="account_delete_title">Vuoi eliminare il tuo account?</string>
     <string name="account_delete_warning">Uscirai da tutti i tuoi spazi e non potrai annullare questa azione.</string>
+    <string name="account_delete_password">La tua password</string>
+    <string name="account_delete_hand_over">Prima passa questi spazi a qualcun altro, o eliminali: %1$s</string>
     <!-- Create account -->
     <string name="create_account_title">Crea il tuo account</string>
     <string name="create_account_subtitle">Inizia a organizzare insieme i tuoi spazi condivisi.</string>

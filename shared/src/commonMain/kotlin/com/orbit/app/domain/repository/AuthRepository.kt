@@ -26,7 +26,13 @@ interface AuthRepository {
     suspend fun changePassword(currentPassword: String, newPassword: String)
 
     /** Deletes the signed-in user's account, which signs them out. */
-    suspend fun deleteAccount()
+    /**
+     * Deletes the profile document and the account itself, which signs the user out. The caller leaves or
+     * deletes their spaces first (#188). [currentPassword] is the password the account signs in with, or
+     * null for one that only signs in with Google, which is asked for again instead. Throws
+     * [com.orbit.app.domain.model.AuthError.WRONG_CREDENTIALS] when it is not the right one.
+     */
+    suspend fun deleteAccount(currentPassword: String?)
 
     /**
      * Records that the signed-in user accepted what the assistant sends to the AI provider, so it is asked

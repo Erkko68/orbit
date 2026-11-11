@@ -77,21 +77,24 @@ fun AccountScreen(onBack: () -> Unit, viewModel: AccountViewModel = koinViewMode
         verticalArrangement = Arrangement.spacedBy(OrbitSpacing.lg),
         scrollable = true,
     ) {
+        // An account that only signs in with Google has no password to change (#188).
         AccountGroup(
-            AccountAction(
-                title = stringResource(Res.string.account_edit_name),
-                supporting = stringResource(Res.string.account_edit_name_body),
-                icon = Res.drawable.ic_edit,
-                shape = OrbitShape.Cookie,
-                onClick = viewModel::openEditName,
-            ),
-            AccountAction(
-                title = stringResource(Res.string.account_change_password),
-                supporting = stringResource(Res.string.account_change_password_body),
-                icon = Res.drawable.ic_lock,
-                shape = OrbitShape.Clover,
-                onClick = viewModel::openChangePassword,
-            ),
+            *listOfNotNull(
+                AccountAction(
+                    title = stringResource(Res.string.account_edit_name),
+                    supporting = stringResource(Res.string.account_edit_name_body),
+                    icon = Res.drawable.ic_edit,
+                    shape = OrbitShape.Cookie,
+                    onClick = viewModel::openEditName,
+                ),
+                AccountAction(
+                    title = stringResource(Res.string.account_change_password),
+                    supporting = stringResource(Res.string.account_change_password_body),
+                    icon = Res.drawable.ic_lock,
+                    shape = OrbitShape.Clover,
+                    onClick = viewModel::openChangePassword,
+                ).takeIf { state.hasPassword },
+            ).toTypedArray(),
         )
         AccountGroup(
             AccountAction(
