@@ -56,6 +56,5 @@ fun SignInScreen(onCreateAccount: () -> Unit, viewModel: SignInViewModel = koinV
             enabled = !state.submitting,
         )
     }
-    AccountLinkSheetFor(state.link, viewModel)
     if (state.resetOpen) PasswordResetDialog(state, viewModel)
 }
