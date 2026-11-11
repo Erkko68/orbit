@@ -82,7 +82,7 @@ Over the bar: item, list, expense form, interview, review board
 | Add | Type a title and Create. Who, when and the checklist can be filled first or later; nothing is written before Create |
 | Expenses | Balances first, as sentences with each face: the whole row vivid teal for who gets money back and coral for who owes it, with a + or − before the amount. Then Settle up, only the payments you are in: "You owe Ana" with Pay, and "Bea owes you" with nothing to press, since who owes says when they paid, then the ledger, where a reimbursement reads "Bea paid Ana" with both faces on a tinted row |
 | Expense form | The item's colour header, with the title typed in place. Amount first, then Paid by and Date as rows with a sheet. Split between says how much is assigned; everyone is a row with their share at the end, typed there for custom amounts: tap to leave someone out |
-| Settings | A screen: the name with Save for an owner or admin, the members with their roles, then Invite people (a sheet) and Leave or Delete space (after a dialog) as rows of one group, like the account |
+| Settings | A screen like the account: Edit name (a sheet) and Invite people (a sheet) for an owner or admin, then the members with their roles, then Leave or Delete space after a dialog, each group as rows |
 | Member | A screen with a colour header: their face, name and role, then what they have and did lately. For the owner a Role row opens a sheet: Member or Admin, and "Make owner" for an admin, after a dialog |
 | Interview | One question per screen, and "Do it by hand instead" is always there |
 | Review board | Proposals grouped by kind, all kept by default. Tap to leave one out, pencil to edit, one button to add. "Nothing is saved until you confirm" |

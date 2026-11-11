@@ -95,6 +95,34 @@ class SpaceSettingsViewModelTest {
     }
 
     @Test
+    fun renamesInASheetThatClosesOnceSaved() = runTest {
+        flat()
+        val viewModel = settingsViewModel(recording())
+
+        viewModel.openRename()
+        assertTrue(viewModel.uiState.value.renaming)
+        assertEquals("Flat 4B", viewModel.uiState.value.name)
+        viewModel.onNameChange("Flat 5C")
+        viewModel.save()
+
+        assertFalse(viewModel.uiState.value.renaming)
+        assertEquals(listOf("Flat 5C"), writes)
+    }
+
+    @Test
+    fun closingTheSheetForgetsWhatWasTyped() = runTest {
+        flat()
+        val viewModel = settingsViewModel()
+        viewModel.openRename()
+        viewModel.onNameChange("Flat 5C")
+
+        viewModel.dismissRename()
+
+        assertFalse(viewModel.uiState.value.renaming)
+        assertEquals("Flat 4B", viewModel.uiState.value.name)
+    }
+
+    @Test
     fun savesTheNewNameThenShowsWhatIsSaved() = runTest {
         flat()
         val viewModel = settingsViewModel(recording())

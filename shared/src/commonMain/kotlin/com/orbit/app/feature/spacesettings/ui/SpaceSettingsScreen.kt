@@ -5,14 +5,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitActionRow
 import com.orbit.app.core.designsystem.component.OrbitAvatar
 import com.orbit.app.core.designsystem.component.OrbitAvatarSize
-import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitDialog
 import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitGroup
@@ -20,6 +19,7 @@ import com.orbit.app.core.designsystem.component.OrbitGroupRow
 import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitSectionHeader
+import com.orbit.app.core.designsystem.component.OrbitSheet
 import com.orbit.app.core.designsystem.component.OrbitTextField
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.component.memberShape
@@ -33,14 +33,17 @@ import com.orbit.app.feature.spacesettings.SpaceSettingsViewModel
 import com.orbit.app.feature.spacesettings.invite.InviteSheet
 import com.orbit.app.feature.spacesettings.invite.InviteViewModel
 import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.account_edit_name
 import orbit.shared.generated.resources.back
 import orbit.shared.generated.resources.cancel
+import orbit.shared.generated.resources.close
 import orbit.shared.generated.resources.delete_space_body
 import orbit.shared.generated.resources.delete_space_confirm
 import orbit.shared.generated.resources.delete_space_failed
 import orbit.shared.generated.resources.delete_space_title
 import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.ic_delete
+import orbit.shared.generated.resources.ic_edit
 import orbit.shared.generated.resources.ic_home
 import orbit.shared.generated.resources.ic_logout
 import orbit.shared.generated.resources.ic_person_add
@@ -98,7 +101,25 @@ fun SpaceSettingsScreen(
         },
         scrollable = true,
     ) {
-        if (state.canEdit) Identity(state, viewModel)
+        // The space, then its people, then the way out: the same groups as the account (#293).
+        SpaceActions(
+            listOfNotNull(
+                SpaceAction(
+                    title = stringResource(Res.string.account_edit_name),
+                    supporting = state.spaceName,
+                    icon = Res.drawable.ic_edit,
+                    shape = OrbitShape.Cookie,
+                    onClick = viewModel::openRename,
+                ).takeIf { state.canEdit },
+                SpaceAction(
+                    title = stringResource(Res.string.invite_title),
+                    supporting = stringResource(Res.string.space_settings_invite_body),
+                    icon = Res.drawable.ic_person_add,
+                    shape = OrbitShape.Clover,
+                    onClick = inviteViewModel::open,
+                ).takeIf { invite.canInvite },
+            ),
+        )
         if (members.members.isNotEmpty()) {
             OrbitSectionHeader(
                 title = stringResource(Res.string.members_members),
@@ -109,40 +130,22 @@ fun SpaceSettingsScreen(
                 MemberRow(it, onOpenMember)
             }
         }
-        // What the user can do with the space, as rows of one group like the account's (#293).
-        val actions = listOfNotNull(
-            SpaceAction(
-                title = stringResource(Res.string.invite_title),
-                supporting = stringResource(Res.string.space_settings_invite_body),
-                icon = Res.drawable.ic_person_add,
-                shape = OrbitShape.Cookie,
-                onClick = inviteViewModel::open,
-            ).takeIf { invite.canInvite },
-            SpaceAction(
-                title = stringResource(if (state.deletes) Res.string.space_settings_delete else Res.string.space_settings_leave),
-                supporting = stringResource(
-                    if (state.deletes) Res.string.space_settings_delete_body else Res.string.space_settings_leave_body,
-                ),
-                icon = if (state.deletes) Res.drawable.ic_delete else Res.drawable.ic_logout,
-                shape = OrbitShape.Burst,
-                onClick = viewModel::confirmExit,
-                danger = true,
-            ).takeIf { state.role != null },
+        SpaceActions(
+            listOfNotNull(
+                SpaceAction(
+                    title = stringResource(if (state.deletes) Res.string.space_settings_delete else Res.string.space_settings_leave),
+                    supporting = stringResource(
+                        if (state.deletes) Res.string.space_settings_delete_body else Res.string.space_settings_leave_body,
+                    ),
+                    icon = if (state.deletes) Res.drawable.ic_delete else Res.drawable.ic_logout,
+                    shape = OrbitShape.Burst,
+                    onClick = viewModel::confirmExit,
+                    danger = true,
+                ).takeIf { state.role != null },
+            ),
         )
-        if (actions.isNotEmpty()) {
-            OrbitGroup(actions, key = { it.title }, modifier = Modifier.fillMaxWidth()) { action ->
-                OrbitActionRow(
-                    title = action.title,
-                    supporting = action.supporting,
-                    icon = action.icon,
-                    shape = action.shape,
-                    danger = action.danger,
-                    onClick = action.onClick,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-            }
-        }
     }
+    if (state.renaming) RenameSheet(state, viewModel)
     if (invite.open) InviteSheet(invite, inviteViewModel, sharer)
     if (state.confirmingExit) ExitDialog(state, viewModel)
 }
@@ -157,24 +160,42 @@ private class SpaceAction(
     val danger: Boolean = false,
 )
 
-/** The name, which an owner or admin changes. Save shows once something differs from what is saved. */
+/** A group of what the user can do with the space; nothing when none of it is theirs to do. */
 @Composable
-private fun Identity(state: SpaceSettingsUiState, viewModel: SpaceSettingsViewModel) {
-    OrbitTextField(
-        value = state.name,
-        onValueChange = viewModel::onNameChange,
-        placeholder = stringResource(Res.string.space_settings_name),
-        modifier = Modifier.fillMaxWidth(),
-        isError = state.failed,
-        supportingText = if (state.failed) stringResource(Res.string.space_settings_failed) else null,
-        leadingIcon = Res.drawable.ic_home,
-    )
-    if (state.changed) {
-        OrbitButton(
-            text = stringResource(Res.string.space_settings_save),
-            onClick = viewModel::save,
+private fun SpaceActions(actions: List<SpaceAction>) {
+    if (actions.isEmpty()) return
+    OrbitGroup(actions, key = { it.title }, modifier = Modifier.fillMaxWidth()) { action ->
+        OrbitActionRow(
+            title = action.title,
+            supporting = action.supporting,
+            icon = action.icon,
+            shape = action.shape,
+            danger = action.danger,
+            onClick = action.onClick,
             modifier = Modifier.fillMaxWidth(),
-            enabled = state.canSave,
+        )
+    }
+}
+
+/** Renames the space, as the account renames the user. A failure shows under the field. */
+@Composable
+private fun RenameSheet(state: SpaceSettingsUiState, viewModel: SpaceSettingsViewModel) {
+    OrbitSheet(
+        title = stringResource(Res.string.account_edit_name),
+        closeDescription = stringResource(Res.string.close),
+        onDismiss = viewModel::dismissRename,
+        confirmText = stringResource(Res.string.space_settings_save),
+        onConfirm = viewModel::save,
+        confirmEnabled = state.canSave,
+    ) {
+        OrbitTextField(
+            value = state.name,
+            onValueChange = viewModel::onNameChange,
+            placeholder = stringResource(Res.string.space_settings_name),
+            modifier = Modifier.fillMaxWidth(),
+            isError = state.failed,
+            supportingText = if (state.failed) stringResource(Res.string.space_settings_failed) else null,
+            leadingIcon = Res.drawable.ic_home,
         )
     }
 }

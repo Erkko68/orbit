@@ -120,10 +120,11 @@ class SpaceSettingsScreenTest : ComposeTest() {
     fun savesTheNewName() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
 
+        onNodeWithText("Edit name").performScrollTo().performClick()
         onNode(hasSetTextAction()).performTextReplacement("Flat 4C")
-        onNodeWithText("Save").performScrollTo().performClick()
+        onNodeWithText("Save").performClick()
 
-        // Save going away is what says the save went through, so look at it before the repository.
+        // The sheet closing is what says the save went through, so look at it before the repository.
         onNodeWithText("Save").assertDoesNotExist()
         assertEquals("Flat 4C", spaceNow().name)
     }
@@ -132,9 +133,10 @@ class SpaceSettingsScreenTest : ComposeTest() {
     fun cannotSaveABlankName() = runComposeUiTest {
         showSettingsAs("ana@orbit.app")
 
+        onNodeWithText("Edit name").performScrollTo().performClick()
         onNode(hasSetTextAction()).performTextReplacement("   ")
 
-        onNodeWithText("Save").performScrollTo().assertIsNotEnabled()
+        onNodeWithText("Save").assertIsNotEnabled()
     }
 
     @Test
@@ -144,9 +146,10 @@ class SpaceSettingsScreenTest : ComposeTest() {
                 error("Could not reach the server")
         }
         showSettingsAs("ana@orbit.app", offline)
+        onNodeWithText("Edit name").performScrollTo().performClick()
         onNode(hasSetTextAction()).performTextReplacement("Flat 4C")
 
-        onNodeWithText("Save").performScrollTo().performClick()
+        onNodeWithText("Save").performClick()
 
         onNodeWithText("Could not save the changes. Try again.").assertIsDisplayed()
         onNodeWithText("Save").assertIsEnabled()
