@@ -2,13 +2,19 @@ package com.orbit.app.feature.account
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.orbit.app.data.repository.requireUser
+import com.orbit.app.domain.model.AuthError
+import com.orbit.app.domain.model.AuthException
+import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.validatePasswordChange
 import com.orbit.app.domain.repository.AuthRepository
+import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.auth.executeAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -17,7 +23,10 @@ import kotlinx.coroutines.launch
  * The signed-in user's account: rename, change the password, delete the account, sign out. Each one
  * that ends signed out (delete, sign out) moves the auth gate, so it needs no state here.
  */
-class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
+class AccountViewModel(
+    private val auth: AuthRepository,
+    private val spaces: SpaceRepository,
+) : ViewModel() {
     /** The dialogs. Its user fields stay empty: [uiState] fills them from the session. */
     private val form = MutableStateFlow(AccountUiState())
 
@@ -26,6 +35,7 @@ class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
             name = user?.displayName.orEmpty(),
             email = user?.email.orEmpty(),
             photoUrl = user?.photoUrl,
+            hasPassword = user?.hasPassword != false,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), AccountUiState())
 
@@ -66,7 +76,52 @@ class AccountViewModel(private val auth: AuthRepository) : ViewModel() {
 
     fun openDeleteAccount() = form.update { AccountUiState(dialog = AccountSheetKind.DELETE_ACCOUNT) }
 
-    fun deleteAccount() = submit("Deleting the account") { auth.deleteAccount() }
+    fun onDeletePasswordChange(password: String) =
+        form.update { it.copy(deletePassword = password, authError = null, handOver = emptyList()) }
+
+    /**
+     * Deletes the account, or answers with the spaces to hand over first. Unlike the other dialogs this one
+     * has two ways of not going through: a refusal the user can act on, which stays in the sheet as a list
+     * of spaces, and an ordinary failure, which stays as [AccountUiState.authError].
+     */
+    fun deleteAccount() {
+        val state = form.value
+        if (state.submitting) return
+        form.update { it.copy(submitting = true, authError = null, handOver = emptyList()) }
+        viewModelScope.launch {
+            var handOver = emptyList<String>()
+            val error = executeAuth("Deleting the account") { handOver = erase(state.deletePassword) }
+            form.update {
+                when {
+                    error != null -> it.copy(submitting = false, authError = error)
+                    handOver.isNotEmpty() -> it.copy(submitting = false, handOver = handOver)
+                    else -> AccountUiState()
+                }
+            }
+        }
+    }
+
+    /**
+     * Empties the account out of every space and then deletes it, in the order decided for #188: the spaces
+     * where the user is alone, then their other memberships, then the account itself. Each step stands on
+     * its own, so a run that stops halfway can simply be run again. Returns the names of the spaces that
+     * have to be handed over first, and then nothing is deleted at all.
+     */
+    private suspend fun erase(password: String): List<String> {
+        val me = auth.requireUser()
+        // The sheet holds Delete back until there is a password, so an empty one only reaches here by mistake.
+        if (me.hasPassword && password.isBlank()) throw AuthException(AuthError.WRONG_CREDENTIALS)
+        val mine = spaces.observeSpaces().first()
+        val owned = mine.filter { space ->
+            spaces.observeMembers(space.id).first().firstOrNull { it.userId == me.id }?.role == Role.OWNER
+        }
+        val shared = owned.filter { it.memberIds.size > 1 }
+        if (shared.isNotEmpty()) return shared.map { it.name }
+        owned.forEach { spaces.deleteSpace(it.id) }
+        (mine - owned.toSet()).forEach { spaces.leaveSpace(it.id) }
+        auth.deleteAccount(password.takeIf { me.hasPassword })
+        return emptyList()
+    }
 
     /** Closes the open dialog and forgets what was typed in it, unless its write is still running. */
     fun dismissDialog() = form.update { if (it.submitting) it else AccountUiState() }

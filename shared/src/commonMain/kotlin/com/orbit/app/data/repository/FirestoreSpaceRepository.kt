@@ -155,6 +155,22 @@ class FirestoreSpaceRepository(
     }
 
     /**
+     * One batch takes the member out of `memberIds` and deletes their member document, so the two cannot drift.
+     * The rules decide who may remove whom, so nothing else checks it.
+     */
+    override suspend fun removeMember(spaceId: String, userId: String, displayName: String) {
+        require(userId != auth.requireUser().id) { "Leaving a space is not removing someone from it" }
+        val space = firestore.collection(SPACES).document(spaceId)
+        val batch = firestore.batch()
+        batch.updateFields(space) {
+            "memberIds" to FieldValue.arrayRemove(userId)
+            FieldPath("formerMembers", userId) to displayName
+        }
+        batch.delete(space.collection(MEMBERS).document(userId))
+        writeLocally("Removing $userId from space $spaceId") { batch.commit() }
+    }
+
+    /**
      * Deletes the space document only. Its members and items stay behind, unreadable: the rules let only members
      * of an existing space read them (ADR 0004). The rules decide who may.
      */

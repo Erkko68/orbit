@@ -16,11 +16,14 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.domain.model.Member
+import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.feature.account.AccountViewModel
 import com.orbit.app.testing.FailingAuthRepository
 import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemorySpaceRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
@@ -34,7 +37,7 @@ class AccountScreenTest : ComposeTest() {
     }
 
     private fun ComposeUiTest.show(repository: AuthRepository = auth) =
-        setContent { OrbitTheme { AccountScreen(onBack = {}, viewModel = AccountViewModel(repository)) } }
+        setContent { OrbitTheme { AccountScreen(onBack = {}, viewModel = AccountViewModel(repository, InMemorySpaceRepository(repository))) } }
 
     /** The button of the open sheet that reads [text]: the last one, as a row of the screen may read the same. */
     private fun ComposeUiTest.dialogButton(text: String): SemanticsNodeInteraction =
@@ -83,7 +86,10 @@ class AccountScreenTest : ComposeTest() {
 
         onNodeWithText("Delete account").performScrollTo().performClick()
         onNodeWithText("Delete your account?").assertIsDisplayed()
+        onNodeWithText("Your password").performTextReplacement("secret")
         dialogButton("Delete account").performClick()
+        // Deleting reads the spaces before it deletes anything, so it is not over when the click returns.
+        waitForIdle()
 
         assertNull(runBlocking { auth.session.first() })
     }
@@ -119,4 +125,44 @@ class AccountScreenTest : ComposeTest() {
 
         onNodeWithText("Something went wrong. Try again.").assertIsDisplayed()
     }
+    @Test
+    fun anAccountThatOnlySignsInWithGoogleIsNotOfferedAPasswordChange() = runComposeUiTest {
+        val google = InMemoryAuthRepository().apply { runBlocking { signInWithGoogle() } }
+        show(google)
+
+        onNodeWithText("Edit name").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Delete account").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Change password").assertDoesNotExist()
+    }
+
+    @Test
+    fun saysWhichSpacesToHandOverBeforeTheAccountCanGo() = runComposeUiTest {
+        val spaces = InMemorySpaceRepository(auth)
+        runBlocking {
+            val owned = spaces.createSpace("Flat 4B", accent = 0)
+            spaces.addMember(owned, Member("bob@orbit.app", "Bob", photoUrl = null, role = Role.MEMBER))
+        }
+        setContent { OrbitTheme { AccountScreen(onBack = {}, viewModel = AccountViewModel(auth, spaces)) } }
+
+        onNodeWithText("Delete account").performScrollTo().performClick()
+        onNodeWithText("Your password").performTextReplacement("secret")
+        dialogButton("Delete account").performClick()
+        waitForIdle()
+
+        onNodeWithText("Hand these spaces over to someone else first, or delete them: Flat 4B").assertIsDisplayed()
+        assertEquals("ana@orbit.app", runBlocking { auth.session.first() }?.id)
+    }
+
+    @Test
+    fun aWrongPasswordKeepsTheAccountAndSaysSo() = runComposeUiTest {
+        show()
+
+        onNodeWithText("Delete account").performScrollTo().performClick()
+        onNodeWithText("Your password").performTextReplacement("not-it")
+        dialogButton("Delete account").performClick()
+
+        onNodeWithText("That is not your current password.").assertIsDisplayed()
+        assertEquals("ana@orbit.app", runBlocking { auth.session.first() }?.id)
+    }
+
 }

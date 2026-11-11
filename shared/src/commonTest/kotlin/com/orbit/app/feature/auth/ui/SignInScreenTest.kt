@@ -16,8 +16,10 @@ import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.text.AnnotatedString
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.domain.model.AccountLinkException
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
+import com.orbit.app.domain.model.LinkProof
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.feature.auth.SignInViewModel
 import com.orbit.app.testing.FailingAuthRepository
@@ -147,4 +149,110 @@ class SignInScreenTest : ComposeTest() {
 
         onNodeWithText("No connection. Check your internet and try again.").assertIsDisplayed()
     }
+
+    @Test
+    fun offersToLinkGoogleToTheAccountTheAddressAlreadyHas() = runComposeUiTest {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.PASSWORD))
+        showSignIn(auth)
+
+        onNodeWithText("Continue with Google").performScrollTo().performClick()
+
+        onNodeWithText("One account, two ways in").assertIsDisplayed()
+        onNodeWithText("Link Google").assertIsDisplayed()
+    }
+
+    @Test
+    fun setsAPasswordForAnAccountThatSignsInWithGoogle() = runComposeUiTest {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.GOOGLE))
+        showSignIn(auth)
+        onNodeWithText("Email address").performTextInput("ana@orbit.app")
+        onNodeWithText("Password").performTextInput("secret")
+        onNodeWithText("Sign in").performScrollTo().performClick()
+
+        onNodeWithText("This account uses Google").assertIsDisplayed()
+        onNodeWithText("New password").performTextInput("a-new-secret")
+        onNodeWithText("Set password").performScrollTo().performClick()
+
+        assertEquals(listOf(LinkProof.PASSWORD), auth.linked)
+        assertEquals("ana@orbit.app", runBlocking { auth.session.first() }?.id)
+    }
+
+    @Test
+    fun saysWhyTheLinkFailedUnderThePassword() = runComposeUiTest {
+        val auth = InMemoryAuthRepository(
+            collision = AccountLinkException("ana@orbit.app", LinkProof.GOOGLE),
+            linkFailure = AuthException(AuthError.WEAK_PASSWORD),
+        )
+        showSignIn(auth)
+        onNodeWithText("Email address").performTextInput("ana@orbit.app")
+        onNodeWithText("Password").performTextInput("secret")
+        onNodeWithText("Sign in").performScrollTo().performClick()
+        onNodeWithText("New password").performTextInput("short")
+
+        onNodeWithText("Set password").performScrollTo().performClick()
+
+        onNodeWithText("Choose a stronger password.").assertIsDisplayed()
+    }
+
+    @Test
+    fun offersToResetAForgottenPassword() = runComposeUiTest {
+        showSignIn()
+
+        onNodeWithText("Forgot password?").performScrollTo().performClick()
+
+        onNodeWithText("Reset your password").assertIsDisplayed()
+        onNodeWithText("We will send a link to set a new password.").assertIsDisplayed()
+        onNodeWithText("Account email address").assertIsDisplayed()
+        onNodeWithText("Cancel").assertIsEnabled()
+    }
+
+    @Test
+    fun sendsTheResetLinkAndSaysTheSameWhoeverTheAddressIs() = runComposeUiTest {
+        val auth = InMemoryAuthRepository()
+        showSignIn(auth)
+        onNodeWithText("Forgot password?").performScrollTo().performClick()
+        onNodeWithText("Account email address").performTextInput("ana@orbit.app")
+
+        onNodeWithText("Send link").performClick()
+
+        assertEquals(listOf("ana@orbit.app"), auth.passwordResets)
+        onNodeWithText(
+            "If ana@orbit.app has an account, the link is on its way. Look in the spam folder too.",
+        ).assertIsDisplayed()
+        onNodeWithText("Close").assertIsEnabled()
+        onNodeWithText("Send link").assertDoesNotExist()
+    }
+
+    @Test
+    fun saysWhenTheAddressIsNotAnAddress() = runComposeUiTest {
+        showSignIn()
+        onNodeWithText("Forgot password?").performScrollTo().performClick()
+        onNodeWithText("Account email address").performTextInput("ana")
+
+        onNodeWithText("Send link").performClick()
+
+        onNodeWithText("Enter a valid email address.").assertIsDisplayed()
+    }
+
+    @Test
+    fun saysWhenTheResetLinkCouldNotBeSent() = runComposeUiTest {
+        showSignIn(FailingAuthRepository(AuthException(AuthError.NETWORK)))
+        onNodeWithText("Forgot password?").performScrollTo().performClick()
+        onNodeWithText("Account email address").performTextInput("ana@orbit.app")
+
+        onNodeWithText("Send link").performClick()
+
+        onNodeWithText("No connection. Check your internet and try again.").assertIsDisplayed()
+    }
+
+    @Test
+    fun closesTheResetDialog() = runComposeUiTest {
+        showSignIn()
+        onNodeWithText("Forgot password?").performScrollTo().performClick()
+
+        onNodeWithText("Cancel").performClick()
+
+        onNodeWithText("Reset your password").assertDoesNotExist()
+    }
+
 }

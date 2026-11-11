@@ -11,4 +11,9 @@ data class User(
     val email: String? = null,
     /** They accepted what the assistant sends to the AI provider, once for the account. */
     val aiConsent: Boolean = false,
+    /**
+     * The account signs in with a password, not only with Google. An account without one has no password
+     * to change, and nothing to re-enter before it is deleted (#188).
+     */
+    val hasPassword: Boolean = false,
 )

@@ -1,10 +1,14 @@
 package com.orbit.app.feature.auth
 
 import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.domain.model.AccountLinkException
 import com.orbit.app.domain.model.AuthError
 import com.orbit.app.domain.model.AuthException
 import com.orbit.app.domain.model.CredentialsError
+import com.orbit.app.domain.model.LinkProof
+import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.testing.FailingAuthRepository
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -17,6 +21,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -139,5 +144,284 @@ class SignInViewModelTest {
 
         assertEquals(AuthError.UNKNOWN, viewModel.uiState.value.authError)
         assertFalse(viewModel.uiState.value.submitting)
+    }
+
+    @Test
+    fun offersToLinkWhenTheAddressSignsInWithGoogle() {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.GOOGLE))
+        val viewModel = SignInViewModel(auth)
+        viewModel.onEmailChange("ana@orbit.app")
+        viewModel.onPasswordChange("secret")
+
+        viewModel.signIn()
+
+        assertEquals(AccountLinkUiState("ana@orbit.app", LinkProof.GOOGLE), viewModel.uiState.value.link)
+        assertNull(viewModel.uiState.value.authError)
+        assertFalse(viewModel.uiState.value.submitting)
+    }
+
+    @Test
+    fun settingAPasswordOnAGoogleAccountKeepsThatOneAccount() = runTest {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.GOOGLE))
+        val viewModel = SignInViewModel(auth)
+        viewModel.onEmailChange("ana@orbit.app")
+        viewModel.onPasswordChange("secret")
+        viewModel.signIn()
+
+        viewModel.onLinkPasswordChange("a-new-secret")
+        viewModel.confirmLink()
+
+        assertEquals(listOf(LinkProof.PASSWORD), auth.linked)
+        assertEquals("ana@orbit.app", auth.session.first()?.id)
+        assertNull(viewModel.uiState.value.link)
+    }
+
+    @Test
+    fun offersToLinkWhenTheGoogleAddressAlreadyHasAPassword() {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.PASSWORD))
+        val viewModel = SignInViewModel(auth)
+
+        viewModel.signInWithGoogle()
+
+        assertEquals(AccountLinkUiState("ana@orbit.app", LinkProof.PASSWORD), viewModel.uiState.value.link)
+        assertNull(viewModel.uiState.value.authError)
+    }
+
+    @Test
+    fun thePasswordProvesTheAccountAndLinksGoogleToIt() = runTest {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.PASSWORD))
+        val viewModel = SignInViewModel(auth)
+        viewModel.signInWithGoogle()
+
+        viewModel.onLinkPasswordChange("secret")
+        viewModel.confirmLink()
+
+        assertEquals(listOf(LinkProof.GOOGLE), auth.linked)
+        // The account they had, not the Google one a second sign-in would have made.
+        assertEquals("ana@orbit.app", auth.session.first()?.id)
+        assertNull(viewModel.uiState.value.link)
+    }
+
+    @Test
+    fun linksNothingWithoutAPassword() = runTest {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.PASSWORD))
+        val viewModel = SignInViewModel(auth)
+        viewModel.signInWithGoogle()
+
+        viewModel.confirmLink()
+
+        assertTrue(auth.linked.isEmpty())
+        assertNull(auth.session.first())
+        assertFalse(viewModel.uiState.value.link?.canLink == true)
+    }
+
+    @Test
+    fun saysWhyTheLinkFailedAndClearsItOnTheNextEdit() {
+        val auth = InMemoryAuthRepository(
+            collision = AccountLinkException("ana@orbit.app", LinkProof.PASSWORD),
+            linkFailure = AuthException(AuthError.WRONG_CREDENTIALS),
+        )
+        val viewModel = SignInViewModel(auth)
+        viewModel.signInWithGoogle()
+        viewModel.onLinkPasswordChange("wrong")
+
+        viewModel.confirmLink()
+
+        assertEquals(AuthError.WRONG_CREDENTIALS, viewModel.uiState.value.link?.failed)
+        assertFalse(viewModel.uiState.value.link?.linking == true)
+
+        viewModel.onLinkPasswordChange("secret")
+        assertNull(viewModel.uiState.value.link?.failed)
+    }
+
+    @Test
+    fun aDifferentGoogleAccountIsItsOwnMessage() {
+        val auth = InMemoryAuthRepository(
+            collision = AccountLinkException("ana@orbit.app", LinkProof.GOOGLE),
+            linkFailure = AuthException(AuthError.DIFFERENT_GOOGLE_ACCOUNT),
+        )
+        val viewModel = SignInViewModel(auth)
+        viewModel.onEmailChange("ana@orbit.app")
+        viewModel.onPasswordChange("secret")
+        viewModel.signIn()
+        viewModel.onLinkPasswordChange("a-new-secret")
+
+        viewModel.confirmLink()
+
+        assertEquals(AuthError.DIFFERENT_GOOGLE_ACCOUNT, viewModel.uiState.value.link?.failed)
+        assertNotNull(viewModel.uiState.value.link?.passwordError)
+    }
+
+    @Test
+    fun anUnexpectedLinkFailureIsAnUnknownError() {
+        val auth = InMemoryAuthRepository(
+            collision = AccountLinkException("ana@orbit.app", LinkProof.PASSWORD),
+            linkFailure = IllegalStateException("No connection"),
+        )
+        val viewModel = SignInViewModel(auth)
+        viewModel.signInWithGoogle()
+        viewModel.onLinkPasswordChange("secret")
+
+        viewModel.confirmLink()
+
+        assertEquals(AuthError.UNKNOWN, viewModel.uiState.value.link?.failed)
+    }
+
+    @Test
+    fun dismissingTheOfferLeavesTheFormAsItWas() {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.GOOGLE))
+        val viewModel = SignInViewModel(auth)
+        viewModel.onEmailChange("ana@orbit.app")
+        viewModel.onPasswordChange("secret")
+        viewModel.signIn()
+
+        viewModel.dismissLink()
+
+        assertNull(viewModel.uiState.value.link)
+        assertEquals("ana@orbit.app", viewModel.uiState.value.email)
+        assertTrue(auth.linked.isEmpty())
+    }
+
+    @Test
+    fun togglesTheLinkPasswordVisibility() {
+        val auth = InMemoryAuthRepository(AccountLinkException("ana@orbit.app", LinkProof.PASSWORD))
+        val viewModel = SignInViewModel(auth)
+        viewModel.signInWithGoogle()
+
+        viewModel.toggleLinkPasswordVisibility()
+        assertTrue(viewModel.uiState.value.link?.passwordVisible == true)
+
+        viewModel.toggleLinkPasswordVisibility()
+        assertFalse(viewModel.uiState.value.link?.passwordVisible == true)
+    }
+
+    @Test
+    fun opensTheResetDialogOnWhateverTheFormHas() {
+        val viewModel = SignInViewModel(auth)
+        viewModel.onEmailChange(" ana@orbit.app ")
+
+        viewModel.openPasswordReset()
+
+        assertTrue(viewModel.uiState.value.resetOpen)
+        assertEquals(" ana@orbit.app ", viewModel.uiState.value.resetEmail)
+    }
+
+    @Test
+    fun sendsTheLinkAndSaysItWent() = runTest {
+        val viewModel = SignInViewModel(auth)
+        viewModel.openPasswordReset()
+        viewModel.onResetEmailChange(" ana@orbit.app ")
+
+        viewModel.sendPasswordReset()
+
+        assertEquals(listOf("ana@orbit.app"), auth.passwordResets)
+        val state = viewModel.uiState.value
+        assertTrue(state.resetSent)
+        assertFalse(state.resetSending)
+        assertNull(state.resetError)
+    }
+
+    @Test
+    fun sendsNothingToAnAddressThatIsNotOne() = runTest {
+        val viewModel = SignInViewModel(auth)
+        viewModel.openPasswordReset()
+        viewModel.onResetEmailChange("ana")
+
+        viewModel.sendPasswordReset()
+
+        assertEquals(emptyList(), auth.passwordResets)
+        assertEquals(listOf(CredentialsError.InvalidEmail), viewModel.uiState.value.resetErrors)
+        assertFalse(viewModel.uiState.value.resetSent)
+    }
+
+    @Test
+    fun saysWhenTheLinkCouldNotBeSent() = runTest {
+        val viewModel = SignInViewModel(FailingAuthRepository(AuthException(AuthError.NETWORK)))
+        viewModel.openPasswordReset()
+        viewModel.onResetEmailChange("ana@orbit.app")
+
+        viewModel.sendPasswordReset()
+
+        val state = viewModel.uiState.value
+        assertEquals(AuthError.NETWORK, state.resetError)
+        assertFalse(state.resetSent)
+        assertFalse(state.resetSending)
+    }
+
+    @Test
+    fun editingTheAddressClearsWhatWasWrongWithIt() = runTest {
+        val viewModel = SignInViewModel(auth)
+        viewModel.openPasswordReset()
+        viewModel.sendPasswordReset()
+        assertEquals(listOf(CredentialsError.BlankEmail), viewModel.uiState.value.resetErrors)
+
+        viewModel.onResetEmailChange("ana@orbit.app")
+
+        assertEquals(emptyList(), viewModel.uiState.value.resetErrors)
+        assertNull(viewModel.uiState.value.resetError)
+    }
+
+    @Test
+    fun closesTheResetDialog() {
+        val viewModel = SignInViewModel(auth)
+        viewModel.openPasswordReset()
+
+        viewModel.dismissPasswordReset()
+
+        assertFalse(viewModel.uiState.value.resetOpen)
+    }
+
+    @Test
+    fun whileOneLinkIsGoingNothingElseHappensToTheDialog() = runTest {
+        val paused = PausedAuthRepository()
+        val viewModel = SignInViewModel(paused)
+        viewModel.openPasswordReset()
+        viewModel.onResetEmailChange("ana@orbit.app")
+
+        viewModel.sendPasswordReset()
+        assertTrue(viewModel.uiState.value.resetSending)
+        // A second tap on Send, and a tap outside, are both ignored until the first answer is back.
+        viewModel.sendPasswordReset()
+        viewModel.dismissPasswordReset()
+        assertTrue(viewModel.uiState.value.resetOpen)
+
+        paused.gate.complete(Unit)
+
+        assertEquals(listOf("ana@orbit.app"), paused.passwordResets)
+        assertTrue(viewModel.uiState.value.resetSent)
+    }
+
+    @Test
+    fun doesNotOpenTheResetDialogWhileSigningIn() = runTest {
+        val paused = PausedAuthRepository()
+        val viewModel = SignInViewModel(paused)
+        viewModel.onEmailChange("ana@orbit.app")
+        viewModel.onPasswordChange("secret")
+        viewModel.signIn()
+        assertTrue(viewModel.uiState.value.submitting)
+
+        viewModel.openPasswordReset()
+
+        assertFalse(viewModel.uiState.value.resetOpen)
+        paused.gate.complete(Unit)
+    }
+
+}
+
+/** Auth that holds every call until [gate] is completed, so a test can see the form mid-flight. */
+private class PausedAuthRepository(
+    private val inner: InMemoryAuthRepository = InMemoryAuthRepository(),
+    val gate: CompletableDeferred<Unit> = CompletableDeferred(),
+) : AuthRepository by inner {
+    val passwordResets get() = inner.passwordResets
+
+    override suspend fun signIn(email: String, password: String) {
+        gate.await()
+        inner.signIn(email, password)
+    }
+
+    override suspend fun sendPasswordReset(email: String) {
+        gate.await()
+        inner.sendPasswordReset(email)
     }
 }
