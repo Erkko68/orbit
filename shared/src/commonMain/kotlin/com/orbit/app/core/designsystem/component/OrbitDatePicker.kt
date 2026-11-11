@@ -9,7 +9,9 @@ import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
 import com.orbit.app.core.designsystem.theme.Ink
+import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 
 /**
@@ -40,6 +42,7 @@ fun OrbitDatePicker(
     val scheme = MaterialTheme.colorScheme
     DatePicker(
         state = state,
+        modifier = Modifier.spanSheetGutter(),
         title = null,
         headline = null,
         showModeToggle = false,
@@ -60,4 +63,16 @@ fun OrbitDatePicker(
         modifier = Modifier.fillMaxWidth(),
         enabled = state.selectedDateMillis != null,
     )
+}
+
+/**
+ * M3's picker is laid out for 360dp, more than a sheet leaves inside its gutter on a 375pt iPhone: there the last
+ * column, Sunday, came out narrower than the rest. It spans the sheet's gutter instead, which its own inner padding
+ * still keeps off the screen's edges (#293).
+ */
+private fun Modifier.spanSheetGutter() = layout { measurable, constraints ->
+    val gutter = OrbitSpacing.md.roundToPx()
+    val width = constraints.maxWidth + 2 * gutter
+    val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+    layout(constraints.maxWidth, placeable.height) { placeable.place(-gutter, 0) }
 }
