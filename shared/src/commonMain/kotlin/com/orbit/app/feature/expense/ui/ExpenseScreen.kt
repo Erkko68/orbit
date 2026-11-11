@@ -246,71 +246,13 @@ private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: Expense
     val toggle = { viewModel.toggleMember(person.id) }
     OrbitGroupRow(Modifier.fillMaxWidth(), onClick = if (state.submitting) null else toggle) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs)) {
-            Row(
-                Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                val face = person.face()
-                OrbitAvatar(
-                    face.initials, face.color, photoUrl = face.photoUrl, shape = face.shape,
-                    size = OrbitAvatarSize.Medium
-                )
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        person.name, style = MaterialTheme.typography.titleMedium,
-                        color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    if (typed && state.mode != ExpenseSplit.EXACT) {
-                        Text(
-                            if (state.split == null) stringResource(Res.string.expense_share_unavailable)
-                            else formatEuro(state.shares[person.id] ?: 0L), style = OrbitTheme.data.small,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    if (selected && state.custom) {
-                        Text(
-                            stringResource(if (person.id in state.automatic) Res.string.expense_automatic else Res.string.expense_manual),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-                OrbitCheck(selected, { toggle() }, person.name, enabled = !state.submitting, compact = true)
-            }
+            SplitIdentity(person, state, selected, typed, toggle)
             if (typed) {
-                val field: @Composable () -> Unit = {
-                    val weight = state.mode == ExpenseSplit.WEIGHTS
-                    OrbitAmountField(
-                        value = state.shareInputs[person.id].orEmpty(),
-                        onValueChange = { viewModel.onShareChange(person.id, it) },
-                        description = stringResource(
-                            if (weight) Res.string.expense_weight_share else Res.string.expense_share,
-                            person.name
-                        ),
-                        placeholder = if (state.custom && person.id in state.automatic && state.split == null) {
-                            stringResource(Res.string.expense_share_unavailable)
-                        } else if (weight) "0" else moneyInput(0, state.locale),
-                        enabled = !state.submitting, isError = person.id in state.invalidShareIds,
-                        prefix = state.currencyPrefix.takeIf { state.mode == ExpenseSplit.EXACT },
-                        suffix = when (state.mode) {
-                            ExpenseSplit.EXACT -> state.currencySuffix
-                            ExpenseSplit.PERCENTAGES -> stringResource(Res.string.expense_percent_sign)
-                            else -> null
-                        },
-                    )
-                }
-                OrbitAdaptiveRow(Modifier.fillMaxWidth(), leading = {
-                    if (state.custom && person.id !in state.automatic) {
-                        val description = stringResource(Res.string.expense_make_automatic_person, person.name)
-                        OrbitTonalButton(
-                            stringResource(Res.string.expense_make_automatic),
-                            { viewModel.makeAutomatic(person.id) },
-                            modifier = Modifier.semantics { contentDescription = description },
-                            enabled = !state.submitting,
-                            compact = true
-                        )
-                    }
-                }, trailing = field)
+                OrbitAdaptiveRow(
+                    Modifier.fillMaxWidth(),
+                    leading = { AutomaticShareAction(person, state) { viewModel.makeAutomatic(person.id) } },
+                    trailing = { SplitShareField(person, state) { viewModel.onShareChange(person.id, it) } },
+                )
             } else {
                 Row(Modifier.fillMaxWidth().heightIn(min = OrbitSpacing.lg), horizontalArrangement = Arrangement.End) {
                     Text(
@@ -322,6 +264,87 @@ private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: Expense
             }
         }
     }
+}
+
+/** The participant's identity, calculated amount and allocation status above the controls. */
+@Composable
+private fun SplitIdentity(
+    person: ItemFace,
+    state: ExpenseUiState,
+    selected: Boolean,
+    typed: Boolean,
+    onToggle: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val face = person.face()
+        OrbitAvatar(
+            face.initials, face.color, photoUrl = face.photoUrl, shape = face.shape,
+            size = OrbitAvatarSize.Medium
+        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                person.name, style = MaterialTheme.typography.titleMedium,
+                color = if (selected) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (typed && state.mode != ExpenseSplit.EXACT) {
+                Text(
+                    if (state.split == null) stringResource(Res.string.expense_share_unavailable)
+                    else formatEuro(state.shares[person.id] ?: 0L), style = OrbitTheme.data.small,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (selected && state.custom) {
+                Text(
+                    stringResource(if (person.id in state.automatic) Res.string.expense_automatic else Res.string.expense_manual),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        OrbitCheck(selected, { onToggle() }, person.name, enabled = !state.submitting, compact = true)
+    }
+}
+
+/** Release a manual custom share while leaving the field in the same composition. */
+@Composable
+private fun AutomaticShareAction(person: ItemFace, state: ExpenseUiState, onAutomate: () -> Unit) {
+    if (state.custom && person.id !in state.automatic) {
+        val description = stringResource(Res.string.expense_make_automatic_person, person.name)
+        OrbitTonalButton(
+            stringResource(Res.string.expense_make_automatic),
+            onAutomate,
+            modifier = Modifier.semantics { contentDescription = description },
+            enabled = !state.submitting,
+            compact = true
+        )
+    }
+}
+
+/** One input for the active split mode, including unavailable automatic previews. */
+@Composable
+private fun SplitShareField(person: ItemFace, state: ExpenseUiState, onValueChange: (String) -> Unit) {
+    val weight = state.mode == ExpenseSplit.WEIGHTS
+    OrbitAmountField(
+        value = state.shareInputs[person.id].orEmpty(),
+        onValueChange = onValueChange,
+        description = stringResource(
+            if (weight) Res.string.expense_weight_share else Res.string.expense_share,
+            person.name
+        ),
+        placeholder = if (state.custom && person.id in state.automatic && state.split == null) {
+            stringResource(Res.string.expense_share_unavailable)
+        } else if (weight) "0" else moneyInput(0, state.locale),
+        enabled = !state.submitting, isError = person.id in state.invalidShareIds,
+        prefix = state.currencyPrefix.takeIf { state.mode == ExpenseSplit.EXACT },
+        suffix = when (state.mode) {
+            ExpenseSplit.EXACT -> state.currencySuffix
+            ExpenseSplit.PERCENTAGES -> stringResource(Res.string.expense_percent_sign)
+            else -> null
+        },
+    )
 }
 
 /** What is wrong with typed shares: one missing or invalid, or how far they are from the total or from 100 %. */
