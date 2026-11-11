@@ -119,6 +119,4 @@ There is no server code checking permissions: the Firestore rules do it on every
 
 ## Not done yet
 
-- Changing the password and deleting the account are stubs (#188).
-- Resetting a forgotten password (#217).
 - Sign in with Apple is planned for Sprint 3.

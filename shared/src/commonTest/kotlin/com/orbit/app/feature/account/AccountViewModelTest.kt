@@ -209,10 +209,10 @@ class AccountViewModelTest {
         val gate = CompletableDeferred<Unit>()
         var deletes = 0
         val slow = object : AuthRepository by auth {
-            override suspend fun deleteAccount(currentPassword: String?) {
+            override suspend fun deleteAccount() {
                 deletes++
                 gate.await()
-                auth.deleteAccount(currentPassword)
+                auth.deleteAccount()
             }
         }
         val viewModel = observe(slow)
@@ -344,6 +344,27 @@ class AccountViewModelTest {
         assertFalse(viewModel.uiState.value.submitting)
         assertEquals("ana@orbit.app", auth.session.first()?.id)
         assertEquals(2, spaces.observeMembers(owned).first().size)
+    }
+
+    @Test
+    fun aWrongPasswordLeavesEverySpaceAsItWas() = runTest {
+        val auth = InMemoryAuthRepository()
+        val spaces = InMemorySpaceRepository(auth)
+        auth.register("bob@orbit.app", "secret", "Bob")
+        val shared = spaces.createSpace("Flat 4B", accent = 0)
+        auth.register("ana@orbit.app", "secret", "Ana López")
+        spaces.addMember(shared, Member("ana@orbit.app", "Ana López", photoUrl = null, role = Role.MEMBER))
+        val alone = spaces.createSpace("Studio", accent = 1)
+        val viewModel = observe(auth, spaces)
+        viewModel.openDeleteAccount()
+        viewModel.onDeletePasswordChange("not-it")
+
+        viewModel.deleteAccount()
+
+        assertEquals(Res.string.error_current_password_wrong, viewModel.uiState.value.deletePasswordError)
+        assertEquals(listOf("ana@orbit.app"), spaces.observeMembers(alone).first().map { it.userId })
+        assertEquals(2, spaces.observeMembers(shared).first().size)
+        assertEquals("ana@orbit.app", auth.session.first()?.id)
     }
 
     @Test

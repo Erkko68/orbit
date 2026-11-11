@@ -25,14 +25,18 @@ interface AuthRepository {
      */
     suspend fun changePassword(currentPassword: String, newPassword: String)
 
-    /** Deletes the signed-in user's account, which signs them out. */
     /**
-     * Deletes the profile document and the account itself, which signs the user out. The caller leaves or
-     * deletes their spaces first (#188). [currentPassword] is the password the account signs in with, or
-     * null for one that only signs in with Google, which is asked for again instead. Throws
-     * [com.orbit.app.domain.model.AuthError.WRONG_CREDENTIALS] when it is not the right one.
+     * Proves the signed-in user is the account's owner, as Firebase wants shortly before deleting it:
+     * [currentPassword] for an account that has one, or null to ask Google again for one that only signs in
+     * that way. Throws [com.orbit.app.domain.model.AuthError.WRONG_CREDENTIALS] when it does not check out.
      */
-    suspend fun deleteAccount(currentPassword: String?)
+    suspend fun reauthenticate(currentPassword: String?)
+
+    /**
+     * Deletes the profile document and the account itself, which signs the user out. Called by
+     * [com.orbit.app.domain.usecase.closeAccount], after [reauthenticate] and after the spaces (#188).
+     */
+    suspend fun deleteAccount()
 
     /**
      * Records that the signed-in user accepted what the assistant sends to the AI provider, so it is asked

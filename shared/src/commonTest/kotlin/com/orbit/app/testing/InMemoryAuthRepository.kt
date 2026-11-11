@@ -96,9 +96,12 @@ class InMemoryAuthRepository(
         user.value = requireUser().copy(aiConsent = true)
     }
 
-    override suspend fun deleteAccount(currentPassword: String?) {
-        val current = requireUser()
-        if (current.hasPassword && currentPassword != password) throw AuthException(AuthError.WRONG_CREDENTIALS)
+    override suspend fun reauthenticate(currentPassword: String?) {
+        if (requireUser().hasPassword && currentPassword != password) throw AuthException(AuthError.WRONG_CREDENTIALS)
+    }
+
+    override suspend fun deleteAccount() {
+        requireUser()
         user.value = null
     }
 }

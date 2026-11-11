@@ -148,16 +148,18 @@ class FirebaseAuthRepository(
         }
     }
 
+    override suspend fun reauthenticate(currentPassword: String?) {
+        val user = signedInUser()
+        if (currentPassword != null) reauthenticate(user, currentPassword) else reauthenticateWithGoogle(user)
+    }
+
     /**
-     * Deletes the profile document and then the account itself (#188). The caller has already left or deleted
-     * the spaces: what is left here is `users/{uid}` and the Firebase account, in that order, so a run that
-     * stops halfway can simply be run again. Firebase wants a recent sign-in before it deletes an account,
-     * so this proves [currentPassword], or asks Google again for an account that signs in that way.
+     * Deletes `users/{uid}` and then the Firebase account (#188), in that order: once the account is gone its
+     * profile can no longer be written, and a run that stops halfway can simply be run again.
      */
-    override suspend fun deleteAccount(currentPassword: String?) {
+    override suspend fun deleteAccount() {
         val user = signedInUser()
         firestore.collection(USERS).document(user.uid).delete()
-        if (currentPassword != null) reauthenticate(user, currentPassword) else reauthenticateWithGoogle(user)
         try {
             user.delete()
         } catch (e: CancellationException) {
