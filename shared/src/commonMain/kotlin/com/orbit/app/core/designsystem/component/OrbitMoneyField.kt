@@ -28,8 +28,8 @@ import com.orbit.app.core.designsystem.theme.OrbitTheme
 private val CaretRoom = 2.dp
 
 /**
- * The amount a form is about, such as what an expense cost: a panel of its own with its [label] over a big number in
- * the data type, the currency in [prefix] or [suffix] on the side the device writes it, quieter. [placeholder] stands in
+ * The amount a form is about, such as what an expense cost: a panel of its own with a big number in the data type,
+ * which screen readers name with [label], the currency in [prefix] or [suffix] on the side the device writes it, quieter. [placeholder] stands in
  * while it is empty; while [isError] the number turns the error colour and [errorText] says why under it.
  */
 @Composable
@@ -55,7 +55,6 @@ fun OrbitMoneyField(
     val width = with(LocalDensity.current) { measurer.measure(shown, number).size.width.toDp() } + CaretRoom
     OrbitCard(modifier) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, style = MaterialTheme.typography.labelLarge, color = scheme.onSurfaceVariant)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.xs),

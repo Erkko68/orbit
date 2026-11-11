@@ -18,10 +18,10 @@ import kotlin.test.assertEquals
 @OptIn(ExperimentalTestApi::class)
 class OrbitMoneyFieldTest : ComposeTest() {
     @Test
-    fun showsTheLabelThePlaceholderAndTheCurrency() = runComposeUiTest {
+    fun showsThePlaceholderAndTheCurrencyAndNamesTheField() = runComposeUiTest {
         setContent { OrbitTheme { OrbitMoneyField("", {}, label = "Amount", placeholder = "0.00", suffix = "€") } }
 
-        onNodeWithText("Amount").assertIsDisplayed()
+        onNodeWithContentDescription("Amount").assertExists()
         onNodeWithText("0.00").assertIsDisplayed()
         onNodeWithText("€").assertIsDisplayed()
     }
