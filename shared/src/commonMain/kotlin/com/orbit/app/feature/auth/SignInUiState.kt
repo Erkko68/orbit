@@ -8,11 +8,13 @@ data class SignInUiState(
     val email: String = "",
     val password: String = "",
     val passwordVisible: Boolean = false,
-    val submitting: Boolean = false,
+    override val submitting: Boolean = false,
     /** What the form got wrong, found when Sign in was pressed. Cleared by the next edit. */
     val errors: List<CredentialsError> = emptyList(),
     /** Why the last attempt failed. Cleared by the next edit or attempt. */
     val authError: AuthError? = null,
+    /** The account this address already belongs to, while the user links the other way in (#173). */
+    override val link: AccountLinkUiState? = null,
     /** The reset-password dialog is open (#217). */
     val resetOpen: Boolean = false,
     /** The address the dialog will send to. It starts as whatever the form already has. */
@@ -25,7 +27,14 @@ data class SignInUiState(
     val resetSent: Boolean = false,
     /** Why sending failed. Cleared by the next edit or attempt. */
     val resetError: AuthError? = null,
-) {
+) : AuthFormState<SignInUiState> {
+    override fun starting() = copy(submitting = true, errors = emptyList(), authError = null)
+
+    override fun finished(link: AccountLinkUiState?, authError: AuthError?) =
+        copy(submitting = false, link = link ?: this.link, authError = authError)
+
+    override fun withLink(link: AccountLinkUiState?) = copy(link = link)
+
     /** What to say under the email field. */
     val emailError: StringResource? get() = emailMessage(errors, authError)
 

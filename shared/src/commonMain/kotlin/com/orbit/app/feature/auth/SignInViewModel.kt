@@ -12,9 +12,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** Holds the sign-in form. Signing in moves the auth gate, so success needs no state here. */
-class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
+class SignInViewModel(private val auth: AuthRepository) : ViewModel(), AuthLinkForm {
     private val _uiState = MutableStateFlow(SignInUiState())
     val uiState: StateFlow<SignInUiState> = _uiState.asStateFlow()
+
+    /** Submissions and the link sheet, both shared with the other auth form (#173). */
+    private val form = AuthForm(auth, _uiState, viewModelScope)
+
+    override val linking get() = form.linking
 
     fun onEmailChange(email: String) =
         _uiState.update { it.copy(email = email, errors = emptyList(), authError = null) }
@@ -35,7 +40,7 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
         submit("Sign-in") { auth.signIn(form.email.trim(), form.password) }
     }
 
-    fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
+    override fun signInWithGoogle() = submit("Google sign-in") { auth.signInWithGoogle() }
 
     /** Opens the reset dialog on whatever address the form already has (#217). */
     fun openPasswordReset() {
@@ -78,13 +83,6 @@ class SignInViewModel(private val auth: AuthRepository) : ViewModel() {
         }
     }
 
-    /** Runs [call] unless one is running. A failure stays in the form as [SignInUiState.authError]. */
-    private fun submit(what: String, call: suspend () -> Unit) {
-        if (_uiState.value.submitting) return
-        _uiState.update { it.copy(submitting = true, errors = emptyList(), authError = null) }
-        viewModelScope.launch {
-            val authError = executeAuth(what, call)
-            _uiState.update { it.copy(submitting = false, authError = authError) }
-        }
-    }
+    /** Runs [call] unless one is running; the form then shows whatever it left behind. */
+    private fun submit(what: String, call: suspend () -> Unit) = form.submit(what, call)
 }
