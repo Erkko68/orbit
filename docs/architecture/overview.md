@@ -123,14 +123,25 @@ Tests cover reactive balances, confirmation/cancellation, failed writes, retries
 UI tests exercise settling up, row alignment, large text and the four translated label sets. Android emulator tests
 check real text bounds with fake values. The user reports correct Android operation with real Firebase; iOS CI remains pending.
 
-The exact-share mode is labelled "Custom amounts" in the form. It explains that each amount is what that
-person owes and shows the assigned total, how much remains, or the excess. `ExpenseUiState.splitProgress`
-derives this preview from the selected shares using Long cents with an overflow check. It never adjusts
-shares automatically or persists a second total. Save still requires the existing exact-sum validation.
+The exact-share mode is labelled "Custom amounts" in the form. Editing a share makes it manual; automatic
+selected people divide the remainder (#283). `Make automatic` releases a manual share, including manual zero.
+Empty manual input remains incomplete. `ExpenseUiState.splitProgress` derives complete, missing or excess
+allocation without a second stored total. Deselection retains drafts and status by UID during the form session.
 
 Percentages and Weights (#55) are two more split modes beside them. Each row types a percentage or a whole weight
-and shows the amount it comes to; percentages must add up to exactly 100 %. Switching to Custom amounts or
-Percentages starts from the split on screen, so nothing the user sees changes.
+and shows the amount it comes to. Manual percentages plus the exact automatic remainder cover 100 %;
+approximate automatic labels never feed the computation. Custom cents round only among automatic people;
+mixed percentage allocation floors exact entitlements and gives residual cents by UID only to fractional
+entitlements. Fully manual percentages and Weights retain #55's rounding. All calculations use integers.
+
+The existing simple conversion between Custom amounts and Percentages is intentionally finite precision:
+switching mode may change individual cents, even on a round trip. Status is retained; no hidden exact-ratio
+engine restores earlier values. Invalid conversions keep the current mode and draft with an error. Equal
+initializes custom participants as automatic; Weights initializes them as manual. Leaving for Equal/Weights
+abandons the previous custom draft. One optional `customAllocation` UID-to-boolean map persists selection
+(including zeros) and intent alongside the authoritative cent split (ADR 0012). Reopening starts in Custom
+amounts without recalculating; title/payer/date changes preserve saved cents. Missing/unsupported metadata
+falls back to manual shares. The existing repository/cache and explicit Save flow handle all writes.
 
 ## Dependency injection
 

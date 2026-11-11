@@ -296,6 +296,16 @@ service cloud.firestore {
 
       match /expenses/{expenseId} {
 
+        function hasValidAllocation(data) {
+          let allocation = data.get('customAllocation', {});
+          let space = get(/databases/$(database)/documents/spaces/$(spaceId)).data;
+          return !('customAllocation' in data) || (allocation is map
+            && allocation.size() > 0
+            && allocation.values().hasOnly([true, false])
+            && allocation.keys().hasAll(data.split.keys())
+            && allocation.keys().hasOnly(space.memberIds.concat(space.get('formerMembers', {}).keys()).concat(data.split.keys())));
+        }
+
         function isExpense(data) {
           return isTitle(data.title)
             && data.paidBy is string
@@ -303,7 +313,8 @@ service cloud.firestore {
             && data.split.size() > 0
             && data.date is string
             && data.kind in ['expense', 'settlement']
-            && data.get('itemId', '') is string;
+            && data.get('itemId', '') is string
+            && hasValidAllocation(data);
         }
 
         allow read: if isMember(spaceId);

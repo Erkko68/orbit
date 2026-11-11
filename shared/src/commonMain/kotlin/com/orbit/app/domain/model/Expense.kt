@@ -21,6 +21,8 @@ data class Expense(
     val kind: ExpenseKind = ExpenseKind.EXPENSE,
     /** The item whose Cost module made this expense (#58). */
     val itemId: String? = null,
+    /** Selected people, including zero shares: true is automatic, false is manual. Never a monetary source. */
+    val customAllocation: Map<String, Boolean>? = null,
 ) {
     val total: Long get() = split.values.sum()
 }
@@ -33,6 +35,7 @@ data class NewExpense(
     val date: LocalDate,
     val kind: ExpenseKind = ExpenseKind.EXPENSE,
     val itemId: String? = null,
+    val customAllocation: Map<String, Boolean>? = null,
 )
 
 /** By date, the latest first, and the entry added last first within a day. */

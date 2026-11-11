@@ -358,7 +358,14 @@
     <string name="expense_percent">%1$s %</string>
     <string name="expense_equal_hint">Todos pagan lo mismo.</string>
     <string name="expense_exact_hint">Escribe lo que paga cada persona.</string>
-    <string name="expense_percentages_hint">Porcentajes que suman el 100 %.</string>
+    <string name="expense_percentages_hint">Porcentajes que suman el 100 %. Cambiar de modo puede redondear las partes.</string>
+    <string name="expense_automatic">Automática</string>
+    <string name="expense_manual">Manual</string>
+    <string name="expense_make_automatic">Automatizar</string>
+    <string name="expense_make_automatic_person">Hacer automática la parte de %1$s</string>
+    <string name="expense_allocation_hint">Editar una parte la fija. Las partes automáticas reparten el resto.</string>
+    <string name="expense_conversion_failed">Completa un reparto válido antes de convertirlo a este modo.</string>
+    <string name="expense_share_unavailable">—</string>
     <string name="expense_weights_hint">Números enteros, por ejemplo 2 : 1 : 1.</string>
     <string name="expense_weight_share">Peso de %1$s</string>
     <string name="expense_share">Parte de %1$s</string>

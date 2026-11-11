@@ -11,6 +11,28 @@ import kotlin.test.assertNull
 import kotlin.time.Instant
 
 class ExpenseMapperTest {
+    @Test
+    fun allocationMetadataRoundTripsZeroParticipantsAndMalformedMetadataFallsBack() {
+        val allocation = mapOf("ana" to true, "ben" to false, "zero" to true)
+        val document = expenseDocument(
+            "space-1", NewExpense(
+                "Food", "ana", mapOf("ana" to 620L, "ben" to 620L),
+                LocalDate(2026, 11, 1), customAllocation = allocation
+            ), "ana"
+        )
+        assertEquals(allocation, document.customAllocation)
+        assertEquals(
+            allocation,
+            mapExpense("e1", stored.copy(customAllocation = document.customAllocation))?.customAllocation
+        )
+        for (invalid in listOf(emptyMap(), mapOf("ana" to true), mapOf("ana" to true, "ben" to false, "" to true))) {
+            val read = assertNotNull(mapExpense("e1", stored.copy(customAllocation = invalid)))
+            assertNull(read.customAllocation)
+            assertEquals(stored.split, read.split)
+        }
+        assertNull(mapExpense("e1", stored)?.customAllocation)
+    }
+
     private val createdAt = Instant.fromEpochSeconds(1_760_000_000)
 
     private val stored = StoredExpense(

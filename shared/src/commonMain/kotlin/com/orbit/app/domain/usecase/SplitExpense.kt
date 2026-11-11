@@ -56,3 +56,45 @@ fun splitByPercentages(cents: Long, hundredths: Map<String, Long>): Map<String, 
 
 /** 100 %, in hundredths. */
 const val HUNDRED_PERCENT = 10_000L
+
+/** Fix the manual cents and share only the remainder. Zero remains selectable, but is not a saved debt. */
+fun allocateCustom(cents: Long, manual: Map<String, Long>, automatic: Set<String>): Map<String, Long>? {
+    if (cents <= 0 || manual.keys.any { it in automatic } || manual.isEmpty() && automatic.isEmpty()) return null
+    var remaining = cents
+    for (share in manual.values) {
+        if (share < 0 || share > remaining) return null
+        remaining -= share
+    }
+    if (automatic.isEmpty()) return splitExactly(cents, manual)
+    val distributed = if (remaining == 0L) emptyMap() else splitEqually(remaining, automatic)
+    return (manual + distributed).toSortedMapByUid()
+}
+
+/**
+ * Manual hundredths stay fixed; automatic people share the exact remaining proportion, not rounded labels.
+ * Only fractional entitlements receive residual cents. Fully manual input keeps #55's rounding.
+ */
+fun allocatePercentages(cents: Long, manual: Map<String, Long>, automatic: Set<String>): Map<String, Long>? {
+    if (cents <= 0 || manual.keys.any { it in automatic }) return null
+    if (automatic.isEmpty()) return splitByPercentages(cents, manual)
+    var remaining = HUNDRED_PERCENT
+    for (share in manual.values) {
+        if (share < 0 || share > remaining) return null
+        remaining -= share
+    }
+    // At most Int.MAX_VALUE people: denominator * numerator is below 2.2e17, even at Long.MAX_VALUE cents.
+    val automaticDenominator = HUNDRED_PERCENT * automatic.size
+    val parts = manual.mapValues { (_, value) -> percentagePart(cents, value, HUNDRED_PERCENT) } +
+            automatic.associateWith { percentagePart(cents, remaining, automaticDenominator) }
+    var leftover = cents - parts.values.sumOf { it.first }
+    return parts.keys.sorted().mapNotNull { id ->
+        val (floor, fractional) = parts.getValue(id)
+        val extra = if (leftover > 0 && fractional) 1L.also { leftover-- } else 0L
+        (floor + extra).takeIf { it > 0 }?.let { id to it }
+    }.toMap()
+}
+
+private fun percentagePart(cents: Long, numerator: Long, denominator: Long): Pair<Long, Boolean> {
+    val remainder = cents % denominator * numerator
+    return (cents / denominator * numerator + remainder / denominator) to (remainder % denominator != 0L)
+}

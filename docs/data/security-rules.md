@@ -61,6 +61,7 @@ Firebase deploys one rules file and the language has no imports, so the file is 
 | `matchesItem(entry)` | completions | A completion: the same batch leaves the item `done`, or rolls it forward (`rollsForward`). A reopening (`action: 'reopen'`): the item was `done` and the batch leaves it `open` |
 | `rollsForward(itemId)` | completions | A recurring item stays `open` with `modules.recurrence`, and the batch moves `modules.schedule.date` later (ADR 0011) |
 | `isExpense(data)` | expenses | The fields of an expense have the right types |
+| `hasValidAllocation(data)` | expenses | Optional non-empty `customAllocation` map, boolean values, covers split keys; extra zero-share ids belong to current or former members |
 
 ## What each collection checks
 
@@ -125,6 +126,13 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 - **Create:** a member, with `createdBy` the caller, `createdAt` the server time, `spaceId` the path's and valid fields (`isExpense`): a valid title, a non-empty `split` map, a string `paidBy` and `date`, `kind` `expense` or `settlement`, and a string `itemId` if there is one. A settlement's `paidBy` is the caller: who owes says they paid, nobody records a payment in someone else's name, and the one who gets it confirms nothing.
 - **Update:** a member, keeping the creation fields, `kind` and `itemId`, a settlement's `paidBy`, and valid fields.
 - **Delete:** the expense's creator, an admin or the owner.
+
+Optional `customAllocation` (#283, ADR 0012) records selection and automatic/manual intent, never amounts.
+Rules accept absence for legacy clients/documents, reject null, empty maps and non-boolean values, require
+every split key, and restrict keys to current members, former members or debt ids in the submitted split.
+The last exception preserves the existing treatment of debt participants: these rules still do not validate
+each monetary share or its membership (below). The domain/editor validates metadata against its known
+participants. Updating or deleting this field does not relax creation-field or authorization checks.
 
 ### `invitations/{code}`
 

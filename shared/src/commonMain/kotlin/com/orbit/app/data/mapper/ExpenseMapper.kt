@@ -21,6 +21,7 @@ internal fun expenseDocument(spaceId: String, expense: NewExpense, creatorId: St
     createdAt = Timestamp.ServerTimestamp,
     kind = kindValue(expense.kind),
     itemId = expense.itemId,
+    customAllocation = expense.customAllocation,
 )
 
 /**
@@ -44,6 +45,9 @@ internal fun mapExpense(id: String, stored: StoredExpense): Expense? {
         createdAt = createdAt,
         kind = kindOf(id, stored.kind),
         itemId = stored.itemId,
+        customAllocation = stored.customAllocation?.takeIf {
+            it.isNotEmpty() && it.keys.all(String::isNotBlank) && it.keys.containsAll(split.keys)
+        },
     )
 }
 

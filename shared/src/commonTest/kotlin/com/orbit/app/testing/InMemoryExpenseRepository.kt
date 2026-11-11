@@ -34,6 +34,7 @@ class InMemoryExpenseRepository(private val auth: AuthRepository) : ExpenseRepos
             createdAt = Clock.System.now(),
             kind = expense.kind,
             itemId = expense.itemId,
+            customAllocation = expense.customAllocation,
         )
         expenses.update { it + (spaceId to it[spaceId].orEmpty() + stored) }
         return id
@@ -46,9 +47,13 @@ class InMemoryExpenseRepository(private val auth: AuthRepository) : ExpenseRepos
         paidBy: String,
         split: Map<String, Long>,
         date: LocalDate,
+        customAllocation: Map<String, Boolean>?,
     ) {
         val edited = expenses.value[spaceId].orEmpty().map {
-            if (it.id == expenseId) it.copy(title = title, paidBy = paidBy, split = split, date = date) else it
+            if (it.id == expenseId) it.copy(
+                title = title, paidBy = paidBy, split = split, date = date,
+                customAllocation = customAllocation
+            ) else it
         }
         expenses.update { it + (spaceId to edited) }
     }

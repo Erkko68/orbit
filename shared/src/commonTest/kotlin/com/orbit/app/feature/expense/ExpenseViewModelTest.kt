@@ -60,6 +60,213 @@ class ExpenseViewModelTest {
     }
 
     @Test
+    fun editsFixOnlyTheirOwnShareAndMakeAutomaticReleasesIt() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.onAmountChange(moneyInput(4000, locale))
+        vm.selectSplit(ExpenseSplit.EXACT)
+        assertEquals(setOf("ana", "bea", "marc"), vm.uiState.value.automatic)
+        vm.onShareChange("ana", moneyInput(1600, locale))
+        assertEquals(mapOf("ana" to 1600L, "bea" to 1200L, "marc" to 1200L), vm.uiState.value.split)
+        vm.onShareChange("bea", moneyInput(1000, locale))
+        assertEquals(setOf("marc"), vm.uiState.value.automatic)
+        vm.makeAutomatic("ana")
+        assertEquals(mapOf("ana" to 1500L, "bea" to 1000L, "marc" to 1500L), vm.uiState.value.split)
+        vm.onAmountChange(moneyInput(7000, locale))
+        assertEquals(mapOf("ana" to 3000L, "bea" to 1000L, "marc" to 3000L), vm.uiState.value.split)
+        assertEquals(0, controlled.writes)
+    }
+
+    @Test
+    fun emptyManualInputAndExcessRemainDraftsUntilExplicitlyReleased() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.selectSplit(ExpenseSplit.EXACT)
+        vm.onShareChange("ana", "")
+        assertFalse("ana" in vm.uiState.value.automatic)
+        assertEquals("", vm.uiState.value.exact["ana"])
+        assertNull(vm.uiState.value.split)
+        assertEquals("", vm.uiState.value.shareInputs["bea"])
+        vm.selectSplit(ExpenseSplit.PERCENTAGES)
+        assertEquals(ExpenseSplit.EXACT, vm.uiState.value.mode)
+        assertTrue(vm.uiState.value.conversionFailed)
+        vm.onShareChange("ana", moneyInput(1100, locale))
+        assertEquals(100L, vm.uiState.value.splitProgress?.excess)
+        assertFalse(vm.uiState.value.canSave)
+        vm.makeAutomatic("ana")
+        assertTrue(vm.uiState.value.canSave)
+        vm.onShareChange("ana", "0")
+        assertFalse("ana" in vm.uiState.value.automatic)
+        assertEquals(mapOf("bea" to 500L, "marc" to 500L), vm.uiState.value.split)
+    }
+
+    @Test
+    fun selectionRestoresManualDraftAndNewPeopleStartAutomatic() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.selectSplit(ExpenseSplit.EXACT)
+        vm.onShareChange("ana", moneyInput(400, locale))
+        vm.toggleMember("ana")
+        assertEquals(mapOf("bea" to 500L, "marc" to 500L), vm.uiState.value.split)
+        vm.toggleMember("ana")
+        assertFalse("ana" in vm.uiState.value.automatic)
+        assertEquals(400L, vm.uiState.value.split?.get("ana"))
+        vm.selectSplit(ExpenseSplit.EQUAL)
+        vm.toggleMember("marc")
+        vm.selectSplit(ExpenseSplit.PERCENTAGES)
+        vm.toggleMember("marc")
+        assertEquals(setOf("ana", "bea", "marc"), vm.uiState.value.automatic)
+        assertTrue(vm.uiState.value.canSave)
+    }
+
+    @Test
+    fun percentagesKeepManualProportionsAndAutomaticThirdsAreComplete() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.selectSplit(ExpenseSplit.PERCENTAGES)
+        assertEquals(10000L, vm.uiState.value.splitProgress?.assigned)
+        assertTrue(vm.uiState.value.canSave)
+        vm.onShareChange("ana", "50")
+        vm.onAmountChange(moneyInput(8000, locale))
+        assertEquals(mapOf("ana" to 4000L, "bea" to 2000L, "marc" to 2000L), vm.uiState.value.split)
+        vm.openSplitPicker()
+        vm.selectSplit(ExpenseSplit.PERCENTAGES)
+        assertFalse(vm.uiState.value.pickingSplit)
+        assertFalse("ana" in vm.uiState.value.automatic)
+        vm.selectSplit(ExpenseSplit.EXACT)
+        assertEquals(moneyInput(4000, locale), vm.uiState.value.exact["ana"])
+        assertEquals(setOf("bea", "marc"), vm.uiState.value.automatic)
+    }
+
+    @Test
+    fun deselectedManualDraftKeepsItsUnitAcrossModeChanges() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.selectSplit(ExpenseSplit.EXACT)
+        vm.onShareChange("ana", moneyInput(400, locale))
+        vm.toggleMember("ana")
+        vm.selectSplit(ExpenseSplit.PERCENTAGES)
+        vm.toggleMember("ana")
+        assertEquals(moneyInput(4000, locale), vm.uiState.value.percentages["ana"])
+        assertEquals(400L, vm.uiState.value.split?.get("ana"))
+        vm.toggleMember("ana")
+        vm.selectSplit(ExpenseSplit.EXACT)
+        vm.toggleMember("ana")
+        assertEquals(moneyInput(400, locale), vm.uiState.value.exact["ana"])
+        assertFalse("ana" in vm.uiState.value.automatic)
+    }
+
+    @Test
+    fun invalidDeselectedDraftCanBeRecoveredInItsOriginalMode() = runTest {
+        signIn()
+        val vm = open()
+        vm.fill()
+        vm.selectSplit(ExpenseSplit.EXACT)
+        vm.onShareChange("ana", "")
+        vm.toggleMember("ana")
+        vm.selectSplit(ExpenseSplit.PERCENTAGES)
+        vm.toggleMember("ana")
+        assertTrue(vm.uiState.value.conversionFailed)
+        assertFalse("ana" in vm.uiState.value.selected)
+        vm.selectSplit(ExpenseSplit.EXACT)
+        vm.toggleMember("ana")
+        assertEquals("", vm.uiState.value.exact["ana"])
+        assertFalse(vm.uiState.value.canSave)
+    }
+
+    @Test
+    fun simpleModeConversionAcceptsRoundingWithoutRestoringHiddenRatios() = runTest {
+        signIn()
+        val id = ledger.add(
+            "space-1", NewExpense(
+                "Old", "ana", mapOf("ana" to 1L, "bea" to 99999L),
+                LocalDate(2026, 11, 1)
+            )
+        )
+        val vm = open(id)
+        vm.selectSplit(ExpenseSplit.PERCENTAGES)
+        assertEquals(mapOf("ana" to 10L, "bea" to 99990L), vm.uiState.value.split)
+        vm.selectSplit(ExpenseSplit.EXACT)
+        assertEquals(mapOf("ana" to 10L, "bea" to 99990L), vm.uiState.value.split)
+        assertTrue(vm.uiState.value.automatic.isEmpty())
+    }
+
+    @Test
+    fun savedZeroSelectionAndStatusesSurviveReopenAndNonAllocationEdits() = runTest {
+        signIn()
+        val allocation = mapOf("ana" to false, "bea" to true, "marc" to true)
+        // These saved automatic amounts deliberately differ: opening must not silently redistribute them.
+        val id = ledger.add(
+            "space-1", NewExpense(
+                "Old", "ana", mapOf("bea" to 4L, "marc" to 6L),
+                LocalDate(2026, 11, 1), customAllocation = allocation
+            )
+        )
+        val vm = open(id)
+        assertEquals(allocation.keys, vm.uiState.value.selected)
+        assertEquals(setOf("bea", "marc"), vm.uiState.value.automatic)
+        vm.onTitleChange("Renamed")
+        vm.selectPayer("bea")
+        vm.pickDate(LocalDate(2026, 11, 5).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds())
+        vm.save()
+        val saved = ledger.observeExpenses("space-1").first().single()
+        assertEquals(mapOf("bea" to 4L, "marc" to 6L), saved.split)
+        assertEquals(allocation, saved.customAllocation)
+        val reopened = open(id)
+        reopened.onAmountChange(moneyInput(20, locale))
+        assertEquals(mapOf("bea" to 10L, "marc" to 10L), reopened.uiState.value.split)
+    }
+
+    @Test
+    fun metadataIsClearedByEqualAndWeightsAndInvalidContextFallsBackToManual() = runTest {
+        signIn()
+        val id = ledger.add(
+            "space-1", NewExpense(
+                "Old", "ana", mapOf("ana" to 10L),
+                LocalDate(2026, 11, 1), customAllocation = mapOf("ana" to true, "unknown" to true)
+            )
+        )
+        val vm = open(id)
+        assertEquals(setOf("ana"), vm.uiState.value.selected)
+        assertTrue(vm.uiState.value.automatic.isEmpty())
+        vm.selectSplit(ExpenseSplit.EQUAL)
+        vm.save()
+        assertNull(ledger.observeExpenses("space-1").first().single().customAllocation)
+        val weights = open(id)
+        weights.selectSplit(ExpenseSplit.WEIGHTS)
+        weights.selectSplit(ExpenseSplit.EXACT)
+        assertTrue(weights.uiState.value.automatic.isEmpty())
+        weights.selectSplit(ExpenseSplit.WEIGHTS)
+        weights.save()
+        assertNull(ledger.observeExpenses("space-1").first().single().customAllocation)
+    }
+
+    @Test
+    fun formerZeroParticipantsAreLoadedFromMetadata() = runTest {
+        signIn()
+        val id = ledger.add(
+            "space-1", NewExpense(
+                "Old", "ana", mapOf("ana" to 1L), LocalDate(2026, 11, 1),
+                customAllocation = mapOf("ana" to true, "former" to false)
+            )
+        )
+        val spaces = FakeSpaceRepository(
+            Space("space-1", "Flat", 0, listOf("ana"), mapOf("former" to "Former")),
+            listOf(Member("ana", "Ana", null, Role.OWNER))
+        )
+        val vm = open(id, spaces)
+        assertEquals("Former", vm.uiState.value.people.first { it.id == "former" }.name)
+        assertEquals(moneyInput(0, locale), vm.uiState.value.exact["former"])
+        assertFalse("former" in vm.uiState.value.automatic)
+        assertTrue(vm.uiState.value.canSave)
+    }
+
+    @Test
     fun defaultsToTheSignedInPayerAndEveryoneAndWritesOnlyOnSave() = runTest {
         signIn()
         val vm = open()
@@ -106,6 +313,8 @@ class ExpenseViewModelTest {
         assertEquals(moneyInput(5000, locale), vm.uiState.value.shareInputs["ana"])
         assertTrue(vm.uiState.value.canSave)
         vm.onShareChange("ana", "60")
+        assertTrue(vm.uiState.value.canSave)
+        vm.onShareChange("bea", "50")
         assertEquals(1000L, vm.uiState.value.splitProgress?.excess)
         assertFalse(vm.uiState.value.canSave)
         vm.onShareChange("bea", "")
@@ -157,7 +366,7 @@ class ExpenseViewModelTest {
         assertEquals(moneyInput(334, locale), vm.uiState.value.exact["ana"])
         assertTrue(vm.uiState.value.canSave)
         vm.onShareChange("ana", moneyInput(400, locale))
-        assertFalse(vm.uiState.value.canSave)
+        assertTrue(vm.uiState.value.canSave)
         vm.onShareChange("bea", moneyInput(600, locale))
         vm.onShareChange("marc", "0")
         vm.selectPayer("bea")
@@ -202,7 +411,7 @@ class ExpenseViewModelTest {
         assertEquals(mapOf("ana" to 500L, "bea" to 500L), vm.uiState.value.shares)
         vm.selectSplit(ExpenseSplit.EXACT)
         vm.onShareChange("ana", "")
-        assertEquals(mapOf("ana" to 0L, "bea" to 500L), vm.uiState.value.shares)
+        assertEquals(mapOf("ana" to 0L, "bea" to 0L), vm.uiState.value.shares)
     }
 
     @Test

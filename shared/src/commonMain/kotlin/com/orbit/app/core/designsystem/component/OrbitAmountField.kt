@@ -7,7 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -16,6 +17,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
@@ -24,7 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 
-private val FieldWidth = 120.dp
+private val FieldWidth = OrbitSpacing.xl * 3
 private val FieldHeight = 48.dp
 private val ErrorStroke = 2.dp
 
@@ -49,13 +52,20 @@ fun OrbitAmountField(
     val style = OrbitTheme.data.medium.copy(color = scheme.onSurface, textAlign = TextAlign.End)
     val field = rememberFieldValue(value)
     val shape = MaterialTheme.shapes.medium
+    val parts = listOfNotNull(prefix, value.ifEmpty { placeholder }, suffix)
+    val measured = rememberTextMeasurer().measure(parts.joinToString(""), style, softWrap = false, maxLines = 1)
+    val density = LocalDensity.current
+    val width = maxOf(
+        FieldWidth,
+        with(density) { measured.size.width.toDp() } + OrbitSpacing.sm * 2 + OrbitSpacing.xs * (parts.size - 1))
+    val height = maxOf(FieldHeight, with(density) { measured.size.height.toDp() } + OrbitSpacing.sm * 2)
     BasicTextField(
         value = field.value,
         onValueChange = {
             field.value = it
             onValueChange(it.text)
         },
-        modifier = modifier.size(FieldWidth, FieldHeight).semantics { contentDescription = description },
+        modifier = modifier.width(width).height(height).semantics { contentDescription = description },
         enabled = enabled,
         textStyle = style,
         singleLine = true,

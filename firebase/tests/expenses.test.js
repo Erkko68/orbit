@@ -1,6 +1,7 @@
 import { describe, it, beforeEach } from 'node:test';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { serverTime, testEnv } from './setup.js';
+import { firebase, serverTime, testEnv } from './setup.js';
+import { deepStrictEqual } from 'node:assert/strict';
 
 describe('Expenses subcollection', () => {
   const expenses = (db) => db.collection('spaces').doc('s1').collection('expenses');
@@ -38,6 +39,34 @@ describe('Expenses subcollection', () => {
 
     await assertSucceeds(expenses(charlieDb).get());
     await assertFails(expenses(davidDb).get());
+  });
+
+  it('round trips optional allocation metadata including selected zero and former members', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('spaces').doc('s1').update({ formerMembers: { former: 'Former' } });
+    });
+    const db = testEnv.authenticatedContext('charlie').firestore();
+    const customAllocation = { alice: false, charlie: true, bob: true, former: false };
+    await assertSucceeds(expenses(db).doc('custom').set(expense({ customAllocation })));
+    const saved = await expenses(db).doc('custom').get();
+    deepStrictEqual(saved.data().customAllocation, customAllocation);
+    deepStrictEqual(saved.data().split, { alice: 620, charlie: 620 });
+    await assertSucceeds(expenses(db).doc('custom').update({ title: 'Renamed' }));
+    await assertSucceeds(expenses(db).doc('custom').update({ customAllocation: firebase.firestore.FieldValue.delete() }));
+  });
+
+  it('rejects malformed allocation metadata and preserves creation and authorization checks', async () => {
+    const db = testEnv.authenticatedContext('charlie').firestore();
+    for (const customAllocation of [null, [], {}, 'auto', { alice: 'automatic', charlie: true },
+      { alice: 1, charlie: true }, { alice: true }, { alice: true, charlie: true, unknown: false }]) {
+      await assertFails(expenses(db).doc('invalid').set(expense({ customAllocation })));
+      await assertFails(expenses(db).doc('e1').update({ customAllocation }));
+    }
+    const customAllocation = { alice: true, charlie: false };
+    await assertSucceeds(expenses(db).doc('e1').update({ customAllocation }));
+    await assertFails(expenses(db).doc('e1').update({ customAllocation, createdBy: 'charlie' }));
+    const outsider = testEnv.authenticatedContext('outsider').firestore();
+    await assertFails(expenses(outsider).doc('e1').update({ customAllocation }));
   });
 
   it('allows members to add an expense or a settlement as themselves', async () => {

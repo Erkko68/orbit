@@ -228,6 +228,7 @@ An entry of the ledger. Balances are derived from these on the device and never 
 | `title` | string | yes | 1 to 120 characters after trimming |
 | `paidBy` | uid | yes | Who paid. For a settlement, the debtor. |
 | `split` | map of uid to integer | yes | Cents each member owes, each above 0: the only amount stored, and the total is its sum. Replaced whole on an edit. For a settlement, one entry: the creditor. |
+| `customAllocation` | map of uid to boolean | no | Editing intent for Custom amounts/Percentages (#283): keys are selected participants, including zero shares; `true` is automatic, `false` manual. Covers every `split` key. No amounts or percentages. Removed when saving Equal/Weights. |
 | `date` | string | yes | `YYYY-MM-DD`, chosen by the user |
 | `kind` | string | yes | `expense` or `settlement`. Never changes. Unknown reads as `expense`, because it still moves money. |
 | `itemId` | string | no | The item whose Cost module made it (#58). Never changes. |
@@ -235,6 +236,12 @@ An entry of the ledger. Balances are derived from these on the device and never 
 | `createdAt` | timestamp | yes | Server time, never changes |
 
 A document without a required field, with an empty `split` or with a malformed `date` is skipped when read.
+
+Absent, unreadable or unsupported allocation metadata falls back to manual saved shares; it never drops an
+otherwise valid expense. The mapper checks coverage and non-blank ids; the editor also checks current/former
+membership, retaining existing debt participants. Reopening starts in Custom amounts with saved cents as-is,
+including automatic shares, until an allocation-related action occurs. Title, payer and date edits do not
+redistribute the debt. Zero participants survive through metadata. No bulk migration is needed (ADR 0012).
 
 `domain/usecase/CalculateBalances.kt` derives `Balances` from the ledger and the current member ids (#56).
 Each stored share credits its payer and debits the member who owes it; the payer's own share cancels out.
@@ -258,8 +265,12 @@ cents to distinct selected uids in sorted order. When cents are fewer than peopl
 as the schema requires positive stored shares. Exact input permits zero, omits it from storage, and must
 sum to the typed amount without overflowing Long. Weights and percentages (#55, a percentage is a weight
 out of 10 000 hundredths) take each share's floor and give the leftover cents, one each, to positive weights
-in uid order. Only the cents are stored, so reopening one shows Custom amounts. The expense form parses
-regional decimal/grouping separators without floating point and saves only after the user chooses Save. Editing starts with the
+in uid order. In #283's mixed allocation, Custom amounts instead divides only remaining cents between automatic
+people; Percentages divides the exact remaining proportion and gives residual cents only to fractional
+entitlements in uid order. Fully manual percentage rounding stays as in #55. The simple mode conversion may
+round individual cents; exact no-input round trips are not promised. Only cents carry monetary value, so reopening
+shows Custom amounts. The expense form parses regional decimal/grouping separators without floating point and
+saves only after the user chooses Save. Editing starts with the
 stored exact shares; deleting an entry uses the existing creator-or-manager permission.
 
 ### `invitations/{code}`
@@ -333,7 +344,7 @@ No method saves a whole existing item: every update writes only its field paths,
 |---|---|---|
 | `observeExpenses` | `spaces/{id}/expenses` | Listener on the whole ledger, sorted in the app (latest `date`, then latest `createdAt`), retried for a few seconds while refused |
 | `add` | `spaces/{id}/expenses/{expenseId}` | `set` of the whole new expense |
-| `edit` | same | `update` of `title`, `paidBy`, `split` and `date` |
+| `edit` | same | One `update` of `title`, `paidBy`, `split`, `date` and `customAllocation` (deleted when absent), so debt and editing intent are written together |
 | `delete` | same | `delete`. Deleting a settlement undoes it. |
 
 ### `FirestoreInvitationRepository`
