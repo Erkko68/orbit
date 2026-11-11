@@ -1,7 +1,7 @@
-# The assistant on our own server (ADR 0007): this backend and the model it asks, side by side.
+# The assistant on our own server (ADR 0007): this backend and the Gemma it asks, side by side.
 #   docker compose up -d --build
-#   docker compose exec ollama ollama pull gemma4:e2b   # once: the model tag set in ASSISTANT_MODEL
-# Put HTTPS in front of port 8080 (a reverse proxy); the app only talks HTTPS.
+# The model in ASSISTANT_MODEL is pulled on every start (the `model` service) before the assistant starts.
+# Put HTTPS in front of the published port (a reverse proxy or a tunnel); the app only talks HTTPS.
 services:
   assistant:
     build: .
@@ -13,13 +13,11 @@ services:
     environment:
       # An orbit-app-dev API key allowed to call the Identity Toolkit API: checks the callers' ID tokens.
       FIREBASE_API_KEY: ${FIREBASE_API_KEY:?set FIREBASE_API_KEY in .env}
-      ASSISTANT_PROVIDER: ${ASSISTANT_PROVIDER:-local}
       ASSISTANT_MODEL: ${ASSISTANT_MODEL:-gemma4:e2b}
       MODEL_URL: http://ollama:11434/v1
-      # Only for ASSISTANT_PROVIDER=gemini.
-      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
     depends_on:
-      - ollama
+      model:
+        condition: service_completed_successfully
 
   ollama:
     image: ollama/ollama
@@ -27,6 +25,20 @@ services:
     # Not published: only the assistant reaches the model, over the compose network.
     volumes:
       - ollama:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      retries: 30
+
+  # Pulls ASSISTANT_MODEL into Ollama, then exits. A model already in the volume is only checked, so restarts are quick.
+  model:
+    image: ollama/ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["ollama", "pull", "${ASSISTANT_MODEL:-gemma4:e2b}"]
+    depends_on:
+      ollama:
+        condition: service_healthy
 
 volumes:
   ollama:

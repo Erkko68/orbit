@@ -12,7 +12,7 @@ server/
 │   ├── api.py           the HTTP server (http.server): answers in the callable shape
 │   ├── auth.py          the check of the caller's Firebase ID token
 │   ├── interview.py     the interview and the check of what the model answers, testable without the server
-│   ├── providers.py     the models it can ask (Gemma 4 on Ollama, Gemini), chosen by configuration
+│   ├── providers.py     the model it asks: Gemma 4 on Ollama, its size by configuration
 │   ├── net.py           JSON over HTTP
 │   └── proposals.py     the catalogue's schemas, loaded whole for the model
 ├── prompts/             the prompts, as files
@@ -122,10 +122,9 @@ The plan says which version it follows (`"version": 1`), and `PLAN_VERSION` is t
 |---|---|---|
 | `FIREBASE_API_KEY` | | An `orbit-app-dev` API key allowed to call the Identity Toolkit API, to check ID tokens. Make one for the server in Google Cloud (Credentials → API key → restrict to Identity Toolkit API): the apps' keys are restricted to the apps. In `.env`, never committed |
 | `HOST`, `PORT` | `0.0.0.0`, `8080` | Where the server listens |
-| `ASSISTANT_PROVIDER` | `local` | `local` (an OpenAI-compatible endpoint, such as Ollama) or `gemini` |
-| `ASSISTANT_MODEL` | `gemma4:e2b` (local), `gemini-3.5-flash` (gemini) | The model's name for that provider. For Ollama, the tag it was pulled with. `gemma4:e2b` is Gemma 4's smallest, made for phones, so it runs on a CPU in little memory; `gemma4:e4b` is the next size up |
-| `MODEL_URL` | `http://ollama:11434/v1` | The OpenAI-compatible endpoint, for `local` |
-| `GEMINI_API_KEY` | | Gemini's API key from AI Studio, for `gemini` (the free tier needs no billing). In `.env`, never committed |
+| `ASSISTANT_MODEL` | `gemma4:e2b` | The Gemma tag in Ollama. The stack pulls it when it starts. `gemma4:e2b` is Gemma 4's smallest, made for phones, so it runs on a CPU in little memory; `gemma4:e4b` is the next size up |
+| `MODEL_URL` | `http://ollama:11434/v1` | Ollama's OpenAI-compatible endpoint |
+| `ASSISTANT_PORT` | `8080` | The host port compose publishes the server on |
 
 ## Deploying
 
@@ -133,10 +132,11 @@ On the server, from `server/`:
 
 ```sh
 docker compose up -d --build
-docker compose exec ollama ollama pull gemma4:e2b   # once; the tag in ASSISTANT_MODEL
 ```
 
-Port 8080 needs HTTPS in front of it (a reverse proxy): the app only talks HTTPS. Ollama is not published, so only the server reaches the model.
+The `model` service pulls `ASSISTANT_MODEL` into Ollama and exits, and the assistant starts only after it. The first start downloads the model, so it takes a few minutes; later ones only check it.
+
+On our server it runs as a Portainer stack from this repository (compose path `server/compose.yaml`, `FIREBASE_API_KEY` and `ASSISTANT_PORT` as the stack's variables), behind a Cloudflare tunnel. The published port needs HTTPS in front of it (a reverse proxy or a tunnel): the app only talks HTTPS. Ollama is not published, so only the server reaches the model.
 
 The Firestore rules and indexes still deploy from `firebase/`: `npx firebase deploy --only firestore:rules,firestore:indexes`.
 
