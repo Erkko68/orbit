@@ -6,60 +6,64 @@
 [![Compose Multiplatform](https://img.shields.io/badge/Compose-Multiplatform-4285F4?logo=jetpackcompose)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![Firebase](https://img.shields.io/badge/Backend-Firebase-FFCA28?logo=firebase)](https://firebase.google.com)
 
-**Orbit** organises any group that shares responsibilities (flatmates, families, couples, trips, teams) on **Android** and **iOS**. Each group is a **space** whose members share tasks, rotating chores, bills, lists, events and expenses, synced in real time and usable offline.
+Orbit organises a group that shares responsibilities (flatmates, a family, a trip, a team) on Android and iOS. Each group is a **space**: its members share tasks, lists, events and expenses, synced in real time through Firebase and usable offline. One Kotlin Multiplatform codebase draws both apps with Compose.
 
-> [!NOTE]
-> **You stay in charge.** A cloud AI assistant asks a few short questions and proposes a plan for the space, but nothing it proposes is saved until you confirm it, and everything it does can also be done by hand.
+## What it does
 
-## Features
+- **Spaces and members.** Create a space or join one with an 8-character code or a link. Owners and admins invite, rename and remove; the owner changes roles and hands the space over.
+- **Items.** One form for every task, chore or list: who has it, when (with a time, a window or a repeat), a reminder, a description, a checklist and its history. Ticking it finishes it for everyone; a repeating one moves to its next date.
+- **Tasks and Calendar.** "Your turn" shows what is yours next; overdue items stand out; the calendar shows the month and a list by day.
+- **Expenses.** Who paid, split equally, by percentage, by weight or by amount; balances work out who owes whom and how to settle up in the fewest payments.
+- **Assistant.** A short interview, typed or dictated, proposes a plan for the space. Nothing it proposes is saved until a member confirms it, and everything it does can also be done by hand.
+- **Account.** Email or Google sign-in, either way into the same account, a forgotten password reset by email, and account deletion.
 
-- **Spaces and members**: email or Google sign-in, invitations by link or code, and roles (owner, admin, member).
-- **One flexible item**: a title plus the modules it needs (a schedule, who has it, a checklist, a reminder).
-- **Offline first**: everything reads from and writes to the local cache, and syncs when the connection is back.
-- **Coming next**: the planning assistant, agenda and calendar, rotating chores, expenses and balances, a receipt scanner. See the [scope by sprint](docs/product/overview.md#scope-by-sprint).
+## Getting started
 
-## Platform support
+You need **JDK 17+**, **Android Studio** or **IntelliJ IDEA** with the Kotlin Multiplatform plugin, and **Xcode** for iOS. The Firebase configs are in the repository, so a build talks to the project's Firebase (`orbit-app-dev`) straight away.
 
-- **Android**: minSdk 24, built and tested on every PR.
-- **iOS**: built and tested on the simulator only. The project has no paid Apple Developer account, so it cannot sign for a device or get an APNs key: push notifications do not reach iOS. Local notifications work. A push can be simulated with `xcrun simctl push booted com.orbit.app <file>.apns`.
-
-## Quick start
-
-You need JDK 17 or later, Android Studio or IntelliJ IDEA, and Xcode for iOS. The Firebase app configs are in the repository, so the app runs against the project's Firebase as soon as it builds.
-
-```sh
-./gradlew :androidApp:assembleDebug        # Android, or the androidApp run configuration
-open iosApp/iosApp.xcodeproj               # iOS: run from Xcode, it builds the shared framework through Gradle
-./gradlew :shared:testAndroidHostTest :shared:iosSimulatorArm64Test   # tests
-```
-
-Firestore rules and their tests live in `firebase/`; see [Security rules](docs/data/security-rules.md#running-the-tests).
-
-## Project structure
-
-| Module | Contents |
+| To | Run |
 | :--- | :--- |
-| `shared` | All app code in Kotlin Multiplatform: Compose UI, ViewModels, domain, Firestore repositories, Koin. Platform code only where Android and iOS differ. |
-| `androidApp` | The Android entry point. |
-| `iosApp` | The Xcode project and SwiftUI entry point. |
-| `firebase` | Firestore security rules and their emulator tests. |
-| `server` | The assistant's backend in Python, in Docker next to its model (Gemma 4 on Ollama). |
-| `docs` | Architecture, schema, roles, workflow and decision records. |
+| Build and run on Android | The `androidApp` run configuration, or `./gradlew :androidApp:installDebug` |
+| Run on iOS | `open iosApp/iosApp.xcodeproj`, pick a simulator, Run. Xcode builds the shared framework through Gradle |
+| Run the app's tests | `./gradlew :shared:testAndroidHostTest :shared:iosSimulatorArm64Test` |
+| Check what CI checks | `./gradlew :androidApp:assembleDebug :shared:compileKotlinIosSimulatorArm64` |
+| Test the Firestore rules | From `firebase/`: `npm ci`, then `npx firebase emulators:exec --only firestore "npm test"` |
+| Test the assistant server | From `server/`: `pip install -r requirements-dev.txt`, then `pytest` |
 
-Inside `shared`, code is split into `feature/` (screens and their ViewModels), `domain/` (pure Kotlin models and rules), `data/` (Firestore) and `core/` (design system, navigation, shared helpers). See the [architecture overview](docs/architecture/overview.md).
+**The assistant** needs its own server ([ADR 0007](docs/adr/0007-assistant-on-our-own-server.md)). From `server/`, put `FIREBASE_API_KEY=…` in a `.env` file, run `docker compose up -d --build`, then once `docker compose exec ollama ollama pull gemma4:e2b`, and put HTTPS in front of port 8080. The app calls `ASSISTANT_SERVER_URL` in `ServerAssistantRepository.kt`, a placeholder until the server has an address. Without it, everything but the assistant works, and its manual path always does.
 
-**Built with** Kotlin 2.4, Compose Multiplatform 1.12 with Material 3, Navigation Compose, Koin, Firebase (Authentication, Firestore) through GitLive, kotlinx coroutines, serialization and datetime, Multiplatform Settings, Coil and Kermit. Versions are in [`gradle/libs.versions.toml`](gradle/libs.versions.toml).
+**Google sign-in on Android** needs your debug key's SHA-1 added to the Firebase Android app; without it, the sign-in fails with `NoCredentialException`.
+
+## Where things are
+
+| Path | What it holds |
+| :--- | :--- |
+| `shared/src/commonMain/.../feature/` | One folder per screen: its composables in `ui/`, its `ViewModel` and `UiState` |
+| `shared/src/commonMain/.../domain/` | Plain Kotlin: models, validation, repository interfaces and use cases such as balances |
+| `shared/src/commonMain/.../data/` | The Firebase repositories and Firestore mappers |
+| `shared/src/commonMain/.../core/designsystem/` | The theme (`Color.kt`, `Type.kt`) and the `Orbit…` components every screen is built from |
+| `shared/src/commonMain/composeResources/` | Strings in English, Spanish, Catalan and Italian, icons and fonts |
+| `shared/src/commonTest/` | Unit and Compose UI tests, run on Android (Robolectric) and iOS; the fakes are in `testing/` |
+| `androidApp/`, `iosApp/` | The platform entry points |
+| `firebase/` | `firestore.rules` and their emulator tests |
+| `server/` | The assistant: a small Python server in Docker, next to its model |
+| `docs/` | Architecture, Firestore schema, roles, workflow and decision records |
+
+A change usually goes UI → `ViewModel` → repository interface in `domain/` → Firebase implementation in `data/`. The [architecture overview](docs/architecture/overview.md) walks through one end to end.
+
+## Platform notes
+
+- **Android**: minSdk 24, built and tested on every pull request.
+- **iOS**: runs on the simulator. Without a paid Apple Developer account the app cannot be signed for a device or receive push notifications; local reminders work, and a push can be simulated with `xcrun simctl push booted com.orbit.app <file>.apns`.
 
 ## Documentation
 
-- **[Product overview](docs/product/overview.md)**: what Orbit does, its principles, the scope by sprint and a glossary.
-- **[Architecture](docs/architecture/overview.md)**: modules, layers, navigation and one change end to end, then [State and ViewModels](docs/architecture/state-and-viewmodels.md), [Offline and sync](docs/architecture/offline-and-sync.md), [Authentication](docs/architecture/authentication.md) and the [Design system](docs/architecture/design-system.md).
-- **[Firestore schema](docs/data/firestore-schema.md)**: every collection, field, query and write.
-- **[Security rules and roles](docs/data/security-rules.md)**: who may read and change what.
-- **[Decision records](docs/adr/README.md)**: why things are the way they are.
-- **[Workflow](docs/process/workflow.md)** and **[Testing](docs/process/testing.md)**: from an issue to a merged pull request.
-- **[Builds and deployment](docs/process/builds-and-deployment.md)**: what CI checks, how the apps are built and what is deployed to Firebase.
+- [Product overview](docs/product/overview.md): what Orbit does, its principles, the scope by sprint and a glossary.
+- [Architecture](docs/architecture/overview.md), then [State and ViewModels](docs/architecture/state-and-viewmodels.md), [Offline and sync](docs/architecture/offline-and-sync.md), [Authentication](docs/architecture/authentication.md) and the [Design system](docs/architecture/design-system.md).
+- [Firestore schema](docs/data/firestore-schema.md) and [Security rules and roles](docs/data/security-rules.md).
+- [Decision records](docs/adr/README.md): why things are the way they are.
+- [Workflow](docs/process/workflow.md), [Testing](docs/process/testing.md) and [Builds and deployment](docs/process/builds-and-deployment.md).
 
 ## Contributing
 
-Work is tracked on the [project board](https://github.com/users/Erkko68/projects/3), with one milestone per sprint, and every change starts from an issue. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow and [AGENTS.md](AGENTS.md) for the rules every change follows, whether written by a person or an AI agent.
+Every change starts from an issue on the [project board](https://github.com/users/Erkko68/projects/3) and lands through a reviewed pull request. [CONTRIBUTING.md](CONTRIBUTING.md) has the workflow and [AGENTS.md](AGENTS.md) the rules every change follows, whether a person or an AI agent writes it.
