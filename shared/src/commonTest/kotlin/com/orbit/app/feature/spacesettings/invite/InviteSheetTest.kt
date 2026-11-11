@@ -59,42 +59,44 @@ class InviteSheetTest : ComposeTest() {
     }
 
     @Test
-    fun offersTheOwnerToCreateAnInvitation() = runComposeUiTest {
-        showCard(ownedSpace(), InMemoryInvitationRepository(auth))
+    fun opensOnACodeMadeForItAndShowsIt() = runComposeUiTest {
+        val invitations = InMemoryInvitationRepository(auth)
+        showCard(ownedSpace(), invitations)
+        waitForIdle()
 
-        onNodeWithContentDescription("Close").assertIsDisplayed()
-        onNodeWithText("Create invitation").assertIsEnabled()
-        onNodeWithText("Share").assertDoesNotExist()
+        val invitation = runBlocking { invitations.observeInvitations("space-1").first().single() }
+        onNodeWithContentDescription(invitation.code).assertIsDisplayed()
+        onNodeWithText("Share").assertIsDisplayed()
+        onNodeWithText("New code").assertIsEnabled()
     }
 
     @Test
-    fun opensAtOnceButOffersToCreateOnlyOnceTheInvitationsArrive() = runComposeUiTest {
+    fun reopeningKeepsTheSameCode() = runComposeUiTest {
+        val invitations = InMemoryInvitationRepository(auth)
+        showCard(ownedSpace(), invitations)
+        waitForIdle()
+
+        onNodeWithContentDescription("Close").performClick()
+        onNodeWithText("Invite people").performScrollTo().performClick()
+        waitForIdle()
+
+        assertEquals(1, runBlocking { invitations.observeInvitations("space-1").first() }.size)
+    }
+
+    @Test
+    fun waitsForTheInvitationsBeforeMakingOne() = runComposeUiTest {
         showCard(ownedSpace(), FailingInvitationRepository(neverLoad = true))
 
         onNodeWithContentDescription("Close").assertIsDisplayed()
-        onNodeWithText("Create invitation").assertIsNotEnabled()
-    }
-
-    @Test
-    fun createsAnInvitationAndShowsItsCodeAndLink() = runComposeUiTest {
-        val invitations = InMemoryInvitationRepository(auth)
-        showCard(ownedSpace(), invitations)
-
-        onNodeWithText("Create invitation").performClick()
-
-        val invitation = runBlocking { invitations.observeInvitations("space-1").first().single() }
-        onNodeWithText(invitation.code).assertIsDisplayed()
-        onNodeWithText(invitation.link).assertIsDisplayed()
-        onNodeWithText("Share").assertIsDisplayed()
-        onNodeWithText("Revoke").assertIsDisplayed()
-        onNodeWithText("Create invitation").assertDoesNotExist()
+        onNodeWithText("Share").assertDoesNotExist()
+        onNodeWithText("Try again").assertDoesNotExist()
     }
 
     @Test
     fun sharesTheLinkAndTheCodeWithTheSpaceName() = runComposeUiTest {
         val invitations = InMemoryInvitationRepository(auth)
         showCard(ownedSpace(), invitations)
-        onNodeWithText("Create invitation").performClick()
+        waitForIdle()
         val invitation = runBlocking { invitations.observeInvitations("space-1").first().single() }
 
         onNodeWithText("Share").performClick()
@@ -106,37 +108,29 @@ class InviteSheetTest : ComposeTest() {
     }
 
     @Test
-    fun revokingGoesBackToOfferingANewInvitation() = runComposeUiTest {
-        showCard(ownedSpace(), InMemoryInvitationRepository(auth))
-        onNodeWithText("Create invitation").performClick()
+    fun aNewCodeReplacesTheOldOne() = runComposeUiTest {
+        val invitations = InMemoryInvitationRepository(auth)
+        showCard(ownedSpace(), invitations)
+        waitForIdle()
+        val old = runBlocking { invitations.observeInvitations("space-1").first().single() }
 
-        onNodeWithText("Revoke").performClick()
+        onNodeWithText("New code").performClick()
+        waitForIdle()
 
-        onNodeWithText("Create invitation").assertIsDisplayed()
-        onNodeWithText("Share").assertDoesNotExist()
+        val all = runBlocking { invitations.observeInvitations("space-1").first() }
+        assertTrue(all.single { it.code == old.code }.revoked)
+        val fresh = all.single { !it.revoked }
+        onNodeWithContentDescription(fresh.code).assertIsDisplayed()
         assertEquals(emptyList(), shared)
     }
 
     @Test
-    fun saysWhenTheInvitationCouldNotBeCreated() = runComposeUiTest {
+    fun saysWhenTheCodeCouldNotBeMadeAndOffersToTryAgain() = runComposeUiTest {
         showCard(ownedSpace(), FailingInvitationRepository())
-
-        onNodeWithText("Create invitation").performClick()
+        waitForIdle()
 
         onNodeWithText("Could not create the invitation. Try again.").assertIsDisplayed()
-        onNodeWithText("Create invitation").assertIsEnabled()
-    }
-
-    @Test
-    fun closingTheSheetForgetsAFailure() = runComposeUiTest {
-        showCard(ownedSpace(), FailingInvitationRepository())
-        onNodeWithText("Create invitation").performClick()
-
-        onNodeWithContentDescription("Close").performClick()
-        onNodeWithText("Create invitation").assertDoesNotExist()
-        onNodeWithText("Invite people").performScrollTo().performClick()
-
-        onNodeWithContentDescription("Close").assertIsDisplayed()
-        onNodeWithText("Could not create the invitation. Try again.").assertDoesNotExist()
+        onNodeWithText("Try again").assertIsEnabled()
+        onNodeWithText("Share").assertDoesNotExist()
     }
 }

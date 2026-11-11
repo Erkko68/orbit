@@ -2,7 +2,7 @@ package com.orbit.app.feature.spacesettings.invite
 
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.invite_create_failed
-import orbit.shared.generated.resources.invite_revoke_failed
+import orbit.shared.generated.resources.invite_renew_failed
 import org.jetbrains.compose.resources.StringResource
 
 /** The invitation sheet of the settings of a space. It only opens for an owner or admin. */
@@ -15,9 +15,9 @@ data class InviteUiState(
     val loading: Boolean = false,
     /** The invitation that works now, if there is one. */
     val invitation: ActiveInvitation? = null,
-    /** An invitation is being created or revoked. */
+    /** An invitation is being made or replaced. */
     val busy: Boolean = false,
-    /** The last create or revoke failed. Cleared by the next attempt or by closing the dialog. */
+    /** The last create or renewal failed. Cleared by the next attempt or by closing the dialog. */
     val failure: InviteFailure? = null,
 )
 
@@ -25,5 +25,5 @@ data class ActiveInvitation(val code: String, val link: String)
 
 enum class InviteFailure(val message: StringResource) {
     CREATE(Res.string.invite_create_failed),
-    REVOKE(Res.string.invite_revoke_failed),
+    RENEW(Res.string.invite_renew_failed),
 }

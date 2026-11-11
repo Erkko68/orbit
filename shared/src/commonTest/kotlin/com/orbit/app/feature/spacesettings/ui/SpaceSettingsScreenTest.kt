@@ -113,7 +113,7 @@ class SpaceSettingsScreenTest : ComposeTest() {
 
         onNodeWithText("Invite people").performScrollTo().performClick()
 
-        onNodeWithText("Create invitation").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Share").performScrollTo().assertIsDisplayed()
     }
 
     @Test

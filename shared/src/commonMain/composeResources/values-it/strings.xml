@@ -35,7 +35,7 @@
     <string name="account_set_password_body">Accedi anche con la tua email, oltre che con Google.</string>
     <string name="account_connect_google">Collega Google</string>
     <string name="account_connect_google_body">Accedi anche con Google, oltre che con la tua email.</string>
-    <string name="account_connect_google_warning">Scegli l'account Google con cui accedere. I tuoi spazi restano come sono.</string>
+    <string name="account_connect_google_warning">Scegli l&apos;account Google con cui accedere. I tuoi spazi restano come sono.</string>
     <string name="account_current_password">Password attuale</string>
     <string name="account_new_password">Nuova password</string>
     <string name="account_sign_out">Esci</string>
@@ -261,15 +261,13 @@
     <string name="reminder_remove">Rimuovi %1$s</string>
     <string name="reminder_add">Aggiungi promemoria</string>
     <string name="invite_title">Invita persone</string>
-    <string name="invite_none">Crea un link e un codice. Chiunque li abbia può unirsi a questo spazio per una settimana, o finché non li revochi.</string>
-    <string name="invite_create">Crea invito</string>
     <string name="invite_code_label">Codice di invito</string>
-    <string name="invite_valid">Valido per una settimana, o finché non lo revochi.</string>
+    <string name="invite_valid">Chiunque abbia questo codice o link può unirsi per una settimana.</string>
     <string name="invite_share">Condividi</string>
-    <string name="invite_revoke">Revoca</string>
+    <string name="invite_renew">Nuovo codice</string>
     <string name="invite_share_message">Unisciti a “%1$s” su Orbit: apri %2$s o inserisci il codice %3$s.</string>
     <string name="invite_create_failed">Impossibile creare l&apos;invito. Riprova.</string>
-    <string name="invite_revoke_failed">Impossibile revocare l&apos;invito. Riprova.</string>
+    <string name="invite_renew_failed">Impossibile creare un nuovo codice. Riprova.</string>
     <string name="notification_permission_title">Le notifiche sono disattivate</string>
     <string name="notification_permission_body">Orbit può inviarti promemoria solo se consenti le notifiche. Attivale nelle impostazioni.</string>
     <string name="notification_permission_open_settings">Apri impostazioni</string>
