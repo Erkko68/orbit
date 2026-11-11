@@ -14,6 +14,9 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 /** Every text color the base components draw passes WCAG AA (4.5:1) on each fill they draw it on. */
+/** The smallest step between two surfaces that the eye still reads as one on top of the other. */
+private const val SURFACE_STEP = 1.15f
+
 class ComponentContrastTest {
 
     private fun ColorScheme.textOnFill(): Map<String, Pair<Color, Color>> = mapOf(
@@ -51,6 +54,22 @@ class ComponentContrastTest {
         "an unselected tab" to (inkTertiary to scheme.surfaceBright),
     )
 
+    /**
+     * Surfaces that must stand apart from what they sit on, though they carry no text of their own: the page, a panel
+     * on it, a field in the panel, and a tonal button wherever it goes. A flat page makes these the only depth (#293).
+     */
+    private fun ColorScheme.surfaceSteps(): Map<String, Pair<Color, Color>> = mapOf(
+        "a panel on the page" to (surfaceBright to surface),
+        "a field or a chip in a panel" to (surfaceContainer to surfaceBright),
+        "a tonal button on the page" to (secondaryContainer to surface),
+        "a tonal button on a panel" to (secondaryContainer to surfaceBright),
+    )
+
+    private fun assertStandsApart(pairs: Map<String, Pair<Color, Color>>) = pairs.forEach { (use, colors) ->
+        val ratio = contrast(colors.first, colors.second)
+        assertTrue(ratio >= SURFACE_STEP, "$use is $ratio:1")
+    }
+
     private fun contrast(a: Color, b: Color): Float {
         val lighter = maxOf(a.luminance(), b.luminance())
         val darker = minOf(a.luminance(), b.luminance())
@@ -61,6 +80,12 @@ class ComponentContrastTest {
         val ratio = contrast(colors.first, colors.second)
         assertTrue(ratio >= 4.5f, "$use is $ratio:1")
     }
+
+    @Test
+    fun lightSurfacesStandApart() = assertStandsApart(LightColors.surfaceSteps())
+
+    @Test
+    fun darkSurfacesStandApart() = assertStandsApart(DarkColors.surfaceSteps())
 
     @Test
     fun lightSchemeIsAA() = assertAA(LightColors.textOnFill())
