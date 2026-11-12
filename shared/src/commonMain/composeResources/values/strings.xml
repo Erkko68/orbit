@@ -413,4 +413,14 @@
     <string name="expenses_nothing_for_you">Nothing for you to settle.</string>
     <string name="expenses_paid_to">%1$s paid %2$s</string>
     <string name="expenses_row_detail">%1$s · %2$s</string>
+
+    <!-- Item cost (#58) -->
+    <string name="item_cost">Cost</string>
+    <string name="item_add_cost">Add a cost</string>
+    <string name="cost_equal_hint">Split equally between the selected people. The expense is recorded when the item is completed.</string>
+    <string name="cost_members_invalid">Select a current payer and at least one current participant.</string>
+    <string name="cost_remove">Remove cost</string>
+    <string name="cost_completion_invalid">Check the cost, payer and participants before completing this activity.</string>
+    <string name="expense_source_item">Source activity</string>
+    <string name="expense_open_item">Open the activity that created this expense</string>
 </resources>
