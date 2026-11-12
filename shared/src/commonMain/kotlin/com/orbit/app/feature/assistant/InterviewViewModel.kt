@@ -15,8 +15,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * The assistant's interview: once the user consents, one question at a time, each answered with chips, words or both.
- * The words can be dictated: they go after what was already written.
+ * The assistant's interview, as a chat: once the user consents, one question at a time, each answered with chips,
+ * words or both. The words can be dictated: they go after what was already written.
  */
 class InterviewViewModel(private val assistant: AssistantRepository) : ViewModel() {
     private val state = MutableStateFlow(InterviewUiState())
@@ -24,8 +24,14 @@ class InterviewViewModel(private val assistant: AssistantRepository) : ViewModel
 
     private var answers: List<InterviewAnswer> = emptyList()
 
-    /** What was written when the current dictation began: what is heard goes after it. */
+    /** What was written when the current dictation began, or last edited by hand: what is heard goes after it. */
     private var beforeDictation = ""
+
+    /** Everything the current dictation has heard. The recogniser sends it all again with each new word. */
+    private var heard = ""
+
+    /** How many of the [heard] words were there at the last edit by hand: they are written, or deleted, already. */
+    private var wordsTaken = 0
 
     /** The user accepted the consent notice: the interview starts. */
     fun onConsent() {
@@ -44,22 +50,46 @@ class InterviewViewModel(private val assistant: AssistantRepository) : ViewModel
         current.copy(selected = selected)
     }
 
-    fun onTextChange(text: String) = state.update { it.copy(text = text) }
+    /** The user typed or deleted: while dictating, only what is heard after this goes after it. */
+    fun onTextChange(text: String) {
+        beforeDictation = text.trimEnd()
+        wordsTaken = words(heard).size
+        state.update { it.copy(text = text) }
+    }
 
     fun onDictationStart() {
         beforeDictation = state.value.text.trimEnd()
+        heard = ""
+        wordsTaken = 0
     }
 
-    fun onDictation(heard: String) = state.update {
-        it.copy(text = listOf(beforeDictation, heard).filter(String::isNotBlank).joinToString(" "))
+    fun onDictation(heard: String) {
+        this.heard = heard
+        val new = words(heard).drop(wordsTaken).joinToString(" ")
+        state.update { it.copy(text = listOf(beforeDictation, new).filter(String::isNotBlank).joinToString(" ")) }
     }
+
+    private fun words(text: String) = text.split(' ').filter(String::isNotBlank)
 
     /** Sends the answer and asks for the next step. */
     fun send() {
         val current = state.value
         val question = current.question ?: return
         if (!current.canSend) return
-        answers = answers + InterviewAnswer(question.id, current.selected, current.text.trim())
+        val text = current.text.trim()
+        answers = answers + InterviewAnswer(question.id, current.selected, text)
+        // What dictation heard is in this answer now: the next one starts empty.
+        beforeDictation = ""
+        wordsTaken = words(heard).size
+        val said = (question.options.filter { it in current.selected } + text).filter(String::isNotEmpty)
+        state.update {
+            it.copy(
+                messages = it.messages + ChatMessage(said.joinToString(", "), mine = true),
+                question = null,
+                selected = emptySet(),
+                text = "",
+            )
+        }
         ask()
     }
 
@@ -75,8 +105,11 @@ class InterviewViewModel(private val assistant: AssistantRepository) : ViewModel
                 onSuccess = { step ->
                     state.update {
                         when (step) {
-                            is InterviewStep.Ask ->
-                                InterviewUiState(consented = true, question = step.question)
+                            is InterviewStep.Ask -> it.copy(
+                                messages = it.messages + ChatMessage(step.question.text, mine = false),
+                                question = step.question,
+                                loading = false,
+                            )
                             is InterviewStep.PlanReady -> it.copy(loading = false, planReady = true)
                         }
                     }

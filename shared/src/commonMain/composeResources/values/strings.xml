@@ -282,16 +282,19 @@
     <string name="dictation_error">Dictation stopped. Try again, or type your answer.</string>
     <!-- Assistant interview -->
     <string name="interview_title">Set up with the assistant</string>
-    <string name="interview_loading">Thinking of the next question…</string>
-    <string name="interview_answer_placeholder">Or answer in your own words</string>
+    <string name="interview_loading">Thinking…</string>
+    <string name="interview_answer_placeholder">Answer in your own words</string>
     <string name="interview_send">Send</string>
-    <string name="interview_manual">Set up by hand instead</string>
-    <string name="interview_error_title">The assistant stopped</string>
-    <string name="interview_error_network">No connection. Check your internet and try again.</string>
-    <string name="interview_error_quota">You have used the assistant all you can for now. You can set up by hand.</string>
-    <string name="interview_error_disabled">The assistant is switched off for now. You can set up by hand.</string>
-    <string name="interview_error_unavailable">The assistant is not answering right now. Try again, or set up by hand.</string>
-    <string name="interview_error_unknown">Something went wrong. Try again, or set up by hand.</string>
+    <string name="interview_error_network_title">Can&apos;t connect</string>
+    <string name="interview_error_network">Check your internet and try again. Your answers so far are kept.</string>
+    <string name="interview_error_quota_title">That&apos;s all for now</string>
+    <string name="interview_error_quota">You have used the assistant all you can for now. Close the chat to add things by hand.</string>
+    <string name="interview_error_disabled_title">The assistant is switched off</string>
+    <string name="interview_error_disabled">It is off for everyone for now. Close the chat to add things by hand.</string>
+    <string name="interview_error_unavailable_title">The assistant is not available</string>
+    <string name="interview_error_unavailable">It is not answering right now. Try again in a moment, or close the chat and add things by hand.</string>
+    <string name="interview_error_unknown_title">Something went wrong</string>
+    <string name="interview_error_unknown">Try again, or close the chat and add things by hand.</string>
     <!-- AI consent -->
     <string name="ai_consent_title">Before the assistant starts</string>
     <string name="ai_consent_body">To suggest a plan, Orbit sends your answers, and the titles of the space's items and the names of its members, to an AI provider (Google Gemini).</string>
