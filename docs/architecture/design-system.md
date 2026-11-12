@@ -28,7 +28,7 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 
 | Component | Use it for |
 |---|---|
-| `OrbitScreen` | Every screen: the page, scaffold, insets, gutter, gaps and scrolling (`scrollable = true`, or `list` for a lazy list). `primaryAction` pins a form's one button at the bottom, `collapsingTopBar` slides the top away on scroll |
+| `OrbitScreen` | Every screen: the page, scaffold, insets, gutter, gaps and scrolling (`scrollable = true`, or `list` for a lazy list). `primaryAction` pins a form's one button at the bottom, `collapsingTopBar` slides the top away on scroll, `chat` grows a `list` up from the bottom |
 | `OrbitTopBar` | The top of a signed-in screen, on the page. The title can be a button, as a space's opens the list of spaces |
 | `OrbitColorHeader` | The top of a screen about one thing: a vivid block with its title, a face and a detail line. It shows; only an item's title is typed in it, with a pencil |
 | `OrbitHero` | The big bold opening of a screen, on the page |
@@ -61,7 +61,8 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | `OrbitMoneyField` | The amount a form is about, such as an expense's total: its own panel with a big number in the data type |
 | `OrbitCodeTiles` | A short code, one character per tile, coming in tile by tile when it is made |
 | `OrbitTurnCard` | The one hero moment: what is the user's to do now |
-| `OrbitQuestionCard` | A question with answer chips (the assistant) |
+| `OrbitChatBubble` | One message of a chat (the assistant): the other side's on a panel at the left, the user's in blue at the right. Takes what answers it, such as chips, and a spinner while it is written |
+| `OrbitChatComposer` | The bottom of a chat, in `OrbitScreen`'s `bottomBar`: a field and a round send button, above the keyboard |
 | `OrbitAvatar` | A member's photo or initials |
 | `OrbitFaceStack` | Who has something: up to four still faces and "+N". Tappable as one button, as in a space's top bar |
 | `OrbitShapeBadge` | An icon or the mark on an expressive shape |
