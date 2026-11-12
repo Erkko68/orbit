@@ -6,6 +6,7 @@ import com.orbit.app.core.euroBeforeAmount
 import com.orbit.app.core.moneyInput
 import com.orbit.app.core.parseMoney
 import com.orbit.app.domain.model.Expense
+import com.orbit.app.domain.model.ExpenseError
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.validateExpense
 import com.orbit.app.domain.usecase.HUNDRED_PERCENT
@@ -51,6 +52,12 @@ data class ExpenseUiState(
     val people: List<ItemFace> = emptyList(),
     val locale: MoneyLocale = MoneyLocale(".", ","),
     val original: Expense? = null,
+    /** The stored shares being edited: the ledger entry's, or the planned cost's. */
+    val saved: Map<String, Long>? = null,
+    /** Planning an item's cost (#300): its title and the day it is done come from the item, and Save writes to it. */
+    val planning: Boolean = false,
+    /** A new item's planned cost, handed back to its screen as it closes (see `encodePlannedCost`). */
+    val plannedCost: String? = null,
     val sourceItemTitle: String? = null,
     val member: Member? = null,
     val submitting: Boolean = false,
@@ -159,7 +166,7 @@ data class ExpenseUiState(
         get() {
             val total = cents ?: return null
             if (selected.isEmpty() || selected.any { id -> people.none { it.id == id } }) return null
-            if (mode == ExpenseSplit.EXACT && !allocationChanged && original != null) return original.split
+            if (mode == ExpenseSplit.EXACT && !allocationChanged && saved != null) return saved
             if (mode == ExpenseSplit.EQUAL) return splitEqually(total, selected)
             val values = manualValues ?: return null
             return when (mode) {
@@ -182,9 +189,19 @@ data class ExpenseUiState(
                         paidBy,
                         it,
                         cents ?: 0,
-                        people.map { person -> person.id }).isEmpty()
+                        people.map { person -> person.id })
+                        // A planned cost takes its title from the item, which may not have one yet.
+                        .filterNot { planning && (it == ExpenseError.BlankTitle || it == ExpenseError.TitleTooLong) }
+                        .isEmpty()
                 } == true
+    /** A planned cost is the item's, which every member edits; an entry is its creator's or a manager's to delete. */
     val canDelete: Boolean
-        get() = original?.let { member != null && (it.createdBy == member.userId || member.role.managesSpace) } == true &&
+        get() = member != null && (
+            if (planning) {
+                saved != null
+            } else {
+                original?.let { it.createdBy == member.userId || member.role.managesSpace } == true
+            }
+            ) &&
                 !loading && !loadFailed && !missing && !submitting && !closed
 }

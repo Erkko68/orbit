@@ -30,6 +30,7 @@ import com.orbit.app.core.designsystem.component.orbitGroup
 import com.orbit.app.core.designsystem.component.orbitItem
 import com.orbit.app.core.designsystem.theme.OrbitShape
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
+import com.orbit.app.core.formatEuro
 import com.orbit.app.core.notification.permission.RequireNotificationPermission
 import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.feature.item.ItemUiState
@@ -38,17 +39,21 @@ import com.orbit.app.feature.item.history.ItemHistory
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.checklist_check_entry
 import orbit.shared.generated.resources.checklist_uncheck_entry
+import orbit.shared.generated.resources.cost_invalid
 import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.ic_delete
 import orbit.shared.generated.resources.ic_event
 import orbit.shared.generated.resources.ic_group
 import orbit.shared.generated.resources.ic_notifications
+import orbit.shared.generated.resources.ic_wallet
 import orbit.shared.generated.resources.item_action_failed
+import orbit.shared.generated.resources.item_add_cost
 import orbit.shared.generated.resources.item_add_date
 import orbit.shared.generated.resources.item_add_reminder
 import orbit.shared.generated.resources.item_back
 import orbit.shared.generated.resources.item_checklist
 import orbit.shared.generated.resources.item_complete
+import orbit.shared.generated.resources.item_cost
 import orbit.shared.generated.resources.item_create
 import orbit.shared.generated.resources.item_delete
 import orbit.shared.generated.resources.item_description
@@ -75,8 +80,8 @@ import org.koin.core.parameter.parametersOf
 
 private const val ADD_ENTRY = "add-entry"
 
-/** The rows that say who has the item, when it is due and when to remind. */
-private enum class ItemRow { WHO, WHEN, REMINDER }
+/** The rows that say who has the item, when it is due, when to remind and what completing it costs. */
+private enum class ItemRow { WHO, WHEN, REMINDER, COST }
 
 /**
  * One item, the same form for all of them: a colour block with its name typed in place, who has it, when and the
@@ -90,8 +95,18 @@ fun ItemScreen(
     itemId: String,
     onBack: () -> Unit,
     viewModel: ItemViewModel = koinViewModel { parametersOf(spaceId, itemId) },
+    onOpenCost: (draftCost: String) -> Unit = {},
+    plannedCost: String = "",
+    onPlannedCostTaken: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    // What the expense screen planned for a new item, kept with the rest of it until Create.
+    LaunchedEffect(plannedCost) {
+        if (plannedCost.isNotEmpty()) {
+            viewModel.planCost(plannedCost)
+            onPlannedCostTaken()
+        }
+    }
     LaunchedEffect(state.deleted, state.created) {
         if (state.deleted || state.created) onBack()
     }
@@ -112,7 +127,7 @@ fun ItemScreen(
         },
         primaryAction = primaryAction(state, viewModel),
         collapsingTopBar = true,
-        list = { itemBody(state, viewModel, spaceId, itemId) },
+        list = { itemBody(state, viewModel, spaceId, itemId, onOpenCost) },
     )
     state.scheduleEditor?.let { editor -> ScheduleEditorSheet(editor, state, viewModel) }
     state.checklistEditor?.let { editor -> ChecklistEditorSheet(editor, state, viewModel) }
@@ -159,13 +174,19 @@ private fun primaryAction(state: ItemUiState, viewModel: ItemViewModel): (@Compo
     }
 
     state.showsDone -> {
-        { OrbitButton(stringResource(Res.string.item_complete), viewModel::complete, Modifier.fillMaxWidth(), state.canSubmit) }
+        { OrbitButton(stringResource(Res.string.item_complete), viewModel::complete, Modifier.fillMaxWidth(), state.canComplete) }
     }
 
     else -> null
 }
 
-private fun LazyListScope.itemBody(state: ItemUiState, viewModel: ItemViewModel, spaceId: String, itemId: String) {
+private fun LazyListScope.itemBody(
+    state: ItemUiState,
+    viewModel: ItemViewModel,
+    spaceId: String,
+    itemId: String,
+    onOpenCost: (String) -> Unit,
+) {
     when {
         state.loading -> item {
             OrbitLoadingState(stringResource(Res.string.item_loading), Modifier.fillMaxWidth())
@@ -193,8 +214,11 @@ private fun LazyListScope.itemBody(state: ItemUiState, viewModel: ItemViewModel,
             if (state.failed) {
                 item(key = "failed") { OrbitErrorText(stringResource(Res.string.item_action_failed)) }
             }
+            if (state.costInvalid) {
+                item(key = "cost-invalid") { OrbitErrorText(stringResource(Res.string.cost_invalid)) }
+            }
             val rows = ItemRow.entries.filter { it != ItemRow.REMINDER || state.showsReminder }
-            orbitGroup(rows, key = { it.name }) { row -> ItemActionRow(row, state, viewModel) }
+            orbitGroup(rows, key = { it.name }) { row -> ItemActionRow(row, state, viewModel, onOpenCost) }
             gap("description")
             item(key = "description") {
                 OrbitDetailsField(
@@ -218,7 +242,7 @@ private fun LazyListScope.gap(before: String) = item(key = "gap-$before") { Spac
 
 /** A row names what it holds and shows its value, or what tapping it adds while it has none. */
 @Composable
-private fun ItemActionRow(row: ItemRow, state: ItemUiState, viewModel: ItemViewModel) {
+private fun ItemActionRow(row: ItemRow, state: ItemUiState, viewModel: ItemViewModel, onOpenCost: (String) -> Unit) {
     val modifier = Modifier.fillMaxWidth()
     when (row) {
         ItemRow.WHO -> OrbitActionRow(
@@ -250,6 +274,15 @@ private fun ItemActionRow(row: ItemRow, state: ItemUiState, viewModel: ItemViewM
             onClick = viewModel::openReminder,
             modifier = modifier,
             shape = OrbitShape.Clover,
+        )
+
+        // Planned on the expense screen (#300). A new item's goes there and back with it, written on Create.
+        ItemRow.COST -> OrbitActionRow(
+            title = stringResource(Res.string.item_cost),
+            supporting = state.cost?.let { formatEuro(it.total) } ?: stringResource(Res.string.item_add_cost),
+            icon = Res.drawable.ic_wallet,
+            onClick = { onOpenCost(state.draftCost) },
+            modifier = modifier,
         )
     }
 }

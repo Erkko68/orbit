@@ -414,13 +414,13 @@
     <string name="expenses_paid_to">%1$s ha pagato %2$s</string>
     <string name="expenses_row_detail">%1$s · %2$s</string>
 
-    <!-- Item cost (#58) -->
+    <!-- Item cost (#58, #300) -->
     <string name="item_cost">Costo</string>
     <string name="item_add_cost">Aggiungi un costo</string>
-    <string name="cost_equal_hint">Diviso in parti uguali tra le persone selezionate. La spesa viene registrata al completamento dell’attività.</string>
-    <string name="cost_members_invalid">Seleziona un pagatore e almeno un partecipante tra i membri attuali.</string>
-    <string name="cost_remove">Rimuovi costo</string>
-    <string name="cost_completion_invalid">Controlla costo, pagatore e partecipanti prima di completare questa attività.</string>
+    <string name="cost_hint">Aggiunto alle spese quando l’elemento è completato</string>
+    <string name="cost_invalid">Qualcuno nel costo ha lasciato lo spazio. Cambia il costo prima di completare l’elemento.</string>
+    <string name="cost_remove_title">Rimuovere il costo?</string>
+    <string name="cost_remove_body">Completare l’elemento non aggiungerà più una spesa. Le spese già aggiunte restano.</string>
     <string name="expense_source_item">Attività di origine</string>
     <string name="expense_open_item">Apri l’attività che ha creato questa spesa</string>
 </resources>

@@ -257,6 +257,25 @@ service cloud.firestore {
 
       match /items/{itemId} {
 
+        // A planned cost has an expense's shape (ADR 0014): a payer and shares among the current members. What the
+        // shares add up to is the app's to check, as for an expense (ADR 0003).
+        function isCost(cost) {
+          let members = get(spacePath(spaceId)).data.memberIds;
+          return cost is map
+            && cost.keys().hasOnly(['paidBy', 'split', 'customAllocation'])
+            && cost.paidBy in members
+            && cost.split is map && cost.split.size() > 0
+            && cost.split.keys().hasOnly(members)
+            && cost.get('customAllocation', {}) is map;
+        }
+
+        // Checked only when it changes, so an unrelated edit still works after someone in it left.
+        function keepsCost() {
+          let before = resource == null ? null : resource.data.get('modules', {}).get('cost', null);
+          let after = request.resource.data.get('modules', {}).get('cost', null);
+          return after == null || after == before || isCost(after);
+        }
+
         // Completing records the caller as who completed it; reopening removes it.
         function completesAsSelf() {
           return !changedKeys().hasAny(['completedBy'])
@@ -269,12 +288,14 @@ service cloud.firestore {
           && request.resource.data.createdAt == request.time
           && request.resource.data.spaceId == spaceId
           && isTitle(request.resource.data.title)
-          && request.resource.data.status == 'open';
+          && request.resource.data.status == 'open'
+          && keepsCost();
         allow update: if isMember(spaceId)
           && keepsCreation()
           && isTitle(request.resource.data.title)
           && request.resource.data.status in ['open', 'done']
-          && completesAsSelf();
+          && completesAsSelf()
+          && keepsCost();
         allow delete: if isMember(spaceId)
           && (resource.data.createdBy == request.auth.uid || isAdminOrOwner(spaceId));
       }

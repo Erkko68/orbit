@@ -112,17 +112,30 @@ fun OrbitNavHost(
             }
             composable<ItemRoute> { entry ->
                 val route = entry.toRoute<ItemRoute>()
+                // A new item's cost comes back here from the expense screen (#300).
+                val plannedCost by entry.savedStateHandle.getStateFlow(PLANNED_COST, "").collectAsStateWithLifecycle()
                 ItemScreen(
                     spaceId = route.spaceId,
                     itemId = route.itemId,
                     onBack = { navController.popBackStack() },
+                    onOpenCost = { draft ->
+                        navController.navigate(ExpenseRoute(route.spaceId, itemId = route.itemId, draftCost = draft))
+                    },
+                    plannedCost = plannedCost,
+                    onPlannedCostTaken = { entry.savedStateHandle[PLANNED_COST] = "" },
                 )
             }
             composable<ExpenseRoute> { entry ->
                 val route = entry.toRoute<ExpenseRoute>()
                 ExpenseScreen(
-                    route.spaceId, route.expenseId, onBack = { navController.popBackStack() },
-                    onOpenItem = { navController.navigate(ItemRoute(route.spaceId, it)) })
+                    spaceId = route.spaceId,
+                    expenseId = route.expenseId,
+                    onBack = { navController.popBackStack() },
+                    itemId = route.itemId,
+                    draftCost = route.draftCost,
+                    onOpenItem = { itemId -> navController.navigate(ItemRoute(route.spaceId, itemId)) },
+                    onCostPlanned = { navController.previousBackStackEntry?.savedStateHandle?.set(PLANNED_COST, it) },
+                )
             }
             composable<InterviewRoute> {
                 // The manual path is wherever the assistant was opened from; the review board (#75) follows a plan.

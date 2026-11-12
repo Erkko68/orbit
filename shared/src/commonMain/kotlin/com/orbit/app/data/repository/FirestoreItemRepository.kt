@@ -3,6 +3,7 @@ package com.orbit.app.data.repository
 import co.touchlab.kermit.Logger
 import com.orbit.app.data.mapper.AssignmentDocument
 import com.orbit.app.data.mapper.ChecklistDocument
+import com.orbit.app.data.mapper.CostDocument
 import com.orbit.app.data.mapper.ACTION_REOPEN
 import com.orbit.app.data.mapper.CompletionDocument
 import com.orbit.app.data.mapper.EntryDocument
@@ -15,6 +16,8 @@ import com.orbit.app.data.mapper.ScheduleDocument
 import com.orbit.app.data.mapper.StoredItem
 import com.orbit.app.data.mapper.assignmentDocument
 import com.orbit.app.data.mapper.checklistDocument
+import com.orbit.app.data.mapper.costDocument
+import com.orbit.app.data.mapper.expenseDocument
 import com.orbit.app.data.mapper.itemDocument
 import com.orbit.app.data.mapper.mapItem
 import com.orbit.app.data.mapper.moduleKey
@@ -24,6 +27,7 @@ import com.orbit.app.data.mapper.scheduleDocument
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.Completion
+import com.orbit.app.domain.model.Cost
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
@@ -33,18 +37,23 @@ import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
+import com.orbit.app.domain.usecase.itemCostExpense
 import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FieldsAndValuesUpdateDSL
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import dev.gitlive.firebase.firestore.Source
 import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
 
 /**
  * Items in Firestore (ADR 0002), read through a live listener that Firestore's offline cache answers
@@ -102,6 +111,7 @@ class FirestoreItemRepository(
                 is Assignment -> path.to(AssignmentDocument.serializer(), assignmentDocument(module))
                 is Checklist -> path.to(ChecklistDocument.serializer(), checklistDocument(module))
                 is Reminder -> path.to(ReminderDocument.serializer(), reminderDocument(module))
+                is Cost -> path.to(CostDocument.serializer(), costDocument(module))
             }
         }
 
@@ -148,23 +158,38 @@ class FirestoreItemRepository(
             .flowOn(Dispatchers.Default)
             .retryWhileRefused()
 
-    /** The item and its completion go in one batch, so the history never misses one nor has one too many. */
+    /**
+     * The item, its completion and the expense of its cost go in one batch, so the history never misses one nor has one
+     * too many, and a charge never lands without its completion (ADR 0014). The item and the members come from the
+     * cache the screen's listeners keep, so completing still works offline.
+     */
     override suspend fun complete(spaceId: String, itemId: String, next: Schedule?) {
         val userId = auth.requireUser().id
+        val item = checkNotNull(toItem(items(spaceId).document(itemId).get(Source.CACHE))) { "No item $itemId" }
+        val expense = item.modules.cost?.let {
+            val space = firestore.collection(SPACES).document(spaceId).get(Source.CACHE)
+            val members = checkNotNull(space.field<List<String>>("memberIds")) { "No members in $spaceId" }
+            itemCostExpense(item, members, Clock.System.todayIn(TimeZone.currentSystemDefault()))
+        }
+        val charge = firestore.collection(SPACES).document(spaceId).collection(EXPENSES).document
         val batch = firestore.batch()
         batch.updateFields(items(spaceId).document(itemId)) {
             encodeDefaults = false
             if (next != null) {
                 FieldPath(MODULES, moduleKey(ModuleType.SCHEDULE)).to(ScheduleDocument.serializer(), scheduleDocument(next))
+                // The next occurrence is charged again.
+                FieldPath(COST_EXPENSE_ID) to FieldValue.delete
             } else {
                 FieldPath(STATUS) to STATUS_DONE
                 FieldPath(COMPLETED_BY) to userId
                 FieldPath(COMPLETED_AT) to FieldValue.serverTimestamp
+                if (expense != null) FieldPath(COST_EXPENSE_ID) to charge.id
             }
         }
         batch.set(completions(spaceId).document, CompletionDocument(itemId, userId, Timestamp.ServerTimestamp)) {
             encodeDefaults = false
         }
+        if (expense != null) batch.set(charge, expenseDocument(spaceId, expense, userId)) { encodeDefaults = false }
         writeLocally("Completing item $itemId") { batch.commit() }
     }
 
@@ -216,6 +241,7 @@ class FirestoreItemRepository(
             assignment = document.field("$MODULES.${moduleKey(ModuleType.ASSIGNMENT)}"),
             checklist = document.field("$MODULES.${moduleKey(ModuleType.CHECKLIST)}"),
             reminder = document.field("$MODULES.${moduleKey(ModuleType.REMINDER)}"),
+            cost = document.field("$MODULES.${moduleKey(ModuleType.COST)}"),
         )
         val stored = StoredItem(
             title = document.field("title"),
@@ -229,6 +255,7 @@ class FirestoreItemRepository(
             // Only the keys: Unit decodes from any value, so a module this build does not know still lists.
             moduleKeys = document.field<Map<String, Unit>>(MODULES)?.keys.orEmpty(),
             modules = modules,
+            costExpenseId = document.field(COST_EXPENSE_ID),
         )
         return mapItem(document.id, stored).also {
             if (it == null) Logger.w { "Skipping the malformed item ${document.id}" }
@@ -241,6 +268,7 @@ class FirestoreItemRepository(
         const val CREATED_AT = "createdAt"
         const val COMPLETED_BY = "completedBy"
         const val COMPLETED_AT = "completedAt"
+        const val COST_EXPENSE_ID = "costExpenseId"
         const val LATEST_COMPLETIONS = 10
     }
 }

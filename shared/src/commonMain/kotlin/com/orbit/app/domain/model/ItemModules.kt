@@ -132,7 +132,15 @@ data class Reminder(val offsets: List<Duration>) : Module {
     override val type get() = ModuleType.REMINDER
 }
 
-/** The cost of the next completion, split equally between the selected current members. */
-data class Cost(val cents: Long, val paidBy: String, val memberIds: Set<String>) : Module {
+/**
+ * The expense completing the item adds to the ledger, planned on the expense screen (#300): who pays and each share in
+ * cents, as an expense stores them, with the custom split's automatic shares ([Expense.customAllocation]).
+ */
+data class Cost(
+    val paidBy: String,
+    val split: Map<String, Long>,
+    val customAllocation: Map<String, Boolean>? = null,
+) : Module {
     override val type get() = ModuleType.COST
+    val total: Long get() = split.values.sum()
 }

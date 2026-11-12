@@ -10,18 +10,31 @@ import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.repository.AuthRepository
+import com.orbit.app.domain.repository.ExpenseRepository
 import com.orbit.app.domain.repository.ItemRepository
+import com.orbit.app.domain.repository.SpaceRepository
+import com.orbit.app.domain.usecase.itemCostExpense
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import kotlin.time.Clock
 
 private const val LATEST_COMPLETIONS = 10
 
-/** Items in memory, with ids in creation order across spaces. */
-class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository {
+/**
+ * Items in memory, with ids in creation order across spaces. Completing an item with a cost adds its expense to
+ * [ledger], checked against the members of [spaces], as the Firestore batch does (ADR 0014).
+ */
+class InMemoryItemRepository(
+    private val auth: AuthRepository,
+    private val ledger: ExpenseRepository? = null,
+    private val spaces: SpaceRepository? = null,
+) : ItemRepository {
     /** The items of each space, by its id. */
     private val items = MutableStateFlow(emptyMap<String, List<Item>>())
     /** The completions of each space, newest first. */
@@ -100,7 +113,19 @@ class InMemoryItemRepository(private val auth: AuthRepository) : ItemRepository 
 
     override suspend fun complete(spaceId: String, itemId: String, next: Schedule?) {
         val done = ItemStatus.Done(by = auth.requireUser().id, at = Clock.System.now())
-        edit(spaceId, itemId) { if (next != null) it.copy(modules = it.modules.with(next)) else it.copy(status = done) }
+        val item = items.value[spaceId].orEmpty().first { it.id == itemId }
+        val expense = item.modules.cost?.let {
+            val members = checkNotNull(spaces) { "A cost needs the space's members" }.observeMembers(spaceId).first()
+            itemCostExpense(item, members.map { it.userId }, Clock.System.todayIn(TimeZone.currentSystemDefault()))
+        }
+        val charged = expense?.let { checkNotNull(ledger) { "A cost needs a ledger" }.add(spaceId, it) }
+        edit(spaceId, itemId) {
+            if (next != null) {
+                it.copy(modules = it.modules.with(next), costExpenseId = null)
+            } else {
+                it.copy(status = done, costExpenseId = charged ?: it.costExpenseId)
+            }
+        }
         record(spaceId, itemId, done.by, reopened = false)
     }
 

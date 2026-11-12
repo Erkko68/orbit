@@ -25,7 +25,7 @@ class ItemValidationTest {
             assignment = Assignment.ToMembers(setOf("ana")),
             checklist = Checklist(listOf(ChecklistEntry("1", "Milk", quantity = 2))),
             reminder = Reminder(listOf(Duration.ZERO)),
-            cost = Cost(1000, "ana", setOf("ana", "ben")),
+            cost = Cost("ana", mapOf("ana" to 500L, "ben" to 500L)),
         )
         assertEquals(emptyList(), errors(modules = modules))
     }
@@ -138,7 +138,7 @@ class ItemValidationTest {
             .with(Assignment.Anyone)
             .with(Checklist(emptyList()))
             .with(Reminder(emptyList()))
-            .with(Cost(1000, "ana", setOf("ana", "ben")))
+            .with(Cost("ana", mapOf("ana" to 500L, "ben" to 500L)))
         assertEquals(ModuleType.entries, full.all.map { it.type })
 
         ModuleType.entries.forEach { type ->

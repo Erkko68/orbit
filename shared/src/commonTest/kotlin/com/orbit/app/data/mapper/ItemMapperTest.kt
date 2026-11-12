@@ -3,6 +3,7 @@ package com.orbit.app.data.mapper
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
+import com.orbit.app.domain.model.Cost
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
@@ -34,6 +35,7 @@ class ItemMapperTest {
             listOf(ChecklistEntry("e2", "Milk", quantity = 2, order = 0), ChecklistEntry("e1", "Bread", true, order = 1)),
         ),
         reminder = Reminder(listOf(30.minutes)),
+        cost = Cost("ana", mapOf("ana" to 700L, "ben" to 300L), mapOf("ana" to false, "ben" to true)),
     )
 
     /** What a document written for [modules] reads back as. */
@@ -110,6 +112,12 @@ class ItemMapperTest {
         val item = mapItem("item-1", storedModules(modules))
 
         assertEquals(modules, item?.modules)
+    }
+
+    @Test
+    fun theChargedOccurrenceReadsBackAndAnOlderItemHasNone() {
+        assertEquals("expense-1", mapItem("item-1", stored.copy(costExpenseId = "expense-1"))?.costExpenseId)
+        assertNull(mapItem("item-1", stored)?.costExpenseId)
     }
 
     @Test

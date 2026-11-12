@@ -414,13 +414,13 @@
     <string name="expenses_paid_to">%1$s ha pagat a %2$s</string>
     <string name="expenses_row_detail">%1$s · %2$s</string>
 
-    <!-- Item cost (#58) -->
+    <!-- Item cost (#58, #300) -->
     <string name="item_cost">Cost</string>
     <string name="item_add_cost">Afegeix un cost</string>
-    <string name="cost_equal_hint">Dividit a parts iguals entre les persones seleccionades. La despesa es registra en completar l’activitat.</string>
-    <string name="cost_members_invalid">Selecciona un pagador i almenys un participant entre els membres actuals.</string>
-    <string name="cost_remove">Elimina el cost</string>
-    <string name="cost_completion_invalid">Revisa el cost, el pagador i els participants abans de completar aquesta activitat.</string>
+    <string name="cost_hint">S’afegeix a les despeses en completar l’element</string>
+    <string name="cost_invalid">Algú del cost ha sortit de l’espai. Canvia el cost abans de completar l’element.</string>
+    <string name="cost_remove_title">Vols treure el cost?</string>
+    <string name="cost_remove_body">Completar l’element ja no afegirà cap despesa. Les despeses que ja ha afegit es mantenen.</string>
     <string name="expense_source_item">Activitat d’origen</string>
     <string name="expense_open_item">Obre l’activitat que ha creat aquesta despesa</string>
 </resources>

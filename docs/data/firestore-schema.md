@@ -158,6 +158,7 @@ The email is not stored: it comes from the Firebase Auth account.
 | `completedBy` | uid | with `done` | Set with `status: done` to the member who completed it, removed on reopen |
 | `completedAt` | timestamp | with `done` | Server time, same lifecycle as `completedBy` |
 | `modules` | map | yes | One key per module present. Unknown keys are kept and skipped. |
+| `costExpenseId` | string | once this occurrence's cost is charged | The expense its completion added ([ADR 0014](../adr/0014-item-cost-per-occurrence.md)). Reopening keeps it, so completing again adds none; rolling forward to the next occurrence deletes it. |
 
 #### `modules.schedule`
 
@@ -207,6 +208,18 @@ The next occurrence is the first date after both the schedule's date and the com
 |---|---|---|---|
 | `offsetsMinutes` | array of integer | yes | Minutes before the due moment, each 0 or more. Needs `modules.schedule`. Each phone schedules its own local notifications from it while the item is open and not assigned to another member. |
 
+#### `modules.cost`
+
+What completing the item adds to the ledger: an expense planned on the expense screen, in the expense's own shape ([ADR 0014](../adr/0014-item-cost-per-occurrence.md)).
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `paidBy` | uid | yes | A current member when written. Independent of the assignees. |
+| `split` | map of uid to integer | yes | Cents each member owes, as an expense's `split`. The total is its sum. |
+| `customAllocation` | map of uid to boolean | no | As an expense's (ADR 0013) |
+
+A new item plans it before Create and writes it with the item. Completing copies it into a new expense (the item's title, the day it was completed, `itemId`) in the completion's batch, unless `costExpenseId` says this occurrence was charged already. A cost that names someone who left blocks completing until it is changed. Changing or removing it never touches expenses already added.
+
 ### `spaces/{spaceId}/completions/{completionId}`
 
 The history of an item: who completed it or reopened it and when, one document each, written in the batch that marks the item done or open again, or that moves a recurring item to its next date. Append-only: reopening the item keeps its completions, and nobody edits or deletes one. One collection per space, so rotation and fairness (#49 to #51) read every completion of a space in one query, skipping reopenings.
@@ -231,7 +244,7 @@ An entry of the ledger. Balances are derived from these on the device and never 
 | `customAllocation` | map of uid to boolean | no | Editing intent for Custom amounts/Percentages (#283): keys are selected participants, including zero shares; `true` is automatic, `false` manual. Covers every `split` key. No amounts or percentages. Removed when saving Equal/Weights. |
 | `date` | string | yes | `YYYY-MM-DD`, chosen by the user |
 | `kind` | string | yes | `expense` or `settlement`. Never changes. Unknown reads as `expense`, because it still moves money. |
-| `itemId` | string | no | The item whose Cost module made it (#58). Never changes. |
+| `itemId` | string | no | The item whose cost added it (ADR 0014). Never changes. |
 | `createdBy` | uid | yes | Never changes |
 | `createdAt` | timestamp | yes | Server time, never changes |
 
@@ -328,7 +341,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `removeEntry` | same | `update`: delete `modules.checklist.entries.<id>` |
 | `observeCompletions` | `spaces/{id}/completions` where `itemId ==` id, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way. Completions and reopenings |
 | `observeMemberCompletions` | `spaces/{id}/completions` where `completedBy ==` uid, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way. Completions and reopenings: "Lately" skips the reopenings |
-| `complete` | same item, and a new `spaces/{id}/completions/{completionId}` | One batch: `update` of `status: done`, `completedBy`, `completedAt`, and `set` of the completion. A recurring item with a next occurrence gets an `update` of `modules.schedule` instead and stays open (ADR 0011) |
+| `complete` | same item, a new `spaces/{id}/completions/{completionId}` and, with a cost not yet charged, a new `spaces/{id}/expenses/{expenseId}` | Reads the item and `memberIds` from the cache. One batch: `update` of `status: done`, `completedBy`, `completedAt` and `costExpenseId`, `set` of the completion and of the expense. A recurring item with a next occurrence gets an `update` of `modules.schedule` instead, deletes `costExpenseId` and stays open (ADR 0011, ADR 0014) |
 | `reopen` | same item, and a new `spaces/{id}/completions/{completionId}` with `action: reopen` | One batch: `update` of `status: open`, delete `completedBy` and `completedAt`, and `set` of the reopening |
 
 No method saves a whole existing item: every update writes only its field paths, so concurrent edits merge.

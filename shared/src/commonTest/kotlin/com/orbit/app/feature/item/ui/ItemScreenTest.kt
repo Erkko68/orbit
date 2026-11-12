@@ -39,6 +39,12 @@ import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.startTestKoin
+import com.orbit.app.domain.model.Cost
+import com.orbit.app.core.formatEuro
+import com.orbit.app.core.navigation.encodePlannedCost
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -82,6 +88,56 @@ class ItemScreenTest : ComposeTest() {
     }
 
     @Test
+    fun aNewItemPlansItsCostAndCreateWritesItWithTheItem() = runComposeUiTest {
+        val opened = mutableListOf<String>()
+        val viewModel = model("", items)
+        val cost = Cost("ana", mapOf("ana" to 600L, "mika" to 400L))
+        var planned by mutableStateOf("")
+        setContent {
+            OrbitTheme {
+                ItemScreen(
+                    "space-1", "", {}, viewModel,
+                    onOpenCost = { opened += it },
+                    plannedCost = planned,
+                    onPlannedCostTaken = { planned = "" },
+                )
+            }
+        }
+
+        list().performScrollToNode(hasText("Add a cost"))
+        onNodeWithText("Cost").performClick()
+        planned = encodePlannedCost(cost)
+        list().performScrollToNode(hasText(formatEuro(1000)))
+        onNodeWithText("Cost").performClick()
+        onNodeWithContentDescription("Name").performTextInput("Rent")
+        onNodeWithText("Create").performClick()
+        waitForIdle()
+
+        assertEquals(listOf(encodePlannedCost(null), encodePlannedCost(cost)), opened)
+        assertEquals(cost, runBlocking { items.observeItems("space-1").first().single().modules.cost })
+    }
+
+    @Test
+    fun theCostRowOfAWrittenItemOpensItsCost() = runComposeUiTest {
+        var opened = 0
+        val id = createItem(NewItem("Detergent"))
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, model(id, items), onOpenCost = { opened++ }) } }
+
+        list().performScrollToNode(hasText("Add a cost"))
+        onNodeWithText("Cost").performClick()
+        runOnIdle { assertEquals(1, opened) }
+    }
+
+    @Test
+    fun aCostChargingSomeoneWhoLeftSaysSoAndBlocksMarkDone() = runComposeUiTest {
+        val id = createItem(NewItem("Rent", modules = ItemModules(cost = Cost("ana", mapOf("zoe" to 1000L)))))
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, model(id, items)) } }
+
+        onNodeWithText("Someone in the cost has left the space. Change the cost before marking the item done.").assertExists()
+        onNodeWithText("Mark as done").assertIsNotEnabled()
+    }
+
+    @Test
     fun listsWhoCompletedTheItemUnderIt() = runComposeUiTest {
         val id = createItem(NewItem("Take the bins out"))
         runBlocking {
@@ -119,9 +175,10 @@ class ItemScreenTest : ComposeTest() {
         val label = onNodeWithText("Flat 4B").fetchSemanticsNode()
         val title = onNodeWithText("Book plumber").fetchSemanticsNode()
         assertTrue(label.boundsInRoot.bottom <= title.boundsInRoot.top)
-        onNodeWithText("Kitchen leak").assertIsDisplayed()
         onNodeWithText("Oct 26, 2026").assertIsDisplayed()
         onNodeWithText("Remind me").assertIsDisplayed()
+        list().performScrollToNode(hasText("Kitchen leak"))
+        onNodeWithText("Kitchen leak").assertIsDisplayed()
         list().performScrollToNode(hasText("Kitchen faucet"))
         onNodeWithText("Kitchen faucet").assertIsDisplayed()
     }

@@ -20,6 +20,7 @@ sealed interface ItemError {
     data class NonPositiveQuantity(val entryId: String) : ItemError
     data object ReminderWithoutSchedule : ItemError
     data object NegativeReminderOffset : ItemError
+    data object InvalidCost : ItemError
 }
 
 /**
@@ -35,7 +36,12 @@ fun validateItem(
     recurrenceErrors(modules.recurrence, modules.schedule) +
     assignmentErrors(modules.assignment, memberIds) +
     checklistErrors(modules.checklist) +
-    reminderErrors(modules.reminder, hasSchedule = modules.schedule != null)
+    reminderErrors(modules.reminder, hasSchedule = modules.schedule != null) +
+    listOfNotNull(ItemError.InvalidCost.takeIf { costErrors(title, modules.cost, memberIds).isNotEmpty() })
+
+/** A cost holds when the expense it adds would: the expense screen's own rules, the item's title as its title. */
+fun costErrors(title: String, cost: Cost?, memberIds: Collection<String>): List<ExpenseError> =
+    cost?.let { validateExpense(title, it.paidBy, it.split, it.total, memberIds) }.orEmpty()
 
 private fun titleErrors(title: String): List<ItemError> {
     val trimmed = title.trim()

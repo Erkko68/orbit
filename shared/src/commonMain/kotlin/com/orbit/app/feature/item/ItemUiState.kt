@@ -1,14 +1,17 @@
 package com.orbit.app.feature.item
 
+import com.orbit.app.core.navigation.encodePlannedCost
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
+import com.orbit.app.domain.model.Cost
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
+import com.orbit.app.domain.model.costErrors
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -47,6 +50,8 @@ data class ItemUiState(
     /** The description as typed, until it is saved. */
     val descriptionDraft: String? = null,
     val status: ItemStatus = ItemStatus.Open,
+    /** This occurrence's cost is in the ledger already, so completing it again adds nothing. */
+    val costCharged: Boolean = false,
     val modules: List<Module> = emptyList(),
     val loading: Boolean = true,
     val loadFailed: Boolean = false,
@@ -85,6 +90,16 @@ data class ItemUiState(
     val showsDone: Boolean get() = !isNew && loaded && !hasEntries
     val canSaveSchedule: Boolean get() = canSubmit && scheduleEditor?.schedule != null
     val canSaveChecklist: Boolean get() = canSubmit && checklistEditor?.canSave == true
+
+    val cost: Cost? get() = modules.filterIsInstance<Cost>().firstOrNull()
+
+    /** The cost would charge someone who left: it is fixed on its screen before the item can be done. */
+    val costInvalid: Boolean
+        get() = !costCharged && members.isNotEmpty() && costErrors(title, cost, memberNames.keys).isNotEmpty()
+    val canComplete: Boolean get() = canSubmit && !costInvalid
+
+    /** What the expense screen plans from: a new item's cost as it stands. A written item's, it reads itself. */
+    val draftCost: String get() = if (isNew) encodePlannedCost(cost) else ""
 
     /** What the description field shows while it is typed, and after. */
     val shownDescription: String get() = descriptionDraft ?: description.orEmpty()

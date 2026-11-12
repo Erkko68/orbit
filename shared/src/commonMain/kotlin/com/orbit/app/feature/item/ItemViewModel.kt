@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orbit.app.core.Load
 import com.orbit.app.core.asLoad
+import com.orbit.app.core.navigation.decodePlannedCost
 import com.orbit.app.core.attempt
 import com.orbit.app.core.orOnFailure
 import com.orbit.app.core.valueOrNull
@@ -92,6 +93,7 @@ class ItemViewModel(
             createdBy = loaded?.createdBy,
             description = loaded?.description,
             status = loaded?.status ?: form.status,
+            costCharged = loaded?.costExpenseId != null,
             modules = (loaded?.modules ?: draft).all,
             loading = load == Load.Loading,
             loadFailed = load == Load.Failed,
@@ -120,9 +122,18 @@ class ItemViewModel(
     }
 
     /** A recurring item moves to its next date and stays open (ADR 0011). */
-    fun complete() = submit { items.complete(spaceId, itemId, modules().rolledForward(today())) }
+    fun complete() {
+        if (uiState.value.canComplete) submit { items.complete(spaceId, itemId, modules().rolledForward(today())) }
+    }
 
     fun reopen() = submit { items.reopen(spaceId, itemId) }
+
+    /** A new item's cost, planned on the expense screen: kept with the rest of it until Create (#300). */
+    fun planCost(plannedCost: String) {
+        if (!isNew) return
+        val cost = decodePlannedCost(plannedCost)
+        draft.update { if (cost == null) it.without(ModuleType.COST) else it.with(cost) }
+    }
 
     fun onTitleChange(text: String) = form.update { it.copy(titleDraft = text, failed = false) }
 

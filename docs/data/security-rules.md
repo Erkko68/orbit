@@ -58,6 +58,7 @@ Firebase deploys one rules file and the language has no imports, so the file is 
 | `isSpaceCreator`, `joinsAsMember`, `keepsJoin` | members | The creator's own owner document; the member half of a join; `invitationCode` and `joinedAt` unchanged |
 | `handsOwnership`, `leaves` | members | The member half of a transfer or a leave |
 | `completesAsSelf` | items | `completedBy` set only to the caller |
+| `keepsCost`, `isCost(cost)` | items | A new or changed `modules.cost` has an expense's shape among the current members (ADR 0014) |
 | `matchesItem(entry)` | completions | A completion: the same batch leaves the item `done`, or rolls it forward (`rollsForward`). A reopening (`action: 'reopen'`): the item was `done` and the batch leaves it `open` |
 | `rollsForward(itemId)` | completions | A recurring item stays `open` with `modules.recurrence`, and the batch moves `modules.schedule.date` later (ADR 0011) |
 | `isExpense(data)` | expenses | The fields of an expense have the right types |
@@ -114,6 +115,8 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 - **Create:** a member, with `createdBy` the caller, `createdAt` the server time, `spaceId` the path's, a valid title and `status: open`.
 - **Update:** a member, keeping the creation fields, a valid title and `status` `open` or `done`; `completedBy` can only become the caller.
 - **Delete:** the item's creator, an admin or the owner.
+
+A `modules.cost` written or changed (`keepsCost`) has an expense's shape: only `paidBy`, `split` and an optional `customAllocation` map, a payer among `memberIds` and a non-empty `split` whose keys are all in `memberIds`. Its amounts are the app's to check, as for an expense (ADR 0003). An unchanged cost is not checked again, so an item whose cost names someone who left can still be edited. The expense a completion adds goes through the expense rules, in the completion's batch; nothing more is enforced, since any member can edit an expense afterwards anyway ([ADR 0014](../adr/0014-item-cost-per-occurrence.md)).
 
 ### `spaces/{spaceId}/completions/{completionId}`
 

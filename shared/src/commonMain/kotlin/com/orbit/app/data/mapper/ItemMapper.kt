@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
+import com.orbit.app.domain.model.Cost
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
@@ -47,6 +48,7 @@ internal fun itemDocument(spaceId: String, item: NewItem, creatorId: String) = I
         assignment = item.modules.assignment?.let(::assignmentDocument),
         checklist = item.modules.checklist?.let(::checklistDocument),
         reminder = item.modules.reminder?.let(::reminderDocument),
+        cost = item.modules.cost?.let(::costDocument),
     ),
 )
 
@@ -86,6 +88,8 @@ internal fun checklistDocument(checklist: Checklist) = ChecklistDocument(
 internal fun reminderDocument(reminder: Reminder) =
     ReminderDocument(reminder.offsets.map { it.inWholeMinutes.toInt() })
 
+internal fun costDocument(cost: Cost) = CostDocument(cost.paidBy, cost.split, cost.customAllocation)
+
 /**
  * An item from its stored fields, or null when it has no title, creator or creation time: a malformed
  * document is skipped by the caller. What a newer build may have written (an unknown module or assignment
@@ -104,6 +108,7 @@ internal fun mapItem(id: String, stored: StoredItem): Item? {
         createdBy = createdBy,
         createdAt = createdAt,
         modules = modulesOf(id, stored),
+        costExpenseId = stored.costExpenseId,
     )
 }
 
@@ -124,6 +129,7 @@ private fun modulesOf(id: String, stored: StoredItem): ItemModules {
         assignment = modules.assignment?.let(::assignmentOf),
         checklist = modules.checklist?.let(::checklistOf),
         reminder = modules.reminder?.let(::reminderOf),
+        cost = modules.cost?.let { Cost(it.paidBy, it.split, it.customAllocation) },
     )
     stored.moduleKeys.mapNotNull(known::get).filter { read[it] == null }.forEach {
         Logger.w { "Item $id has a malformed or unknown ${moduleKey(it)} module, skipped" }

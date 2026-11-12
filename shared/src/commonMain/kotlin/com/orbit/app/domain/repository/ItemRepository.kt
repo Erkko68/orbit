@@ -55,6 +55,8 @@ interface ItemRepository {
     /**
      * Also records the completion in the item's history, which reopening keeps. With a [next] schedule the item
      * recurs: it stays open and moves there instead (ADR 0011).
+     * A cost adds its expense in the same write, once per occurrence: completing again after reopening adds none
+     * (ADR 0014).
      */
     suspend fun complete(spaceId: String, itemId: String, next: Schedule?)
 

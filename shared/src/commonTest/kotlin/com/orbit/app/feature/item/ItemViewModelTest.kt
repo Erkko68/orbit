@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModelStore
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
+import com.orbit.app.core.navigation.encodePlannedCost
+import com.orbit.app.domain.model.Cost
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
@@ -19,6 +21,7 @@ import com.orbit.app.testing.ControlledItemRepository
 import com.orbit.app.testing.FailingItemRepository
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryExpenseRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -35,6 +38,8 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
+import kotlinx.datetime.plus
+import kotlinx.datetime.todayIn
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -1011,6 +1016,83 @@ class ItemViewModelTest {
         assertEquals(RepeatUnit.YEARS, editor.repeat)
         assertFalse(editor.isCustomRepeat)
     }
+
+    private val ledger = InMemoryExpenseRepository(auth)
+    private val charging = InMemoryItemRepository(auth, ledger, spaces)
+    private val planned = Cost("ana@orbit.app", mapOf("ana@orbit.app" to 600L, "mika@orbit.app" to 400L))
+
+    private suspend fun TestScope.costModel(modules: ItemModules): Pair<String, ItemViewModel> {
+        auth.signIn("ana@orbit.app", "secret")
+        val id = charging.create("space-1", NewItem("Detergent", modules = modules))
+        val model = track(ItemViewModel("space-1", id, charging, spaces, auth))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.uiState.first { !it.loading && it.members.isNotEmpty() }
+        return id to model
+    }
+
+    @Test
+    fun completingChargesThePlannedCostOnceEvenAfterReopening() = runTest {
+        val (id, model) = costModel(ItemModules(cost = planned))
+        model.complete()
+        model.uiState.first { it.isDone && it.costCharged }
+        model.reopen()
+        model.uiState.first { !it.isDone }
+        model.complete()
+        model.uiState.first { it.isDone }
+        val expense = ledger.observeExpenses("space-1").first().single()
+        assertEquals(listOf("Detergent", "ana@orbit.app", planned.split, id), listOf(expense.title, expense.paidBy, expense.split, expense.itemId))
+    }
+
+    @Test
+    fun eachOccurrenceOfARecurringItemIsChargedAgain() = runTest {
+        val today = kotlin.time.Clock.System.todayIn(kotlinx.datetime.TimeZone.currentSystemDefault())
+        val (id, model) = costModel(ItemModules(schedule = Schedule(today), recurrence = Recurrence.Days(1), cost = planned))
+        model.complete()
+        model.uiState.first { it.schedule?.date != today }
+        model.complete()
+        model.uiState.first { (it.schedule?.date ?: today) > today.plus(1, kotlinx.datetime.DateTimeUnit.DAY) }
+        assertEquals(2, ledger.observeExpenses("space-1").first().size)
+        assertNull(charging.observeItems("space-1").first().single { it.id == id }.costExpenseId)
+    }
+
+    @Test
+    fun theLastTickOfAListWithACostChargesIt() = runTest {
+        val list = Checklist(listOf(ChecklistEntry("milk", "Milk", checked = true), ChecklistEntry("bread", "Bread")))
+        val (_, model) = costModel(ItemModules(checklist = list, cost = planned))
+        model.toggleChecklistEntry("bread")
+        model.uiState.first { it.isDone }
+        assertEquals(1, ledger.observeExpenses("space-1").first().size)
+    }
+
+    @Test
+    fun aCostThatChargesSomeoneWhoLeftBlocksMarkDone() = runTest {
+        val (id, model) = costModel(ItemModules(cost = planned.copy(split = mapOf("zoe" to 1000L))))
+        assertTrue(model.uiState.value.costInvalid)
+        assertFalse(model.uiState.value.canComplete)
+        model.complete()
+        assertTrue(storedStatusIn(charging, id) is ItemStatus.Open)
+        assertTrue(ledger.observeExpenses("space-1").first().isEmpty())
+    }
+
+    @Test
+    fun aNewItemKeepsItsPlannedCostUntilCreate() = runTest {
+        auth.signIn("ana@orbit.app", "secret")
+        val model = track(ItemViewModel("space-1", "", items, spaces, auth))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        model.planCost(encodePlannedCost(planned))
+        assertEquals(planned, model.uiState.value.cost)
+        assertEquals(encodePlannedCost(planned), model.uiState.value.draftCost)
+        assertTrue(items.observeItems("space-1").first().isEmpty())
+        model.planCost(encodePlannedCost(null))
+        assertNull(model.uiState.value.cost)
+        model.planCost(encodePlannedCost(planned))
+        model.onTitleChange("Rent")
+        model.create()
+        assertEquals(planned, items.observeItems("space-1").first().single().modules.cost)
+    }
+
+    private suspend fun storedStatusIn(repository: ItemRepository, id: String) =
+        repository.observeItems("space-1").first().single { it.id == id }.status
 
     private val monday = LocalDate(2030, 1, 7)
 
