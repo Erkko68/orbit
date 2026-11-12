@@ -3,9 +3,6 @@ package com.orbit.app.data.repository
 import co.touchlab.kermit.Logger
 import com.orbit.app.data.mapper.AssignmentDocument
 import com.orbit.app.data.mapper.ChecklistDocument
-import com.orbit.app.data.mapper.CostDocument
-import com.orbit.app.data.mapper.costDocument
-import com.orbit.app.data.mapper.expenseDocument
 import com.orbit.app.data.mapper.ACTION_REOPEN
 import com.orbit.app.data.mapper.CompletionDocument
 import com.orbit.app.data.mapper.EntryDocument
@@ -27,9 +24,7 @@ import com.orbit.app.data.mapper.scheduleDocument
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.Completion
-import com.orbit.app.domain.model.Cost
 import com.orbit.app.domain.model.Item
-import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewItem
@@ -38,7 +33,6 @@ import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
-import com.orbit.app.domain.usecase.itemCostExpense
 import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FieldPath
@@ -46,15 +40,11 @@ import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FieldsAndValuesUpdateDSL
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import dev.gitlive.firebase.firestore.Timestamp
-import dev.gitlive.firebase.firestore.Source
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.todayIn
-import kotlin.time.Clock
 
 /**
  * Items in Firestore (ADR 0002), read through a live listener that Firestore's offline cache answers
@@ -112,25 +102,16 @@ class FirestoreItemRepository(
                 is Assignment -> path.to(AssignmentDocument.serializer(), assignmentDocument(module))
                 is Checklist -> path.to(ChecklistDocument.serializer(), checklistDocument(module))
                 is Reminder -> path.to(ReminderDocument.serializer(), reminderDocument(module))
-                is Cost -> path.to(CostDocument.serializer(), costDocument(module))
             }
         }
 
     override suspend fun removeModule(spaceId: String, itemId: String, type: ModuleType) =
         update(spaceId, itemId) { FieldPath(MODULES, moduleKey(type)) to FieldValue.delete }
 
-    override suspend fun setEntryChecked(spaceId: String, itemId: String, entryId: String, checked: Boolean) {
-        val item = readItem(spaceId, itemId)
-        val entries =
-            item.modules.checklist?.entries.orEmpty().map { if (it.id == entryId) it.copy(checked = checked) else it }
-        if (item.modules.cost != null && checked && entries.isNotEmpty() && entries.all { it.checked } && item.status is ItemStatus.Open) {
-            completeItem(spaceId, item, null) {
-                FieldPath(MODULES, "checklist", "entries", entryId, "checked") to checked
-            }
-        } else update(spaceId, itemId) {
+    override suspend fun setEntryChecked(spaceId: String, itemId: String, entryId: String, checked: Boolean) =
+        update(spaceId, itemId) {
             FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "checked") to checked
         }
-    }
 
     override suspend fun addEntry(spaceId: String, itemId: String, text: String, quantity: Int?, order: Int) {
         val entryId = items(spaceId).document.id
@@ -143,16 +124,11 @@ class FirestoreItemRepository(
         update(spaceId, itemId) {
             FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "text") to text
             FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "quantity") to
-                    (quantity ?: FieldValue.delete)
+                (quantity ?: FieldValue.delete)
         }
 
-    override suspend fun removeEntry(spaceId: String, itemId: String, entryId: String) {
-        val item = readItem(spaceId, itemId)
-        val entries = item.modules.checklist?.entries.orEmpty().filterNot { it.id == entryId }
-        if (item.modules.cost != null && entries.isNotEmpty() && entries.all { it.checked } && item.status is ItemStatus.Open) {
-            completeItem(spaceId, item, null) { entryPath(entryId) to FieldValue.delete }
-        } else update(spaceId, itemId) { entryPath(entryId) to FieldValue.delete }
-    }
+    override suspend fun removeEntry(spaceId: String, itemId: String, entryId: String) =
+        update(spaceId, itemId) { entryPath(entryId) to FieldValue.delete }
 
     override fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>> =
         completions(spaceId)
@@ -174,65 +150,22 @@ class FirestoreItemRepository(
 
     /** The item and its completion go in one batch, so the history never misses one nor has one too many. */
     override suspend fun complete(spaceId: String, itemId: String, next: Schedule?) {
-        completeItem(spaceId, readItem(spaceId, itemId), next) {}
-    }
-
-    private suspend fun readItem(spaceId: String, itemId: String): Item {
-        val document = items(spaceId).document(itemId).get(Source.CACHE)
-        // A malformed money module must never turn into a free completion.
-        val item = checkNotNull(toItem(document)) { "Item unavailable" }
-        check(document.field<Map<String, Unit>>(MODULES)?.containsKey("cost") != true || item.modules.cost != null) {
-            "The item's cost cannot be read"
-        }
-        return item
-    }
-
-    private suspend fun completeItem(
-        spaceId: String,
-        item: Item,
-        next: Schedule?,
-        fields: FieldsAndValuesUpdateDSL.() -> Unit,
-    ) {
-        if (item.status is ItemStatus.Done && (item.modules.cost != null || item.costExpenseId != null)) return
-        check(item.completionVersion < Long.MAX_VALUE)
         val userId = auth.requireUser().id
-        val memberIds = if (item.modules.cost != null && item.costExpenseId == null) {
-            checkNotNull(
-                firestore.collection(SPACES).document(spaceId).get(Source.CACHE).field<List<String>>("memberIds")
-            )
-        } else emptyList()
-        val expense = itemCostExpense(item, memberIds, Clock.System.todayIn(TimeZone.currentSystemDefault()))
-        val completion = completions(spaceId).document
         val batch = firestore.batch()
-        batch.updateFields(items(spaceId).document(item.id)) {
+        batch.updateFields(items(spaceId).document(itemId)) {
             encodeDefaults = false
-            fields()
-            FieldPath("completionVersion") to item.completionVersion + 1
-            FieldPath("lastCompletionId") to completion.id
-            FieldPath("costExpenseId") to (if (next != null) FieldValue.delete else expense?.let { completion.id }
-                ?: item.costExpenseId ?: FieldValue.delete)
             if (next != null) {
-                FieldPath(MODULES, moduleKey(ModuleType.SCHEDULE)).to(
-                    ScheduleDocument.serializer(),
-                    scheduleDocument(next)
-                )
+                FieldPath(MODULES, moduleKey(ModuleType.SCHEDULE)).to(ScheduleDocument.serializer(), scheduleDocument(next))
             } else {
                 FieldPath(STATUS) to STATUS_DONE
                 FieldPath(COMPLETED_BY) to userId
                 FieldPath(COMPLETED_AT) to FieldValue.serverTimestamp
             }
         }
-        batch.set(
-            completion,
-            CompletionDocument(item.id, userId, Timestamp.ServerTimestamp, expenseId = expense?.let { completion.id })
-        ) {
+        batch.set(completions(spaceId).document, CompletionDocument(itemId, userId, Timestamp.ServerTimestamp)) {
             encodeDefaults = false
         }
-        if (expense != null) {
-            val document = firestore.collection(SPACES).document(spaceId).collection(EXPENSES).document(completion.id)
-            batch.set(document, expenseDocument(spaceId, expense, userId)) { encodeDefaults = false }
-        }
-        writeLocally("Completing item ${item.id}") { batch.commit() }
+        writeLocally("Completing item $itemId") { batch.commit() }
     }
 
     /** Like [complete], the item and the entry in its history go in one batch. */
@@ -261,13 +194,7 @@ class FirestoreItemRepository(
             Logger.w { "Skipping the malformed completion ${document.id}" }
             return null
         }
-        return Completion(
-            document.id,
-            itemId,
-            completedBy,
-            completedAt,
-            document.field<String>("action") == ACTION_REOPEN
-        )
+        return Completion(document.id, itemId, completedBy, completedAt, document.field<String>("action") == ACTION_REOPEN)
     }
 
     private fun entryPath(entryId: String) = FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId)
@@ -289,7 +216,6 @@ class FirestoreItemRepository(
             assignment = document.field("$MODULES.${moduleKey(ModuleType.ASSIGNMENT)}"),
             checklist = document.field("$MODULES.${moduleKey(ModuleType.CHECKLIST)}"),
             reminder = document.field("$MODULES.${moduleKey(ModuleType.REMINDER)}"),
-            cost = document.field("$MODULES.cost"),
         )
         val stored = StoredItem(
             title = document.field("title"),
@@ -303,8 +229,6 @@ class FirestoreItemRepository(
             // Only the keys: Unit decodes from any value, so a module this build does not know still lists.
             moduleKeys = document.field<Map<String, Unit>>(MODULES)?.keys.orEmpty(),
             modules = modules,
-            completionVersion = document.field<Long>("completionVersion") ?: 0,
-            costExpenseId = document.field("costExpenseId"),
         )
         return mapItem(document.id, stored).also {
             if (it == null) Logger.w { "Skipping the malformed item ${document.id}" }

@@ -1,0 +1,55 @@
+name: Deploy Firestore rules
+
+# What firebase/ deploys goes live once it is on main (#301). The rules tests run again first: an admin can merge
+# past CI, and a refused rule must never reach the app's project.
+on:
+  push:
+    branches: [main]
+    paths:
+      - firebase/firestore.rules
+      - firebase/firestore.indexes.json
+      - firebase/firebase.json
+      - firebase/.firebaserc
+  workflow_dispatch:
+
+# One deploy at a time, the latest last: never cancelled halfway.
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy rules and indexes
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: firebase
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: zulu
+          java-version: 21
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Run rules tests with Firestore emulator
+        run: npx --yes firebase-tools emulators:exec --only firestore "npm test"
+      - name: Deploy to the project in .firebaserc
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::The FIREBASE_SERVICE_ACCOUNT secret is missing: see docs/process/builds-and-deployment.md"
+            exit 1
+          fi
+          key="$RUNNER_TEMP/service-account.json"
+          printf '%s' "$SERVICE_ACCOUNT" > "$key"
+          GOOGLE_APPLICATION_CREDENTIALS="$key" npx --yes firebase-tools deploy \
+            --only firestore:rules,firestore:indexes --non-interactive
+          rm -f "$key"

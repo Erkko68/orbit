@@ -1,7 +1,5 @@
 package com.orbit.app.feature.expense.ui
 
-import com.orbit.app.testing.InMemoryItemRepository
-
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
@@ -33,28 +31,6 @@ import kotlin.test.assertFalse
 @OptIn(ExperimentalTestApi::class)
 class ExpenseScreenTest : ComposeTest() {
     @Test
-    fun linkedExpenseNamesItsActivityAndOpensTheCorrectItem() = runComposeUiTest {
-        val auth = InMemoryAuthRepository()
-        val items = InMemoryItemRepository(auth)
-        val ledger = InMemoryExpenseRepository(auth)
-        val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER)
-        lateinit var itemId: String
-        val expenseId = runBlocking {
-            auth.signIn("ana", "secret")
-            itemId = items.create("space-1", com.orbit.app.domain.model.NewItem("Weekly detergent"))
-            ledger.add(
-                "space-1",
-                NewExpense("Purchase", "ana", mapOf("ana" to 1000L), LocalDate(2026, 11, 12), itemId = itemId)
-            )
-        }
-        val vm = ExpenseViewModel("space-1", expenseId, ledger, spaces, auth, items)
-        var opened: String? = null
-        setContent { OrbitTheme { ExpenseScreen("space-1", expenseId, {}, vm, onOpenItem = { opened = it }) } }
-        onNodeWithText("Weekly detergent").performScrollTo().performClick()
-        runOnIdle { assertEquals(itemId, opened) }
-    }
-
-    @Test
     fun narrowScreenKeepsNamesAndActionsReadableAtNormalSize() = verifyNarrowRows(1f)
 
     @Test
@@ -78,13 +54,13 @@ class ExpenseScreenTest : ComposeTest() {
                 )
             )
         }
-        val vm = ExpenseViewModel("space-1", id, ledger, spaces, auth, InMemoryItemRepository(auth))
+        val vm = ExpenseViewModel("space-1", id, ledger, spaces, auth)
         setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 OrbitTheme {
                     // A narrow phone viewport, using existing tokens rather than changing the app's typography.
-                    Box(Modifier.width(OrbitSpacing.xl * 10)) { ExpenseScreen("space-1", id, {}, vm, onOpenItem = {}) }
+                    Box(Modifier.width(OrbitSpacing.xl * 10)) { ExpenseScreen("space-1", id, {}, vm) }
                 }
             }
         }
@@ -104,10 +80,9 @@ class ExpenseScreenTest : ComposeTest() {
         val ledger = InMemoryExpenseRepository(auth)
         val locale = deviceMoneyLocale()
         runBlocking { auth.register("ana", "secret", "Ana") }
-        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth, InMemoryItemRepository(auth))
-        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm, onOpenItem = {}) } }
-        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo()
-            .performTextInput(moneyInput(4000, locale))
+        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
+        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo().performTextInput(moneyInput(4000, locale))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
         onNodeWithText("Split").performScrollTo().performClick()
         onNodeWithText("Custom amounts").performClick()
@@ -137,10 +112,9 @@ class ExpenseScreenTest : ComposeTest() {
         val ledger = InMemoryExpenseRepository(auth)
         val locale = deviceMoneyLocale()
         runBlocking { auth.register("ana", "secret", "Ana") }
-        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth, InMemoryItemRepository(auth))
-        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm, onOpenItem = {}) } }
-        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo()
-            .performTextInput(moneyInput(4000, locale))
+        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
+        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo().performTextInput(moneyInput(4000, locale))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
         onNodeWithText("Split").performScrollTo().performClick()
         onNodeWithText("Whole numbers, such as 2 : 1 : 1.").assertIsDisplayed()
@@ -173,8 +147,8 @@ class ExpenseScreenTest : ComposeTest() {
                 NewExpense("Food", "ana", mapOf("ana" to 620L, "bea" to 620L), LocalDate(2026, 11, 4)),
             )
         }
-        val vm = ExpenseViewModel("space-1", id, ledger, spaces, auth, InMemoryItemRepository(auth))
-        setContent { OrbitTheme { ExpenseScreen("space-1", id, {}, vm, onOpenItem = {}) } }
+        val vm = ExpenseViewModel("space-1", id, ledger, spaces, auth)
+        setContent { OrbitTheme { ExpenseScreen("space-1", id, {}, vm) } }
         onNodeWithText("Custom amounts").performScrollTo().assertIsDisplayed()
         onNodeWithText("Assigned ${formatEuro(1240)} of ${formatEuro(1240)}").performScrollTo().assertIsDisplayed()
         onAllNodes(hasSetTextAction() and hasText(moneyInput(620, locale))).onFirst()
@@ -206,8 +180,8 @@ class ExpenseScreenTest : ComposeTest() {
             spaces.createSpace("Flat", 0)
             ledger.add("space-1", NewExpense("Food", "ana", mapOf("ana" to 1240L), LocalDate(2026, 11, 4)))
         }
-        val vm = ExpenseViewModel("space-1", id, ledger, spaces, auth, InMemoryItemRepository(auth))
-        setContent { OrbitTheme { ExpenseScreen("space-1", id, {}, vm, onOpenItem = {}) } }
+        val vm = ExpenseViewModel("space-1", id, ledger, spaces, auth)
+        setContent { OrbitTheme { ExpenseScreen("space-1", id, {}, vm) } }
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextReplacement("Dinner")
         onNodeWithText("Custom amounts").performScrollTo().assertIsDisplayed()
         onNodeWithContentDescription("Delete").performClick()
@@ -224,9 +198,9 @@ class ExpenseScreenTest : ComposeTest() {
         val spaces = InMemorySpaceRepository(auth)
         val ledger = InMemoryExpenseRepository(auth)
         runBlocking { auth.register("ana", "secret", "Ana"); spaces.createSpace("Flat", 0) }
-        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth, InMemoryItemRepository(auth))
+        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
         var closed = false
-        setContent { OrbitTheme { ExpenseScreen("space-1", "", { closed = true }, vm, onOpenItem = {}) } }
+        setContent { OrbitTheme { ExpenseScreen("space-1", "", { closed = true }, vm) } }
         onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo()
             .performTextInput(moneyInput(1240, deviceMoneyLocale()))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")
@@ -245,8 +219,8 @@ class ExpenseScreenTest : ComposeTest() {
         val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER, "marc" to Role.MEMBER)
         val ledger = InMemoryExpenseRepository(auth)
         runBlocking { auth.register("ana", "secret", "Ana") }
-        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth, InMemoryItemRepository(auth))
-        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm, onOpenItem = {}) } }
+        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
+        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
         onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo()
             .performTextInput(moneyInput(1000, deviceMoneyLocale()))
         onNodeWithText(formatEuro(334)).performScrollTo().assertIsDisplayed()
@@ -262,8 +236,8 @@ class ExpenseScreenTest : ComposeTest() {
         val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER)
         val ledger = InMemoryExpenseRepository(auth)
         runBlocking { auth.register("ana", "secret", "Ana") }
-        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth, InMemoryItemRepository(auth))
-        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm, onOpenItem = {}) } }
+        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
+        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
         onNode(hasText("Paid by") and hasText("ana")).performScrollTo().performClick()
         onAllNodesWithText("bea").onLast().performClick()
         waitForIdle()
@@ -281,8 +255,8 @@ class ExpenseScreenTest : ComposeTest() {
         val spaces = InMemorySpaceRepository(auth)
         runBlocking { auth.register("ana", "secret", "Ana"); spaces.createSpace("Flat", 0) }
         val ledger = ControlledExpenseRepository(InMemoryExpenseRepository(auth)).apply { failWrites = true }
-        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth, InMemoryItemRepository(auth))
-        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm, onOpenItem = {}) } }
+        val vm = ExpenseViewModel("space-1", "", ledger, spaces, auth)
+        setContent { OrbitTheme { ExpenseScreen("space-1", "", {}, vm) } }
         onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo()
             .performTextInput(moneyInput(1240, deviceMoneyLocale()))
         onNode(hasSetTextAction() and hasContentDescription("Title")).performTextInput("Food")

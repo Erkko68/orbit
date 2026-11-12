@@ -38,14 +38,12 @@ interface ItemRepository {
 
     suspend fun removeModule(spaceId: String, itemId: String, type: ModuleType)
 
-    /** With a cost, a final tick also completes and charges the item in this same write. */
     suspend fun setEntryChecked(spaceId: String, itemId: String, entryId: String, checked: Boolean)
 
     suspend fun addEntry(spaceId: String, itemId: String, text: String, quantity: Int?, order: Int)
 
     suspend fun updateEntry(spaceId: String, itemId: String, entryId: String, text: String, quantity: Int?)
 
-    /** With a cost, removing the last unchecked entry also completes and charges the remaining list atomically. */
     suspend fun removeEntry(spaceId: String, itemId: String, entryId: String)
 
     /** The latest times the item was completed or reopened, newest first. */
@@ -57,7 +55,6 @@ interface ItemRepository {
     /**
      * Also records the completion in the item's history, which reopening keeps. With a [next] schedule the item
      * recurs: it stays open and moves there instead (ADR 0011).
-     * A cost creates its expense in the same batch, once per occurrence. Reopening keeps the charge.
      */
     suspend fun complete(spaceId: String, itemId: String, next: Schedule?)
 

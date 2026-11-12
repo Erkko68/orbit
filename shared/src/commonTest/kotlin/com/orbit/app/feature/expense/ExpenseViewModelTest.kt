@@ -1,7 +1,5 @@
 package com.orbit.app.feature.expense
 
-import com.orbit.app.testing.InMemoryItemRepository
-
 import com.orbit.app.core.deviceMoneyLocale
 import com.orbit.app.core.moneyInput
 import com.orbit.app.domain.model.*
@@ -42,7 +40,7 @@ class ExpenseViewModelTest {
         FakeSpaceRepository.withMembers("ana" to role, "bea" to Role.MEMBER, "marc" to Role.MEMBER)
 
     private fun TestScope.open(id: String = "", spaces: SpaceRepository = people()): ExpenseViewModel {
-        val vm = ExpenseViewModel("space-1", id, controlled, spaces, auth, InMemoryItemRepository(auth))
+        val vm = ExpenseViewModel("space-1", id, controlled, spaces, auth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
         return vm
     }
@@ -534,7 +532,7 @@ class ExpenseViewModelTest {
         val brokenAuth = object : com.orbit.app.domain.repository.AuthRepository by auth {
             override val session = flow<User?> { error("Auth read failed") }
         }
-        val form = ExpenseViewModel("space-1", "", controlled, people(), brokenAuth, InMemoryItemRepository(brokenAuth))
+        val form = ExpenseViewModel("space-1", "", controlled, people(), brokenAuth)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { form.uiState.collect() }
         assertTrue(form.uiState.value.loadFailed)
     }
@@ -551,19 +549,5 @@ class ExpenseViewModelTest {
         new.fill()
         new.save()
         assertEquals(0, controlled.writes)
-    }
-
-    @Test
-    fun failedSourceItemReadKeepsTheExpenseAvailableWithItsLink() = runTest {
-        val id = stored()
-        val itemRepository = object : com.orbit.app.domain.repository.ItemRepository by InMemoryItemRepository(auth) {
-            override fun observeItems(spaceId: String) = flow<List<Item>> { error("Source item unavailable") }
-        }
-        val vm = ExpenseViewModel("space-1", id, controlled, people(), auth, itemRepository)
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
-        assertFalse(vm.uiState.value.loadFailed)
-        assertEquals(id, vm.uiState.value.original?.id)
-        assertNull(vm.uiState.value.sourceItemTitle)
-        assertTrue(vm.uiState.value.canSave)
     }
 }

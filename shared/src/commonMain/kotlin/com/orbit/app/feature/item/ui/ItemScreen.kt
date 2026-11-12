@@ -31,7 +31,6 @@ import com.orbit.app.core.designsystem.component.orbitItem
 import com.orbit.app.core.designsystem.theme.OrbitShape
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.notification.permission.RequireNotificationPermission
-import com.orbit.app.core.formatEuro
 import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.feature.item.ItemUiState
 import com.orbit.app.feature.item.ItemViewModel
@@ -44,10 +43,6 @@ import orbit.shared.generated.resources.ic_delete
 import orbit.shared.generated.resources.ic_event
 import orbit.shared.generated.resources.ic_group
 import orbit.shared.generated.resources.ic_notifications
-import orbit.shared.generated.resources.ic_wallet
-import orbit.shared.generated.resources.item_cost
-import orbit.shared.generated.resources.item_add_cost
-import orbit.shared.generated.resources.cost_completion_invalid
 import orbit.shared.generated.resources.item_action_failed
 import orbit.shared.generated.resources.item_add_date
 import orbit.shared.generated.resources.item_add_reminder
@@ -81,7 +76,7 @@ import org.koin.core.parameter.parametersOf
 private const val ADD_ENTRY = "add-entry"
 
 /** The rows that say who has the item, when it is due and when to remind. */
-private enum class ItemRow { WHO, WHEN, REMINDER, COST }
+private enum class ItemRow { WHO, WHEN, REMINDER }
 
 /**
  * One item, the same form for all of them: a colour block with its name typed in place, who has it, when and the
@@ -111,13 +106,7 @@ fun ItemScreen(
             } else {
                 OrbitTopBar(
                     title = state.spaceName.orEmpty(),
-                    navigationIcon = {
-                        OrbitIconButton(
-                            Res.drawable.ic_arrow_back,
-                            stringResource(Res.string.item_back),
-                            onBack
-                        )
-                    },
+                    navigationIcon = { OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.item_back), onBack) },
                 )
             }
         },
@@ -127,7 +116,6 @@ fun ItemScreen(
     )
     state.scheduleEditor?.let { editor -> ScheduleEditorSheet(editor, state, viewModel) }
     state.checklistEditor?.let { editor -> ChecklistEditorSheet(editor, state, viewModel) }
-    if (state.costEditor != null) CostEditorSheet(state, viewModel)
     if (state.pickingMember) AssigneeSheet(state, viewModel)
     if (state.editingReminder) ReminderSheet(state, viewModel)
     if (state.confirmingDelete) DeleteItemSheet(state, viewModel)
@@ -163,36 +151,15 @@ private fun ItemHeader(state: ItemUiState, viewModel: ItemViewModel, onBack: () 
 /** Create on a new item; Mark done, or quietly Reopen, on a written one without entries. */
 private fun primaryAction(state: ItemUiState, viewModel: ItemViewModel): (@Composable () -> Unit)? = when {
     state.isNew -> {
-        {
-            OrbitButton(
-                stringResource(Res.string.item_create),
-                viewModel::create,
-                Modifier.fillMaxWidth(),
-                state.canCreate
-            )
-        }
+        { OrbitButton(stringResource(Res.string.item_create), viewModel::create, Modifier.fillMaxWidth(), state.canCreate) }
     }
 
     state.showsDone && state.isDone -> {
-        {
-            OrbitTonalButton(
-                stringResource(Res.string.item_reopen),
-                viewModel::reopen,
-                Modifier.fillMaxWidth(),
-                state.canSubmit
-            )
-        }
+        { OrbitTonalButton(stringResource(Res.string.item_reopen), viewModel::reopen, Modifier.fillMaxWidth(), state.canSubmit) }
     }
 
     state.showsDone -> {
-        {
-            OrbitButton(
-                stringResource(Res.string.item_complete),
-                viewModel::complete,
-                Modifier.fillMaxWidth(),
-                state.canComplete
-            )
-        }
+        { OrbitButton(stringResource(Res.string.item_complete), viewModel::complete, Modifier.fillMaxWidth(), state.canSubmit) }
     }
 
     else -> null
@@ -226,9 +193,6 @@ private fun LazyListScope.itemBody(state: ItemUiState, viewModel: ItemViewModel,
             if (state.failed) {
                 item(key = "failed") { OrbitErrorText(stringResource(Res.string.item_action_failed)) }
             }
-            if (state.costInvalid) {
-                item(key = "cost-invalid") { OrbitErrorText(stringResource(Res.string.cost_completion_invalid)) }
-            }
             val rows = ItemRow.entries.filter { it != ItemRow.REMINDER || state.showsReminder }
             orbitGroup(rows, key = { it.name }) { row -> ItemActionRow(row, state, viewModel) }
             gap("description")
@@ -257,14 +221,6 @@ private fun LazyListScope.gap(before: String) = item(key = "gap-$before") { Spac
 private fun ItemActionRow(row: ItemRow, state: ItemUiState, viewModel: ItemViewModel) {
     val modifier = Modifier.fillMaxWidth()
     when (row) {
-        ItemRow.COST -> OrbitActionRow(
-            title = stringResource(Res.string.item_cost),
-            supporting = state.cost?.let { formatEuro(it.cents) } ?: stringResource(Res.string.item_add_cost),
-            icon = Res.drawable.ic_wallet,
-            onClick = viewModel::editCost,
-            modifier = modifier,
-        )
-
         ItemRow.WHO -> OrbitActionRow(
             title = stringResource(Res.string.item_who),
             supporting = when {
@@ -280,8 +236,7 @@ private fun ItemActionRow(row: ItemRow, state: ItemUiState, viewModel: ItemViewM
 
         ItemRow.WHEN -> OrbitActionRow(
             title = stringResource(Res.string.item_when),
-            supporting = state.schedule?.let { itemWhenLabel(it, state.recurrence) }
-                ?: stringResource(Res.string.item_add_date),
+            supporting = state.schedule?.let { itemWhenLabel(it, state.recurrence) } ?: stringResource(Res.string.item_add_date),
             icon = Res.drawable.ic_event,
             onClick = viewModel::editSchedule,
             modifier = modifier,

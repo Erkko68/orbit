@@ -57,28 +57,6 @@ import kotlin.time.Duration.Companion.minutes
 
 @OptIn(ExperimentalTestApi::class)
 class ItemScreenTest : ComposeTest() {
-    @Test
-    fun costRowOpensTheExistingStyleEditorAndSavesOnlyAfterConfirmation() = runComposeUiTest {
-        val id = createItem(NewItem("Detergent"))
-        val vm = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, vm) } }
-        list().performScrollToNode(hasText("Cost"))
-        onNodeWithText("Cost").performClick()
-        onNodeWithContentDescription("Amount").performTextInput("10")
-        runOnIdle { assertNullCost(id) }
-        onNodeWithText("Save").performScrollTo().performClick()
-        waitUntil { runBlocking { items.observeItems("space-1").first().first { it.id == id }.modules.cost != null } }
-        runOnIdle {
-            assertEquals(
-                1000L,
-                runBlocking { items.observeItems("space-1").first().first { it.id == id }.modules.cost?.cents })
-        }
-    }
-
-    private fun assertNullCost(id: String) {
-        assertEquals(null, runBlocking { items.observeItems("space-1").first().first { it.id == id }.modules.cost })
-    }
-
     private val auth = InMemoryAuthRepository().apply {
         runBlocking { signIn("ana", "secret") }
     }
@@ -141,10 +119,9 @@ class ItemScreenTest : ComposeTest() {
         val label = onNodeWithText("Flat 4B").fetchSemanticsNode()
         val title = onNodeWithText("Book plumber").fetchSemanticsNode()
         assertTrue(label.boundsInRoot.bottom <= title.boundsInRoot.top)
+        onNodeWithText("Kitchen leak").assertIsDisplayed()
         onNodeWithText("Oct 26, 2026").assertIsDisplayed()
         onNodeWithText("Remind me").assertIsDisplayed()
-        list().performScrollToNode(hasText("Kitchen leak"))
-        onNodeWithText("Kitchen leak").assertIsDisplayed()
         list().performScrollToNode(hasText("Kitchen faucet"))
         onNodeWithText("Kitchen faucet").assertIsDisplayed()
     }
@@ -301,8 +278,7 @@ class ItemScreenTest : ComposeTest() {
 
     @Test
     fun memberAndClaimAssignmentsDisplayTheStoredAssignee() = runComposeUiTest {
-        val id =
-            createItem(NewItem("Assigned task", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")))))
+        val id = createItem(NewItem("Assigned task", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")))))
         val viewModel = model(id, items)
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
         onNodeWithContentDescription("Ana").assertExists()
@@ -363,16 +339,7 @@ class ItemScreenTest : ComposeTest() {
     fun aNewItemIsCreatedOnceNamedAndTheScreenCloses() = runComposeUiTest {
         var backs = 0
         val viewModel = model("", items)
-        setContent {
-            OrbitTheme {
-                ItemScreen(
-                    spaceId = "space-1",
-                    itemId = "",
-                    onBack = { backs++ },
-                    viewModel = viewModel
-                )
-            }
-        }
+        setContent { OrbitTheme { ItemScreen(spaceId = "space-1", itemId = "", onBack = { backs++ }, viewModel = viewModel) } }
 
         onNodeWithText("Create").assertIsNotEnabled()
         onNodeWithText("Mark as done").assertDoesNotExist()
@@ -389,10 +356,7 @@ class ItemScreenTest : ComposeTest() {
     @Test
     fun editsTheScheduleFromItsRow() = runComposeUiTest {
         val itemId = runBlocking {
-            items.create(
-                "space-1",
-                NewItem("Dinner", modules = ItemModules(schedule = Schedule(LocalDate(2026, 10, 26))))
-            )
+            items.create("space-1", NewItem("Dinner", modules = ItemModules(schedule = Schedule(LocalDate(2026, 10, 26)))))
         }
         val viewModel = model(itemId, items)
         setContent {
@@ -574,10 +538,7 @@ class ItemScreenTest : ComposeTest() {
         val id = createItem(
             NewItem(
                 "Task",
-                modules = ItemModules(
-                    schedule = Schedule(LocalDate(2026, 10, 26)),
-                    reminder = Reminder(listOf(Duration.ZERO))
-                ),
+                modules = ItemModules(schedule = Schedule(LocalDate(2026, 10, 26)), reminder = Reminder(listOf(Duration.ZERO))),
             ),
         )
         val viewModel = model(id, items)

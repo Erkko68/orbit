@@ -3,8 +3,6 @@ package com.orbit.app.feature.item
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
-import com.orbit.app.domain.model.Cost
-import com.orbit.app.domain.model.costErrors
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Module
@@ -49,7 +47,6 @@ data class ItemUiState(
     /** The description as typed, until it is saved. */
     val descriptionDraft: String? = null,
     val status: ItemStatus = ItemStatus.Open,
-    val costAlreadyRecorded: Boolean = false,
     val modules: List<Module> = emptyList(),
     val loading: Boolean = true,
     val loadFailed: Boolean = false,
@@ -58,13 +55,11 @@ data class ItemUiState(
     val submitting: Boolean = false,
     val spaceName: String? = null,
     val memberNames: Map<String, String> = emptyMap(),
-    val formerMemberNames: Map<String, String> = emptyMap(),
     val members: List<Member> = emptyList(),
     val currentUserId: String? = null,
     /** The schedule being edited, while its sheet is open. */
     val scheduleEditor: ScheduleEditor? = null,
     val checklistEditor: ChecklistEditor? = null,
-    val costEditor: CostEditor? = null,
     /** A reminder was just added, so notifications get allowed. */
     val askNotifications: Boolean = false,
     /** Whether the sheet that picks who has the item is open. */
@@ -84,16 +79,12 @@ data class ItemUiState(
     val canSubmit: Boolean get() = canEdit && !submitting
 
     /** A new item is written once it has a name. */
-    val canCreate: Boolean get() = isNew && shownTitle.isNotBlank() && !submitting && !costInvalid
+    val canCreate: Boolean get() = isNew && shownTitle.isNotBlank() && !submitting
 
     /** Mark done shows on a written item without entries: a checklist finishes by itself (ADR 0008). */
     val showsDone: Boolean get() = !isNew && loaded && !hasEntries
     val canSaveSchedule: Boolean get() = canSubmit && scheduleEditor?.schedule != null
     val canSaveChecklist: Boolean get() = canSubmit && checklistEditor?.canSave == true
-    val canSaveCost: Boolean get() = canSubmit && costEditor?.validFor(memberNames.keys) == true
-    val cost: Cost? get() = modules.filterIsInstance<Cost>().firstOrNull()
-    val costInvalid: Boolean get() = !costAlreadyRecorded && costErrors(cost, memberNames.keys).isNotEmpty()
-    val canComplete: Boolean get() = canSubmit && !costInvalid
 
     /** What the description field shows while it is typed, and after. */
     val shownDescription: String get() = descriptionDraft ?: description.orEmpty()
@@ -116,24 +107,11 @@ data class ItemUiState(
     /** The rule of `firestore.rules`: its creator, or someone who manages the space. Until it is written there is nothing to delete. */
     val canDelete: Boolean
         get() = !isNew && currentUserId != null && (
-                createdBy == currentUserId || members.firstOrNull { it.userId == currentUserId }?.role?.managesSpace == true
-                )
+            createdBy == currentUserId || members.firstOrNull { it.userId == currentUserId }?.role?.managesSpace == true
+        )
 
     val memberFaces: List<ItemFace>
-        get() = members.mapIndexed { index, member ->
-            ItemFace(
-                member.userId,
-                member.displayName,
-                index,
-                member.photoUrl
-            )
-        }
-
-    /** Departed participants stay visible in the draft so the user can explicitly remove them. */
-    val costParticipantFaces: List<ItemFace>
-        get() = memberFaces + (costEditor?.selected.orEmpty() - memberNames.keys).sorted().mapIndexed { index, id ->
-            ItemFace(id, formerMemberNames[id] ?: id, members.size + index, null)
-        }
+        get() = members.mapIndexed { index, member -> ItemFace(member.userId, member.displayName, index, member.photoUrl) }
 
     /** Who has the item by name. */
     val assigneeIds: Set<String> get() = assignment?.assigneeIds.orEmpty()

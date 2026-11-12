@@ -3,9 +3,6 @@ package com.orbit.app.feature.item
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orbit.app.core.Load
-import com.orbit.app.core.deviceMoneyLocale
-import com.orbit.app.core.moneyInput
-import com.orbit.app.core.isMoneyInput
 import com.orbit.app.core.asLoad
 import com.orbit.app.core.attempt
 import com.orbit.app.core.orOnFailure
@@ -13,7 +10,6 @@ import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
-import com.orbit.app.domain.model.costErrors
 import com.orbit.app.domain.model.ITEM_TITLE_MAX_LENGTH
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemModules
@@ -86,7 +82,7 @@ class ItemViewModel(
         auth.session,
     ) { all, members, user ->
         val space = all.firstOrNull { it.id == spaceId }
-        ItemContext(space?.name, members, user?.id, space?.formerMembers.orEmpty())
+        ItemContext(space?.name, members, user?.id)
     }.onStart { emit(ItemContext()) }
 
     val uiState: StateFlow<ItemUiState> = combine(item, context, form, draft) { load, context, form, draft ->
@@ -96,14 +92,12 @@ class ItemViewModel(
             createdBy = loaded?.createdBy,
             description = loaded?.description,
             status = loaded?.status ?: form.status,
-            costAlreadyRecorded = loaded?.costExpenseId != null,
             modules = (loaded?.modules ?: draft).all,
             loading = load == Load.Loading,
             loadFailed = load == Load.Failed,
             notFound = !isNew && load is Load.Loaded && loaded == null,
             spaceName = context.spaceName,
             memberNames = context.members.associate { it.userId to it.displayName },
-            formerMemberNames = context.formerMemberNames,
             members = context.members,
             currentUserId = context.currentUserId,
         )
@@ -126,73 +120,9 @@ class ItemViewModel(
     }
 
     /** A recurring item moves to its next date and stays open (ADR 0011). */
-    fun complete() {
-        if (!uiState.value.canComplete) return
-        submit { items.complete(spaceId, itemId, modules().rolledForward(today())) }
-    }
+    fun complete() = submit { items.complete(spaceId, itemId, modules().rolledForward(today())) }
 
     fun reopen() = submit { items.reopen(spaceId, itemId) }
-
-    fun editCost() {
-        if (!uiState.value.canEdit) return
-        val state = uiState.value
-        val locale = deviceMoneyLocale()
-        form.update {
-            it.copy(
-                costEditor = CostEditor(
-                    amount = state.cost?.cents?.takeIf { cents -> cents >= 0 }
-                        ?.let { cents -> moneyInput(cents, locale) }.orEmpty(),
-                    paidBy = state.cost?.paidBy ?: state.currentUserId.orEmpty(),
-                    selected = state.cost?.memberIds ?: state.memberNames.keys,
-                    locale = locale,
-                ), failed = false
-            )
-        }
-    }
-
-    fun dismissCost() {
-        if (!form.value.submitting) form.update { it.copy(costEditor = null) }
-    }
-
-    fun onCostAmountChange(value: String) {
-        if (isMoneyInput(value) && !form.value.submitting) updateCost { it.copy(amount = value) }
-    }
-
-    fun pickCostPayer(userId: String) {
-        if (userId in uiState.value.memberNames && !form.value.submitting) updateCost { it.copy(paidBy = userId) }
-    }
-
-    fun toggleCostParticipant(userId: String) {
-        val selected = form.value.costEditor?.selected.orEmpty()
-        if ((userId !in uiState.value.memberNames && userId !in selected) || form.value.submitting) return
-        updateCost { it.copy(selected = if (userId in it.selected) it.selected - userId else it.selected + userId) }
-    }
-
-    fun saveCost() {
-        if (!uiState.value.canSaveCost) return
-        val cost = form.value.costEditor?.candidate ?: return
-        if (costErrors(cost, uiState.value.memberNames.keys).isNotEmpty()) return
-        if (isNew) {
-            draft.update { it.with(cost) }
-            form.update { it.copy(costEditor = null) }
-        } else submit(onSuccess = { form.update { it.copy(costEditor = null) } }) {
-            items.setModule(spaceId, itemId, cost)
-        }
-    }
-
-    fun removeCost() {
-        if (!uiState.value.canSubmit) return
-        if (isNew) {
-            draft.update { it.without(ModuleType.COST) }
-            form.update { it.copy(costEditor = null) }
-        } else submit(onSuccess = { form.update { it.copy(costEditor = null) } }) {
-            items.removeModule(spaceId, itemId, ModuleType.COST)
-        }
-    }
-
-    private fun updateCost(change: (CostEditor) -> CostEditor) = form.update {
-        it.copy(costEditor = it.costEditor?.let(change), failed = false)
-    }
 
     fun onTitleChange(text: String) = form.update { it.copy(titleDraft = text, failed = false) }
 
@@ -213,9 +143,7 @@ class ItemViewModel(
         val forgetSaved = {
             form.update {
                 it.copy(
-                    titleDraft = it.titleDraft.takeUnless { draft ->
-                        draft?.trim()?.take(ITEM_TITLE_MAX_LENGTH) == title
-                    },
+                    titleDraft = it.titleDraft.takeUnless { draft -> draft?.trim()?.take(ITEM_TITLE_MAX_LENGTH) == title },
                     descriptionDraft = it.descriptionDraft.takeUnless { draft -> draft?.trim() == description },
                 )
             }
@@ -243,20 +171,12 @@ class ItemViewModel(
 
     /** A reminder counts back from a date, so there is nothing to open without one. */
     fun openReminder() {
-        if (uiState.value.showsReminder) form.update {
-            it.copy(
-                editingReminder = true,
-                addingReminder = false,
-                failed = false
-            )
-        }
+        if (uiState.value.showsReminder) form.update { it.copy(editingReminder = true, addingReminder = false, failed = false) }
     }
 
-    fun dismissReminder() =
-        form.update { it.copy(editingReminder = false, addingReminder = false, customReminder = CustomDuration()) }
+    fun dismissReminder() = form.update { it.copy(editingReminder = false, addingReminder = false, customReminder = CustomDuration()) }
 
-    fun openAddReminder() =
-        form.update { it.copy(addingReminder = true, customReminder = CustomDuration(), failed = false) }
+    fun openAddReminder() = form.update { it.copy(addingReminder = true, customReminder = CustomDuration(), failed = false) }
 
     fun closeAddReminder() = form.update { it.copy(addingReminder = false) }
 
@@ -405,8 +325,7 @@ class ItemViewModel(
         val hadRecurrence = uiState.value.recurrence != null
         edit(
             local = { modules ->
-                modules.with(schedule)
-                    .let { if (recurrence == null) it.without(ModuleType.RECURRENCE) else it.with(recurrence) }
+                modules.with(schedule).let { if (recurrence == null) it.without(ModuleType.RECURRENCE) else it.with(recurrence) }
             },
             onSuccess = { form.update { it.copy(scheduleEditor = null) } },
         ) {
@@ -439,12 +358,7 @@ class ItemViewModel(
         edit(
             local = { modules ->
                 modules.withEntries { all ->
-                    all.map {
-                        if (it.id == editor.entryId) it.copy(
-                            text = text,
-                            quantity = editor.quantityValue
-                        ) else it
-                    }
+                    all.map { if (it.id == editor.entryId) it.copy(text = text, quantity = editor.quantityValue) else it }
                 }
             },
             onSuccess = { form.update { it.copy(checklistEditor = null) } },
@@ -502,8 +416,7 @@ class ItemViewModel(
         val finished = entries.isNotEmpty() && entries.all { it.checked }
         val done = uiState.value.isDone
         // ponytail: a finished list closes even when it recurs; rolling it forward needs its entries unticked too.
-        // With a cost the repository batches the last tick/removal, completion and expense together.
-        if (finished && !done && uiState.value.cost == null) items.complete(spaceId, itemId, null)
+        if (finished && !done) items.complete(spaceId, itemId, null)
         if (!finished && done) items.reopen(spaceId, itemId)
     }
 
@@ -581,6 +494,5 @@ class ItemViewModel(
         val spaceName: String? = null,
         val members: List<Member> = emptyList(),
         val currentUserId: String? = null,
-        val formerMemberNames: Map<String, String> = emptyMap(),
     )
 }

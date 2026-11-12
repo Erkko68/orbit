@@ -8,7 +8,7 @@ flowchart LR
     ci --> review["Review + approval"]
     review --> main["Squash merge<br/>to main"]
     main --> pages["Dashboard on<br/>GitHub Pages"]
-    main -. "by hand, from firebase/" .-> fb[("Firebase<br/>orbit-app-dev")]
+    main -- "firebase-deploy.yml" --> fb[("Firebase<br/>orbit-app-dev")]
     main -. "docker compose, from server/" .-> srv[("Assistant server<br/>with its model")]
     main -. "local build" .-> apps["Debug app on an<br/>Android phone or iOS simulator"]
 ```
@@ -38,14 +38,11 @@ Both apps talk to one Firebase project, `orbit-app-dev`. Their configs (`google-
 
 ## Firebase
 
-From `firebase/`, by someone with access to the project:
+A change to the rules, the indexes or `firebase.json` deploys itself once it is on `main` (#301): [`firebase-deploy.yml`](../../.github/workflows/firebase-deploy.yml) runs the rules tests again and then `firebase deploy --only firestore:rules,firestore:indexes` to the project in `firebase/.firebaserc`. It can also be run by hand from the Actions tab. One deploy runs at a time, and none is cancelled halfway.
 
-```sh
-npx firebase deploy --only firestore:rules   # after a rules change has merged
-npx firebase deploy --only firestore:indexes # after an index change has merged
-```
+It signs in with a service account key kept in the repository secret `FIREBASE_SERVICE_ACCOUNT` (the whole JSON), never in the repository. The account needs only the **Firebase Rules Admin** and **Cloud Datastore Index Admin** roles. Without the secret the job fails and says so.
 
-A rules change merges only with its tests passing; deploy it once it is on `main`. The project stays on the free Spark plan.
+By hand, from `firebase/`, by someone with access to the project: `npx firebase deploy --only firestore:rules,firestore:indexes`. The project stays on the free Spark plan.
 
 ## The assistant server
 
