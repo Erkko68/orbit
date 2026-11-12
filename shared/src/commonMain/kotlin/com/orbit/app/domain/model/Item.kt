@@ -17,6 +17,10 @@ data class Item(
     val createdBy: String,
     val createdAt: Instant,
     val modules: ItemModules = ItemModules(),
+    /** Compare-and-set counter for completion batches, absent on older items. */
+    val completionVersion: Long = 0,
+    /** Already charged in this occurrence. Reopening keeps it; rolling forward clears it. */
+    val costExpenseId: String? = null,
 )
 
 /** The item is still to do, it is [userId]'s, and it is due by [today]. */

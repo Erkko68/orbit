@@ -120,7 +120,9 @@ fun OrbitNavHost(
             }
             composable<ExpenseRoute> { entry ->
                 val route = entry.toRoute<ExpenseRoute>()
-                ExpenseScreen(route.spaceId, route.expenseId, onBack = { navController.popBackStack() })
+                ExpenseScreen(
+                    route.spaceId, route.expenseId, onBack = { navController.popBackStack() },
+                    onOpenItem = { navController.navigate(ItemRoute(route.spaceId, it)) })
             }
             composable<InterviewRoute> {
                 // The manual path is wherever the assistant was opened from; the review board (#75) follows a plan.

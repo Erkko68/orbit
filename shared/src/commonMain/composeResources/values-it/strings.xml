@@ -413,4 +413,14 @@
     <string name="expenses_nothing_for_you">Non hai niente da saldare.</string>
     <string name="expenses_paid_to">%1$s ha pagato %2$s</string>
     <string name="expenses_row_detail">%1$s · %2$s</string>
+
+    <!-- Item cost (#58) -->
+    <string name="item_cost">Costo</string>
+    <string name="item_add_cost">Aggiungi un costo</string>
+    <string name="cost_equal_hint">Diviso in parti uguali tra le persone selezionate. La spesa viene registrata al completamento dell’attività.</string>
+    <string name="cost_members_invalid">Seleziona un pagatore e almeno un partecipante tra i membri attuali.</string>
+    <string name="cost_remove">Rimuovi costo</string>
+    <string name="cost_completion_invalid">Controlla costo, pagatore e partecipanti prima di completare questa attività.</string>
+    <string name="expense_source_item">Attività di origine</string>
+    <string name="expense_open_item">Apri l’attività che ha creato questa spesa</string>
 </resources>

@@ -9,7 +9,7 @@ import kotlinx.datetime.toInstant
 import kotlin.time.Duration
 import kotlin.time.Instant
 
-enum class ModuleType { SCHEDULE, RECURRENCE, ASSIGNMENT, CHECKLIST, REMINDER }
+enum class ModuleType { SCHEDULE, RECURRENCE, ASSIGNMENT, CHECKLIST, REMINDER, COST }
 
 sealed interface Module {
     val type: ModuleType
@@ -22,6 +22,7 @@ data class ItemModules(
     val assignment: Assignment? = null,
     val checklist: Checklist? = null,
     val reminder: Reminder? = null,
+    val cost: Cost? = null,
 ) {
     operator fun get(type: ModuleType): Module? = when (type) {
         ModuleType.SCHEDULE -> schedule
@@ -29,6 +30,7 @@ data class ItemModules(
         ModuleType.ASSIGNMENT -> assignment
         ModuleType.CHECKLIST -> checklist
         ModuleType.REMINDER -> reminder
+        ModuleType.COST -> cost
     }
 
     /** Present modules in card order. */
@@ -46,6 +48,7 @@ data class ItemModules(
         is Assignment -> copy(assignment = module)
         is Checklist -> copy(checklist = module)
         is Reminder -> copy(reminder = module)
+        is Cost -> copy(cost = module)
     }
 
     fun without(type: ModuleType): ItemModules = when (type) {
@@ -54,6 +57,7 @@ data class ItemModules(
         ModuleType.ASSIGNMENT -> copy(assignment = null)
         ModuleType.CHECKLIST -> copy(checklist = null)
         ModuleType.REMINDER -> copy(reminder = null)
+        ModuleType.COST -> copy(cost = null)
     }
 }
 
@@ -126,4 +130,9 @@ data class ChecklistEntry(
 /** Offsets before the schedule's due moment. */
 data class Reminder(val offsets: List<Duration>) : Module {
     override val type get() = ModuleType.REMINDER
+}
+
+/** The cost of the next completion, split equally between the selected current members. */
+data class Cost(val cents: Long, val paidBy: String, val memberIds: Set<String>) : Module {
+    override val type get() = ModuleType.COST
 }

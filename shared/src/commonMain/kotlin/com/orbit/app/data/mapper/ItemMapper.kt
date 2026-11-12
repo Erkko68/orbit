@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
+import com.orbit.app.domain.model.Cost
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
@@ -47,6 +48,7 @@ internal fun itemDocument(spaceId: String, item: NewItem, creatorId: String) = I
         assignment = item.modules.assignment?.let(::assignmentDocument),
         checklist = item.modules.checklist?.let(::checklistDocument),
         reminder = item.modules.reminder?.let(::reminderDocument),
+        cost = item.modules.cost?.let(::costDocument),
     ),
 )
 
@@ -67,7 +69,13 @@ internal fun recurrenceDocument(recurrence: Recurrence): RecurrenceDocument {
             weekdays = recurrence.weekdays.map { it.isoDayNumber }.sorted(),
             until = until,
         )
-        is Recurrence.Months -> RecurrenceDocument("month", recurrence.every, dayOfMonth = recurrence.dayOfMonth, until = until)
+
+        is Recurrence.Months -> RecurrenceDocument(
+            "month",
+            recurrence.every,
+            dayOfMonth = recurrence.dayOfMonth,
+            until = until
+        )
     }
 }
 
@@ -85,6 +93,8 @@ internal fun checklistDocument(checklist: Checklist) = ChecklistDocument(
 
 internal fun reminderDocument(reminder: Reminder) =
     ReminderDocument(reminder.offsets.map { it.inWholeMinutes.toInt() })
+
+internal fun costDocument(cost: Cost) = CostDocument(cost.cents, cost.paidBy, cost.memberIds.sorted())
 
 /**
  * An item from its stored fields, or null when it has no title, creator or creation time: a malformed
@@ -104,6 +114,8 @@ internal fun mapItem(id: String, stored: StoredItem): Item? {
         createdBy = createdBy,
         createdAt = createdAt,
         modules = modulesOf(id, stored),
+        completionVersion = stored.completionVersion,
+        costExpenseId = stored.costExpenseId,
     )
 }
 
@@ -124,6 +136,7 @@ private fun modulesOf(id: String, stored: StoredItem): ItemModules {
         assignment = modules.assignment?.let(::assignmentOf),
         checklist = modules.checklist?.let(::checklistOf),
         reminder = modules.reminder?.let(::reminderOf),
+        cost = modules.cost?.let { Cost(it.cents, it.paidBy, it.memberIds.toSet()) },
     )
     stored.moduleKeys.mapNotNull(known::get).filter { read[it] == null }.forEach {
         Logger.w { "Item $id has a malformed or unknown ${moduleKey(it)} module, skipped" }
@@ -155,8 +168,10 @@ private fun recurrenceOf(document: RecurrenceDocument): Recurrence? {
         "week" -> document.weekdays.orEmpty()
             .takeIf { days -> days.isNotEmpty() && days.all { it in 1..7 } }
             ?.let { days -> Recurrence.Weeks(document.every, days.map(::DayOfWeek).toSet(), until) }
+
         "month" -> document.dayOfMonth?.takeIf { it in 1..31 }
             ?.let { Recurrence.Months(document.every, it, until) }
+
         else -> null
     }
 }

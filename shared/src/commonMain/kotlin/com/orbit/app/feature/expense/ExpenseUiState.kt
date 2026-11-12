@@ -51,6 +51,7 @@ data class ExpenseUiState(
     val people: List<ItemFace> = emptyList(),
     val locale: MoneyLocale = MoneyLocale(".", ","),
     val original: Expense? = null,
+    val sourceItemTitle: String? = null,
     val member: Member? = null,
     val submitting: Boolean = false,
     val failed: Boolean = false,

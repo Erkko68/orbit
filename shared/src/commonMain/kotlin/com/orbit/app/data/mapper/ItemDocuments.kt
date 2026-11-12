@@ -29,6 +29,7 @@ internal class ModulesDocument(
     val assignment: AssignmentDocument? = null,
     val checklist: ChecklistDocument? = null,
     val reminder: ReminderDocument? = null,
+    val cost: CostDocument? = null,
 )
 
 @Serializable
@@ -75,6 +76,9 @@ internal class EntryDocument(
 @Serializable
 internal class ReminderDocument(val offsetsMinutes: List<Int>)
 
+@Serializable
+internal class CostDocument(val cents: Long, val paidBy: String, val memberIds: List<String>)
+
 /** An item's fields as read, each null when missing or not of the expected type. */
 internal data class StoredItem(
     val title: String? = null,
@@ -88,6 +92,8 @@ internal data class StoredItem(
     val completedAt: Instant? = null,
     val moduleKeys: Set<String> = emptySet(),
     val modules: ModulesDocument = ModulesDocument(),
+    val completionVersion: Long = 0,
+    val costExpenseId: String? = null,
 )
 
 /** `spaces/{spaceId}/completions/{completionId}`, written with the item it completes. The server sets [completedAt]. */
@@ -98,6 +104,8 @@ internal class CompletionDocument(
     val completedAt: Timestamp.ServerTimestamp,
     /** [ACTION_REOPEN] for a reopening. Missing on a completion, which is what every entry was before it. */
     val action: String? = null,
+    /** Only a newly charged completion has an expense, with the same document id. */
+    val expenseId: String? = null,
 )
 
 internal const val ACTION_REOPEN = "reopen"

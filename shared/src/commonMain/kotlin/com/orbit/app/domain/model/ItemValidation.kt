@@ -20,6 +20,10 @@ sealed interface ItemError {
     data class NonPositiveQuantity(val entryId: String) : ItemError
     data object ReminderWithoutSchedule : ItemError
     data object NegativeReminderOffset : ItemError
+    data object NonPositiveCost : ItemError
+    data object CostPayerNotMember : ItemError
+    data object NoCostParticipants : ItemError
+    data object CostParticipantNotMember : ItemError
 }
 
 /**
@@ -31,11 +35,23 @@ fun validateItem(
     modules: ItemModules,
     memberIds: Collection<String>,
 ): List<ItemError> = titleErrors(title) +
-    scheduleErrors(modules.schedule) +
-    recurrenceErrors(modules.recurrence, modules.schedule) +
-    assignmentErrors(modules.assignment, memberIds) +
-    checklistErrors(modules.checklist) +
-    reminderErrors(modules.reminder, hasSchedule = modules.schedule != null)
+        scheduleErrors(modules.schedule) +
+        recurrenceErrors(modules.recurrence, modules.schedule) +
+        assignmentErrors(modules.assignment, memberIds) +
+        checklistErrors(modules.checklist) +
+        reminderErrors(modules.reminder, hasSchedule = modules.schedule != null) +
+        costErrors(modules.cost, memberIds)
+
+/** Checked both by the cost editor and before creating its expense. */
+fun costErrors(cost: Cost?, memberIds: Collection<String>): List<ItemError> {
+    if (cost == null) return emptyList()
+    return listOfNotNull(
+        ItemError.NonPositiveCost.takeIf { cost.cents <= 0 },
+        ItemError.CostPayerNotMember.takeIf { cost.paidBy !in memberIds },
+        ItemError.NoCostParticipants.takeIf { cost.memberIds.isEmpty() },
+        ItemError.CostParticipantNotMember.takeIf { cost.memberIds.any { it !in memberIds } },
+    )
+}
 
 private fun titleErrors(title: String): List<ItemError> {
     val trimmed = title.trim()

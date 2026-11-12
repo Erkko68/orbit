@@ -16,12 +16,32 @@ import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
+import kotlin.test.assertNotNull
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 class ItemMapperTest {
+    @Test
+    fun costAndCompletionAccountingRoundTripWithoutChangingLegacyDefaults() {
+        val cost = com.orbit.app.domain.model.Cost(1001, "ana", setOf("ana", "ben"))
+        val mapped = assertNotNull(
+            mapItem(
+                "i1", storedModules(ItemModules(cost = cost)).copy(
+                    completionVersion = 4, costExpenseId = "expense-4"
+                )
+            )
+        )
+        assertEquals(cost, mapped.modules.cost)
+        assertEquals(4L, mapped.completionVersion)
+        assertEquals("expense-4", mapped.costExpenseId)
+        val legacy = assertNotNull(mapItem("i0", stored))
+        assertEquals(0L, legacy.completionVersion)
+        assertNull(legacy.costExpenseId)
+        assertNull(legacy.modules.cost)
+    }
+
     private val createdAt = Instant.fromEpochSeconds(1_760_000_000)
 
     private val stored = StoredItem(title = "Buy milk", status = "open", createdBy = "ana", createdAt = createdAt)
@@ -31,7 +51,10 @@ class ItemMapperTest {
         recurrence = Recurrence.Weeks(2, setOf(DayOfWeek.FRIDAY, DayOfWeek.MONDAY), until = LocalDate(2027, 1, 1)),
         assignment = Assignment.ToMembers(setOf("ben")),
         checklist = Checklist(
-            listOf(ChecklistEntry("e2", "Milk", quantity = 2, order = 0), ChecklistEntry("e1", "Bread", true, order = 1)),
+            listOf(
+                ChecklistEntry("e2", "Milk", quantity = 2, order = 0),
+                ChecklistEntry("e1", "Bread", true, order = 1)
+            ),
         ),
         reminder = Reminder(listOf(30.minutes)),
     )
@@ -74,12 +97,15 @@ class ItemMapperTest {
         assertEquals(1, document.checklist.entries.getValue("e1").order)
         assertEquals(listOf(30), document.reminder!!.offsetsMinutes)
         val recurrence = document.recurrence!!
-        assertEquals(listOf("week", 2, listOf(1, 5), null, "2027-01-01"), recurrence.run { listOf(unit, every, weekdays, dayOfMonth, until) })
+        assertEquals(
+            listOf("week", 2, listOf(1, 5), null, "2027-01-01"),
+            recurrence.run { listOf(unit, every, weekdays, dayOfMonth, until) })
     }
 
     @Test
     fun everyRecurrenceReadsBackAsWritten() {
-        val recurrences = listOf(Recurrence.Days(3), Recurrence.Weeks(1, setOf(DayOfWeek.SUNDAY)), Recurrence.Months(1, 31))
+        val recurrences =
+            listOf(Recurrence.Days(3), Recurrence.Weeks(1, setOf(DayOfWeek.SUNDAY)), Recurrence.Months(1, 31))
 
         val read = recurrences.map {
             mapItem("item-1", storedModules(ItemModules(recurrence = it)))?.modules?.recurrence
@@ -139,7 +165,10 @@ class ItemMapperTest {
 
     @Test
     fun theRetiredDetailsReadAsTheEndOfTheDescription() {
-        assertEquals("Semi-skimmed\n\nThe blue one", mapItem("i", stored.copy(description = "Semi-skimmed", details = "The blue one"))?.description)
+        assertEquals(
+            "Semi-skimmed\n\nThe blue one",
+            mapItem("i", stored.copy(description = "Semi-skimmed", details = "The blue one"))?.description
+        )
         assertEquals("The blue one", mapItem("i", stored.copy(details = "The blue one"))?.description)
         assertEquals(null, mapItem("i", stored.copy(description = " ", details = ""))?.description)
     }
@@ -209,7 +238,12 @@ class ItemMapperTest {
         val item = mapItem("item-1", stored.copy(modules = ModulesDocument(checklist = checklist)))
 
         assertEquals(
-            Checklist(listOf(ChecklistEntry("first", "Milk", checked = true, order = 0), ChecklistEntry("late", "Bread"))),
+            Checklist(
+                listOf(
+                    ChecklistEntry("first", "Milk", checked = true, order = 0),
+                    ChecklistEntry("late", "Bread")
+                )
+            ),
             item?.modules?.checklist,
         )
     }
