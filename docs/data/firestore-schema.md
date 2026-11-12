@@ -158,9 +158,7 @@ The email is not stored: it comes from the Firebase Auth account.
 | `completedBy` | uid | with `done` | Set with `status: done` to the member who completed it, removed on reopen |
 | `completedAt` | timestamp | with `done` | Server time, same lifecycle as `completedBy` |
 | `modules` | map | yes | One key per module present. Unknown keys are kept and skipped. |
-| `completionVersion` | integer | after a completion | Compare-and-set counter, missing means zero. Incremented in a completion batch (#58). |
-| `lastCompletionId` | string | after a completion | The new append-only history entry of that batch. |
-| `costExpenseId` | string | once this occurrence is charged | Reopening keeps it, rolling forward clears it. Never a monetary source. |
+| `costExpenseId` | string | once this occurrence's cost is charged | The expense its completion added ([ADR 0014](../adr/0014-item-cost-per-occurrence.md)). Reopening keeps it, so completing again adds none; rolling forward to the next occurrence deletes it. |
 
 #### `modules.schedule`
 
@@ -212,15 +210,15 @@ The next occurrence is the first date after both the schedule's date and the com
 
 #### `modules.cost`
 
+What completing the item adds to the ledger: an expense planned on the expense screen, in the expense's own shape ([ADR 0014](../adr/0014-item-cost-per-occurrence.md)).
+
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `cents` | integer (`Long`) | yes | Positive cents, in euros until #111. |
-| `paidBy` | uid | yes | A current member. Independent of the assignees. |
-| `memberIds` | array of uid | yes | Non-empty selection of current members, divided equally at completion. |
+| `paidBy` | uid | yes | A current member when written. Independent of the assignees. |
+| `split` | map of uid to integer | yes | Cents each member owes, as an expense's `split`. The total is its sum. |
+| `customAllocation` | map of uid to boolean | no | As an expense's (ADR 0013) |
 
-The Cost row opens a sheet; a new item keeps the module in its local draft until Create. On a saved item, Save writes only this module. `validateItem` checks the module. Completing creates an `expense` with exact `splitEqually` shares, the item's title, the completion day and `itemId`, in the same batch as the item and history. The expense and history use the same new id; zero-cent shares are omitted as elsewhere in the ledger.
-
-Changing the module affects future charges only. Reopening keeps `costExpenseId`, so recompleting the same occurrence does not charge again or recreate a deleted expense. A recurring roll-forward clears it, allowing the next completion to charge. A checklist's final tick/removal is included in its completion batch; checklist recurrence behavior is unchanged. See [ADR 0014](../adr/0014-item-cost-per-occurrence.md). The manual Add as expense flow remains #60.
+A new item plans it before Create and writes it with the item. Completing copies it into a new expense (the item's title, the day it was completed, `itemId`) in the completion's batch, unless `costExpenseId` says this occurrence was charged already. A cost that names someone who left blocks completing until it is changed. Changing or removing it never touches expenses already added.
 
 ### `spaces/{spaceId}/completions/{completionId}`
 
@@ -232,7 +230,6 @@ The history of an item: who completed it or reopened it and when, one document e
 | `completedBy` | uid | yes | The caller: who completed or reopened it |
 | `completedAt` | timestamp | yes | Server time |
 | `action` | string | for a reopening | `reopen`. Absent on a completion, which is what every entry was before it |
-| `expenseId` | string | for a new Cost charge | Equals `completionId`, with that expense created in the same batch. Absent when this occurrence was already charged. |
 
 ### `spaces/{spaceId}/expenses/{expenseId}`
 
@@ -247,7 +244,7 @@ An entry of the ledger. Balances are derived from these on the device and never 
 | `customAllocation` | map of uid to boolean | no | Editing intent for Custom amounts/Percentages (#283): keys are selected participants, including zero shares; `true` is automatic, `false` manual. Covers every `split` key. No amounts or percentages. Removed when saving Equal/Weights. |
 | `date` | string | yes | `YYYY-MM-DD`, chosen by the user |
 | `kind` | string | yes | `expense` or `settlement`. Never changes. Unknown reads as `expense`, because it still moves money. |
-| `itemId` | string | no | The item whose Cost module made it (#58). Never changes. |
+| `itemId` | string | no | The item whose cost added it (ADR 0014). Never changes. |
 | `createdBy` | uid | yes | Never changes |
 | `createdAt` | timestamp | yes | Server time, never changes |
 
@@ -338,13 +335,13 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `setDescription` | same | `update` of `description` (deleted when empty) and delete of the retired `details` |
 | `setModule` | same | `update` of `modules.<type>` (the whole module) |
 | `removeModule` | same | `update`: delete `modules.<type>` |
-| `setEntryChecked` | same | `update` of `modules.checklist.entries.<id>.checked`; a final tick with a cost joins the completion/expense batch |
+| `setEntryChecked` | same | `update` of `modules.checklist.entries.<id>.checked` |
 | `addEntry` | same | `update` of `modules.checklist.entries.<new id>` with text, checked, optional quantity and order |
 | `updateEntry` | same | `update` of `modules.checklist.entries.<id>.text` and `.quantity` only |
-| `removeEntry` | same | `update`: delete `modules.checklist.entries.<id>`; if the remaining non-empty checklist is finished and has a cost, join its completion/expense batch |
+| `removeEntry` | same | `update`: delete `modules.checklist.entries.<id>` |
 | `observeCompletions` | `spaces/{id}/completions` where `itemId ==` id, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way. Completions and reopenings |
 | `observeMemberCompletions` | `spaces/{id}/completions` where `completedBy ==` uid, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way. Completions and reopenings: "Lately" skips the reopenings |
-| `complete` | same item, a new `spaces/{id}/completions/{completionId}` and, for a new cost charge, `expenses/{completionId}` | One batch: `update` of status/completion fields and accounting version, `set` of the history and optional expense. A recurring item with a next occurrence updates `modules.schedule` instead and stays open (ADR 0011). `costExpenseId` prevents charging the same occurrence again (ADR 0014) |
+| `complete` | same item, a new `spaces/{id}/completions/{completionId}` and, with a cost not yet charged, a new `spaces/{id}/expenses/{expenseId}` | Reads the item and `memberIds` from the cache. One batch: `update` of `status: done`, `completedBy`, `completedAt` and `costExpenseId`, `set` of the completion and of the expense. A recurring item with a next occurrence gets an `update` of `modules.schedule` instead, deletes `costExpenseId` and stays open (ADR 0011, ADR 0014) |
 | `reopen` | same item, and a new `spaces/{id}/completions/{completionId}` with `action: reopen` | One batch: `update` of `status: open`, delete `completedBy` and `completedAt`, and `set` of the reopening |
 
 No method saves a whole existing item: every update writes only its field paths, so concurrent edits merge.

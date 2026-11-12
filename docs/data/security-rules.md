@@ -58,10 +58,7 @@ Firebase deploys one rules file and the language has no imports, so the file is 
 | `isSpaceCreator`, `joinsAsMember`, `keepsJoin` | members | The creator's own owner document; the member half of a join; `invitationCode` and `joinedAt` unchanged |
 | `handsOwnership`, `leaves` | members | The member half of a transfer or a leave |
 | `completesAsSelf` | items | `completedBy` set only to the caller |
-| `validItemCost(spaceId, data)` | items and completions | Positive integer cents, current payer and non-empty current participant selection, checked on module writes and new charges |
-| `completionBatch()` | items | Completion fields change only with a new matching history entry and the next integer version |
-| `keepsCostAccounting()` | items | Closing a cost-bearing item requires the completion batch; ordinary schedule edits do not charge |
-| `matchesCost(entry)` | completions | A new cost charge has its linked expense in the same batch; reopening preserves the accounting markers |
+| `keepsCost`, `isCost(cost)` | items | A new or changed `modules.cost` has an expense's shape among the current members (ADR 0014) |
 | `matchesItem(entry)` | completions | A completion: the same batch leaves the item `done`, or rolls it forward (`rollsForward`). A reopening (`action: 'reopen'`): the item was `done` and the batch leaves it `open` |
 | `rollsForward(itemId)` | completions | A recurring item stays `open` with `modules.recurrence`, and the batch moves `modules.schedule.date` later (ADR 0011) |
 | `isExpense(data)` | expenses | The fields of an expense have the right types |
@@ -119,15 +116,13 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 - **Update:** a member, keeping the creation fields, a valid title and `status` `open` or `done`; `completedBy` can only become the caller.
 - **Delete:** the item's creator, an admin or the owner.
 
-The optional `modules.cost` is checked on creation or change: positive integer cents, current payer and a non-empty list of current participants. Completing an item that already has a cost requires its matching new history entry. Changes to `completionVersion`, `lastCompletionId` and `costExpenseId` require the same batch; the version is exactly the previous value plus one. Older documents start at zero. Unchanged costs can contain departed members so unrelated edits and reopening still work; the domain blocks a new charge until the participants are corrected.
+A `modules.cost` written or changed (`keepsCost`) has an expense's shape: only `paidBy`, `split` and an optional `customAllocation` map, a payer among `memberIds` and a non-empty `split` whose keys are all in `memberIds`. Its amounts are the app's to check, as for an expense (ADR 0003). An unchanged cost is not checked again, so an item whose cost names someone who left can still be edited. The expense a completion adds goes through the expense rules, in the completion's batch; nothing more is enforced, since any member can edit an expense afterwards anyway ([ADR 0014](../adr/0014-item-cost-per-occurrence.md)).
 
 ### `spaces/{spaceId}/completions/{completionId}`
 
 - **Read:** a member.
 - **Create:** a member, with only `itemId`, `completedBy` the caller, `completedAt` the server time and, for a reopening, `action: 'reopen'`, in the batch that changes the item to match (`matchesItem`).
 - **Update, delete:** nobody, the owner included. The history is append-only.
-
-A newly charged Cost completion also has `expenseId`, equal to its own id. `matchesCost` requires a new expense at that id in the same batch, linked to the item with the configured payer and kind `expense`. It checks the item's previous open state, completion version and history pointer, so two stale completion batches cannot both succeed. Reopening has no expense; recompleting an occurrence with `costExpenseId` keeps the marker and adds no charge. Rolling forward clears the marker. The domain computes the equal shares and exact sum; rules cannot sum an arbitrary map (ADR 0003).
 
 ### `spaces/{spaceId}/expenses/{expenseId}`
 

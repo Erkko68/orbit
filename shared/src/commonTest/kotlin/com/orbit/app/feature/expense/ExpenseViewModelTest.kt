@@ -1,10 +1,11 @@
 package com.orbit.app.feature.expense
 
-import com.orbit.app.testing.InMemoryItemRepository
-
 import com.orbit.app.core.deviceMoneyLocale
 import com.orbit.app.core.moneyInput
+import com.orbit.app.core.navigation.decodePlannedCost
+import com.orbit.app.core.navigation.encodePlannedCost
 import com.orbit.app.domain.model.*
+import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.*
 import kotlinx.coroutines.CompletableDeferred
@@ -42,7 +43,7 @@ class ExpenseViewModelTest {
         FakeSpaceRepository.withMembers("ana" to role, "bea" to Role.MEMBER, "marc" to Role.MEMBER)
 
     private fun TestScope.open(id: String = "", spaces: SpaceRepository = people()): ExpenseViewModel {
-        val vm = ExpenseViewModel("space-1", id, controlled, spaces, auth, InMemoryItemRepository(auth))
+        val vm = ExpenseViewModel("space-1", id, "", "", controlled, spaces, auth, InMemoryItemRepository(auth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
         return vm
     }
@@ -534,7 +535,7 @@ class ExpenseViewModelTest {
         val brokenAuth = object : com.orbit.app.domain.repository.AuthRepository by auth {
             override val session = flow<User?> { error("Auth read failed") }
         }
-        val form = ExpenseViewModel("space-1", "", controlled, people(), brokenAuth, InMemoryItemRepository(brokenAuth))
+        val form = ExpenseViewModel("space-1", "", "", "", controlled, people(), brokenAuth, InMemoryItemRepository(brokenAuth))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { form.uiState.collect() }
         assertTrue(form.uiState.value.loadFailed)
     }
@@ -553,16 +554,113 @@ class ExpenseViewModelTest {
         assertEquals(0, controlled.writes)
     }
 
+    private val items = InMemoryItemRepository(auth)
+
+    private fun TestScope.plan(itemId: String, repository: ItemRepository = items): ExpenseViewModel {
+        val vm = ExpenseViewModel("space-1", "", itemId, "", controlled, people(), auth, repository)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
+        return vm
+    }
+
+    private suspend fun cost(itemId: String) = items.observeItems("space-1").first().first { it.id == itemId }.modules.cost
+
     @Test
-    fun failedSourceItemReadKeepsTheExpenseAvailableWithItsLink() = runTest {
-        val id = stored()
-        val itemRepository = object : com.orbit.app.domain.repository.ItemRepository by InMemoryItemRepository(auth) {
-            override fun observeItems(spaceId: String) = flow<List<Item>> { error("Source item unavailable") }
+    fun plansAnItemsCostOnTheSameFormAndSavesItToTheItemNotTheLedger() = runTest {
+        signIn()
+        val itemId = items.create("space-1", NewItem("Detergent"))
+        val vm = plan(itemId)
+        assertTrue(vm.uiState.value.planning)
+        assertEquals("Detergent", vm.uiState.value.title)
+        assertFalse(vm.uiState.value.canDelete)
+        vm.onAmountChange(moneyInput(1000, locale))
+        vm.selectSplit(ExpenseSplit.WEIGHTS)
+        vm.onShareChange("ana", "2")
+        vm.save()
+        assertEquals(Cost("ana", mapOf("ana" to 500L, "bea" to 250L, "marc" to 250L)), cost(itemId))
+        assertEquals(0, controlled.writes)
+        assertTrue(vm.uiState.value.closed)
+    }
+
+    @Test
+    fun aPlannedCostOpensWithItsSharesAndCanBeRemoved() = runTest {
+        signIn()
+        val planned = Cost("bea", mapOf("ana" to 700L, "bea" to 300L), mapOf("ana" to false, "bea" to true))
+        val itemId = items.create("space-1", NewItem("Rent", modules = ItemModules(cost = planned)))
+        val vm = plan(itemId)
+        val state = vm.uiState.value
+        assertEquals(listOf(ExpenseSplit.EXACT, "bea", setOf("ana", "bea"), setOf("bea")), listOf(state.mode, state.paidBy, state.selected, state.automatic))
+        assertEquals(planned.split, state.split)
+        assertTrue(state.canSave)
+        vm.requestDelete()
+        vm.delete()
+        assertNull(cost(itemId))
+        assertEquals(0, controlled.writes)
+    }
+
+    @Test
+    fun aNewItemsCostIsHandedBackWithoutWritingAnything() = runTest {
+        signIn()
+        val planned = Cost("bea", mapOf("ana" to 700L, "bea" to 300L))
+        fun TestScope.draft(cost: Cost?) = ExpenseViewModel("space-1", "", "", encodePlannedCost(cost), controlled, people(), auth, items)
+            .also { vm -> backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() } }
+
+        val fresh = draft(null)
+        assertTrue(fresh.uiState.value.planning)
+        assertFalse(fresh.uiState.value.missing)
+        fresh.onAmountChange(moneyInput(1000, locale))
+        assertTrue(fresh.uiState.value.canSave)
+        fresh.save()
+        assertEquals(Cost("ana", mapOf("ana" to 334L, "bea" to 333L, "marc" to 333L)), decodePlannedCost(fresh.uiState.value.plannedCost!!))
+        assertTrue(fresh.uiState.value.closed)
+
+        val edited = draft(planned)
+        assertEquals(planned.split, edited.uiState.value.split)
+        edited.requestDelete()
+        edited.delete()
+        assertEquals(encodePlannedCost(null), edited.uiState.value.plannedCost)
+        assertEquals(0, controlled.writes)
+        assertTrue(items.observeItems("space-1").first().isEmpty())
+    }
+
+    @Test
+    fun aMissingOrUnreadableItemHasNoCostToPlan() = runTest {
+        signIn()
+        assertTrue(plan("missing").uiState.value.missing)
+        val broken = object : ItemRepository by items {
+            override fun observeItems(spaceId: String) = flow<List<Item>> { error("Items unavailable") }
         }
-        val vm = ExpenseViewModel("space-1", id, controlled, people(), auth, itemRepository)
+        assertTrue(plan("item-1", broken).uiState.value.loadFailed)
+    }
+
+    @Test
+    fun aFailedCostWriteStaysOnTheFormWithItsError() = runTest {
+        signIn()
+        val itemId = items.create("space-1", NewItem("Rent"))
+        val failing = object : ItemRepository by items {
+            override suspend fun setModule(spaceId: String, itemId: String, module: Module) = error("Denied")
+        }
+        val vm = plan(itemId, failing)
+        vm.onAmountChange(moneyInput(1000, locale))
+        vm.save()
+        assertTrue(vm.uiState.value.failed)
+        assertFalse(vm.uiState.value.closed)
+        assertNull(cost(itemId))
+    }
+
+    @Test
+    fun anExpenseFromAnItemNamesItAndAFailedItemReadKeepsTheExpense() = runTest {
+        signIn()
+        val itemId = items.create("space-1", NewItem("Detergent"))
+        val id = ledger.add("space-1", NewExpense("Detergent", "ana", mapOf("ana" to 100L), LocalDate(2026, 11, 1), itemId = itemId))
+        val linked = ExpenseViewModel("space-1", id, "", "", controlled, people(), auth, items)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { linked.uiState.collect() }
+        assertEquals("Detergent", linked.uiState.value.sourceItemTitle)
+        val broken = object : ItemRepository by items {
+            override fun observeItems(spaceId: String) = flow<List<Item>> { error("Items unavailable") }
+        }
+        val vm = ExpenseViewModel("space-1", id, "", "", controlled, people(), auth, broken)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
         assertFalse(vm.uiState.value.loadFailed)
-        assertEquals(id, vm.uiState.value.original?.id)
         assertNull(vm.uiState.value.sourceItemTitle)
         assertTrue(vm.uiState.value.canSave)
     }

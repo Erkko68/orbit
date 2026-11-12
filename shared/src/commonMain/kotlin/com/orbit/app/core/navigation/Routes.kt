@@ -37,6 +37,15 @@ data object InterviewRoute
 @Serializable
 data class ItemRoute(val spaceId: String, val itemId: String = "")
 
-/** An expense form, above the space bar. An empty id creates an entry only on Save. */
+/**
+ * An expense form, above the space bar. An empty id creates an entry only on Save. From an item's Cost row the same
+ * form plans its cost instead (#300): the cost of [itemId], or with a [draftCost] (see [encodePlannedCost]) the cost of
+ * an item not created yet, which Save hands back instead of writing.
+ */
 @Serializable
-data class ExpenseRoute(val spaceId: String, val expenseId: String = "")
+data class ExpenseRoute(
+    val spaceId: String,
+    val expenseId: String = "",
+    val itemId: String = "",
+    val draftCost: String = "",
+)

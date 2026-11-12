@@ -8,9 +8,14 @@ import com.orbit.app.core.attempt
 import com.orbit.app.core.deviceMoneyLocale
 import com.orbit.app.core.isMoneyInput
 import com.orbit.app.core.moneyInput
-import com.orbit.app.core.valueOrNull
+import com.orbit.app.core.navigation.decodePlannedCost
+import com.orbit.app.core.navigation.encodePlannedCost
 import com.orbit.app.core.orOnFailure
+import com.orbit.app.core.valueOrNull
+import com.orbit.app.domain.model.Cost
 import com.orbit.app.domain.model.Expense
+import com.orbit.app.domain.model.Item
+import com.orbit.app.domain.model.ModuleType
 import com.orbit.app.domain.model.NewExpense
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ExpenseRepository
@@ -23,8 +28,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import com.orbit.app.feature.item.ItemFace
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -33,15 +38,25 @@ import kotlinx.datetime.todayIn
 import kotlin.time.Instant
 import kotlin.time.Clock
 
-/** One explicit Save writes a new entry or edits the existing one. Nothing is persisted while typing. */
+/**
+ * One explicit Save writes a new entry or edits the existing one. Nothing is persisted while typing. With an [itemId]
+ * the same form plans that item's cost instead (#300): Save writes it to the item, and completing the item adds it to
+ * the ledger (ADR 0014). With a [draftCost] it plans the cost of an item not created yet: Save hands it back to the
+ * item screen as [ExpenseUiState.plannedCost], and Create writes it.
+ */
 class ExpenseViewModel(
     private val spaceId: String,
     private val expenseId: String,
+    private val itemId: String,
+    draftCost: String,
     private val expenses: ExpenseRepository,
     spaces: SpaceRepository,
     auth: AuthRepository,
-    items: ItemRepository,
+    private val items: ItemRepository,
 ) : ViewModel() {
+    private val drafting = draftCost.isNotEmpty()
+    private val draft = if (drafting) decodePlannedCost(draftCost) else null
+    private val planning = itemId.isNotEmpty() || drafting
     private val retries = Channel<Unit>(Channel.CONFLATED)
     private val form = MutableStateFlow<ExpenseUiState?>(null)
     private val locale = deviceMoneyLocale()
@@ -51,39 +66,54 @@ class ExpenseViewModel(
         spaces.observeMembers(spaceId),
         if (expenseId.isEmpty()) flowOf(emptyList<Expense>()) else expenses.observeExpenses(spaceId),
         auth.session,
-        items.observeItems(spaceId).onStart { emit(emptyList()) }
-            .orOnFailure("Loading the expense's source item", emptyList()),
-    ) { allSpaces, members, ledger, user, sourceItems ->
+        when {
+            // The item whose cost this is: what the screen is about.
+            itemId.isNotEmpty() -> items.observeItems(spaceId)
+            // Only names the item an expense came from.
+            expenseId.isNotEmpty() -> items.observeItems(spaceId).onStart { emit(emptyList()) }
+                .orOnFailure("Loading the item of expense $expenseId", emptyList())
+            else -> flowOf(emptyList<Item>())
+        },
+    ) { allSpaces, members, ledger, user, spaceItems ->
         val space = allSpaces.firstOrNull { it.id == spaceId }
         val original = ledger.firstOrNull { it.id == expenseId }
+        val item = spaceItems.firstOrNull { it.id == itemId }
+        val cost = if (drafting) draft else item?.modules?.cost
+        // What is edited: the ledger entry, or the cost the item plans in the same shape.
+        val saved = original?.split ?: cost?.split
+        val savedPayer = original?.paidBy ?: cost?.paidBy
         val member = members.firstOrNull { it.userId == user?.id }
         val currentIds = members.map { it.userId }.toSet()
-        val knownIds = currentIds + space?.formerMembers.orEmpty().keys + original?.split.orEmpty().keys
-        val allocation = original?.customAllocation?.takeIf { it.keys.all { id -> id in knownIds } }
-        val formerIds = (original?.let { it.split.keys + it.paidBy }.orEmpty() + allocation.orEmpty().keys) - currentIds
+        val knownIds = currentIds + space?.formerMembers.orEmpty().keys + saved.orEmpty().keys
+        val allocation = (original?.customAllocation ?: cost?.customAllocation)
+            ?.takeIf { it.keys.all { id -> id in knownIds } }
+        val formerIds = (saved.orEmpty().keys + listOfNotNull(savedPayer) + allocation.orEmpty().keys) - currentIds
         val people = members.mapIndexed { index, it -> ItemFace(it.userId, it.displayName, index, it.photoUrl) } +
-                formerIds.sorted().mapIndexed { index, it ->
-                    ItemFace(it, space?.formerMembers?.get(it) ?: it, members.size + index, null)
-                }
+            formerIds.sorted().mapIndexed { index, it ->
+                ItemFace(it, space?.formerMembers?.get(it) ?: it, members.size + index, null)
+            }
         ExpenseUiState(
             loading = false,
-            missing = space == null || member == null || (expenseId.isNotEmpty() && original == null),
+            missing = space == null || member == null || (expenseId.isNotEmpty() && original == null) ||
+                (itemId.isNotEmpty() && item == null),
             spaceName = space?.name.orEmpty(),
-            title = original?.title.orEmpty(),
-            amount = original?.let { moneyInput(it.total, locale) }.orEmpty(),
-            paidBy = original?.paidBy ?: user?.id.orEmpty(),
+            title = original?.title ?: item?.title.orEmpty(),
+            amount = saved?.let { moneyInput(it.values.sum(), locale) }.orEmpty(),
+            paidBy = savedPayer ?: user?.id.orEmpty(),
             date = original?.date ?: today,
             // Stored shares are authoritative: opening an edit never splits or rounds them again.
-            mode = if (original == null) ExpenseSplit.EQUAL else ExpenseSplit.EXACT,
-            selected = allocation?.keys ?: original?.split?.keys ?: currentIds,
-            exact = (allocation?.keys ?: original?.split?.keys).orEmpty().associateWith {
-                moneyInput(original?.split?.get(it) ?: 0L, locale)
+            mode = if (saved == null) ExpenseSplit.EQUAL else ExpenseSplit.EXACT,
+            selected = allocation?.keys ?: saved?.keys ?: currentIds,
+            exact = (allocation?.keys ?: saved?.keys).orEmpty().associateWith {
+                moneyInput(saved?.get(it) ?: 0L, locale)
             },
             automatic = allocation.orEmpty().filterValues { it }.keys,
             people = people,
             locale = locale,
             original = original,
-            sourceItemTitle = sourceItems.firstOrNull { it.id == original?.itemId }?.title,
+            saved = saved,
+            planning = planning,
+            sourceItemTitle = spaceItems.firstOrNull { it.id == original?.itemId }?.title,
             member = member,
         )
     }.asLoad("Loading expense $expenseId in $spaceId", retries)
@@ -98,6 +128,8 @@ class ExpenseViewModel(
             spaceName = context?.spaceName ?: state.spaceName,
             people = context?.people ?: state.people,
             original = context?.original ?: state.original,
+            saved = context?.saved ?: state.saved,
+            planning = planning,
             sourceItemTitle = context?.sourceItemTitle,
             member = context?.member,
         )
@@ -111,12 +143,10 @@ class ExpenseViewModel(
     }
 
     fun onTitleChange(value: String) = edit { it.copy(title = value) }
-
     /** Amounts, percentages and weights take only what they can hold: a letter or a sign never reaches the state. */
     fun onAmountChange(value: String) = edit {
         if (isMoneyInput(value) && value != it.amount) it.copy(amount = value, allocationChanged = true) else it
     }
-
     fun openPayerPicker() = edit { it.copy(pickingPayer = true) }
     fun dismissPayerPicker() = edit { it.copy(pickingPayer = false) }
     fun selectPayer(id: String) = edit { it.copy(paidBy = id, pickingPayer = false) }
@@ -148,9 +178,8 @@ class ExpenseViewModel(
         if (!next.custom) return@edit next
         if (state.mode == ExpenseSplit.EQUAL) return@edit next.copy(automatic = state.selected)
         val split = state.split
-        val values =
-            (if (mode == ExpenseSplit.PERCENTAGES) split?.let { splitByWeights(HUNDRED_PERCENT, it) } else split)
-                ?: return@edit state.copy(conversionFailed = true, pickingSplit = false)
+        val values = (if (mode == ExpenseSplit.PERCENTAGES) split?.let { splitByWeights(HUNDRED_PERCENT, it) } else split)
+            ?: return@edit state.copy(conversionFailed = true, pickingSplit = false)
         val inputs = state.selected.associateWith { moneyInput(values[it] ?: 0L, state.locale) }
         val automatic = if (state.custom) state.automatic else emptySet()
         if (mode == ExpenseSplit.EXACT) next.copy(exact = inputs, automatic = automatic)
@@ -200,15 +229,19 @@ class ExpenseViewModel(
         val split = state.split ?: return
         submit(state, "Saving expense in $spaceId") {
             val date = requireNotNull(state.date)
-            if (expenseId.isEmpty()) {
-                expenses.add(
+            val cost = Cost(state.paidBy, split, state.customAllocation)
+            when {
+                drafting -> hand(cost)
+                planning -> items.setModule(spaceId, itemId, cost)
+                expenseId.isEmpty() -> expenses.add(
                     spaceId, NewExpense(
                         state.title.trim(), state.paidBy, split, date,
                         customAllocation = state.customAllocation
                     )
                 )
-            } else {
-                expenses.edit(spaceId, expenseId, state.title.trim(), state.paidBy, split, date, state.customAllocation)
+                else -> expenses.edit(
+                    spaceId, expenseId, state.title.trim(), state.paidBy, split, date, state.customAllocation,
+                )
             }
         }
     }
@@ -216,7 +249,18 @@ class ExpenseViewModel(
     fun delete() {
         val state = uiState.value
         if (!state.canDelete || !state.deleteOpen || form.value?.submitting == true) return
-        submit(state, "Deleting expense $expenseId") { expenses.delete(spaceId, expenseId) }
+        submit(state, "Deleting expense $expenseId") {
+            when {
+                drafting -> hand(null)
+                planning -> items.removeModule(spaceId, itemId, ModuleType.COST)
+                else -> expenses.delete(spaceId, expenseId)
+            }
+        }
+    }
+
+    /** A new item's cost goes back to its screen, written by nothing here. */
+    private fun hand(cost: Cost?) {
+        form.value = form.value?.copy(plannedCost = encodePlannedCost(cost))
     }
 
     private fun submit(state: ExpenseUiState, description: String, write: suspend () -> Unit) {

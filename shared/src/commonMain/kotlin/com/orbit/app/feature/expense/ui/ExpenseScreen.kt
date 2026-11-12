@@ -32,18 +32,28 @@ import org.koin.core.parameter.parametersOf
 /**
  * An expense, with the item's colour header and its title typed in place. Then amount first, as Splitwise does, who
  * paid and when (rows that open a sheet), and everyone it is split between with their share at the end, typed there
- * as an amount, a percentage or a weight. Save at the bottom is the only write.
+ * as an amount, a percentage or a weight. Save at the bottom is the only write. With an [itemId] it plans that item's
+ * cost (#300): the same form without a title or a date, which come from the item and the day it is done. With a
+ * [draftCost] the item is not created yet: Save gives the cost to [onCostPlanned] instead of writing it.
  */
 @Composable
 fun ExpenseScreen(
     spaceId: String,
     expenseId: String,
     onBack: () -> Unit,
-    viewModel: ExpenseViewModel = koinViewModel { parametersOf(spaceId, expenseId) },
-    onOpenItem: (String) -> Unit,
+    itemId: String = "",
+    draftCost: String = "",
+    onOpenItem: (String) -> Unit = {},
+    onCostPlanned: (String) -> Unit = {},
+    viewModel: ExpenseViewModel = koinViewModel { parametersOf(spaceId, expenseId, itemId, draftCost) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(state.closed) { if (state.closed) onBack() }
+    LaunchedEffect(state.closed) {
+        if (state.closed) {
+            state.plannedCost?.let(onCostPlanned)
+            onBack()
+        }
+    }
     val form = !state.loading && !state.loadFailed && !state.missing
     OrbitScreen(
         verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
@@ -52,7 +62,13 @@ fun ExpenseScreen(
                 ExpenseHeader(state, viewModel, onBack)
             } else {
                 OrbitTopBar(
-                    stringResource(if (state.editing) Res.string.expense_edit else Res.string.expense_add),
+                    stringResource(
+                        when {
+                            state.planning -> Res.string.item_cost
+                            state.editing -> Res.string.expense_edit
+                            else -> Res.string.expense_add
+                        },
+                    ),
                     navigationIcon = {
                         OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.back), onBack)
                     },
@@ -103,15 +119,22 @@ fun ExpenseScreen(
     }
     if (state.deleteOpen) {
         OrbitSheet(
-            title = stringResource(Res.string.expense_delete_title),
+            title = stringResource(
+                if (state.planning) Res.string.cost_remove_title else Res.string.expense_delete_title,
+            ),
             closeDescription = stringResource(Res.string.close),
             onDismiss = viewModel::dismissDelete,
-            confirmText = stringResource(Res.string.item_delete),
+            confirmText = stringResource(
+                if (state.planning) Res.string.member_remove_confirm else Res.string.item_delete,
+            ),
             onConfirm = viewModel::delete,
             confirmEnabled = state.canDelete,
             danger = true,
         ) {
-            Text(stringResource(Res.string.expense_delete_body), style = MaterialTheme.typography.bodyLarge)
+            Text(
+                stringResource(if (state.planning) Res.string.cost_remove_body else Res.string.expense_delete_body),
+                style = MaterialTheme.typography.bodyLarge,
+            )
             if (state.failed) OrbitErrorText(stringResource(Res.string.expense_write_failed))
         }
     }
@@ -119,30 +142,25 @@ fun ExpenseScreen(
 
 /**
  * The item's colour block: the space it is in, the way back, the title typed in place with its pencil, and delete for
- * who can delete. Typing writes nothing: Save does.
+ * who can delete. Typing writes nothing: Save does. A planned cost shows its item's title, and when it is charged.
  */
 @Composable
 private fun ExpenseHeader(state: ExpenseUiState, viewModel: ExpenseViewModel, onBack: () -> Unit) {
     OrbitColorHeader(
-        title = state.title,
+        title = state.title.ifEmpty { if (state.planning) stringResource(Res.string.item_cost) else "" },
         label = state.spaceName,
         backDescription = stringResource(Res.string.back),
         onBack = onBack,
         trailing = if (state.canDelete) {
-            {
-                OrbitIconButton(
-                    Res.drawable.ic_delete,
-                    stringResource(Res.string.item_delete),
-                    viewModel::requestDelete
-                )
-            }
+            { OrbitIconButton(Res.drawable.ic_delete, stringResource(Res.string.item_delete), viewModel::requestDelete) }
         } else {
             null
         },
-        onTitleChange = viewModel::onTitleChange,
+        detail = if (state.planning) stringResource(Res.string.cost_hint) else null,
+        onTitleChange = viewModel::onTitleChange.takeUnless { state.planning },
         titleDescription = stringResource(Res.string.expense_title),
         titlePlaceholder = stringResource(Res.string.expense_title_placeholder),
-        focusTitle = !state.editing,
+        focusTitle = !state.editing && !state.planning,
     )
 }
 
@@ -174,7 +192,8 @@ private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel, on
         prefix = state.currencyPrefix,
         suffix = state.currencySuffix,
     )
-    OrbitGroup(ExpenseRow.entries, key = { it.name }, Modifier.fillMaxWidth()) { row ->
+    val rows = ExpenseRow.entries.filter { it != ExpenseRow.DATE || !state.planning }
+    OrbitGroup(rows, key = { it.name }, Modifier.fillMaxWidth()) { row ->
         when (row) {
             ExpenseRow.PAYER -> OrbitActionRow(
                 title = stringResource(Res.string.expense_paid_by),
@@ -248,13 +267,7 @@ private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: Expense
     val toggle = { viewModel.toggleMember(person.id) }
     OrbitGroupRow(Modifier.fillMaxWidth(), onClick = if (state.submitting) null else toggle) {
         val face = person.face()
-        OrbitAvatar(
-            face.initials,
-            face.color,
-            photoUrl = face.photoUrl,
-            shape = face.shape,
-            size = OrbitAvatarSize.Medium
-        )
+        OrbitAvatar(face.initials, face.color, photoUrl = face.photoUrl, shape = face.shape, size = OrbitAvatarSize.Medium)
         Column(Modifier.weight(1f)) {
             Text(
                 text = person.name,
@@ -290,9 +303,7 @@ private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: Expense
                     person.name,
                 ),
                 placeholder = when {
-                    automatic -> state.automaticInputs[person.id]
-                        ?: stringResource(Res.string.expense_share_unavailable)
-
+                    automatic -> state.automaticInputs[person.id] ?: stringResource(Res.string.expense_share_unavailable)
                     weight -> "0"
                     else -> moneyInput(0, state.locale)
                 },
@@ -349,12 +360,7 @@ private fun SplitSheet(state: ExpenseUiState, viewModel: ExpenseViewModel) {
         OrbitGroup(ExpenseSplit.entries, key = { it.name }, Modifier.fillMaxWidth()) { mode ->
             OrbitGroupRow(Modifier.fillMaxWidth(), onClick = { viewModel.selectSplit(mode) }) {
                 OrbitHeading(stringResource(mode.label), stringResource(mode.hint), Modifier.weight(1f))
-                OrbitCheck(
-                    mode == state.mode,
-                    { viewModel.selectSplit(mode) },
-                    stringResource(mode.label),
-                    compact = true
-                )
+                OrbitCheck(mode == state.mode, { viewModel.selectSplit(mode) }, stringResource(mode.label), compact = true)
             }
         }
     }
@@ -371,13 +377,7 @@ private fun PayerSheet(state: ExpenseUiState, viewModel: ExpenseViewModel) {
         OrbitGroup(state.people, key = { it.id }, Modifier.fillMaxWidth()) { person ->
             OrbitGroupRow(Modifier.fillMaxWidth(), onClick = { viewModel.selectPayer(person.id) }) {
                 val face = person.face()
-                OrbitAvatar(
-                    face.initials,
-                    face.color,
-                    photoUrl = face.photoUrl,
-                    shape = face.shape,
-                    size = OrbitAvatarSize.Medium
-                )
+                OrbitAvatar(face.initials, face.color, photoUrl = face.photoUrl, shape = face.shape, size = OrbitAvatarSize.Medium)
                 Text(person.name, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 OrbitCheck(person.id == state.paidBy, { viewModel.selectPayer(person.id) }, person.name, compact = true)
             }

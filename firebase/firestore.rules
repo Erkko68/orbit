@@ -21,17 +21,6 @@ service cloud.firestore {
       return /databases/$(database)/documents/spaces/$(spaceId);
     }
 
-    function validItemCost(spaceId, data) {
-      let cost = data.get('modules', {}).get('cost', null);
-      let members = get(spacePath(spaceId)).data.memberIds;
-      return cost == null || (cost is map
-        && cost.keys().hasOnly(['cents', 'paidBy', 'memberIds'])
-        && cost.cents is int && cost.cents > 0
-        && cost.paidBy in members
-        && cost.memberIds is list && cost.memberIds.size() > 0
-        && cost.memberIds.hasOnly(members));
-    }
-
     function memberPath(spaceId, uid) {
       return /databases/$(database)/documents/spaces/$(spaceId)/members/$(uid);
     }
@@ -268,25 +257,23 @@ service cloud.firestore {
 
       match /items/{itemId} {
 
-        function completionBatch() {
-          let after = request.resource.data;
-          let id = after.get('lastCompletionId', '');
-          let path = /databases/$(database)/documents/spaces/$(spaceId)/completions/$(id);
-          return id is string && id != '' && after.completionVersion is int
-            && !exists(path) && existsAfter(path)
-            && getAfter(path).data.itemId == itemId
-            && after.get('completionVersion', 0) == resource.data.get('completionVersion', 0) + 1;
+        // A planned cost has an expense's shape (ADR 0014): a payer and shares among the current members. What the
+        // shares add up to is the app's to check, as for an expense (ADR 0003).
+        function isCost(cost) {
+          let members = get(spacePath(spaceId)).data.memberIds;
+          return cost is map
+            && cost.keys().hasOnly(['paidBy', 'split', 'customAllocation'])
+            && cost.paidBy in members
+            && cost.split is map && cost.split.size() > 0
+            && cost.split.keys().hasOnly(members)
+            && cost.get('customAllocation', {}) is map;
         }
 
-        // Money cannot be bypassed by completing the item without its history/expense batch.
-        function keepsCostAccounting() {
-          let before = resource.data;
-          let after = request.resource.data;
-          let hasCost = 'cost' in before.get('modules', {});
-          // Moving a date alone is an ordinary schedule edit, not a completion.
-          let completes = before.status == 'open' && after.status == 'done';
-          return (!hasCost || !completes || completionBatch())
-            && (!changedKeys().hasAny(['completionVersion', 'lastCompletionId', 'costExpenseId']) || completionBatch());
+        // Checked only when it changes, so an unrelated edit still works after someone in it left.
+        function keepsCost() {
+          let before = resource == null ? null : resource.data.get('modules', {}).get('cost', null);
+          let after = request.resource.data.get('modules', {}).get('cost', null);
+          return after == null || after == before || isCost(after);
         }
 
         // Completing records the caller as who completed it; reopening removes it.
@@ -302,16 +289,13 @@ service cloud.firestore {
           && request.resource.data.spaceId == spaceId
           && isTitle(request.resource.data.title)
           && request.resource.data.status == 'open'
-          && validItemCost(spaceId, request.resource.data)
-          && !request.resource.data.keys().hasAny(['completionVersion', 'lastCompletionId', 'costExpenseId']);
+          && keepsCost();
         allow update: if isMember(spaceId)
           && keepsCreation()
           && isTitle(request.resource.data.title)
           && request.resource.data.status in ['open', 'done']
           && completesAsSelf()
-          && keepsCostAccounting()
-          && (request.resource.data.get('modules', {}).get('cost', null) == resource.data.get('modules', {}).get('cost', null)
-            || validItemCost(spaceId, request.resource.data));
+          && keepsCost();
         allow delete: if isMember(spaceId)
           && (resource.data.createdBy == request.auth.uid || isAdminOrOwner(spaceId));
       }
@@ -343,38 +327,13 @@ service cloud.firestore {
               && (getAfter(item(entry.itemId)).data.status == 'done' || rollsForward(entry.itemId));
         }
 
-        function matchesCost(entry) {
-          let before = get(item(entry.itemId)).data;
-          let after = getAfter(item(entry.itemId)).data;
-          let expenseId = entry.get('expenseId', '');
-          let expense = /databases/$(database)/documents/spaces/$(spaceId)/expenses/$(completionId);
-          let charged = 'cost' in before.get('modules', {}) && !('costExpenseId' in before);
-          let rolls = after.status == 'open';
-          return entry.get('action', '') == 'reopen' ? (expenseId == ''
-            && after.get('costExpenseId', '') == before.get('costExpenseId', '')
-            && after.get('completionVersion', 0) == before.get('completionVersion', 0)
-            && after.get('lastCompletionId', '') == before.get('lastCompletionId', '')) :
-            ((!charged && expenseId == '') || (charged && expenseId == completionId
-              && validItemCost(spaceId, before)
-              && !exists(expense) && existsAfter(expense)
-              && getAfter(expense).data.itemId == entry.itemId
-              && getAfter(expense).data.kind == 'expense'
-              && getAfter(expense).data.paidBy == before.modules.cost.paidBy))
-            && (!('cost' in before.get('modules', {})) || (before.status == 'open'
-              && after.get('completionVersion', 0) == before.get('completionVersion', 0) + 1
-              && after.lastCompletionId == completionId))
-            && (rolls ? !('costExpenseId' in after) :
-              after.get('costExpenseId', '') == (charged ? completionId : before.get('costExpenseId', '')));
-        }
-
         allow read: if isMember(spaceId);
         allow create: if isMember(spaceId)
-          && request.resource.data.keys().hasOnly(['itemId', 'completedBy', 'completedAt', 'action', 'expenseId'])
+          && request.resource.data.keys().hasOnly(['itemId', 'completedBy', 'completedAt', 'action'])
           && request.resource.data.itemId is string
           && request.resource.data.completedBy == request.auth.uid
           && request.resource.data.completedAt == request.time
-          && matchesItem(request.resource.data)
-          && matchesCost(request.resource.data);
+          && matchesItem(request.resource.data);
         allow update, delete: if false;
       }
 

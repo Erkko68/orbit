@@ -17,9 +17,10 @@ data class Item(
     val createdBy: String,
     val createdAt: Instant,
     val modules: ItemModules = ItemModules(),
-    /** Compare-and-set counter for completion batches, absent on older items. */
-    val completionVersion: Long = 0,
-    /** Already charged in this occurrence. Reopening keeps it; rolling forward clears it. */
+    /**
+     * The expense this occurrence's cost added. Reopening keeps it, so completing again adds none; rolling forward
+     * clears it (ADR 0014).
+     */
     val costExpenseId: String? = null,
 )
 

@@ -39,6 +39,12 @@ import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.startTestKoin
+import com.orbit.app.domain.model.Cost
+import com.orbit.app.core.formatEuro
+import com.orbit.app.core.navigation.encodePlannedCost
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -57,28 +63,6 @@ import kotlin.time.Duration.Companion.minutes
 
 @OptIn(ExperimentalTestApi::class)
 class ItemScreenTest : ComposeTest() {
-    @Test
-    fun costRowOpensTheExistingStyleEditorAndSavesOnlyAfterConfirmation() = runComposeUiTest {
-        val id = createItem(NewItem("Detergent"))
-        val vm = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, vm) } }
-        list().performScrollToNode(hasText("Cost"))
-        onNodeWithText("Cost").performClick()
-        onNodeWithContentDescription("Amount").performTextInput("10")
-        runOnIdle { assertNullCost(id) }
-        onNodeWithText("Save").performScrollTo().performClick()
-        waitUntil { runBlocking { items.observeItems("space-1").first().first { it.id == id }.modules.cost != null } }
-        runOnIdle {
-            assertEquals(
-                1000L,
-                runBlocking { items.observeItems("space-1").first().first { it.id == id }.modules.cost?.cents })
-        }
-    }
-
-    private fun assertNullCost(id: String) {
-        assertEquals(null, runBlocking { items.observeItems("space-1").first().first { it.id == id }.modules.cost })
-    }
-
     private val auth = InMemoryAuthRepository().apply {
         runBlocking { signIn("ana", "secret") }
     }
@@ -101,6 +85,56 @@ class ItemScreenTest : ComposeTest() {
     fun tearDown() {
         viewModels.clear()
         stopKoin()
+    }
+
+    @Test
+    fun aNewItemPlansItsCostAndCreateWritesItWithTheItem() = runComposeUiTest {
+        val opened = mutableListOf<String>()
+        val viewModel = model("", items)
+        val cost = Cost("ana", mapOf("ana" to 600L, "mika" to 400L))
+        var planned by mutableStateOf("")
+        setContent {
+            OrbitTheme {
+                ItemScreen(
+                    "space-1", "", {}, viewModel,
+                    onOpenCost = { opened += it },
+                    plannedCost = planned,
+                    onPlannedCostTaken = { planned = "" },
+                )
+            }
+        }
+
+        list().performScrollToNode(hasText("Add a cost"))
+        onNodeWithText("Cost").performClick()
+        planned = encodePlannedCost(cost)
+        list().performScrollToNode(hasText(formatEuro(1000)))
+        onNodeWithText("Cost").performClick()
+        onNodeWithContentDescription("Name").performTextInput("Rent")
+        onNodeWithText("Create").performClick()
+        waitForIdle()
+
+        assertEquals(listOf(encodePlannedCost(null), encodePlannedCost(cost)), opened)
+        assertEquals(cost, runBlocking { items.observeItems("space-1").first().single().modules.cost })
+    }
+
+    @Test
+    fun theCostRowOfAWrittenItemOpensItsCost() = runComposeUiTest {
+        var opened = 0
+        val id = createItem(NewItem("Detergent"))
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, model(id, items), onOpenCost = { opened++ }) } }
+
+        list().performScrollToNode(hasText("Add a cost"))
+        onNodeWithText("Cost").performClick()
+        runOnIdle { assertEquals(1, opened) }
+    }
+
+    @Test
+    fun aCostChargingSomeoneWhoLeftSaysSoAndBlocksMarkDone() = runComposeUiTest {
+        val id = createItem(NewItem("Rent", modules = ItemModules(cost = Cost("ana", mapOf("zoe" to 1000L)))))
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, model(id, items)) } }
+
+        onNodeWithText("Someone in the cost has left the space. Change the cost before marking the item done.").assertExists()
+        onNodeWithText("Mark as done").assertIsNotEnabled()
     }
 
     @Test
@@ -301,8 +335,7 @@ class ItemScreenTest : ComposeTest() {
 
     @Test
     fun memberAndClaimAssignmentsDisplayTheStoredAssignee() = runComposeUiTest {
-        val id =
-            createItem(NewItem("Assigned task", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")))))
+        val id = createItem(NewItem("Assigned task", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")))))
         val viewModel = model(id, items)
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
         onNodeWithContentDescription("Ana").assertExists()
@@ -363,16 +396,7 @@ class ItemScreenTest : ComposeTest() {
     fun aNewItemIsCreatedOnceNamedAndTheScreenCloses() = runComposeUiTest {
         var backs = 0
         val viewModel = model("", items)
-        setContent {
-            OrbitTheme {
-                ItemScreen(
-                    spaceId = "space-1",
-                    itemId = "",
-                    onBack = { backs++ },
-                    viewModel = viewModel
-                )
-            }
-        }
+        setContent { OrbitTheme { ItemScreen(spaceId = "space-1", itemId = "", onBack = { backs++ }, viewModel = viewModel) } }
 
         onNodeWithText("Create").assertIsNotEnabled()
         onNodeWithText("Mark as done").assertDoesNotExist()
@@ -389,10 +413,7 @@ class ItemScreenTest : ComposeTest() {
     @Test
     fun editsTheScheduleFromItsRow() = runComposeUiTest {
         val itemId = runBlocking {
-            items.create(
-                "space-1",
-                NewItem("Dinner", modules = ItemModules(schedule = Schedule(LocalDate(2026, 10, 26))))
-            )
+            items.create("space-1", NewItem("Dinner", modules = ItemModules(schedule = Schedule(LocalDate(2026, 10, 26)))))
         }
         val viewModel = model(itemId, items)
         setContent {
@@ -574,10 +595,7 @@ class ItemScreenTest : ComposeTest() {
         val id = createItem(
             NewItem(
                 "Task",
-                modules = ItemModules(
-                    schedule = Schedule(LocalDate(2026, 10, 26)),
-                    reminder = Reminder(listOf(Duration.ZERO))
-                ),
+                modules = ItemModules(schedule = Schedule(LocalDate(2026, 10, 26)), reminder = Reminder(listOf(Duration.ZERO))),
             ),
         )
         val viewModel = model(id, items)

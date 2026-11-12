@@ -8,70 +8,29 @@ import kotlin.time.Instant
 class ItemCostExpenseTest {
     private val members = listOf("ana", "bea", "cam")
     private val date = LocalDate(2026, 11, 12)
+    private val cost = Cost("ana", mapOf("ana" to 334L, "bea" to 333L, "cam" to 333L))
     private val item = Item(
-        "item-1", "Detergent", null, ItemStatus.Open, "ana", Instant.fromEpochSeconds(0),
-        ItemModules(cost = Cost(1000L, "ana", members.toSet()))
+        "item-1", "Detergent", null, ItemStatus.Open, "ana", Instant.fromEpochSeconds(0), ItemModules(cost = cost),
     )
 
     @Test
-    fun usesExactCentsAndLinksTheCompletionDayToTheItem() {
-        val expense = assertNotNull(itemCostExpense(item, members, date))
-        assertEquals(mapOf("ana" to 334L, "bea" to 333L, "cam" to 333L), expense.split)
-        assertEquals("item-1", expense.itemId)
-        assertEquals(date, expense.date)
-        assertEquals("Detergent", expense.title)
-        assertEquals(ExpenseKind.EXPENSE, expense.kind)
+    fun copiesThePlannedSharesAsTheyAreAndLinksTheItem() {
+        val custom = cost.copy(split = mapOf("ana" to 700L, "bea" to 300L), customAllocation = mapOf("ana" to false, "bea" to true))
+        val expense = assertNotNull(itemCostExpense(item.copy(modules = ItemModules(cost = custom)), members, date))
+        assertEquals(NewExpense("Detergent", "ana", custom.split, date, itemId = "item-1", customAllocation = custom.customAllocation), expense)
     }
 
     @Test
-    fun missingCostAndAlreadyChargedOccurrenceDoNotCreateAnotherExpense() {
+    fun noCostOrAnOccurrenceAlreadyChargedAddsNothing() {
         assertNull(itemCostExpense(item.copy(modules = ItemModules()), members, date))
-        val changed =
-            item.copy(costExpenseId = "existing", modules = ItemModules(cost = Cost(1200, "ana", members.toSet())))
-        assertNull(itemCostExpense(changed, members, date))
+        assertNull(itemCostExpense(item.copy(costExpenseId = "expense-1"), members, date))
     }
 
     @Test
-    fun theNextOccurrenceUsesTheNewCostAndCanChargeAgain() {
-        val next = item.copy(costExpenseId = null, modules = ItemModules(cost = Cost(1200, "ana", members.toSet())))
-        assertEquals(1200L, itemCostExpense(next, members, date)?.split?.values?.sum())
-    }
-
-    @Test
-    fun invalidCostsAreRejectedBeforeWritingAnything() {
-        for (cost in listOf(
-            Cost(0, "ana", setOf("ana")), Cost(-1, "ana", setOf("ana")),
-            Cost(100, "outsider", setOf("ana")), Cost(100, "ana", emptySet()), Cost(100, "ana", setOf("outsider"))
-        )) {
-            assertTrue(validateItem(item.title, ItemModules(cost = cost), members).isNotEmpty())
-            assertFailsWith<IllegalArgumentException> {
-                itemCostExpense(
-                    item.copy(modules = ItemModules(cost = cost)),
-                    members,
-                    date
-                )
-            }
-        }
-    }
-
-    @Test
-    fun smallAndMaximumAmountsStayExact() {
-        for (cents in listOf(1L, Long.MAX_VALUE)) {
-            val expense = assertNotNull(
-                itemCostExpense(
-                    item.copy(
-                        modules = ItemModules(
-                            cost = Cost(
-                                cents,
-                                "ana",
-                                members.toSet()
-                            )
-                        )
-                    ), members, date
-                )
-            )
-            assertEquals(cents, expense.split.values.sum())
-            assertTrue(expense.split.values.all { it > 0 })
+    fun aCostThatChargesSomeoneWhoLeftIsRefused() {
+        for (left in listOf(cost.copy(paidBy = "dan"), cost.copy(split = mapOf("dan" to 1000L)), cost.copy(split = emptyMap()))) {
+            assertTrue(validateItem(item.title, ItemModules(cost = left), members).contains(ItemError.InvalidCost))
+            assertFailsWith<IllegalArgumentException> { itemCostExpense(item.copy(modules = ItemModules(cost = left)), members, date) }
         }
     }
 }

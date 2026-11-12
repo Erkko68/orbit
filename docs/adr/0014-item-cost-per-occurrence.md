@@ -1,37 +1,34 @@
-# ADR 0014: An item's cost charges its occurrence once
+# ADR 0014: An item's cost is a planned expense, charged once per occurrence
 
 - Status: Proposed
 - Date: 2026-11-12
-- Issue: #58
+- Issues: #58, #300
 
 ## Context
 
-Completing an item with a cost must create its expense atomically. A recurring item keeps its id while its schedule moves forward (ADR 0011). Reopening is a correction, not another purchase. Independent devices can complete the same occurrence, and Firestore queues batches offline.
+An item can cost money: a weekly shop, the monthly rent. Nobody owes anything until it is done, so the cost is a plan on the item and the ledger gets an expense only when the item is completed. A recurring item keeps its id while its schedule moves forward (ADR 0011), and reopening an item corrects a mistake, it is not another purchase.
+
+The expense screen already splits money every way the app supports: equally, custom amounts with automatic shares, percentages and weights (ADR 0013), and it keeps members who left. A second, smaller editor for the cost would narrow that and drift from it.
 
 ## Decision
 
-`modules.cost` stores positive `Long` cents, a payer and a set of current participants. It is an instruction for future completions, not a second copy of the ledger. `splitEqually` converts it to authoritative expense shares at completion. The expense uses the item's title and the local completion day and retains `itemId`.
+**The cost is an expense not added yet, planned on the expense screen, and completing the item adds it once per occurrence.**
 
-One batch writes the item, its append-only completion and, when needed, the expense. A new expense shares the completion's id; the completion stores `expenseId`. A checklist's last tick or removal that finishes it is part of this batch too. Item and membership inputs are read from Firestore's local cache, already populated by the screen's listeners, so completing does not wait for a server read when offline. An unavailable cached input is a failure, never an empty item or membership list.
-
-The item has `completionVersion` (missing means zero), incremented once per completion, and `lastCompletionId`. Rules check the old version against the new one and the matching new history document. Two stale batches cannot both complete a cost-bearing occurrence.
-
-`costExpenseId` marks an occurrence already charged. Reopening keeps it, so completing again creates history but no new expense, even if the expense was subsequently deleted. Rolling forward clears the marker: the next occurrence can charge again. Ending a recurrence keeps the marker for its final occurrence.
-
-Changing or removing the cost never edits existing expenses. Corrections to a past expense use the existing expense form. The reference remains after removing the cost so removing and re-adding it cannot charge the same occurrence again.
+- `modules.cost` has the expense's shape: `paidBy`, `split` in cents and the optional `customAllocation`. The Cost row of the item opens the expense screen (`ExpenseRoute` with the item's id), without a title or a date: those are the item's title and the day it is completed. Save writes the module, and removing it deletes the module. On a new item the cost goes to the expense screen and back as text (`PlannedCost.kt`), through the item screen's `SavedStateHandle`, and is written with the item on Create.
+- Completing copies the cost into a new expense with `itemId`, in the batch that writes the item and its completion. The item records it in `costExpenseId`. Reopening keeps it, so completing the same occurrence again adds nothing; rolling a recurring item forward deletes it, so the next occurrence is charged.
+- The repository reads the item and the members from Firestore's cache, which the screen's listeners keep, so completing works offline. A cost that names someone who left throws instead of charging them, and the item screen blocks Mark done and says why.
+- Changing or removing the cost never touches expenses already added. A wrong price is fixed on that expense, which links back to the item.
+- The rules only check the cost's shape when it changes. They do not force the expense into the completion's batch: any member can edit or delete an expense afterwards, so such a rule would protect nothing.
 
 ## Alternatives considered
 
-- Add an expense through a second repository call: permits partial completion.
-- Use only `itemId` as the expense id: overwrites different recurring purchases.
-- Use a fresh id on every call without a version guard: duplicate taps or two devices can add multiple expenses.
-- Use an online transaction: loses the existing offline batch behavior.
-- Rewrite past expenses whenever the module changes: changes already recorded purchases.
+- **A cost editor of its own on the item** (#58 as first merged): equal splits only, a second copy of the expense form to keep in step.
+- **A version counter on the item, with rules that require the expense in the completion's batch** (also as first merged): about 60 lines of rules, the feature failing until they were deployed, and no protection, for the reason above. Two phones completing the same occurrence offline at once can still add two expenses; the duplicate is deleted in the ledger.
+- **Add the expense when the item is created:** people would owe for something not bought yet, and a recurring item could charge only once.
+- **Create the item before planning its cost:** the item would exist before Create, against ADR 0010's "a new item keeps everything on the device until Create".
 
 ## Consequences
 
-Legacy items need no migration. A malformed cost blocks completion rather than silently dropping the charge. Removed participants must be corrected before a new charge. The batch is atomic on the server; a local queued write is not a server acknowledgement, and a later refusal still follows the existing Firestore synchronization behavior.
-
-Checklist recurrence behavior is unchanged: finishing a checklist closes it; advancing it and clearing its entries is outside #58. The manual checklist-to-expense flow is #60. No assistant proposal schema or currency behavior changes.
-
-The rules must be deployed separately before using this feature against production. An older app cannot complete a cost-bearing item without the required batch; it can still read it and edit unrelated fields.
+- Items need no migration: without `costExpenseId`, no occurrence is charged yet. A cost written by the first version of #58 (`cents`, `memberIds`) reads as a malformed module and is skipped; it is planned again from the Cost row.
+- `ExpenseViewModel` has three modes: a ledger entry, an item's cost and a new item's cost. They share every rule of the form.
+- #60 (add a shopping list as an expense) can open the same screen from the item.
