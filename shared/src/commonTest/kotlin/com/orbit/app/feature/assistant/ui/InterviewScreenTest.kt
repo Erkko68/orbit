@@ -9,8 +9,8 @@ import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
@@ -43,7 +43,7 @@ class InterviewScreenTest : ComposeTest() {
         }
     }
     private val dictation = FakeDictation()
-    private var manual = 0
+    private var closed = 0
     private var plans = 0
 
     @AfterTest
@@ -56,8 +56,7 @@ class InterviewScreenTest : ComposeTest() {
         setContent {
             OrbitTheme {
                 InterviewScreen(
-                    onClose = {},
-                    onManual = { manual++ },
+                    onClose = { closed++ },
                     onPlanReady = { plans++ },
                     viewModel = InterviewViewModel(assistant),
                 )
@@ -66,43 +65,77 @@ class InterviewScreenTest : ComposeTest() {
     }
 
     @Test
-    fun answersWithAChipAndMovesOn() = runComposeUiTest {
+    fun answersWithAChipAndTheAnswerJoinsTheChat() = runComposeUiTest {
         show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(who), InterviewStep.Ask(rooms))))
 
         onNodeWithText("Who lives there?").assertIsDisplayed()
-        onNodeWithText("Send").performScrollTo().assertIsNotEnabled()
-        onNodeWithText("Family").performScrollTo().performClick()
-        onNodeWithText("Send").performScrollTo().assertIsEnabled().performClick()
+        onNodeWithContentDescription("Send").assertIsNotEnabled()
+        onNodeWithText("Family").performClick()
+        onNodeWithContentDescription("Send").assertIsEnabled().performClick()
 
         onNodeWithText("Which rooms?").assertIsDisplayed()
+        onNodeWithText("Who lives there?").assertIsDisplayed()
+        onNodeWithText("Family").assertIsDisplayed()
+        onNodeWithText("Roommates").assertDoesNotExist()
+    }
+
+    @Test
+    fun deletedTextStaysDeletedWhenAChipIsPicked() = runComposeUiTest {
+        show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(who))))
+
+        onNode(hasSetTextAction()).performTextInput("abc")
+        onNode(hasSetTextAction()).performTextReplacement("ab")
+        onNode(hasSetTextAction()).performTextReplacement("a")
+        onNode(hasSetTextAction()).performTextReplacement("")
+        onNodeWithText("Family").performClick()
+        waitForIdle()
+
+        onNodeWithText("abc").assertDoesNotExist()
+        onNodeWithText("a").assertDoesNotExist()
+    }
+
+    @Test
+    fun deletedDictationStaysDeletedWhileTheMicrophoneListens() = runComposeUiTest {
+        show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(who))))
+
+        onNodeWithContentDescription("Dictate").performClick()
+        runOnIdle { dictation.say("three of us") }
+        onNodeWithText("three of us").assertIsDisplayed()
+        onNode(hasSetTextAction()).performTextReplacement("")
+        onNodeWithText("Family").performClick()
+        runOnIdle { dictation.say("three of us and a cat") }
+
+        onNodeWithText("three of us", substring = true).assertDoesNotExist()
+        onNodeWithText("and a cat").assertIsDisplayed()
     }
 
     @Test
     fun answersInWordsTypedOrDictated() = runComposeUiTest {
         show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(who), noPlan)))
 
-        onNode(hasSetTextAction()).performScrollTo().performTextInput("We are")
-        onNodeWithContentDescription("Dictate").performScrollTo().performClick()
+        onNode(hasSetTextAction()).performTextInput("We are")
+        onNodeWithContentDescription("Dictate").performClick()
         runOnIdle { dictation.say("three of us") }
 
         onNodeWithText("We are three of us").assertIsDisplayed()
         onNodeWithContentDescription("Stop dictating").performClick()
-        onNodeWithText("Send").performScrollTo().performClick()
+        onNodeWithContentDescription("Send").performClick()
 
         waitForIdle()
         assertEquals(1, plans)
     }
 
     @Test
-    fun aQuestionWithoutFreeTextHasNoField() = runComposeUiTest {
+    fun aQuestionWithoutFreeTextCannotBeTyped() = runComposeUiTest {
         show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(rooms))))
 
         onNodeWithText("Which rooms?").assertIsDisplayed()
         onNode(hasSetTextAction()).assertDoesNotExist()
+        onNodeWithContentDescription("Dictate").assertDoesNotExist()
     }
 
     @Test
-    fun aFailureThatCanPassOffersToTryAgain() = runComposeUiTest {
+    fun anAssistantThatIsNotAvailableSaysSoAndOffersToTryAgain() = runComposeUiTest {
         show(
             ScriptedAssistantRepository(
                 steps = listOf(InterviewStep.Ask(who)),
@@ -110,14 +143,15 @@ class InterviewScreenTest : ComposeTest() {
             ),
         )
 
-        onNodeWithText("The assistant is not answering right now. Try again, or set up by hand.").assertIsDisplayed()
-        onNodeWithText("Try again").performScrollTo().performClick()
+        onNodeWithText("The assistant is not available").assertIsDisplayed()
+        onNodeWithText("Try again").performClick()
 
         onNodeWithText("Who lives there?").assertIsDisplayed()
+        onNodeWithText("The assistant is not available").assertDoesNotExist()
     }
 
     @Test
-    fun aRefusalOnlyLeavesTheManualPath() = runComposeUiTest {
+    fun aRefusalOnlyLeavesClosingTheChat() = runComposeUiTest {
         show(
             ScriptedAssistantRepository(
                 steps = emptyList(),
@@ -125,28 +159,29 @@ class InterviewScreenTest : ComposeTest() {
             ),
         )
 
-        onNodeWithText("You have used the assistant all you can for now. You can set up by hand.").assertIsDisplayed()
+        onNodeWithText("That's all for now").assertIsDisplayed()
         onNodeWithText("Try again").assertDoesNotExist()
-        onNodeWithText("Set up by hand instead").performScrollTo().performClick()
+        onNodeWithContentDescription("Send").assertIsNotEnabled()
+        onNodeWithContentDescription("Close").performClick()
 
-        assertEquals(1, manual)
+        assertEquals(1, closed)
     }
 
     @Test
-    fun decliningTheConsentIsTheManualPath() = runComposeUiTest {
+    fun decliningTheConsentClosesTheChat() = runComposeUiTest {
         val assistant = ScriptedAssistantRepository(listOf(InterviewStep.Ask(who)))
         val fresh = InMemoryAuthRepository().apply { runBlocking { register("bo@orbit.app", "secret", "Bo") } }
         startTestKoin(auth = fresh, spaces = InMemorySpaceRepository(fresh), assistant = assistant, dictation = dictation)
         setContent {
             OrbitTheme {
-                InterviewScreen(onClose = {}, onManual = { manual++ }, onPlanReady = {}, viewModel = InterviewViewModel(assistant))
+                InterviewScreen(onClose = { closed++ }, onPlanReady = {}, viewModel = InterviewViewModel(assistant))
             }
         }
 
         onNodeWithText("Set up by hand").performClick()
 
         waitForIdle()
-        assertEquals(1, manual)
+        assertEquals(1, closed)
         assertEquals(0, assistant.calls.size)
     }
 }

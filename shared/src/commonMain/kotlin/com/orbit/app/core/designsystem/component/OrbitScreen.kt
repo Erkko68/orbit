@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.graphicsLayer
@@ -58,10 +59,11 @@ private val FloatingClearance = 104.dp
  * [OrbitColorHeader], [bottomBar] an [OrbitNavigationBar] and [floatingActionButton] an [OrbitAddButton]. A [scrollable]
  * screen scrolls its content, above the keyboard, and leaves room for what floats. Leave it off for a screen whose
  * content scrolls itself. [list] does the same for a lazy list, so what it shows can glide when it changes: pass it
- * instead of [content]. [primaryAction], such as the one button of a form, stays at the bottom in the gutter, in place
- * of a [bottomBar]. With [collapsingTopBar] the part of the top bar marked [topBarCollapsible] shrinks away as the
- * content scrolls down and comes back once it is scrolled to the top, as M3's exitUntilCollapsed does: the rest, such as
- * the way back, stays pinned.
+ * instead of [content]. A [chat] list starts from the bottom and stays there as it grows, newest first in [list], so
+ * the last message sits over the [bottomBar], such as an [OrbitChatComposer]. [primaryAction], such as the one button
+ * of a form, stays at the bottom in the gutter, in place of a [bottomBar]. With [collapsingTopBar] the part of the top
+ * bar marked [topBarCollapsible] shrinks away as the content scrolls down and comes back once it is scrolled to the
+ * top, as M3's exitUntilCollapsed does: the rest, such as the way back, stays pinned.
  */
 @Composable
 fun OrbitScreen(
@@ -74,6 +76,7 @@ fun OrbitScreen(
     collapsingTopBar: Boolean = false,
     scrollable: Boolean = false,
     list: (LazyListScope.() -> Unit)? = null,
+    chat: Boolean = false,
     content: @Composable ColumnScope.() -> Unit = {},
 ) {
     val page by animateColorAsState(OrbitTheme.accent.page, OrbitMotion.effects())
@@ -108,6 +111,12 @@ fun OrbitScreen(
             if (list != null) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().consumeWindowInsets(padding).imePadding(),
+                    reverseLayout = chat,
+                    verticalArrangement = if (chat) {
+                        Arrangement.spacedBy(OrbitSpacing.md, Alignment.Bottom)
+                    } else {
+                        Arrangement.Top
+                    },
                     contentPadding = PaddingValues(
                         start = padding.calculateStartPadding(direction) + OrbitSpacing.md,
                         top = padding.calculateTopPadding() + OrbitSpacing.sm,

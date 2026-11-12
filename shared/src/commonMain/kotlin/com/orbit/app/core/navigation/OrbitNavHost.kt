@@ -138,10 +138,10 @@ fun OrbitNavHost(
                 )
             }
             composable<InterviewRoute> {
-                // The manual path is wherever the assistant was opened from; the review board (#75) follows a plan.
+                // Closing goes back to where the assistant was opened from, which has the manual way; the review board
+                // (#75) follows a plan.
                 InterviewScreen(
                     onClose = { navController.popBackStack() },
-                    onManual = { navController.popBackStack() },
                     onPlanReady = { navController.popBackStack() },
                 )
             }

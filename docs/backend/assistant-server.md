@@ -124,6 +124,7 @@ The plan says which version it follows (`"version": 1`), and `PLAN_VERSION` is t
 | `PUBLIC_URL` | | The server's public address (`https://…`). Sent as `Referer` on the token check, so the key can be restricted to that website |
 | `HOST`, `PORT` | `0.0.0.0`, `8080` | Where the server listens |
 | `ASSISTANT_MODEL` | `gemma4:e2b` | The Gemma tag in Ollama. The stack pulls it when it starts. `gemma4:e2b` is Gemma 4's smallest, made for phones, so it runs on a CPU in little memory; `gemma4:e4b` is the next size up |
+| `ASSISTANT_REASONING_EFFORT` | `none` | How long the model thinks before it answers, sent as `reasoning_effort`. `none` turns thinking off, so a question takes seconds instead of minutes on a CPU; `low`, `medium` or `high` turn it back on |
 | `MODEL_URL` | `http://ollama:11434/v1` | Ollama's OpenAI-compatible endpoint |
 | `ASSISTANT_PORT` | `8080` | The host port compose publishes the server on |
 

@@ -16,6 +16,8 @@ services:
       # The server's public address (https://…), sent as Referer for a key restricted to that website.
       PUBLIC_URL: ${PUBLIC_URL:-}
       ASSISTANT_MODEL: ${ASSISTANT_MODEL:-gemma4:e2b}
+      # How long the model thinks before it answers: none (off, the quick default), low, medium or high.
+      ASSISTANT_REASONING_EFFORT: ${ASSISTANT_REASONING_EFFORT:-none}
       MODEL_URL: http://ollama:11434/v1
     depends_on:
       model:

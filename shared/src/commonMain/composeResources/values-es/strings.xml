@@ -282,16 +282,19 @@
     <string name="dictation_error">El dictado se ha detenido. Inténtalo de nuevo o escribe tu respuesta.</string>
     <!-- Assistant interview -->
     <string name="interview_title">Configurar con el asistente</string>
-    <string name="interview_loading">Pensando la siguiente pregunta…</string>
-    <string name="interview_answer_placeholder">O responde con tus palabras</string>
+    <string name="interview_loading">Pensando…</string>
+    <string name="interview_answer_placeholder">Responde con tus palabras</string>
     <string name="interview_send">Enviar</string>
-    <string name="interview_manual">Configurarlo a mano</string>
-    <string name="interview_error_title">El asistente se ha detenido</string>
-    <string name="interview_error_network">Sin conexión. Revisa tu internet y vuelve a intentarlo.</string>
-    <string name="interview_error_quota">Has usado el asistente todo lo posible por ahora. Puedes configurarlo a mano.</string>
-    <string name="interview_error_disabled">El asistente está desactivado por ahora. Puedes configurarlo a mano.</string>
-    <string name="interview_error_unavailable">El asistente no responde ahora mismo. Vuelve a intentarlo o configúralo a mano.</string>
-    <string name="interview_error_unknown">Algo ha fallado. Vuelve a intentarlo o configúralo a mano.</string>
+    <string name="interview_error_network_title">No hay conexión</string>
+    <string name="interview_error_network">Revisa tu internet y vuelve a intentarlo. Tus respuestas se guardan.</string>
+    <string name="interview_error_quota_title">Por ahora es todo</string>
+    <string name="interview_error_quota">Has usado el asistente todo lo posible por ahora. Cierra el chat para añadir cosas a mano.</string>
+    <string name="interview_error_disabled_title">El asistente está desactivado</string>
+    <string name="interview_error_disabled">Está desactivado para todos por ahora. Cierra el chat para añadir cosas a mano.</string>
+    <string name="interview_error_unavailable_title">El asistente no está disponible</string>
+    <string name="interview_error_unavailable">No responde ahora mismo. Vuelve a intentarlo en un momento o cierra el chat y añade cosas a mano.</string>
+    <string name="interview_error_unknown_title">Algo ha fallado</string>
+    <string name="interview_error_unknown">Vuelve a intentarlo o cierra el chat y añade cosas a mano.</string>
     <!-- AI consent -->
     <string name="ai_consent_title">Antes de que empiece el asistente</string>
     <string name="ai_consent_body">Para sugerir un plan, Orbit envía tus respuestas, los títulos de los elementos del espacio y los nombres de sus miembros a un proveedor de IA (Google Gemini).</string>
