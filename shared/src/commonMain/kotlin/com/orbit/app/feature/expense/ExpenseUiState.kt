@@ -58,6 +58,7 @@ data class ExpenseUiState(
     val planning: Boolean = false,
     /** A new item's planned cost, handed back to its screen as it closes (see `encodePlannedCost`). */
     val plannedCost: String? = null,
+    val sourceItemId: String? = null,
     val sourceItemTitle: String? = null,
     val member: Member? = null,
     val submitting: Boolean = false,
@@ -69,6 +70,9 @@ data class ExpenseUiState(
     val closed: Boolean = false,
 ) {
     val editing: Boolean get() = original != null
+
+    /** A checklist already supplies the title: the first thing to enter is the purchase amount. */
+    val focusAmount: Boolean get() = !editing && !planning && sourceItemId != null
     val custom: Boolean get() = mode == ExpenseSplit.EXACT || mode == ExpenseSplit.PERCENTAGES
     val customAllocation: Map<String, Boolean>?
         get() = if (custom) selected.associateWith { it in automatic } else null
@@ -194,14 +198,15 @@ data class ExpenseUiState(
                         .filterNot { planning && (it == ExpenseError.BlankTitle || it == ExpenseError.TitleTooLong) }
                         .isEmpty()
                 } == true
+
     /** A planned cost is the item's, which every member edits; an entry is its creator's or a manager's to delete. */
     val canDelete: Boolean
         get() = member != null && (
-            if (planning) {
-                saved != null
-            } else {
-                original?.let { it.createdBy == member.userId || member.role.managesSpace } == true
-            }
-            ) &&
+                if (planning) {
+                    saved != null
+                } else {
+                    original?.let { it.createdBy == member.userId || member.role.managesSpace } == true
+                }
+                ) &&
                 !loading && !loadFailed && !missing && !submitting && !closed
 }

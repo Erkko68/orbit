@@ -45,7 +45,8 @@ fun ExpenseScreen(
     draftCost: String = "",
     onOpenItem: (String) -> Unit = {},
     onCostPlanned: (String) -> Unit = {},
-    viewModel: ExpenseViewModel = koinViewModel { parametersOf(spaceId, expenseId, itemId, draftCost) },
+    sourceItemId: String = "",
+    viewModel: ExpenseViewModel = koinViewModel { parametersOf(spaceId, expenseId, itemId, draftCost, sourceItemId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(state.closed) {
@@ -152,7 +153,13 @@ private fun ExpenseHeader(state: ExpenseUiState, viewModel: ExpenseViewModel, on
         backDescription = stringResource(Res.string.back),
         onBack = onBack,
         trailing = if (state.canDelete) {
-            { OrbitIconButton(Res.drawable.ic_delete, stringResource(Res.string.item_delete), viewModel::requestDelete) }
+            {
+                OrbitIconButton(
+                    Res.drawable.ic_delete,
+                    stringResource(Res.string.item_delete),
+                    viewModel::requestDelete
+                )
+            }
         } else {
             null
         },
@@ -160,7 +167,7 @@ private fun ExpenseHeader(state: ExpenseUiState, viewModel: ExpenseViewModel, on
         onTitleChange = viewModel::onTitleChange.takeUnless { state.planning },
         titleDescription = stringResource(Res.string.expense_title),
         titlePlaceholder = stringResource(Res.string.expense_title_placeholder),
-        focusTitle = !state.editing && !state.planning,
+        focusTitle = !state.editing && !state.planning && !state.focusAmount,
     )
 }
 
@@ -169,7 +176,7 @@ private enum class ExpenseRow { PAYER, DATE, SPLIT }
 
 @Composable
 private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel, onOpenItem: (String) -> Unit) {
-    state.original?.itemId?.let { itemId ->
+    state.sourceItemId?.let { itemId ->
         OrbitGroup(listOf(itemId), key = { it }, modifier = Modifier.fillMaxWidth()) {
             OrbitActionRow(
                 title = stringResource(Res.string.expense_source_item),
@@ -191,6 +198,7 @@ private fun ExpenseFields(state: ExpenseUiState, viewModel: ExpenseViewModel, on
         errorText = stringResource(Res.string.expense_amount_invalid),
         prefix = state.currencyPrefix,
         suffix = state.currencySuffix,
+        focusOnStart = state.focusAmount,
     )
     val rows = ExpenseRow.entries.filter { it != ExpenseRow.DATE || !state.planning }
     OrbitGroup(rows, key = { it.name }, Modifier.fillMaxWidth()) { row ->
@@ -267,7 +275,13 @@ private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: Expense
     val toggle = { viewModel.toggleMember(person.id) }
     OrbitGroupRow(Modifier.fillMaxWidth(), onClick = if (state.submitting) null else toggle) {
         val face = person.face()
-        OrbitAvatar(face.initials, face.color, photoUrl = face.photoUrl, shape = face.shape, size = OrbitAvatarSize.Medium)
+        OrbitAvatar(
+            face.initials,
+            face.color,
+            photoUrl = face.photoUrl,
+            shape = face.shape,
+            size = OrbitAvatarSize.Medium
+        )
         Column(Modifier.weight(1f)) {
             Text(
                 text = person.name,
@@ -303,7 +317,9 @@ private fun SplitRow(person: ItemFace, state: ExpenseUiState, viewModel: Expense
                     person.name,
                 ),
                 placeholder = when {
-                    automatic -> state.automaticInputs[person.id] ?: stringResource(Res.string.expense_share_unavailable)
+                    automatic -> state.automaticInputs[person.id]
+                        ?: stringResource(Res.string.expense_share_unavailable)
+
                     weight -> "0"
                     else -> moneyInput(0, state.locale)
                 },
@@ -360,7 +376,12 @@ private fun SplitSheet(state: ExpenseUiState, viewModel: ExpenseViewModel) {
         OrbitGroup(ExpenseSplit.entries, key = { it.name }, Modifier.fillMaxWidth()) { mode ->
             OrbitGroupRow(Modifier.fillMaxWidth(), onClick = { viewModel.selectSplit(mode) }) {
                 OrbitHeading(stringResource(mode.label), stringResource(mode.hint), Modifier.weight(1f))
-                OrbitCheck(mode == state.mode, { viewModel.selectSplit(mode) }, stringResource(mode.label), compact = true)
+                OrbitCheck(
+                    mode == state.mode,
+                    { viewModel.selectSplit(mode) },
+                    stringResource(mode.label),
+                    compact = true
+                )
             }
         }
     }
@@ -377,7 +398,13 @@ private fun PayerSheet(state: ExpenseUiState, viewModel: ExpenseViewModel) {
         OrbitGroup(state.people, key = { it.id }, Modifier.fillMaxWidth()) { person ->
             OrbitGroupRow(Modifier.fillMaxWidth(), onClick = { viewModel.selectPayer(person.id) }) {
                 val face = person.face()
-                OrbitAvatar(face.initials, face.color, photoUrl = face.photoUrl, shape = face.shape, size = OrbitAvatarSize.Medium)
+                OrbitAvatar(
+                    face.initials,
+                    face.color,
+                    photoUrl = face.photoUrl,
+                    shape = face.shape,
+                    size = OrbitAvatarSize.Medium
+                )
                 Text(person.name, Modifier.weight(1f), style = MaterialTheme.typography.titleMedium)
                 OrbitCheck(person.id == state.paidBy, { viewModel.selectPayer(person.id) }, person.name, compact = true)
             }

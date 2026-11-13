@@ -426,4 +426,6 @@
     <string name="cost_remove_body">Completing the item will no longer add an expense. Expenses it already added stay.</string>
     <string name="expense_source_item">Source activity</string>
     <string name="expense_open_item">Open the activity that created this expense</string>
+    <!-- Checklist to expense (#60) -->
+    <string name="checklist_add_expense">Add as expense</string>
 </resources>

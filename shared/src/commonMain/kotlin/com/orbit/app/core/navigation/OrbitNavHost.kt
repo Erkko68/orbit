@@ -123,6 +123,7 @@ fun OrbitNavHost(
                     },
                     plannedCost = plannedCost,
                     onPlannedCostTaken = { entry.savedStateHandle[PLANNED_COST] = "" },
+                    onAddExpense = { navController.navigate(ExpenseRoute(route.spaceId, sourceItemId = route.itemId)) },
                 )
             }
             composable<ExpenseRoute> { entry ->
@@ -133,6 +134,7 @@ fun OrbitNavHost(
                     onBack = { navController.popBackStack() },
                     itemId = route.itemId,
                     draftCost = route.draftCost,
+                    sourceItemId = route.sourceItemId,
                     onOpenItem = { itemId -> navController.navigate(ItemRoute(route.spaceId, itemId)) },
                     onCostPlanned = { navController.previousBackStackEntry?.savedStateHandle?.set(PLANNED_COST, it) },
                 )

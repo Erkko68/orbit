@@ -122,11 +122,18 @@ data class ItemUiState(
     /** The rule of `firestore.rules`: its creator, or someone who manages the space. Until it is written there is nothing to delete. */
     val canDelete: Boolean
         get() = !isNew && currentUserId != null && (
-            createdBy == currentUserId || members.firstOrNull { it.userId == currentUserId }?.role?.managesSpace == true
-        )
+                createdBy == currentUserId || members.firstOrNull { it.userId == currentUserId }?.role?.managesSpace == true
+                )
 
     val memberFaces: List<ItemFace>
-        get() = members.mapIndexed { index, member -> ItemFace(member.userId, member.displayName, index, member.photoUrl) }
+        get() = members.mapIndexed { index, member ->
+            ItemFace(
+                member.userId,
+                member.displayName,
+                index,
+                member.photoUrl
+            )
+        }
 
     /** Who has the item by name. */
     val assigneeIds: Set<String> get() = assignment?.assigneeIds.orEmpty()
@@ -141,6 +148,9 @@ data class ItemUiState(
     private val entries: List<ChecklistEntry> get() = checklist?.entries.orEmpty()
 
     val hasEntries: Boolean get() = entries.isNotEmpty()
+
+    /** A ledger expense needs an existing checklist item to link back to. */
+    val canAddExpense: Boolean get() = !isNew && canSubmit && checklist != null
 
     /** One list, what is left first. An entry just ticked keeps its place for a moment. */
     val shownEntries: List<ChecklistEntry> get() = entries.sortedBy { settling[it.id] ?: it.checked }

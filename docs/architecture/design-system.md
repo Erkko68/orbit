@@ -58,7 +58,7 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | `OrbitDatePicker` | A calendar on a page of an `OrbitSheet`, with the button that confirms the day. The schedule of an item and the date of an expense use it |
 | `OrbitTimeWheel` | A length of time on two small wheels, 0 to 99 hours and minutes. Scroll one, or tap a number to type it. What is picked is `UiState`. It fits at the end of an `OrbitGroupRow` |
 | `OrbitSpaceTile` | A space as a panel led by the faces of the people in it, or its initials on a shape while it is only the user's |
-| `OrbitMoneyField` | The amount a form is about, such as an expense's total: its own panel with a big number in the data type |
+| `OrbitMoneyField` | The amount a form is about, such as an expense's total: its own panel with a big number in the data type. `focusOnStart` optionally focuses the amount and opens its decimal keyboard |
 | `OrbitCodeTiles` | A short code, one character per tile, coming in tile by tile when it is made |
 | `OrbitTurnCard` | The one hero moment: what is the user's to do now |
 | `OrbitChatBubble` | One message of a chat (the assistant): the other side's on a panel at the left, the user's in blue at the right. Takes what answers it, such as chips, and a spinner while it is written |
