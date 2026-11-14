@@ -244,7 +244,7 @@ An entry of the ledger. Balances are derived from these on the device and never 
 | `customAllocation` | map of uid to boolean | no | Editing intent for Custom amounts/Percentages (#283): keys are selected participants, including zero shares; `true` is automatic, `false` manual. Covers every `split` key. No amounts or percentages. Removed when saving Equal/Weights. |
 | `date` | string | yes | `YYYY-MM-DD`, chosen by the user |
 | `kind` | string | yes | `expense` or `settlement`. Never changes. Unknown reads as `expense`, because it still moves money. |
-| `itemId` | string | no | The item whose cost added it (ADR 0014). Never changes. |
+| `itemId` | string | no | The source item: its cost added it (ADR 0014), or a member added its checklist as an expense (#60). Never changes. |
 | `createdBy` | uid | yes | Never changes |
 | `createdAt` | timestamp | yes | Server time, never changes |
 

@@ -102,6 +102,12 @@ custom amounts, so tapping a member includes or excludes them. Save stays at the
 the saved exact shares, including former participants, so opening it never redistributes money. Inputs live
 in `ExpenseUiState`; no write happens before Save. Reads expose retry, and writes expose failure and an
 in-flight flag. The ledger and form use the existing offline-capable `ExpenseRepository`.
+
+An existing item with a checklist offers "Add as expense" below its entries (#60). It opens the same expense form
+with the item's title, the signed-in payer, today's date and equal shares among all current members. The amount is
+left empty and receives focus with the decimal keyboard on opening. Opening or leaving the form writes no expense; Save creates a ledger entry with the source `itemId`,
+whose Source activity row links back to the item. `ExpenseRoute.sourceItemId` distinguishes this manual purchase
+from planning a cost through `ExpenseRoute.itemId`; the item's checklist and planned cost are not changed.
 Above the ledger, `SpaceExpensesViewModel` derives balances and suggested payments with the existing
 `calculateBalances(ledger, memberIds)` use case. Current members remain visible at zero; former members
 with an outstanding balance use the names in `Space.formerMembers`. Text states whether each person pays,

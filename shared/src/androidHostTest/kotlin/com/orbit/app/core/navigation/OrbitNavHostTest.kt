@@ -1,7 +1,19 @@
 package com.orbit.app.core.navigation
 
+import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.hasContentDescription
+import com.orbit.app.testing.InMemoryExpenseRepository
+import com.orbit.app.domain.repository.ExpenseRepository
+import com.orbit.app.domain.model.ItemModules
+import com.orbit.app.domain.model.Checklist
+import com.orbit.app.domain.model.ChecklistEntry
+import com.orbit.app.core.moneyInput
+import com.orbit.app.core.deviceMoneyLocale
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.hasSetTextAction
@@ -30,6 +42,7 @@ import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.russhwolf.settings.MapSettings
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -49,6 +62,7 @@ class OrbitNavHostTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
     private val spaces = InMemorySpaceRepository(auth)
     private val items = InMemoryItemRepository(auth)
+    private val ledger = InMemoryExpenseRepository(auth)
     private val lastSpace = InMemoryLastSpaceRepository()
 
     @BeforeTest
@@ -59,6 +73,7 @@ class OrbitNavHostTest : ComposeTest() {
                     single<AuthRepository> { auth }
                     single<SpaceRepository> { spaces }
                     single<ItemRepository> { items }
+                    single<ExpenseRepository> { ledger }
                     single<LastSpaceRepository> { lastSpace }
                     single<InvitationRepository> { InMemoryInvitationRepository(auth) }
                     single<TextSharer> { TextSharer {} }
@@ -72,6 +87,44 @@ class OrbitNavHostTest : ComposeTest() {
     @AfterTest
     fun stopDi() {
         stopKoin()
+    }
+
+    @Test
+    fun aChecklistOpensANewExpenseSavesItAndLinksBack() = runComposeUiTest {
+        val (spaceId, itemId) = runBlocking {
+            auth.signIn("ana@orbit.app", "secret")
+            val spaceId = spaces.createSpace("Flat 4B", accent = 0)
+            val itemId = items.create(
+                spaceId, NewItem(
+                    "Weekly shopping", modules = ItemModules(
+                        checklist = Checklist(listOf(ChecklistEntry("milk", "Milk"))),
+                    )
+                )
+            )
+            spaceId to itemId
+        }
+        setContent { OrbitTheme { OrbitNavHost() } }
+        onNodeWithText("Flat 4B").performScrollTo().performClick()
+        onAllNodesWithText("Tasks")[0].performClick()
+        onNodeWithText("Weekly shopping").performScrollTo().performClick()
+        onNode(hasScrollAction()).performScrollToNode(hasText("Add as expense"))
+        onNodeWithText("Add as expense").performClick()
+        onNodeWithText("Save").assertIsNotEnabled()
+        onNodeWithText("Date").performScrollTo().assertIsDisplayed()
+        assertEquals(0, runBlocking { ledger.observeExpenses(spaceId).first().size })
+        onNode(hasSetTextAction() and hasContentDescription("Amount"))
+            .performScrollTo().performTextInput(moneyInput(1000, deviceMoneyLocale()))
+        onNodeWithText("Save").performClick()
+        waitForIdle()
+        val saved = runBlocking { ledger.observeExpenses(spaceId).first().single() }
+        assertEquals(itemId, saved.itemId)
+        assertEquals("Weekly shopping", saved.title)
+        onNodeWithContentDescription("Back to space").performClick()
+        onNodeWithText("Expenses").performClick()
+        onNodeWithText("Weekly shopping").performScrollTo().performClick()
+        onNodeWithText("Source activity").performScrollTo().performClick()
+        onNode(hasScrollAction()).performScrollToNode(hasText("Milk"))
+        onNodeWithText("Milk").assertIsDisplayed()
     }
 
     @Test

@@ -40,7 +40,8 @@ data class ItemRoute(val spaceId: String, val itemId: String = "")
 /**
  * An expense form, above the space bar. An empty id creates an entry only on Save. From an item's Cost row the same
  * form plans its cost instead (#300): the cost of [itemId], or with a [draftCost] (see [encodePlannedCost]) the cost of
- * an item not created yet, which Save hands back instead of writing.
+ * an item not created yet, which Save hands back instead of writing. [sourceItemId] opens a new ledger expense
+ * from a checklist; it never plans a cost.
  */
 @Serializable
 data class ExpenseRoute(
@@ -48,4 +49,6 @@ data class ExpenseRoute(
     val expenseId: String = "",
     val itemId: String = "",
     val draftCost: String = "",
+    /** Opens a new ledger expense from a checklist, independently of cost planning. */
+    val sourceItemId: String = "",
 )

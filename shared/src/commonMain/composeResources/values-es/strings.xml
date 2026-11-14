@@ -426,4 +426,6 @@
     <string name="cost_remove_body">Completar el elemento ya no añadirá un gasto. Los gastos que ya añadió se mantienen.</string>
     <string name="expense_source_item">Actividad de origen</string>
     <string name="expense_open_item">Abrir la actividad que creó este gasto</string>
+    <!-- Checklist to expense (#60) -->
+    <string name="checklist_add_expense">Añadir como gasto</string>
 </resources>

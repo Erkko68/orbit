@@ -426,4 +426,6 @@
     <string name="cost_remove_body">Completar l’element ja no afegirà cap despesa. Les despeses que ja ha afegit es mantenen.</string>
     <string name="expense_source_item">Activitat d’origen</string>
     <string name="expense_open_item">Obre l’activitat que ha creat aquesta despesa</string>
+    <!-- Checklist to expense (#60) -->
+    <string name="checklist_add_expense">Afegeix com a despesa</string>
 </resources>

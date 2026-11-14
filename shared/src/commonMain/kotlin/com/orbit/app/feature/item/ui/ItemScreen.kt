@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +55,7 @@ import orbit.shared.generated.resources.item_back
 import orbit.shared.generated.resources.item_checklist
 import orbit.shared.generated.resources.item_complete
 import orbit.shared.generated.resources.item_cost
+import orbit.shared.generated.resources.checklist_add_expense
 import orbit.shared.generated.resources.item_create
 import orbit.shared.generated.resources.item_delete
 import orbit.shared.generated.resources.item_description
@@ -98,6 +100,7 @@ fun ItemScreen(
     onOpenCost: (draftCost: String) -> Unit = {},
     plannedCost: String = "",
     onPlannedCostTaken: () -> Unit = {},
+    onAddExpense: () -> Unit = {},
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     // What the expense screen planned for a new item, kept with the rest of it until Create.
@@ -121,13 +124,19 @@ fun ItemScreen(
             } else {
                 OrbitTopBar(
                     title = state.spaceName.orEmpty(),
-                    navigationIcon = { OrbitIconButton(Res.drawable.ic_arrow_back, stringResource(Res.string.item_back), onBack) },
+                    navigationIcon = {
+                        OrbitIconButton(
+                            Res.drawable.ic_arrow_back,
+                            stringResource(Res.string.item_back),
+                            onBack
+                        )
+                    },
                 )
             }
         },
         primaryAction = primaryAction(state, viewModel),
         collapsingTopBar = true,
-        list = { itemBody(state, viewModel, spaceId, itemId, onOpenCost) },
+        list = { itemBody(state, viewModel, spaceId, itemId, onOpenCost, onAddExpense) },
     )
     state.scheduleEditor?.let { editor -> ScheduleEditorSheet(editor, state, viewModel) }
     state.checklistEditor?.let { editor -> ChecklistEditorSheet(editor, state, viewModel) }
@@ -166,15 +175,36 @@ private fun ItemHeader(state: ItemUiState, viewModel: ItemViewModel, onBack: () 
 /** Create on a new item; Mark done, or quietly Reopen, on a written one without entries. */
 private fun primaryAction(state: ItemUiState, viewModel: ItemViewModel): (@Composable () -> Unit)? = when {
     state.isNew -> {
-        { OrbitButton(stringResource(Res.string.item_create), viewModel::create, Modifier.fillMaxWidth(), state.canCreate) }
+        {
+            OrbitButton(
+                stringResource(Res.string.item_create),
+                viewModel::create,
+                Modifier.fillMaxWidth(),
+                state.canCreate
+            )
+        }
     }
 
     state.showsDone && state.isDone -> {
-        { OrbitTonalButton(stringResource(Res.string.item_reopen), viewModel::reopen, Modifier.fillMaxWidth(), state.canSubmit) }
+        {
+            OrbitTonalButton(
+                stringResource(Res.string.item_reopen),
+                viewModel::reopen,
+                Modifier.fillMaxWidth(),
+                state.canSubmit
+            )
+        }
     }
 
     state.showsDone -> {
-        { OrbitButton(stringResource(Res.string.item_complete), viewModel::complete, Modifier.fillMaxWidth(), state.canComplete) }
+        {
+            OrbitButton(
+                stringResource(Res.string.item_complete),
+                viewModel::complete,
+                Modifier.fillMaxWidth(),
+                state.canComplete
+            )
+        }
     }
 
     else -> null
@@ -186,6 +216,7 @@ private fun LazyListScope.itemBody(
     spaceId: String,
     itemId: String,
     onOpenCost: (String) -> Unit,
+    onAddExpense: () -> Unit,
 ) {
     when {
         state.loading -> item {
@@ -230,6 +261,17 @@ private fun LazyListScope.itemBody(
                 )
             }
             checklist(state, viewModel)
+            if (state.canAddExpense) {
+                gap("add-expense")
+                item(key = "add-expense") {
+                    OrbitTonalButton(
+                        text = stringResource(Res.string.checklist_add_expense),
+                        onClick = onAddExpense,
+                        modifier = orbitItem(Modifier.fillMaxWidth()),
+                        shape = MaterialTheme.shapes.large,
+                    )
+                }
+            }
             if (itemId.isNotEmpty()) {
                 item(key = "history") { ItemHistory(spaceId, itemId, orbitItem(Modifier.fillMaxWidth())) }
             }
@@ -260,7 +302,8 @@ private fun ItemActionRow(row: ItemRow, state: ItemUiState, viewModel: ItemViewM
 
         ItemRow.WHEN -> OrbitActionRow(
             title = stringResource(Res.string.item_when),
-            supporting = state.schedule?.let { itemWhenLabel(it, state.recurrence) } ?: stringResource(Res.string.item_add_date),
+            supporting = state.schedule?.let { itemWhenLabel(it, state.recurrence) }
+                ?: stringResource(Res.string.item_add_date),
             icon = Res.drawable.ic_event,
             onClick = viewModel::editSchedule,
             modifier = modifier,

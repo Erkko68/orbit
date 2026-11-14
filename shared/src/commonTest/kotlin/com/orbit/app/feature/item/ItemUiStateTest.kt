@@ -12,6 +12,16 @@ import kotlin.test.assertTrue
 
 class ItemUiStateTest {
     @Test
+    fun onlyAnExistingAvailableChecklistCanBeAddedAsExpense() {
+        val ready = ItemUiState(loading = false, modules = listOf(Checklist(emptyList())))
+        assertTrue(ready.canAddExpense)
+        for (state in listOf(
+            ready.copy(isNew = true), ready.copy(loading = true), ready.copy(loadFailed = true),
+            ready.copy(notFound = true), ready.copy(submitting = true), ready.copy(modules = emptyList()),
+        )) assertFalse(state.canAddExpense)
+    }
+
+    @Test
     fun unavailableItemsHaveNoActions() {
         for (state in listOf(
             ItemUiState(),

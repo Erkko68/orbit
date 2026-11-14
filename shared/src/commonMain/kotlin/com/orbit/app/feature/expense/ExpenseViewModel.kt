@@ -53,6 +53,7 @@ class ExpenseViewModel(
     spaces: SpaceRepository,
     auth: AuthRepository,
     private val items: ItemRepository,
+    private val sourceItemId: String = "",
 ) : ViewModel() {
     private val drafting = draftCost.isNotEmpty()
     private val draft = if (drafting) decodePlannedCost(draftCost) else null
@@ -69,16 +70,18 @@ class ExpenseViewModel(
         when {
             // The item whose cost this is: what the screen is about.
             itemId.isNotEmpty() -> items.observeItems(spaceId)
+            sourceItemId.isNotEmpty() -> items.observeItems(spaceId)
             // Only names the item an expense came from.
             expenseId.isNotEmpty() -> items.observeItems(spaceId).onStart { emit(emptyList()) }
                 .orOnFailure("Loading the item of expense $expenseId", emptyList())
+
             else -> flowOf(emptyList<Item>())
         },
     ) { allSpaces, members, ledger, user, spaceItems ->
         val space = allSpaces.firstOrNull { it.id == spaceId }
         val original = ledger.firstOrNull { it.id == expenseId }
-        val item = spaceItems.firstOrNull { it.id == itemId }
-        val cost = if (drafting) draft else item?.modules?.cost
+        val item = spaceItems.firstOrNull { it.id == (itemId.ifEmpty { sourceItemId }) }
+        val cost = if (drafting) draft else if (planning) item?.modules?.cost else null
         // What is edited: the ledger entry, or the cost the item plans in the same shape.
         val saved = original?.split ?: cost?.split
         val savedPayer = original?.paidBy ?: cost?.paidBy
@@ -89,13 +92,14 @@ class ExpenseViewModel(
             ?.takeIf { it.keys.all { id -> id in knownIds } }
         val formerIds = (saved.orEmpty().keys + listOfNotNull(savedPayer) + allocation.orEmpty().keys) - currentIds
         val people = members.mapIndexed { index, it -> ItemFace(it.userId, it.displayName, index, it.photoUrl) } +
-            formerIds.sorted().mapIndexed { index, it ->
-                ItemFace(it, space?.formerMembers?.get(it) ?: it, members.size + index, null)
-            }
+                formerIds.sorted().mapIndexed { index, it ->
+                    ItemFace(it, space?.formerMembers?.get(it) ?: it, members.size + index, null)
+                }
         ExpenseUiState(
             loading = false,
             missing = space == null || member == null || (expenseId.isNotEmpty() && original == null) ||
-                (itemId.isNotEmpty() && item == null),
+                    (itemId.isNotEmpty() && item == null) ||
+                    (sourceItemId.isNotEmpty() && item?.modules?.checklist == null),
             spaceName = space?.name.orEmpty(),
             title = original?.title ?: item?.title.orEmpty(),
             amount = saved?.let { moneyInput(it.values.sum(), locale) }.orEmpty(),
@@ -113,7 +117,8 @@ class ExpenseViewModel(
             original = original,
             saved = saved,
             planning = planning,
-            sourceItemTitle = spaceItems.firstOrNull { it.id == original?.itemId }?.title,
+            sourceItemId = original?.itemId ?: sourceItemId.takeIf { it.isNotEmpty() },
+            sourceItemTitle = spaceItems.firstOrNull { it.id == (original?.itemId ?: sourceItemId) }?.title,
             member = member,
         )
     }.asLoad("Loading expense $expenseId in $spaceId", retries)
@@ -130,6 +135,7 @@ class ExpenseViewModel(
             original = context?.original ?: state.original,
             saved = context?.saved ?: state.saved,
             planning = planning,
+            sourceItemId = context?.sourceItemId ?: state.sourceItemId,
             sourceItemTitle = context?.sourceItemTitle,
             member = context?.member,
         )
@@ -143,10 +149,12 @@ class ExpenseViewModel(
     }
 
     fun onTitleChange(value: String) = edit { it.copy(title = value) }
+
     /** Amounts, percentages and weights take only what they can hold: a letter or a sign never reaches the state. */
     fun onAmountChange(value: String) = edit {
         if (isMoneyInput(value) && value != it.amount) it.copy(amount = value, allocationChanged = true) else it
     }
+
     fun openPayerPicker() = edit { it.copy(pickingPayer = true) }
     fun dismissPayerPicker() = edit { it.copy(pickingPayer = false) }
     fun selectPayer(id: String) = edit { it.copy(paidBy = id, pickingPayer = false) }
@@ -178,8 +186,9 @@ class ExpenseViewModel(
         if (!next.custom) return@edit next
         if (state.mode == ExpenseSplit.EQUAL) return@edit next.copy(automatic = state.selected)
         val split = state.split
-        val values = (if (mode == ExpenseSplit.PERCENTAGES) split?.let { splitByWeights(HUNDRED_PERCENT, it) } else split)
-            ?: return@edit state.copy(conversionFailed = true, pickingSplit = false)
+        val values =
+            (if (mode == ExpenseSplit.PERCENTAGES) split?.let { splitByWeights(HUNDRED_PERCENT, it) } else split)
+                ?: return@edit state.copy(conversionFailed = true, pickingSplit = false)
         val inputs = state.selected.associateWith { moneyInput(values[it] ?: 0L, state.locale) }
         val automatic = if (state.custom) state.automatic else emptySet()
         if (mode == ExpenseSplit.EXACT) next.copy(exact = inputs, automatic = automatic)
@@ -236,9 +245,11 @@ class ExpenseViewModel(
                 expenseId.isEmpty() -> expenses.add(
                     spaceId, NewExpense(
                         state.title.trim(), state.paidBy, split, date,
+                        itemId = state.sourceItemId,
                         customAllocation = state.customAllocation
                     )
                 )
+
                 else -> expenses.edit(
                     spaceId, expenseId, state.title.trim(), state.paidBy, split, date, state.customAllocation,
                 )

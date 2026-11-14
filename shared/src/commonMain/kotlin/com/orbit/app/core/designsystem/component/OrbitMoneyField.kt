@@ -11,10 +11,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,7 +49,16 @@ fun OrbitMoneyField(
     errorText: String? = null,
     prefix: String? = null,
     suffix: String? = null,
+    focusOnStart: Boolean = false,
 ) {
+    val requester = remember { FocusRequester() }
+    val keyboard = LocalSoftwareKeyboardController.current
+    LaunchedEffect(focusOnStart) {
+        if (focusOnStart) {
+            requester.requestFocus()
+            keyboard?.show()
+        }
+    }
     val scheme = MaterialTheme.colorScheme
     val number = OrbitTheme.data.display.copy(color = if (isError) scheme.error else scheme.onSurface)
     val quiet = number.copy(color = scheme.onSurfaceVariant)
@@ -66,7 +80,7 @@ fun OrbitMoneyField(
                         field.value = it
                         onValueChange(it.text)
                     },
-                    modifier = Modifier.width(width).semantics { contentDescription = label },
+                    modifier = Modifier.width(width).focusRequester(requester).semantics { contentDescription = label },
                     enabled = enabled,
                     textStyle = number.copy(textAlign = TextAlign.Center),
                     singleLine = true,

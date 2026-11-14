@@ -1,11 +1,15 @@
 package com.orbit.app.feature.item.ui
 
+import com.orbit.app.testing.InMemoryExpenseRepository
+import com.orbit.app.feature.expense.ExpenseViewModel
+import com.orbit.app.feature.expense.ui.ExpenseScreen
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasClickAction
@@ -85,6 +89,48 @@ class ItemScreenTest : ComposeTest() {
     fun tearDown() {
         viewModels.clear()
         stopKoin()
+    }
+
+    @Test
+    fun aChecklistOpensTheExpenseFormAndBackDiscardsThePurchase() = runComposeUiTest {
+        val id = createItem(
+            NewItem(
+                "Weekly shopping", modules = ItemModules(
+                    checklist = Checklist(listOf(ChecklistEntry("milk", "Milk"))),
+                )
+            )
+        )
+        val itemModel = model(id, items)
+        val ledger = InMemoryExpenseRepository(auth)
+        val expenseModel = ExpenseViewModel(
+            "space-1", "", "", "", ledger, spaces, auth, items, sourceItemId = id,
+        )
+        var expenseOpen by mutableStateOf(false)
+        setContent {
+            OrbitTheme {
+                if (expenseOpen) {
+                    ExpenseScreen(
+                        "space-1", "", { expenseOpen = false }, sourceItemId = id, viewModel = expenseModel,
+                    )
+                } else {
+                    ItemScreen("space-1", id, {}, itemModel, onAddExpense = { expenseOpen = true })
+                }
+            }
+        }
+        list().performScrollToNode(hasText("Add as expense"))
+        onNodeWithText("Add as expense").performClick()
+        onNodeWithText("Save").assertIsNotEnabled()
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).assertIsFocused()
+        onNode(hasSetTextAction() and hasContentDescription("Title")).assertIsDisplayed()
+        onNodeWithText("Date").performScrollTo().assertIsDisplayed()
+        onNode(hasSetTextAction() and hasContentDescription("Amount")).performScrollTo().performTextInput("10")
+        onNodeWithContentDescription("Back").performClick()
+        list().performScrollToNode(hasText("Milk"))
+        onNodeWithText("Milk").assertIsDisplayed()
+        assertTrue(runBlocking { ledger.observeExpenses("space-1").first().isEmpty() })
+        assertFalse(runBlocking {
+            items.observeItems("space-1").first().single().modules.checklist!!.entries.single().checked
+        })
     }
 
     @Test
@@ -335,7 +381,8 @@ class ItemScreenTest : ComposeTest() {
 
     @Test
     fun memberAndClaimAssignmentsDisplayTheStoredAssignee() = runComposeUiTest {
-        val id = createItem(NewItem("Assigned task", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")))))
+        val id =
+            createItem(NewItem("Assigned task", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")))))
         val viewModel = model(id, items)
         setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
         onNodeWithContentDescription("Ana").assertExists()
@@ -396,7 +443,16 @@ class ItemScreenTest : ComposeTest() {
     fun aNewItemIsCreatedOnceNamedAndTheScreenCloses() = runComposeUiTest {
         var backs = 0
         val viewModel = model("", items)
-        setContent { OrbitTheme { ItemScreen(spaceId = "space-1", itemId = "", onBack = { backs++ }, viewModel = viewModel) } }
+        setContent {
+            OrbitTheme {
+                ItemScreen(
+                    spaceId = "space-1",
+                    itemId = "",
+                    onBack = { backs++ },
+                    viewModel = viewModel
+                )
+            }
+        }
 
         onNodeWithText("Create").assertIsNotEnabled()
         onNodeWithText("Mark as done").assertDoesNotExist()
@@ -413,7 +469,10 @@ class ItemScreenTest : ComposeTest() {
     @Test
     fun editsTheScheduleFromItsRow() = runComposeUiTest {
         val itemId = runBlocking {
-            items.create("space-1", NewItem("Dinner", modules = ItemModules(schedule = Schedule(LocalDate(2026, 10, 26)))))
+            items.create(
+                "space-1",
+                NewItem("Dinner", modules = ItemModules(schedule = Schedule(LocalDate(2026, 10, 26))))
+            )
         }
         val viewModel = model(itemId, items)
         setContent {
@@ -595,7 +654,10 @@ class ItemScreenTest : ComposeTest() {
         val id = createItem(
             NewItem(
                 "Task",
-                modules = ItemModules(schedule = Schedule(LocalDate(2026, 10, 26)), reminder = Reminder(listOf(Duration.ZERO))),
+                modules = ItemModules(
+                    schedule = Schedule(LocalDate(2026, 10, 26)),
+                    reminder = Reminder(listOf(Duration.ZERO))
+                ),
             ),
         )
         val viewModel = model(id, items)

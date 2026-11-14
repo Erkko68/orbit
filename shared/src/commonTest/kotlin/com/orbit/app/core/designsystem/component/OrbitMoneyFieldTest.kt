@@ -6,6 +6,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTextInput
@@ -32,11 +33,17 @@ class OrbitMoneyFieldTest : ComposeTest() {
         setContent {
             var value by remember { mutableStateOf("") }
             OrbitTheme {
-                OrbitMoneyField(value, { value = it; typed = it }, label = "Amount", placeholder = "0.00")
+                OrbitMoneyField(
+                    value,
+                    { value = it; typed = it },
+                    label = "Amount",
+                    placeholder = "0.00",
+                    focusOnStart = true
+                )
             }
         }
 
-        onNodeWithContentDescription("Amount").performTextInput("12.40")
+        onNodeWithContentDescription("Amount").assertIsFocused().performTextInput("12.40")
 
         assertEquals("12.40", typed)
     }
@@ -45,7 +52,14 @@ class OrbitMoneyFieldTest : ComposeTest() {
     fun saysWhyAnAmountIsWrong() = runComposeUiTest {
         setContent {
             OrbitTheme {
-                OrbitMoneyField("0", {}, label = "Amount", placeholder = "0.00", isError = true, errorText = "Enter an amount")
+                OrbitMoneyField(
+                    "0",
+                    {},
+                    label = "Amount",
+                    placeholder = "0.00",
+                    isError = true,
+                    errorText = "Enter an amount"
+                )
             }
         }
 

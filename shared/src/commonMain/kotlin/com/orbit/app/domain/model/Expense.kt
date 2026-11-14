@@ -19,7 +19,7 @@ data class Expense(
     val createdBy: String,
     val createdAt: Instant,
     val kind: ExpenseKind = ExpenseKind.EXPENSE,
-    /** The item whose Cost module made this expense (#58). */
+    /** The source item, from its cost or the manual checklist-to-expense action (#60). */
     val itemId: String? = null,
     /** Selected people, including zero shares: true is automatic, false is manual. Never a monetary source. */
     val customAllocation: Map<String, Boolean>? = null,
