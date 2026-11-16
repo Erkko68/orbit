@@ -268,8 +268,8 @@
     <string name="invite_share">Comparteix</string>
     <string name="invite_renew">Codi nou</string>
     <string name="invite_share_message">Uneix-te a “%1$s” a Orbit: obre %2$s o introdueix el codi %3$s.</string>
-    <string name="invite_create_failed">No s&apos;ha pogut crear la invitació. Torna-ho a provar.</string>
-    <string name="invite_renew_failed">No s&apos;ha pogut crear un codi nou. Torna-ho a provar.</string>
+    <string name="invite_create_failed">No s&apos;ha pogut crear la invitació. Comprova la connexió i torna-ho a provar.</string>
+    <string name="invite_renew_failed">No s&apos;ha pogut crear un codi nou. Comprova la connexió i torna-ho a provar.</string>
     <string name="notification_permission_title">Les notificacions estan desactivades</string>
     <string name="notification_permission_body">Orbit només et pot enviar recordatoris si permets les notificacions. Activa-les a la configuració.</string>
     <string name="notification_permission_open_settings">Obre la configuració</string>

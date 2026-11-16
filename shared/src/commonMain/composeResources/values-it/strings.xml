@@ -268,8 +268,8 @@
     <string name="invite_share">Condividi</string>
     <string name="invite_renew">Nuovo codice</string>
     <string name="invite_share_message">Unisciti a “%1$s” su Orbit: apri %2$s o inserisci il codice %3$s.</string>
-    <string name="invite_create_failed">Impossibile creare l&apos;invito. Riprova.</string>
-    <string name="invite_renew_failed">Impossibile creare un nuovo codice. Riprova.</string>
+    <string name="invite_create_failed">Impossibile creare l&apos;invito. Controlla la connessione e riprova.</string>
+    <string name="invite_renew_failed">Impossibile creare un nuovo codice. Controlla la connessione e riprova.</string>
     <string name="notification_permission_title">Le notifiche sono disattivate</string>
     <string name="notification_permission_body">Orbit può inviarti promemoria solo se consenti le notifiche. Attivale nelle impostazioni.</string>
     <string name="notification_permission_open_settings">Apri impostazioni</string>

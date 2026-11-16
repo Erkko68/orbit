@@ -31,4 +31,30 @@ class WriteLocallyTest {
             writeLocally("Item 1") { error("permission denied") }
         }
     }
+
+    @Test
+    fun writingOnTheServerReturnsOnceItConfirms() = runTest {
+        var written = false
+
+        writeOnServer("Invitation abc") { written = true }
+
+        assertEquals(true, written)
+        assertEquals(0, currentTime)
+    }
+
+    @Test
+    fun writingOnTheServerFailsWhenItCannotBeReached() = runTest {
+        assertFailsWith<IllegalStateException> {
+            writeOnServer("Invitation abc") { awaitCancellation() }
+        }
+
+        assertEquals(10_000, currentTime)
+    }
+
+    @Test
+    fun writingOnTheServerThrowsWhenItRefuses() = runTest {
+        assertFailsWith<IllegalStateException> {
+            writeOnServer("Invitation abc") { error("permission denied") }
+        }
+    }
 }

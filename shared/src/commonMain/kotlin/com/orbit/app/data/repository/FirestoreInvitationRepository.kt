@@ -33,16 +33,16 @@ class FirestoreInvitationRepository(
 
     override suspend fun createInvitation(spaceId: String): String {
         val userId = auth.requireUser().id
-        // The SDK draws ids from a secure generator on the device, so the code cannot be guessed and
-        // making it needs no connection.
+        // The SDK draws ids from a secure generator on the device, so the code cannot be guessed. The code is no use
+        // until the server has the invitation, so this waits for it and fails offline (the connection is needed).
         val code = invitationCodeFrom(firestore.collection(INVITATIONS).document.id)
         val data = invitationDocument(spaceId, userId, Clock.System.now())
-        writeLocally("Invitation $code") { firestore.collection(INVITATIONS).document(code).set(data) }
+        writeOnServer("Invitation $code") { firestore.collection(INVITATIONS).document(code).set(data) }
         return code
     }
 
     override suspend fun revokeInvitation(code: String) {
-        writeLocally("Revoking invitation $code") {
+        writeOnServer("Revoking invitation $code") {
             firestore.collection(INVITATIONS).document(code).updateFields { REVOKED to true }
         }
     }

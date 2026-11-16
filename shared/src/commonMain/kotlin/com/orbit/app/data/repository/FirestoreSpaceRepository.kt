@@ -20,16 +20,13 @@ import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
 import dev.gitlive.firebase.firestore.Source
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.withTimeout
 import kotlinx.datetime.LocalDate
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Spaces and their members in Firestore (ADR 0002), read through live listeners. Firestore's offline
@@ -135,11 +132,7 @@ class FirestoreSpaceRepository(
         batch.updateFields(space) { "memberIds" to FieldValue.arrayUnion(user.id) }
         val membership = joiningMemberDocument(user.displayName, user.photoUrl, code)
         batch.set(space.collection(MEMBERS).document(user.id), membership)
-        try {
-            withTimeout(JOIN_WAIT) { batch.commit() }
-        } catch (e: TimeoutCancellationException) {
-            throw IllegalStateException("The server did not confirm joining the space in time", e)
-        }
+        writeOnServer("Joining space ${invitation.spaceId}") { batch.commit() }
         return invitation.spaceId
     }
 
@@ -215,5 +208,3 @@ class FirestoreSpaceRepository(
             if (it == null) Logger.w { "Skipping the malformed space ${document.id}" }
         }
 }
-
-private val JOIN_WAIT = 15.seconds
