@@ -585,7 +585,7 @@ class ItemScreenTest : ComposeTest() {
     fun theSheetMakesTheMembersTakeTurnsAndPassesTheTurnOn() = runComposeUiTest {
         val id = createItem(NewItem("Bins", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")))))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         runOnIdle { viewModel.openMemberPicker() }
         onNodeWithText("Take turns").performScrollTo().performClick()
@@ -603,7 +603,7 @@ class ItemScreenTest : ComposeTest() {
         val order = listOf("ana", "mika")
         val id = createItem(NewItem("Bins", modules = ItemModules(assignment = Assignment.Rotation(order, "ana"))))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         runOnIdle { viewModel.openMemberPicker() }
         onNodeWithContentDescription("Move Mika earlier").performScrollTo().performClick()
@@ -621,7 +621,7 @@ class ItemScreenTest : ComposeTest() {
         val order = listOf("ana", "mika")
         val id = createItem(NewItem("Bins", modules = ItemModules(assignment = Assignment.Rotation(order, "mika"))))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         onNodeWithText("Mika's turn").assertExists()
     }

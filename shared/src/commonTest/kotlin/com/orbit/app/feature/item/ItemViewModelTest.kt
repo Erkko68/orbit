@@ -1512,7 +1512,7 @@ class ItemViewModelTest {
         space: SpaceRepository = spaces,
     ): Pair<ItemViewModel, String> {
         val id = createItem(modules)
-        val model = track(ItemViewModel("space-1", id, repository, space, auth))
+        val model = track(ItemViewModel("space-1", id, "", repository, space, auth, PlanDraft()))
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
         return model to id
     }
