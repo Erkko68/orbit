@@ -13,7 +13,7 @@ data class EffortShare(val memberId: String, val points: Long, val totalPoints: 
  * No points means no measured share, rather than evidence of unfairness.
  */
 fun calculateFairness(completions: List<Completion>, memberIds: Collection<String>, now: Instant): List<EffortShare> {
-    val members = memberIds.toSortedSet()
+    val members = memberIds.distinct().sorted()
     val since = now - 30.days
     val points = completions.asSequence()
         .filter { !it.reopened && it.effortCredited && it.completedBy in members && it.completedAt in since..now && it.effortPoints in 1..5 }
