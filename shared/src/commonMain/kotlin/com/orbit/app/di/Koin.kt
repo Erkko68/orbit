@@ -77,7 +77,7 @@ val dataModule = module {
     single<AssistantRepository> {
         // A small model on a CPU can take a while to answer a question.
         val client = HttpClient { install(HttpTimeout) { requestTimeoutMillis = 180_000 } }
-        ServerAssistantRepository(client, get())
+        ServerAssistantRepository(client, get(), get(), get())
     }
     single { Settings() }
     singleOf(::SettingsLastSpaceRepository) bind LastSpaceRepository::class

@@ -148,6 +148,7 @@ fun OrbitNavHost(
                 // Closing goes back to where the assistant was opened from, which has the manual way. A plan replaces
                 // the chat with its review board (#75), so going back from the board leaves the assistant.
                 InterviewScreen(
+                    spaceId = spaceId,
                     onClose = { navController.popBackStack() },
                     onPlanReady = {
                         navController.navigate(PlanReviewRoute(spaceId)) { popUpTo<InterviewRoute> { inclusive = true } }

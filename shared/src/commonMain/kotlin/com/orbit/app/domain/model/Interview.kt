@@ -15,8 +15,11 @@ data class InterviewQuestion(
     val budget: Int,
 )
 
-/** What the user answered to the question [questionId]: the chips they picked and what they wrote, either may be empty. */
-data class InterviewAnswer(val questionId: String, val selected: Set<String>, val text: String)
+/**
+ * What the user answered to the question [questionId], whose text was [question]: the chips they picked and what they
+ * wrote, either may be empty. The server keeps no state, so the question goes back with its answer (#66).
+ */
+data class InterviewAnswer(val questionId: String, val question: String, val selected: Set<String>, val text: String)
 
 /** What the assistant does with the answers so far: ask the next question, or say it has a plan to propose. */
 sealed interface InterviewStep {

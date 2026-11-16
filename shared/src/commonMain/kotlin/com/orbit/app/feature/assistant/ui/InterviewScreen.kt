@@ -34,19 +34,21 @@ import orbit.shared.generated.resources.interview_title
 import orbit.shared.generated.resources.retry
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /**
  * The assistant's interview, as a chat. It asks for consent first (#71); then the assistant's questions and the user's
  * answers follow each other, newest at the bottom. The question waiting for an answer carries its chips, and the
  * composer under the chat takes the user's own words, typed or dictated (#73). When the assistant cannot answer, the
  * chat says why, with a retry when it can help. Closing, or declining the consent, goes back to where the manual way
- * is. When the assistant has a plan, [onPlanReady] opens the review.
+ * is. When the assistant has a plan, [onPlanReady] opens the review. It is about [spaceId], or a new space when empty.
  */
 @Composable
 fun InterviewScreen(
+    spaceId: String,
     onClose: () -> Unit,
     onPlanReady: () -> Unit,
-    viewModel: InterviewViewModel = koinViewModel(),
+    viewModel: InterviewViewModel = koinViewModel { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(state.planReady) { if (state.planReady) onPlanReady() }

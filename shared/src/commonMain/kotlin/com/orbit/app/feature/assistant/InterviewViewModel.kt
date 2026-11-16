@@ -18,9 +18,13 @@ import kotlinx.coroutines.launch
 /**
  * The assistant's interview, as a chat: once the user consents, one question at a time, each answered with chips,
  * words or both. The words can be dictated: they go after what was already written. A plan goes to the [plan] draft,
- * which the review board shows (#75).
+ * which the review board shows (#75). The interview is about [spaceId], or a new space when it is empty.
  */
-class InterviewViewModel(private val assistant: AssistantRepository, private val plan: PlanDraft) : ViewModel() {
+class InterviewViewModel(
+    private val spaceId: String,
+    private val assistant: AssistantRepository,
+    private val plan: PlanDraft,
+) : ViewModel() {
     private val state = MutableStateFlow(InterviewUiState())
     val uiState: StateFlow<InterviewUiState> = state.asStateFlow()
 
@@ -79,7 +83,7 @@ class InterviewViewModel(private val assistant: AssistantRepository, private val
         val question = current.question ?: return
         if (!current.canSend) return
         val text = current.text.trim()
-        answers = answers + InterviewAnswer(question.id, current.selected, text)
+        answers = answers + InterviewAnswer(question.id, question.text, current.selected, text)
         // What dictation heard is in this answer now: the next one starts empty.
         beforeDictation = ""
         wordsTaken = words(heard).size
@@ -103,7 +107,7 @@ class InterviewViewModel(private val assistant: AssistantRepository, private val
     private fun ask() {
         state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
-            attempt("Asking the assistant") { assistant.nextStep(answers) }.fold(
+            attempt("Asking the assistant") { assistant.nextStep(spaceId, answers) }.fold(
                 onSuccess = { step ->
                     state.update {
                         when (step) {

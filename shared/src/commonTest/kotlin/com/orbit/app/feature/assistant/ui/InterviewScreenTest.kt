@@ -57,9 +57,10 @@ class InterviewScreenTest : ComposeTest() {
         setContent {
             OrbitTheme {
                 InterviewScreen(
+                    spaceId = "space-1",
                     onClose = { closed++ },
                     onPlanReady = { plans++ },
-                    viewModel = InterviewViewModel(assistant, PlanDraft()),
+                    viewModel = InterviewViewModel("space-1", assistant, PlanDraft()),
                 )
             }
         }
@@ -175,7 +176,7 @@ class InterviewScreenTest : ComposeTest() {
         startTestKoin(auth = fresh, spaces = InMemorySpaceRepository(fresh), assistant = assistant, dictation = dictation)
         setContent {
             OrbitTheme {
-                InterviewScreen(onClose = { closed++ }, onPlanReady = {}, viewModel = InterviewViewModel(assistant, PlanDraft()))
+                InterviewScreen("space-1", onClose = { closed++ }, onPlanReady = {}, viewModel = InterviewViewModel("space-1", assistant, PlanDraft()))
             }
         }
 
