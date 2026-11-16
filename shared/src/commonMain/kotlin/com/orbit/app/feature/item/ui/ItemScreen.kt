@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -268,7 +267,6 @@ private fun LazyListScope.itemBody(
                         text = stringResource(Res.string.checklist_add_expense),
                         onClick = onAddExpense,
                         modifier = orbitItem(Modifier.fillMaxWidth()),
-                        shape = MaterialTheme.shapes.large,
                     )
                 }
             }

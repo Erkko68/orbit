@@ -68,9 +68,8 @@ class ExpenseViewModel(
         if (expenseId.isEmpty()) flowOf(emptyList<Expense>()) else expenses.observeExpenses(spaceId),
         auth.session,
         when {
-            // The item whose cost this is: what the screen is about.
-            itemId.isNotEmpty() -> items.observeItems(spaceId)
-            sourceItemId.isNotEmpty() -> items.observeItems(spaceId)
+            // The item whose cost this is, or whose checklist it buys: what the screen is about.
+            itemId.isNotEmpty() || sourceItemId.isNotEmpty() -> items.observeItems(spaceId)
             // Only names the item an expense came from.
             expenseId.isNotEmpty() -> items.observeItems(spaceId).onStart { emit(emptyList()) }
                 .orOnFailure("Loading the item of expense $expenseId", emptyList())
