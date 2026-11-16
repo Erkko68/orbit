@@ -353,6 +353,15 @@
     <string name="member_load_failed">Impossibile caricare il membro</string>
     <string name="member_not_found">Membro non trovato</string>
     <string name="member_not_found_body">Non fa più parte di questo spazio.</string>
+    <string name="member_away">Assente</string>
+    <string name="member_away_none">Non assente</string>
+    <string name="member_away_until">Assente fino al %1$s</string>
+    <string name="member_away_from">Primo giorno</string>
+    <string name="member_away_last">Ultimo giorno</string>
+    <string name="member_away_save">Salva</string>
+    <string name="member_away_clear">Rimuovi l'assenza</string>
+    <string name="member_away_failed">Impossibile salvare l'assenza. Riprova.</string>
+    <string name="member_away_load_failed">Impossibile caricare l'assenza.</string>
     <string name="expense_add">Aggiungi spesa</string>
     <string name="expense_edit">Modifica spesa</string>
     <string name="expense_title">Titolo</string>

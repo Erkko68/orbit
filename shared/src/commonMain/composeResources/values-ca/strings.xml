@@ -353,6 +353,15 @@
     <string name="member_load_failed">No s’ha pogut carregar el membre</string>
     <string name="member_not_found">Membre no trobat</string>
     <string name="member_not_found_body">Ja no és en aquest espai.</string>
+    <string name="member_away">Absent</string>
+    <string name="member_away_none">No absent</string>
+    <string name="member_away_until">Absent fins al %1$s</string>
+    <string name="member_away_from">Primer dia</string>
+    <string name="member_away_last">Últim dia</string>
+    <string name="member_away_save">Desa</string>
+    <string name="member_away_clear">Treu l'absència</string>
+    <string name="member_away_failed">No s'ha pogut desar l'absència. Torna-ho a provar.</string>
+    <string name="member_away_load_failed">No s'ha pogut carregar l'absència.</string>
     <string name="expense_add">Afegeix una despesa</string>
     <string name="expense_edit">Edita la despesa</string>
     <string name="expense_title">Títol</string>

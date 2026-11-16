@@ -353,6 +353,15 @@
     <string name="member_load_failed">Could not load the member</string>
     <string name="member_not_found">Member not found</string>
     <string name="member_not_found_body">They are no longer in this space.</string>
+    <string name="member_away">Away</string>
+    <string name="member_away_none">Not away</string>
+    <string name="member_away_until">Away until %1$s</string>
+    <string name="member_away_from">First day</string>
+    <string name="member_away_last">Last day</string>
+    <string name="member_away_save">Save</string>
+    <string name="member_away_clear">Clear away period</string>
+    <string name="member_away_failed">Could not save the away period. Try again.</string>
+    <string name="member_away_load_failed">Could not load the away period.</string>
     <string name="expense_add">Add expense</string>
     <string name="expense_edit">Edit expense</string>
     <string name="expense_title">Title</string>

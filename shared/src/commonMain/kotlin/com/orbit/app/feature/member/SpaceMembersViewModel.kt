@@ -23,6 +23,10 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
+import kotlin.time.Clock
 
 /**
  * The members of a space, and for the owner the way to change their roles, in a sheet: a member becomes an admin, an
@@ -34,6 +38,7 @@ class SpaceMembersViewModel(
     auth: AuthRepository,
 ) : ViewModel() {
     private val retries = Channel<Unit>(Channel.CONFLATED)
+    private val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
 
     /** The last role change: whose it is, and whether it is under way or failed, with the handover dialog. */
     private val change = MutableStateFlow(RoleChange())
@@ -62,6 +67,7 @@ class SpaceMembersViewModel(
                 canChangeRole = owns && other && member.role != Role.OWNER,
                 canTakeOwnership = owns && other && member.role == Role.ADMIN,
                 canRemove = other && mine?.removes(member.role) == true,
+                today = today,
             )
         }
         SpaceMembersUiState(
@@ -168,6 +174,7 @@ private fun toSpaceMember(
     canChangeRole: Boolean,
     canTakeOwnership: Boolean,
     canRemove: Boolean,
+    today: LocalDate,
 ) =
     SpaceMember(
         id = member.userId,
@@ -181,4 +188,5 @@ private fun toSpaceMember(
         canChangeRole = canChangeRole,
         canTakeOwnership = canTakeOwnership,
         canRemove = canRemove,
+        awayUntil = member.awayUntilFrom(today),
     )
