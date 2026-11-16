@@ -37,6 +37,7 @@ import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryInvitationRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
+import com.orbit.app.testing.InMemoryPlanRepository
 import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.testing.RecordingNotificationScheduler
 import com.orbit.app.di.featureModule
@@ -47,6 +48,7 @@ import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
+import com.orbit.app.domain.repository.PlanRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.russhwolf.settings.MapSettings
 import kotlinx.coroutines.runBlocking
@@ -90,6 +92,7 @@ class OrbitNavHostTest : ComposeTest() {
                     single<LastSpaceRepository> { lastSpace }
                     single<InvitationRepository> { InMemoryInvitationRepository(auth) }
                     single<TextSharer> { TextSharer {} }
+                    single<PlanRepository> { InMemoryPlanRepository(spaces, items) }
                     single { ReminderSync(auth, spaces, items, RecordingNotificationScheduler(), MapSettings()) }
                 },
                 featureModule,
@@ -148,6 +151,28 @@ class OrbitNavHostTest : ComposeTest() {
 
         onNodeWithText("1 of 1 accepted").assertIsDisplayed()
         assertEquals(emptyList(), runBlocking { spaces.observeSpaces().first() })
+    }
+
+    @Test
+    fun confirmingAPlanCreatesItsSpaceWithTheItemsAndOpensIt() = runComposeUiTest {
+        val plan = Plan(SpaceProposal("New flat", accent = 0), listOf(NewItem("Bins"), NewItem("Groceries")))
+        assistant = ScriptedAssistantRepository(listOf(InterviewStep.PlanReady(plan)))
+        runBlocking {
+            auth.signIn("ana@orbit.app", "secret")
+            auth.acceptAiConsent()
+        }
+        setContent { OrbitTheme { OrbitNavHost() } }
+        onNodeWithText("Set up with the assistant").performScrollTo().performClick()
+        onNodeWithContentDescription("Accept Bins").performScrollTo().performClick()
+        onNodeWithText("Continue").performClick()
+        onNodeWithText("Confirm").performScrollTo().performClick()
+
+        waitUntil { runBlocking { spaces.observeSpaces().first() }.isNotEmpty() }
+        val space = runBlocking { spaces.observeSpaces().first() }.single()
+        assertEquals("New flat", space.name)
+        assertEquals(listOf("Bins"), runBlocking { items.observeItems(space.id).first() }.map { it.title })
+        onNodeWithText("New flat").assertIsDisplayed()
+        onNodeWithText("Review the plan").assertDoesNotExist()
     }
 
     @Test

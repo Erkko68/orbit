@@ -458,4 +458,17 @@
     <string name="plan_remove">Remove</string>
     <string name="plan_remove_title">Remove from the plan?</string>
     <string name="plan_remove_body">It will not be added to the space.</string>
+    <!-- Plan confirmation (#76) -->
+    <string name="plan_continue">Continue</string>
+    <string name="plan_confirm_title">Save the plan</string>
+    <plurals name="plan_confirm_new_space">
+        <item quantity="one">Creates the space %1$s with %2$d item. You can invite people from its settings.</item>
+        <item quantity="other">Creates the space %1$s with %2$d items. You can invite people from its settings.</item>
+    </plurals>
+    <plurals name="plan_confirm_items">
+        <item quantity="one">Adds %2$d item to %1$s.</item>
+        <item quantity="other">Adds %2$d items to %1$s.</item>
+    </plurals>
+    <string name="plan_confirm">Confirm</string>
+    <string name="plan_save_failed">The plan could not be saved, so nothing was added. Try again.</string>
 </resources>

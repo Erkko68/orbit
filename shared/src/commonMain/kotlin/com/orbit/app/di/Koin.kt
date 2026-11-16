@@ -8,6 +8,7 @@ import com.orbit.app.data.repository.FirebaseAuthRepository
 import com.orbit.app.data.repository.FirestoreExpenseRepository
 import com.orbit.app.data.repository.FirestoreInvitationRepository
 import com.orbit.app.data.repository.FirestoreItemRepository
+import com.orbit.app.data.repository.FirestorePlanRepository
 import com.orbit.app.data.repository.FirestoreSpaceRepository
 import com.orbit.app.data.repository.ServerAssistantRepository
 import com.orbit.app.data.repository.SettingsLastSpaceRepository
@@ -17,6 +18,7 @@ import com.orbit.app.domain.repository.ExpenseRepository
 import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.LastSpaceRepository
+import com.orbit.app.domain.repository.PlanRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.account.AccountViewModel
 import com.orbit.app.feature.expense.ExpenseViewModel
@@ -74,6 +76,7 @@ val dataModule = module {
     singleOf(::FirestoreItemRepository) bind ItemRepository::class
     singleOf(::FirestoreExpenseRepository) bind ExpenseRepository::class
     singleOf(::FirestoreInvitationRepository) bind InvitationRepository::class
+    singleOf(::FirestorePlanRepository) bind PlanRepository::class
     single<AssistantRepository> {
         // A small model on a CPU can take a while to answer a question.
         val client = HttpClient { install(HttpTimeout) { requestTimeoutMillis = 180_000 } }

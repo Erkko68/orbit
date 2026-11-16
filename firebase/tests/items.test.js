@@ -174,4 +174,39 @@ describe('Items subcollection', () => {
 
     await assertSucceeds(items(aliceDb).doc('item1').delete());
   });
+
+  // The assistant's plan (#76): a new space, its owner and its first items, all in one batch.
+  it('creates a new space and its first items in one batch, a cost included', async () => {
+    const davidDb = testEnv.authenticatedContext('david').firestore();
+    const space = davidDb.collection('spaces').doc('s2');
+    const batch = davidDb.batch();
+    batch.set(space, {
+      name: 'David Space', accent: 2, memberIds: ['david'], createdBy: 'david', ownerId: 'david', createdAt: serverTime(),
+    });
+    batch.set(space.collection('members').doc('david'), { role: 'owner', displayName: 'David' });
+    batch.set(space.collection('items').doc('i1'), {
+      spaceId: 's2', title: 'Bins', status: 'open', createdBy: 'david', createdAt: serverTime(),
+    });
+    batch.set(space.collection('items').doc('i2'), {
+      spaceId: 's2', title: 'Rent', status: 'open', createdBy: 'david', createdAt: serverTime(),
+      modules: { cost: { paidBy: 'david', split: { david: 1 } } },
+    });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('denies items in a space that does not exist, or that the batch leaves the caller out of', async () => {
+    const davidDb = testEnv.authenticatedContext('david').firestore();
+    await assertFails(davidDb.collection('spaces').doc('nowhere').collection('items').doc('i1').set({
+      spaceId: 'nowhere', title: 'Bins', status: 'open', createdBy: 'david', createdAt: serverTime(),
+    }));
+
+    const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+    const batch = charlieDb.batch();
+    batch.update(charlieDb.collection('spaces').doc('s1'), { memberIds: ['alice'], formerMembers: { charlie: 'Charlie' } });
+    batch.delete(charlieDb.collection('spaces').doc('s1').collection('members').doc('charlie'));
+    batch.set(charlieDb.collection('spaces').doc('s1').collection('items').doc('i9'), {
+      spaceId: 's1', title: 'Bins', status: 'open', createdBy: 'charlie', createdAt: serverTime(),
+    });
+    await assertFails(batch.commit());
+  });
 });

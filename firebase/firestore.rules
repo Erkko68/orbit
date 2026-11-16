@@ -43,6 +43,14 @@ service cloud.firestore {
         request.auth.uid in get(spacePath(spaceId)).data.memberIds;
     }
 
+    // A member once the write is done, so the batch that creates a space can add its first items (#76). memberIds
+    // changes only through the space's own rules, so this lets in no one isMember would not.
+    function isMemberAfter(spaceId) {
+      return isAuthenticated() &&
+        existsAfter(spacePath(spaceId)) &&
+        request.auth.uid in getAfter(spacePath(spaceId)).data.memberIds;
+    }
+
     function hasRole(spaceId, uid, roles) {
       return isAuthenticated() &&
         exists(memberPath(spaceId, uid)) &&
@@ -276,7 +284,7 @@ service cloud.firestore {
         // A planned cost has an expense's shape (ADR 0014): a payer and shares among the current members. What the
         // shares add up to is the app's to check, as for an expense (ADR 0003).
         function isCost(cost) {
-          let members = get(spacePath(spaceId)).data.memberIds;
+          let members = getAfter(spacePath(spaceId)).data.memberIds;
           return cost is map
             && cost.keys().hasOnly(['paidBy', 'split', 'customAllocation'])
             && cost.paidBy in members
@@ -299,7 +307,7 @@ service cloud.firestore {
         }
 
         allow read: if isMember(spaceId);
-        allow create: if isMember(spaceId)
+        allow create: if isMemberAfter(spaceId)
           && request.resource.data.createdBy == request.auth.uid
           && request.resource.data.createdAt == request.time
           && request.resource.data.spaceId == spaceId
@@ -383,7 +391,7 @@ service cloud.firestore {
         }
 
         allow read: if isMember(spaceId);
-        allow create: if isMember(spaceId)
+        allow create: if isMemberAfter(spaceId)
           && request.resource.data.createdBy == request.auth.uid
           && request.resource.data.createdAt == request.time
           && request.resource.data.spaceId == spaceId
