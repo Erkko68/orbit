@@ -371,7 +371,7 @@ class SpaceMembersViewModelTest {
 
 
     @Test
-    fun `a member who is away shows when they are back, and one whose period is over does not`() = runTest {
+    fun `a member who is away shows when they are back and one whose period is over does not`() = runTest {
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
         val back = today.plus(DatePeriod(days = 3))
         val spaces = FakeSpaceRepository(

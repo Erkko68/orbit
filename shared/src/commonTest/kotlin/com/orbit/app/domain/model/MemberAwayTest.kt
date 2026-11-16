@@ -14,7 +14,7 @@ class MemberAwayTest {
         Member("ana", "Ana", null, Role.MEMBER, from, until)
 
     @Test
-    fun `is away on every day of the period, both ends included`() {
+    fun `is away on every day of the period with both ends included`() {
         assertTrue(member().isAway(from))
         assertTrue(member().isAway(LocalDate(2026, 11, 12)))
         assertTrue(member().isAway(until))
@@ -34,7 +34,7 @@ class MemberAwayTest {
     }
 
     @Test
-    fun `shows the last day while the period runs or is ahead, not once it is over`() {
+    fun `shows the last day while the period runs or is ahead and not once it is over`() {
         assertEquals(until, member().awayUntilFrom(LocalDate(2026, 11, 1)))
         assertEquals(until, member().awayUntilFrom(until))
         assertNull(member().awayUntilFrom(LocalDate(2026, 11, 15)))
