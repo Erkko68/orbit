@@ -458,4 +458,17 @@
     <string name="plan_remove">Treu</string>
     <string name="plan_remove_title">Vols treure-ho del pla?</string>
     <string name="plan_remove_body">No s'afegirà a l'espai.</string>
+    <!-- Plan confirmation (#76) -->
+    <string name="plan_continue">Continua</string>
+    <string name="plan_confirm_title">Desa el pla</string>
+    <plurals name="plan_confirm_new_space">
+        <item quantity="one">Crea l'espai %1$s amb %2$d element. Pots convidar gent des de la seva configuració.</item>
+        <item quantity="other">Crea l'espai %1$s amb %2$d elements. Pots convidar gent des de la seva configuració.</item>
+    </plurals>
+    <plurals name="plan_confirm_items">
+        <item quantity="one">Afegeix %2$d element a %1$s.</item>
+        <item quantity="other">Afegeix %2$d elements a %1$s.</item>
+    </plurals>
+    <string name="plan_confirm">Confirma</string>
+    <string name="plan_save_failed">No s'ha pogut desar el pla, així que no s'ha afegit res. Torna-ho a provar.</string>
 </resources>

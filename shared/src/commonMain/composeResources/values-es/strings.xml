@@ -458,4 +458,17 @@
     <string name="plan_remove">Quitar</string>
     <string name="plan_remove_title">¿Quitar del plan?</string>
     <string name="plan_remove_body">No se añadirá al espacio.</string>
+    <!-- Plan confirmation (#76) -->
+    <string name="plan_continue">Continuar</string>
+    <string name="plan_confirm_title">Guardar el plan</string>
+    <plurals name="plan_confirm_new_space">
+        <item quantity="one">Crea el espacio %1$s con %2$d elemento. Puedes invitar a gente desde sus ajustes.</item>
+        <item quantity="other">Crea el espacio %1$s con %2$d elementos. Puedes invitar a gente desde sus ajustes.</item>
+    </plurals>
+    <plurals name="plan_confirm_items">
+        <item quantity="one">Añade %2$d elemento a %1$s.</item>
+        <item quantity="other">Añade %2$d elementos a %1$s.</item>
+    </plurals>
+    <string name="plan_confirm">Confirmar</string>
+    <string name="plan_save_failed">No se ha podido guardar el plan, así que no se ha añadido nada. Inténtalo de nuevo.</string>
 </resources>

@@ -161,6 +161,14 @@ fun OrbitNavHost(
                     spaceId = spaceId,
                     onBack = { navController.popBackStack() },
                     onOpenProposal = { id -> navController.navigate(ItemRoute(spaceId, proposalId = id)) },
+                    // A plan for a space goes back to it; a new space opens over the list, as one created by hand.
+                    onSaved = { savedId ->
+                        if (spaceId.isNotEmpty()) {
+                            navController.popBackStack()
+                        } else {
+                            navController.navigate(SpaceHomeRoute(savedId)) { popUpTo<SpacesRoute> { inclusive = false } }
+                        }
+                    },
                 )
             }
         }

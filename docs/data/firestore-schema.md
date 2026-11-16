@@ -348,6 +348,12 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 
 No method saves a whole existing item: every update writes only its field paths, so concurrent edits merge.
 
+### `FirestorePlanRepository`
+
+| Method | Path | Operation |
+|---|---|---|
+| `confirm` | `spaces/{id}/items/{itemId}` for each accepted proposal and, for a new space, `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: the new space and the owner's membership as `createSpace` writes them, and a `set` of each item as `create` writes it. Saved whole or not at all, and queued offline like any write (#76) |
+
 ### `FirestoreExpenseRepository`
 
 | Method | Path | Operation |
