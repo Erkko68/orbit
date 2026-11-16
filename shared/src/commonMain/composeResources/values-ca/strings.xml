@@ -69,6 +69,8 @@
     <string name="error_unknown">Alguna cosa ha fallat. Torna-ho a provar.</string>
     <!-- Spaces -->
     <string name="spaces_new">Espai nou</string>
+    <string name="spaces_setup_assistant">Configura amb l’assistent</string>
+    <string name="spaces_create_manually">Crea manualment</string>
     <string name="spaces_create_name">Pis 4B</string>
     <string name="spaces_create">Crea un espai</string>
     <string name="spaces_create_failed">No s&apos;ha pogut crear l&apos;espai. Torna-ho a provar.</string>
@@ -136,7 +138,7 @@
     <string name="spaces_empty">Encara no hi ha espais</string>
     <string name="spaces_loading">S&apos;estan carregant els teus espais…</string>
     <string name="spaces_load_failed">No s&apos;han pogut carregar els teus espais</string>
-    <string name="spaces_empty_body">Toca Espai nou per crear-ne un per a les persones amb qui t&apos;organitzes, o per unir-te a un amb una invitació.</string>
+    <string name="spaces_empty_body">Configura un espai per a les persones amb qui t’organitzes o uneix-te a un amb una invitació.</string>
     <!-- Item detail and modules -->
     <string name="item_back">Torna a l&apos;espai</string>
     <string name="item_name">Nom</string>

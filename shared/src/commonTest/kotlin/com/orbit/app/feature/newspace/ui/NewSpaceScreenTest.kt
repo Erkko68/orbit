@@ -37,6 +37,7 @@ class NewSpaceScreenTest : ComposeTest() {
     private val pending = PendingInvitation()
 
     private var opened: String? = null
+    private var assistantOpened = 0
 
     /** Ana owns Flat 4B and made an invitation to it. Ben is signed in, outside the space. Returns the code. */
     private fun invitationFromAnaWithBenSignedIn(): String = runBlocking {
@@ -51,9 +52,25 @@ class NewSpaceScreenTest : ComposeTest() {
         val viewModel = NewSpaceViewModel(repository, pending)
         setContent {
             OrbitTheme {
-                NewSpaceScreen(onClose = {}, onOpenSpace = { opened = it }, viewModel = viewModel)
+                NewSpaceScreen(
+                    onClose = {},
+                    onOpenSpace = { opened = it },
+                    onOpenAssistant = { assistantOpened++ },
+                    viewModel = viewModel
+                )
             }
         }
+    }
+
+    @Test
+    fun offersTheAssistantWithoutCreatingASpace() = runComposeUiTest {
+        runBlocking { auth.signIn("ana@orbit.app", "secret") }
+        showNewSpace()
+        onNodeWithText("Set up with the assistant").performScrollTo().assertIsEnabled().performClick()
+        assertEquals(1, assistantOpened)
+        assertEquals(emptyList(), runBlocking { spaces.observeSpaces().first() })
+        onNodeWithText("Create it myself").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Got an invite?").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -183,7 +200,8 @@ class NewSpaceScreenTest : ComposeTest() {
         onNodeWithText("Invite code or link").performScrollTo().performTextInput(code)
         onNodeWithText("Join space").performScrollTo().performClick()
 
-        onNodeWithText("Could not join the space. Check your connection and try again.").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Could not join the space. Check your connection and try again.").performScrollTo()
+            .assertIsDisplayed()
         onNodeWithText("Join space").performScrollTo().assertIsEnabled()
     }
 }

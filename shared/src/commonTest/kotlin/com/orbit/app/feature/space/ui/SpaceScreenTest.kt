@@ -34,14 +34,27 @@ class SpaceScreenTest : ComposeTest() {
     @Test
     fun showsTheEmptyStateAndTheWayToGetASpace() = runComposeUiTest {
         val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
+        var assistantOpened = 0
+        var manualOpened = 0
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, onNewSpace = {}, viewModel = viewModel)
+                SpaceScreen(
+                    onOpenSpace = {},
+                    onOpenAccount = {},
+                    onNewSpace = { manualOpened++ },
+                    onOpenAssistant = { assistantOpened++ },
+                    viewModel = viewModel
+                )
             }
         }
         onNodeWithText("Orbit").assertIsDisplayed()
         onNodeWithText("No spaces yet").assertIsDisplayed()
         onNodeWithContentDescription("New space").assertIsDisplayed()
+        onNodeWithText("Set up with the assistant").performScrollTo().performClick()
+        assertEquals(1, assistantOpened)
+        onNodeWithText("Create it myself").performScrollTo().performClick()
+        onNodeWithText("Got an invite?").performScrollTo().performClick()
+        assertEquals(2, manualOpened)
     }
 
     @Test
@@ -52,11 +65,18 @@ class SpaceScreenTest : ComposeTest() {
         val viewModel = SpaceViewModel(spaces, auth, PendingInvitation())
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, onNewSpace = {}, viewModel = viewModel)
+                SpaceScreen(
+                    onOpenSpace = {},
+                    onOpenAccount = {},
+                    onNewSpace = {},
+                    onOpenAssistant = {},
+                    viewModel = viewModel
+                )
             }
         }
         onNodeWithText("Could not load your spaces").assertIsDisplayed()
         onNodeWithText("No spaces yet").assertDoesNotExist()
+        onNodeWithText("Set up with the assistant").assertDoesNotExist()
 
         onNodeWithText("Try again").performScrollTo().performClick()
 
@@ -71,7 +91,13 @@ class SpaceScreenTest : ComposeTest() {
         val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, pending)
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, onNewSpace = { asked++ }, viewModel = viewModel)
+                SpaceScreen(
+                    onOpenSpace = {},
+                    onOpenAccount = {},
+                    onNewSpace = { asked++ },
+                    onOpenAssistant = {},
+                    viewModel = viewModel
+                )
             }
         }
         onNodeWithContentDescription("New space").performClick()
@@ -97,11 +123,18 @@ class SpaceScreenTest : ComposeTest() {
         val viewModel = SpaceViewModel(spaces, auth, PendingInvitation())
         setContent {
             OrbitTheme {
-                SpaceScreen(onOpenSpace = {}, onOpenAccount = {}, onNewSpace = {}, viewModel = viewModel)
+                SpaceScreen(
+                    onOpenSpace = {},
+                    onOpenAccount = {},
+                    onNewSpace = {},
+                    onOpenAssistant = {},
+                    viewModel = viewModel
+                )
             }
         }
         onNodeWithText("Your spaces").assertIsDisplayed()
         onNodeWithText("Flat 4B").assertIsDisplayed()
         onNodeWithText("All clear").assertIsDisplayed()
+        onNodeWithText("Set up with the assistant").assertDoesNotExist()
     }
 }

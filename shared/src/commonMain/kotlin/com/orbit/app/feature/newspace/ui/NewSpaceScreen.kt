@@ -34,17 +34,20 @@ import orbit.shared.generated.resources.spaces_join
 import orbit.shared.generated.resources.spaces_join_code
 import orbit.shared.generated.resources.spaces_join_title
 import orbit.shared.generated.resources.spaces_new
+import orbit.shared.generated.resources.spaces_setup_assistant
+import orbit.shared.generated.resources.spaces_create_manually
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
 /**
- * Two ways in to a space, on a page of their own: name one and pick its colour, which the page takes on as a preview,
- * or type or paste an invitation code or link. Either way the user lands in the space, through [onOpenSpace].
+ * Start with the assistant, create a space by hand, or join with an invitation code or link.
+ * The assistant opens the existing interview, which handles consent; manual writes open [onOpenSpace].
  */
 @Composable
 fun NewSpaceScreen(
     onClose: () -> Unit,
     onOpenSpace: (String) -> Unit,
+    onOpenAssistant: () -> Unit,
     viewModel: NewSpaceViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -62,6 +65,13 @@ fun NewSpaceScreen(
     ) {
         OrbitMark(size = OrbitMarkSize.Large)
         OrbitHero(stringResource(Res.string.spaces_new), Modifier.fillMaxWidth())
+        OrbitButton(
+            text = stringResource(Res.string.spaces_setup_assistant),
+            onClick = onOpenAssistant,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = state.canOpenAssistant,
+        )
+        OrbitLabeledDivider(stringResource(Res.string.or))
         CreateCard(state, viewModel)
         OrbitLabeledDivider(stringResource(Res.string.or))
         JoinCard(state, viewModel)
@@ -71,6 +81,7 @@ fun NewSpaceScreen(
 @Composable
 private fun CreateCard(state: NewSpaceUiState, viewModel: NewSpaceViewModel) {
     OrbitCard(Modifier.fillMaxWidth()) {
+        Text(stringResource(Res.string.spaces_create_manually), style = MaterialTheme.typography.titleMedium)
         OrbitTextField(
             value = state.name,
             onValueChange = viewModel::onNameChange,
@@ -80,7 +91,7 @@ private fun CreateCard(state: NewSpaceUiState, viewModel: NewSpaceViewModel) {
             supportingText = if (state.createFailed) stringResource(Res.string.spaces_create_failed) else null,
             leadingIcon = Res.drawable.ic_home,
         )
-        OrbitButton(
+        OrbitTonalButton(
             text = stringResource(Res.string.spaces_create),
             onClick = viewModel::createSpace,
             modifier = Modifier.fillMaxWidth(),

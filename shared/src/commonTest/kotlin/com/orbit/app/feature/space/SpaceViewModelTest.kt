@@ -36,11 +36,13 @@ class SpaceViewModelTest {
         val auth = InMemoryAuthRepository()
         val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
         assertTrue(viewModel.uiState.value.loading)
+        assertFalse(viewModel.uiState.value.showFirstRunChoice)
 
         val loaded = viewModel.uiState.first { !it.loading }
 
         assertFalse(loaded.loadFailed)
         assertEquals(emptyList(), loaded.spaceIds)
+        assertTrue(loaded.showFirstRunChoice)
     }
 
     @Test
@@ -53,6 +55,7 @@ class SpaceViewModelTest {
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         assertTrue(viewModel.uiState.value.loadFailed)
+        assertFalse(viewModel.uiState.value.showFirstRunChoice)
         assertFalse(viewModel.uiState.value.loading)
 
         viewModel.retry()
@@ -61,6 +64,7 @@ class SpaceViewModelTest {
         assertFalse(loaded.loadFailed)
         assertFalse(loaded.loading)
         assertEquals(listOf("space-1"), loaded.spaceIds)
+        assertFalse(loaded.showFirstRunChoice)
     }
 
     @Test

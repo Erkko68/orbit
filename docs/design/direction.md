@@ -73,7 +73,7 @@ Over the bar: item, list, expense form, interview, review board
 |---|---|
 | Opening | The last space, not the list. The list is one tap away on the title |
 | Spaces | A panel per space led by the faces of the people in it, or its initials on a shape while it is only yours: the name, what matters ("2 for you today") |
-| New space | A page of its own: the mark, a big title, then a panel to name a space and a panel to join with a code or link. Either way lands in the space. The guided setup comes later |
+| New space | A page of its own: the mark, a big title, then the assistant, creating by hand and joining with a code or link, separated by "or". The assistant opens the existing interview and its consent notice; the manual paths land in the space. The empty spaces list offers the same three choices |
 | Calendar | Headline counts what is yours today. Two chips switch between the month and the list. The month is a panel like the date picker: days with open items are filled, today has a ring, and the day picked lists its items under it. The list goes Overdue, then each day to the end of the week. The members' faces and a settings button in the top bar open the settings |
 | Add menu | On Calendar and Tasks the add button turns into a close button with two pills above it: New task (by hand) and Plan with the assistant. A tap outside closes it. On Expenses it adds an expense straight away |
 | Empty space | The assistant is the first thing, "Add something yourself" is one tap away |
