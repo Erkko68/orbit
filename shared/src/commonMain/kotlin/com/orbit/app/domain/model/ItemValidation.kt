@@ -16,6 +16,9 @@ sealed interface ItemError {
     data object DayOfMonthOutOfRange : ItemError
     data object RecurrenceEndsBeforeStart : ItemError
     data object AssigneeNotMember : ItemError
+
+    /** A rotation needs two or more different members, and the one whose turn it is among them. */
+    data object InvalidRotation : ItemError
     data class BlankChecklistEntry(val entryId: String) : ItemError
     data class NonPositiveQuantity(val entryId: String) : ItemError
     data object ReminderWithoutSchedule : ItemError
@@ -78,7 +81,13 @@ fun recurrenceErrors(recurrence: Recurrence?, schedule: Schedule?): List<ItemErr
 
 private fun assignmentErrors(assignment: Assignment?, memberIds: Collection<String>): List<ItemError> {
     val outsiders = assignment?.assigneeIds.orEmpty() - memberIds.toSet()
-    return listOfNotNull(ItemError.AssigneeNotMember.takeIf { outsiders.isNotEmpty() })
+    val rotation = assignment as? Assignment.Rotation
+    return listOfNotNull(
+        ItemError.AssigneeNotMember.takeIf { outsiders.isNotEmpty() },
+        ItemError.InvalidRotation.takeIf {
+            rotation != null && (rotation.order.size < 2 || rotation.order.distinct() != rotation.order || rotation.current !in rotation.order)
+        },
+    )
 }
 
 private fun checklistErrors(checklist: Checklist?): List<ItemError> =

@@ -55,6 +55,33 @@ class ItemValidationTest {
     }
 
     @Test
+    fun aRotationNeedsTwoDifferentMembersAndTheOneWhoseTurnItIs() {
+        assertEquals(emptyList(), errors(modules = ItemModules(assignment = Assignment.Rotation(listOf("ana", "ben"), "ben"))))
+        assertEquals(
+            listOf(ItemError.InvalidRotation),
+            errors(modules = ItemModules(assignment = Assignment.Rotation(listOf("ana"), "ana"))),
+        )
+        assertEquals(
+            listOf(ItemError.InvalidRotation),
+            errors(modules = ItemModules(assignment = Assignment.Rotation(listOf("ana", "ana"), "ana"))),
+        )
+        assertEquals(
+            listOf(ItemError.InvalidRotation),
+            errors(modules = ItemModules(assignment = Assignment.Rotation(listOf("ana", "ben"), "cy"))),
+        )
+    }
+
+    @Test
+    fun aRotationOnlyNeedsTheMemberWhoseTurnItIsToBeInTheSpace() {
+        val order = listOf("ana", "ben", "zoe")
+        assertEquals(emptyList(), errors(modules = ItemModules(assignment = Assignment.Rotation(order, "ana"))))
+        assertEquals(
+            listOf(ItemError.AssigneeNotMember),
+            errors(modules = ItemModules(assignment = Assignment.Rotation(order, "zoe"))),
+        )
+    }
+
+    @Test
     fun assigneeMustBeAMember() {
         assertEquals(emptyList(), errors(modules = ItemModules(assignment = Assignment.Anyone)))
         assertEquals(emptyList(), errors(modules = ItemModules(assignment = Assignment.Anyone)))

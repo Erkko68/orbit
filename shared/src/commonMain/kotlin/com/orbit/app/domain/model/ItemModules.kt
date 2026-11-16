@@ -113,6 +113,14 @@ sealed interface Assignment : Module {
     data object Anyone : Assignment {
         override val assigneeIds: Set<String> get() = emptySet()
     }
+
+    /**
+     * Members take turns (ADR 0015): [order] is the order they follow, at least two members, and [current], one of
+     * them, has the item now. Completing a recurring item passes it to the next one in the order who is not away.
+     */
+    data class Rotation(val order: List<String>, val current: String) : Assignment {
+        override val assigneeIds: Set<String> get() = setOf(current)
+    }
 }
 
 data class Checklist(val entries: List<ChecklistEntry>) : Module {
