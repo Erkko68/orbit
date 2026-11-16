@@ -1,8 +1,7 @@
 package com.orbit.app.feature.item.ui
 
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.text.intl.Locale
-import com.orbit.app.core.formatDate
+import com.orbit.app.core.dateLabel
 import com.orbit.app.domain.model.Recurrence
 import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Schedule
@@ -38,16 +37,12 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
-/** Uses the platform's regional date format, including the selected per-app locale. */
-@Composable
-internal fun itemDateLabel(date: LocalDate): String = formatDate(date, Locale.current.toLanguageTag())
-
 /** When a schedule falls, on one line: its dates, and the time when it has one. */
 @Composable
 internal fun itemScheduleLabel(schedule: Schedule): String {
     val date = schedule.endDate?.let { end ->
-        stringResource(Res.string.module_schedule_range, itemDateLabel(schedule.date), itemDateLabel(end))
-    } ?: itemDateLabel(schedule.date)
+        stringResource(Res.string.module_schedule_range, dateLabel(schedule.date), dateLabel(end))
+    } ?: dateLabel(schedule.date)
     return schedule.time?.let { time ->
         stringResource(Res.string.module_schedule_time, date, time.toString())
     } ?: date
@@ -122,7 +117,7 @@ internal fun itemDueLabel(date: LocalDate, today: LocalDate?): String = when (to
     -1L -> stringResource(Res.string.item_due_yesterday)
     0L -> stringResource(Res.string.item_due_today)
     1L -> stringResource(Res.string.item_due_tomorrow)
-    else -> itemDateLabel(date)
+    else -> dateLabel(date)
 }
 
 /** A duration in whole days, or in hours and minutes ("1 h 30 min"), worded by the resources like the dates. */

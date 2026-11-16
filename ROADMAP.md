@@ -1,6 +1,6 @@
 # Roadmap: rest of Sprint 2
 
-Sprint 2 is due on **November 24, 2026**. New work stops on **November 17**, so that week is left for the usability test (#80), the two-device check (#237) and fixing what they find.
+Sprint 2 is due on **November 24, 2026**, and new work goes on until then. The evaluation work (#69, #70, #237) was dropped as verified.
 
 This page says what changed, who builds what and in which order. Dates, estimates and status live on the [project board](https://github.com/users/Erkko68/projects/3).
 
@@ -32,12 +32,12 @@ Take any free issue in your track. Assign yourself the day you start.
 | Track | Issues | Hours |
 |---|---|---|
 | **Foundations and UI** (Èric) | #238, #53, #239, #240, #241, #242, #54, #57, #71, #44, #72, #75, #76 | 59 |
-| **AI** | #43, #64, #65, #66, #67, #68, #69, #70 | 44 |
+| **AI** | #43, #64, #65, #66, #67, #68 | 44 |
 | **Expense logic** | #56, #55, #58, #59, #60 | 17 |
 | **Recurrence and chores** | #45, #46, #47, #48, #49, #50, #51, #52 | 31 |
 | **Agenda** | #37, #38, #61 | 16 |
 | **Assistant, on top of the base** | #74, #77, #63, #73 | 14 |
-| **Everything else** | #62, #79, #102, #201, #202, #217, #188, #173, #81, #80, #237 | 41 |
+| **Everything else** | #62, #79, #102, #201, #202, #217, #188, #173, #81 | 41 |
 
 ## Order
 
@@ -49,15 +49,13 @@ Take any free issue in your track. Assign yourself the day you start.
 4. #241: style research, alongside the rest. Everyone is welcome to add references.
 5. #43: the first Cloud Function. This unblocks all the AI work.
 
-**November 9 to 17: the features**
+**November 9 to 24: the features**
 
 - Foundations: #242, #54, #57, #71, #44, #72, #75, #76.
 - AI: #64 first, because the screens depend on it, then #65 and #66.
 - Everyone else: your track, in "Blocked by" order.
 
-**November 17 to 24: check and fix**
-
-#80, #237 and the defects they find. #73 (voice) only goes in if there is time.
+#73 (voice) only goes in if there is time.
 
 ## Working on top of the base
 

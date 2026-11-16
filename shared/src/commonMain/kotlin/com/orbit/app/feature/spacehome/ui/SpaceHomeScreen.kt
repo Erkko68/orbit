@@ -18,7 +18,7 @@ import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.feature.item.ui.face
-import com.orbit.app.feature.item.ui.itemDateLabel
+import com.orbit.app.core.dateLabel
 import com.orbit.app.feature.spacehome.SpaceHeadline
 import com.orbit.app.feature.spacehome.SpaceHomeTab
 import com.orbit.app.feature.spacehome.SpaceHomeUiState
@@ -118,7 +118,7 @@ fun SpaceHomeScreen(
             SpaceHomeTab.CALENDAR -> {
                 OrbitHero(
                     title = headlineText(state),
-                    datum = state.today?.let { itemDateLabel(it) },
+                    datum = state.today?.let { dateLabel(it) },
                     modifier = Modifier.fillMaxWidth(),
                 )
                 SpaceCalendarTab(spaceId, onOpenItem, Modifier.fillMaxWidth())

@@ -445,4 +445,17 @@
     <string name="expense_open_item">Open the activity that created this expense</string>
     <!-- Checklist to expense (#60) -->
     <string name="checklist_add_expense">Add as expense</string>
+    <!-- Plan review board (#75) -->
+    <string name="plan_title">Review the plan</string>
+    <string name="plan_proposed">Proposed</string>
+    <string name="plan_accepted_count">%1$d of %2$d accepted</string>
+    <string name="plan_accept_all">Accept all</string>
+    <string name="plan_accept_named">Accept %1$s</string>
+    <string name="plan_unaccept_named">Undo accepting %1$s</string>
+    <string name="plan_empty">Nothing to review</string>
+    <string name="plan_empty_body">The plan has no proposals left. Go back to add things by hand or ask the assistant again.</string>
+    <string name="plan_done">Done</string>
+    <string name="plan_remove">Remove</string>
+    <string name="plan_remove_title">Remove from the plan?</string>
+    <string name="plan_remove_body">It will not be added to the space.</string>
 </resources>

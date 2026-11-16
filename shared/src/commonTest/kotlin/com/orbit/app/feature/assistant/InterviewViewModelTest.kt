@@ -1,11 +1,14 @@
 package com.orbit.app.feature.assistant
 
+import com.orbit.app.core.PlanDraft
 import com.orbit.app.domain.model.AssistantError
 import com.orbit.app.domain.model.AssistantException
 import com.orbit.app.domain.model.InterviewAnswer
 import com.orbit.app.domain.model.InterviewQuestion
 import com.orbit.app.domain.model.InterviewStep
+import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Plan
+import com.orbit.app.domain.model.PlanReview
 import com.orbit.app.testing.ScriptedAssistantRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -25,6 +28,7 @@ class InterviewViewModelTest {
     private val who = question("q1", "Who lives there?", listOf("Roommates", "Family"))
     private val rooms = question("q2", "Which rooms?", listOf("Kitchen", "Bathroom"), multiSelect = true)
     private val noPlan = InterviewStep.PlanReady(Plan(space = null, items = emptyList()))
+    private val draft = PlanDraft()
 
     private fun question(id: String, text: String, options: List<String>, multiSelect: Boolean = false) =
         InterviewQuestion(id, text, options, multiSelect, freeText = true, position = 1, budget = 8)
@@ -40,7 +44,7 @@ class InterviewViewModelTest {
     }
 
     private fun interview(steps: List<InterviewStep>, failures: Map<Int, Exception> = emptyMap()) =
-        ScriptedAssistantRepository(steps, failures).let { it to InterviewViewModel(it) }
+        ScriptedAssistantRepository(steps, failures).let { it to InterviewViewModel(it, draft) }
 
     private fun started(steps: List<InterviewStep>, failures: Map<Int, Exception> = emptyMap()) =
         interview(steps, failures).also { (_, viewModel) -> viewModel.onConsent() }
@@ -197,12 +201,14 @@ class InterviewViewModelTest {
 
     @Test
     fun aPlanOpensTheReview() {
-        val (_, viewModel) = started(listOf(InterviewStep.Ask(who), noPlan))
+        val bins = InterviewStep.PlanReady(Plan(space = null, items = listOf(NewItem("Bins"))))
+        val (_, viewModel) = started(listOf(InterviewStep.Ask(who), bins))
         viewModel.select("Family")
 
         viewModel.send()
 
         assertTrue(viewModel.uiState.value.planReady)
+        assertEquals(PlanReview.of(bins.plan), draft.review.value)
         assertFalse(viewModel.uiState.value.loading)
     }
 

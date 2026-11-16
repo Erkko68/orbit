@@ -1,5 +1,6 @@
 package com.orbit.app.feature.item.ui
 
+import com.orbit.app.core.PlanDraft
 import com.orbit.app.testing.InMemoryExpenseRepository
 import com.orbit.app.feature.expense.ExpenseViewModel
 import com.orbit.app.feature.expense.ui.ExpenseScreen
@@ -113,7 +114,7 @@ class ItemScreenTest : ComposeTest() {
                         "space-1", "", { expenseOpen = false }, sourceItemId = id, viewModel = expenseModel,
                     )
                 } else {
-                    ItemScreen("space-1", id, {}, itemModel, onAddExpense = { expenseOpen = true })
+                    ItemScreen("space-1", id, {}, viewModel = itemModel, onAddExpense = { expenseOpen = true })
                 }
             }
         }
@@ -142,7 +143,7 @@ class ItemScreenTest : ComposeTest() {
         setContent {
             OrbitTheme {
                 ItemScreen(
-                    "space-1", "", {}, viewModel,
+                    "space-1", "", {}, viewModel = viewModel,
                     onOpenCost = { opened += it },
                     plannedCost = planned,
                     onPlannedCostTaken = { planned = "" },
@@ -167,7 +168,7 @@ class ItemScreenTest : ComposeTest() {
     fun theCostRowOfAWrittenItemOpensItsCost() = runComposeUiTest {
         var opened = 0
         val id = createItem(NewItem("Detergent"))
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, model(id, items), onOpenCost = { opened++ }) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = model(id, items), onOpenCost = { opened++ }) } }
 
         list().performScrollToNode(hasText("Add a cost"))
         onNodeWithText("Cost").performClick()
@@ -177,7 +178,7 @@ class ItemScreenTest : ComposeTest() {
     @Test
     fun aCostChargingSomeoneWhoLeftSaysSoAndBlocksMarkDone() = runComposeUiTest {
         val id = createItem(NewItem("Rent", modules = ItemModules(cost = Cost("ana", mapOf("zoe" to 1000L)))))
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, model(id, items)) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = model(id, items)) } }
 
         onNodeWithText("Someone in the cost has left the space. Change the cost before marking the item done.").assertExists()
         onNodeWithText("Mark as done").assertIsNotEnabled()
@@ -191,7 +192,7 @@ class ItemScreenTest : ComposeTest() {
             items.reopen("space-1", id)
         }
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         list().performScrollToNode(hasText("History"))
         onNodeWithText("History").assertIsDisplayed()
@@ -203,7 +204,7 @@ class ItemScreenTest : ComposeTest() {
 
     @Test
     fun aNewItemHasNoHistory() = runComposeUiTest {
-        setContent { OrbitTheme { ItemScreen("space-1", "", {}, model("", items)) } }
+        setContent { OrbitTheme { ItemScreen("space-1", "", {}, viewModel = model("", items)) } }
 
         onNodeWithText("History").assertDoesNotExist()
     }
@@ -216,7 +217,7 @@ class ItemScreenTest : ComposeTest() {
             NewItem("Book plumber", "Kitchen leak", ItemModules(schedule = schedule, checklist = checklist)),
         )
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         val label = onNodeWithText("Flat 4B").fetchSemanticsNode()
         val title = onNodeWithText("Book plumber").fetchSemanticsNode()
@@ -232,7 +233,7 @@ class ItemScreenTest : ComposeTest() {
     @Test
     fun missingItemShowsAnEmptyStateInsteadOfEndlessLoading() = runComposeUiTest {
         val viewModel = model("missing", items)
-        setContent { OrbitTheme { ItemScreen("space-1", "missing", {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", "missing", {}, viewModel = viewModel) } }
         onNodeWithText("Item not found").assertIsDisplayed()
         onNodeWithText("Add detail").assertDoesNotExist()
     }
@@ -242,7 +243,7 @@ class ItemScreenTest : ComposeTest() {
         val gate = CompletableDeferred<Unit>()
         val repository = ControlledItemRepository(items).apply { beforeRead = { gate.await() } }
         val viewModel = model("missing", repository)
-        setContent { OrbitTheme { ItemScreen("space-1", "missing", {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", "missing", {}, viewModel = viewModel) } }
         onNodeWithText("Loading item…").assertIsDisplayed()
         onNodeWithText("Add detail").assertDoesNotExist()
     }
@@ -252,7 +253,7 @@ class ItemScreenTest : ComposeTest() {
         val id = createItem(NewItem("Recoverable task"))
         val repository = ControlledItemRepository(items).apply { beforeRead = { error("Read denied") } }
         val viewModel = model(id, repository)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
         onNodeWithText("Could not load item").assertIsDisplayed()
         onNodeWithText("Item not found").assertDoesNotExist()
         repository.beforeRead = {}
@@ -267,7 +268,7 @@ class ItemScreenTest : ComposeTest() {
         val gate = CompletableDeferred<Unit>()
         val repository = ControlledItemRepository(items).apply { beforeWrite = { gate.await() } }
         val viewModel = model(id, repository)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         onNodeWithText("Mark as done").performClick()
         onNodeWithText("Mark as done").assertIsNotEnabled()
@@ -281,7 +282,7 @@ class ItemScreenTest : ComposeTest() {
         val id = createItem(NewItem("Task"))
         val repository = ControlledItemRepository(items).apply { beforeWrite = { error("Write denied") } }
         val viewModel = model(id, repository)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         onNodeWithText("Mark as done").performClick()
         onNodeWithText("Action failed. Try again.").assertIsDisplayed()
@@ -299,7 +300,7 @@ class ItemScreenTest : ComposeTest() {
         val entries = listOf(ChecklistEntry("milk", "Milk", true, 2), ChecklistEntry("bread", "Bread", false))
         val id = createItem(NewItem("Groceries", modules = ItemModules(checklist = Checklist(entries))))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         list().performScrollToNode(hasText("Milk"))
         val bread = onNodeWithText("Bread").fetchSemanticsNode()
@@ -315,7 +316,7 @@ class ItemScreenTest : ComposeTest() {
     fun anEntryIsAddedTickedEditedAndRemoved() = runComposeUiTest {
         val id = createItem(NewItem("Groceries", modules = ItemModules(checklist = Checklist(emptyList()))))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         list().performScrollToNode(hasContentDescription("Add to the list"))
         addField().performTextInput("Milk")
@@ -345,7 +346,7 @@ class ItemScreenTest : ComposeTest() {
             )
         )
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
         onNodeWithText("Oct 26, 2026 · 20:00").assertIsDisplayed()
         onNodeWithContentDescription("Ana").assertExists()
         onNodeWithContentDescription("Mika").assertExists()
@@ -356,7 +357,7 @@ class ItemScreenTest : ComposeTest() {
     fun theHeaderSaysWhichSpaceItIsIn() = runComposeUiTest {
         val id = createItem(NewItem("Dinner"))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
         onNodeWithText("Flat 4B").assertIsDisplayed()
         onNodeWithText("Dinner").assertIsDisplayed()
     }
@@ -373,7 +374,7 @@ class ItemScreenTest : ComposeTest() {
             )
         )
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
         onNodeWithText("Oct 26, 2026 – Oct 28, 2026").assertIsDisplayed()
         onNodeWithContentDescription("Ana").assertExists()
         onNodeWithText("Remind me").assertIsDisplayed()
@@ -384,7 +385,7 @@ class ItemScreenTest : ComposeTest() {
         val id =
             createItem(NewItem("Assigned task", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")))))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
         onNodeWithContentDescription("Ana").assertExists()
         runOnIdle { runBlocking { items.setModule("space-1", id, Assignment.ToMembers(setOf("mika"))) } }
         onNodeWithContentDescription("Mika").assertExists()
@@ -403,7 +404,7 @@ class ItemScreenTest : ComposeTest() {
             ),
         )
         val viewModel = model(id, items)
-        setContent { OrbitTheme(darkTheme = true) { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme(darkTheme = true) { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         onNodeWithText("Oct 26, 2026 · 20:00").assertIsDisplayed()
         onNodeWithText("Add who does it").assertIsDisplayed()
@@ -419,7 +420,7 @@ class ItemScreenTest : ComposeTest() {
             )
         )
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
         onNodeWithText("Oct 26, 2026").performClick()
         onNodeWithText("Remove the date").performScrollTo().performClick()
         waitForIdle()
@@ -432,7 +433,7 @@ class ItemScreenTest : ComposeTest() {
     fun backRemainsAvailableWhenTheItemCannotBeFound() = runComposeUiTest {
         var backs = 0
         val viewModel = model("missing", items)
-        setContent { OrbitTheme { ItemScreen("space-1", "missing", { backs++ }, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", "missing", { backs++ }, viewModel = viewModel) } }
         onNodeWithContentDescription("Back to space").performClick()
         assertEquals(1, backs)
     }
@@ -504,7 +505,7 @@ class ItemScreenTest : ComposeTest() {
     fun repeatsTheItemFromTheWhenSheetAndShowsItInTheRow() = runComposeUiTest {
         val itemId = createItem(NewItem("Bins", modules = ItemModules(schedule = Schedule(LocalDate(2030, 1, 7)))))
         val viewModel = model(itemId, items)
-        setContent { OrbitTheme { ItemScreen("space-1", itemId, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", itemId, {}, viewModel = viewModel) } }
 
         onNodeWithText("Jan 7, 2030").performClick()
         onNodeWithText("Repeat").performScrollTo().performClick()
@@ -528,7 +529,7 @@ class ItemScreenTest : ComposeTest() {
     fun marksTheItemDoneAndReopensItFromTheBottomButton() = runComposeUiTest {
         val itemId = createItem(NewItem("Buy milk"))
         val viewModel = model(itemId, items)
-        setContent { OrbitTheme { ItemScreen("space-1", itemId, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", itemId, {}, viewModel = viewModel) } }
 
         onNodeWithText("Mark as done").performClick()
         waitForIdle()
@@ -549,7 +550,7 @@ class ItemScreenTest : ComposeTest() {
     fun theWhoRowGivesTheItemToAMemberAndShowsTheirFace() = runComposeUiTest {
         val id = createItem(NewItem("Task"))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         onNodeWithText("Add who does it").performClick()
         waitForIdle()
@@ -567,7 +568,7 @@ class ItemScreenTest : ComposeTest() {
     fun theSheetMakesAnItemAnyones() = runComposeUiTest {
         val id = createItem(NewItem("Task", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")))))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         runOnIdle { viewModel.openMemberPicker() }
         onNodeWithText("Anyone").performScrollTo().performClick()
@@ -629,7 +630,7 @@ class ItemScreenTest : ComposeTest() {
     fun aDateIsAddedFromItsRow() = runComposeUiTest {
         val id = createItem(NewItem("Task"))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         onNodeWithText("Add a date").performClick()
         onNodeWithText("Save").performScrollTo().performClick()
@@ -643,7 +644,7 @@ class ItemScreenTest : ComposeTest() {
     fun theReminderRowShowsOnceTheItemHasADate() = runComposeUiTest {
         val id = createItem(NewItem("Task"))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         onNodeWithText("Remind me").assertDoesNotExist()
         onNodeWithText("Add a date").performClick()
@@ -657,7 +658,7 @@ class ItemScreenTest : ComposeTest() {
     fun theDescriptionIsTypedWhereItIsRead() = runComposeUiTest {
         val id = createItem(NewItem("Task"))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         list().performScrollToNode(hasContentDescription("Add a description"))
         onNodeWithContentDescription("Add a description").performTextInput("Sink leaking")
@@ -672,7 +673,7 @@ class ItemScreenTest : ComposeTest() {
     fun theNameIsTypedInTheHeader() = runComposeUiTest {
         val id = createItem(NewItem("Task"))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         onNodeWithContentDescription("Name").performTextReplacement("Call the plumber")
         onNodeWithContentDescription("Name").performImeAction()
@@ -686,7 +687,7 @@ class ItemScreenTest : ComposeTest() {
     fun typingInTheAddRowKeepsEveryLetter() = runComposeUiTest {
         val id = createItem(NewItem("Groceries", modules = ItemModules(checklist = Checklist(emptyList()))))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         list().performScrollToNode(hasContentDescription("Add to the list"))
         addField().performTextInput("m")
@@ -709,7 +710,7 @@ class ItemScreenTest : ComposeTest() {
             ),
         )
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         onNodeWithText("At the due time").performClick()
         onNodeWithText("Add reminder").performScrollTo().performClick()
@@ -736,8 +737,8 @@ class ItemScreenTest : ComposeTest() {
             com.orbit.app.domain.model.Space("space-1", "Flat 4B", 0, listOf("ana", "mika")),
             listOf(com.orbit.app.domain.model.Member("ana", "Ana", null, Role.MEMBER)),
         )
-        val viewModel = ItemViewModel("space-1", id, items, member, auth).also { viewModels.put("item", it) }
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        val viewModel = ItemViewModel("space-1", id, "", items, member, auth, PlanDraft()).also { viewModels.put("item", it) }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         onNodeWithContentDescription("Delete").assertDoesNotExist()
     }
@@ -747,7 +748,7 @@ class ItemScreenTest : ComposeTest() {
         var backs = 0
         val id = createItem(NewItem("Task"))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, { backs++ }, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, { backs++ }, viewModel = viewModel) } }
 
         onNodeWithContentDescription("Delete").performClick()
         onNodeWithText("Delete this?").assertIsDisplayed()
@@ -759,14 +760,14 @@ class ItemScreenTest : ComposeTest() {
     }
 
     private fun model(id: String, repository: ItemRepository): ItemViewModel =
-        ItemViewModel("space-1", id, repository, spaces, auth).also { viewModels.put("item", it) }
+        ItemViewModel("space-1", id, "", repository, spaces, auth, PlanDraft()).also { viewModels.put("item", it) }
 
     @Test
     fun tickingTheLastEntryFinishesTheItem() = runComposeUiTest {
         val entries = listOf(ChecklistEntry("milk", "Milk", checked = true), ChecklistEntry("bread", "Bread"))
         val id = createItem(NewItem("Groceries", modules = ItemModules(checklist = Checklist(entries))))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         list().performScrollToNode(hasContentDescription("Check Bread"))
         onNodeWithContentDescription("Check Bread").performClick()
@@ -781,7 +782,7 @@ class ItemScreenTest : ComposeTest() {
     fun anyItemHasAChecklistToAddTo() = runComposeUiTest {
         val id = createItem(NewItem("Groceries"))
         val viewModel = model(id, items)
-        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel) } }
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
 
         list().performScrollToNode(hasContentDescription("Add to the list"))
         addField().performTextInput("Eggs")

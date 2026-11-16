@@ -15,10 +15,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlin.time.Instant
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 import kotlin.time.Clock
 
@@ -73,8 +71,7 @@ class AwayViewModel(private val spaceId: String, private val userId: String, pri
     fun dismissPicker() = edit.update { it.copy(picking = null) }
 
     /** Takes the day the picker confirmed. A first day after the last one moves the last one along with it. */
-    fun pickDate(utcMillis: Long) = edit.update {
-        val day = Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date
+    fun pickDate(day: LocalDate) = edit.update {
         when (it.picking) {
             AwayEnd.FROM -> it.copy(from = day, until = maxOf(day, it.until ?: day), picking = null, failed = false)
             AwayEnd.UNTIL -> it.copy(until = day, picking = null, failed = false)

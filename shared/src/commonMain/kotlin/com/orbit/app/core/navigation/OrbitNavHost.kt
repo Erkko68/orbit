@@ -14,6 +14,7 @@ import com.orbit.app.core.PendingInvitation
 import com.orbit.app.core.designsystem.component.OrbitStartup
 import com.orbit.app.feature.account.ui.AccountScreen
 import com.orbit.app.feature.assistant.ui.InterviewScreen
+import com.orbit.app.feature.planreview.ui.PlanReviewScreen
 import com.orbit.app.feature.auth.SessionStart
 import com.orbit.app.feature.auth.SessionViewModel
 import com.orbit.app.feature.auth.ui.CreateAccountScreen
@@ -63,13 +64,13 @@ fun OrbitNavHost(
                     onOpenSpace = { spaceId -> navController.navigate(SpaceHomeRoute(spaceId)) },
                     onOpenAccount = { navController.navigate(AccountRoute) },
                     onNewSpace = { navController.navigate(NewSpaceRoute) { launchSingleTop = true } },
-                    onOpenAssistant = { navController.navigate(InterviewRoute) { launchSingleTop = true } },
+                    onOpenAssistant = { navController.navigate(InterviewRoute()) { launchSingleTop = true } },
                 )
             }
             composable<NewSpaceRoute> {
                 NewSpaceScreen(
                     onClose = { navController.popBackStack() },
-                    onOpenAssistant = { navController.navigate(InterviewRoute) { launchSingleTop = true } },
+                    onOpenAssistant = { navController.navigate(InterviewRoute()) { launchSingleTop = true } },
                     onOpenSpace = { spaceId ->
                         navController.navigate(SpaceHomeRoute(spaceId)) {
                             popUpTo<NewSpaceRoute> { inclusive = true }
@@ -88,7 +89,7 @@ fun OrbitNavHost(
                     onOpenAccount = { navController.navigate(AccountRoute) },
                     onOpenItem = { itemId -> navController.navigate(ItemRoute(spaceId = spaceId, itemId = itemId)) },
                     onNewItem = { navController.navigate(ItemRoute(spaceId = spaceId)) },
-                    onOpenAssistant = { navController.navigate(InterviewRoute) },
+                    onOpenAssistant = { navController.navigate(InterviewRoute(spaceId)) },
                     onOpenSettings = { navController.navigate(SpaceSettingsRoute(spaceId)) },
                     onOpenExpense = { id -> navController.navigate(ExpenseRoute(spaceId, id)) },
                     onNewExpense = { navController.navigate(ExpenseRoute(spaceId)) },
@@ -120,6 +121,7 @@ fun OrbitNavHost(
                     spaceId = route.spaceId,
                     itemId = route.itemId,
                     onBack = { navController.popBackStack() },
+                    proposalId = route.proposalId,
                     onOpenCost = { draft ->
                         navController.navigate(ExpenseRoute(route.spaceId, itemId = route.itemId, draftCost = draft))
                     },
@@ -141,12 +143,23 @@ fun OrbitNavHost(
                     onCostPlanned = { navController.previousBackStackEntry?.savedStateHandle?.set(PLANNED_COST, it) },
                 )
             }
-            composable<InterviewRoute> {
-                // Closing goes back to where the assistant was opened from, which has the manual way; the review board
-                // (#75) follows a plan.
+            composable<InterviewRoute> { entry ->
+                val spaceId = entry.toRoute<InterviewRoute>().spaceId
+                // Closing goes back to where the assistant was opened from, which has the manual way. A plan replaces
+                // the chat with its review board (#75), so going back from the board leaves the assistant.
                 InterviewScreen(
                     onClose = { navController.popBackStack() },
-                    onPlanReady = { navController.popBackStack() },
+                    onPlanReady = {
+                        navController.navigate(PlanReviewRoute(spaceId)) { popUpTo<InterviewRoute> { inclusive = true } }
+                    },
+                )
+            }
+            composable<PlanReviewRoute> { entry ->
+                val spaceId = entry.toRoute<PlanReviewRoute>().spaceId
+                PlanReviewScreen(
+                    spaceId = spaceId,
+                    onBack = { navController.popBackStack() },
+                    onOpenProposal = { id -> navController.navigate(ItemRoute(spaceId, proposalId = id)) },
                 )
             }
         }

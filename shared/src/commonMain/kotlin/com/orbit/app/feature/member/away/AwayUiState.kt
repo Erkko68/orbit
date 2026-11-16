@@ -2,8 +2,6 @@ package com.orbit.app.feature.member.away
 
 import com.orbit.app.domain.model.isValidAway
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
 
 /** Which end of the period the date picker is choosing. */
 enum class AwayEnd { FROM, UNTIL }
@@ -34,15 +32,14 @@ data class AwayUiState(
     val canSave: Boolean
         get() = !busy && draftFrom != null && draftUntil != null && isValidAway(draftFrom, draftUntil)
 
-    /** The picker's selected day, as UTC midnight millis. */
-    val pickedMillis: Long?
+    /** The picker's selected day. */
+    val pickedDay: LocalDate?
         get() = when (picking) {
             AwayEnd.FROM -> draftFrom
             AwayEnd.UNTIL -> draftUntil
             null -> null
-        }?.atStartOfDayIn(TimeZone.UTC)?.toEpochMilliseconds()
+        }
 
     /** The first day the picker offers: the last day cannot come before the first. */
-    val earliestMillis: Long?
-        get() = if (picking == AwayEnd.UNTIL) draftFrom?.atStartOfDayIn(TimeZone.UTC)?.toEpochMilliseconds() else null
+    val earliestDay: LocalDate? get() = if (picking == AwayEnd.UNTIL) draftFrom else null
 }

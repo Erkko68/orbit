@@ -445,4 +445,17 @@
     <string name="expense_open_item">Abrir la actividad que creó este gasto</string>
     <!-- Checklist to expense (#60) -->
     <string name="checklist_add_expense">Añadir como gasto</string>
+    <!-- Plan review board (#75) -->
+    <string name="plan_title">Revisa el plan</string>
+    <string name="plan_proposed">Propuesto</string>
+    <string name="plan_accepted_count">%1$d de %2$d aceptadas</string>
+    <string name="plan_accept_all">Aceptar todo</string>
+    <string name="plan_accept_named">Aceptar %1$s</string>
+    <string name="plan_unaccept_named">Deshacer la aceptación de %1$s</string>
+    <string name="plan_empty">Nada que revisar</string>
+    <string name="plan_empty_body">El plan ya no tiene propuestas. Vuelve atrás para añadir cosas a mano o pregunta de nuevo al asistente.</string>
+    <string name="plan_done">Hecho</string>
+    <string name="plan_remove">Quitar</string>
+    <string name="plan_remove_title">¿Quitar del plan?</string>
+    <string name="plan_remove_body">No se añadirá al espacio.</string>
 </resources>

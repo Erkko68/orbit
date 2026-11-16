@@ -13,7 +13,7 @@ import com.orbit.app.core.designsystem.component.OrbitGroup
 import com.orbit.app.core.designsystem.component.OrbitGroupRow
 import com.orbit.app.core.designsystem.component.OrbitSectionHeader
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.feature.item.ui.itemDateLabel
+import com.orbit.app.core.dateLabel
 import com.orbit.app.feature.item.ui.itemDueLabel
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.member_empty_body
@@ -53,7 +53,7 @@ internal fun MemberActivity(
     if (state.lately.isNotEmpty()) {
         OrbitSectionHeader(stringResource(Res.string.member_lately), Modifier.fillMaxWidth())
         OrbitGroup(state.lately, key = { it.id }, modifier = Modifier.fillMaxWidth()) { done ->
-            val moment = stringResource(Res.string.module_schedule_time, itemDateLabel(done.date), done.time.toString())
+            val moment = stringResource(Res.string.module_schedule_time, dateLabel(done.date), done.time.toString())
             ActivityRow(done.title, moment, done = true) { onOpenItem(done.itemId) }
         }
     }

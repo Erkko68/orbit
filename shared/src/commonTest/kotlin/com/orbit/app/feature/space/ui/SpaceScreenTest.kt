@@ -52,9 +52,8 @@ class SpaceScreenTest : ComposeTest() {
         onNodeWithContentDescription("New space").assertIsDisplayed()
         onNodeWithText("Set up with the assistant").performScrollTo().performClick()
         assertEquals(1, assistantOpened)
-        onNodeWithText("Create it myself").performScrollTo().performClick()
-        onNodeWithText("Got an invite?").performScrollTo().performClick()
-        assertEquals(2, manualOpened)
+        onNodeWithText("New space").performScrollTo().performClick()
+        assertEquals(1, manualOpened)
     }
 
     @Test
