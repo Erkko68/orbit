@@ -56,6 +56,7 @@ import orbit.shared.generated.resources.item_complete
 import orbit.shared.generated.resources.item_cost
 import orbit.shared.generated.resources.checklist_add_expense
 import orbit.shared.generated.resources.item_create
+import orbit.shared.generated.resources.plan_done
 import orbit.shared.generated.resources.item_delete
 import orbit.shared.generated.resources.item_description
 import orbit.shared.generated.resources.item_load_failed
@@ -88,14 +89,16 @@ private enum class ItemRow { WHO, WHEN, REMINDER, COST }
  * One item, the same form for all of them: a colour block with its name typed in place, who has it, when and the
  * reminder, the description, the checklist with its add row last, and the history. One button stays at the bottom: Create on a new
  * item, which writes nothing until then, and Mark done or Reopen on a written one without entries, since a checklist
- * finishes by itself (ADR 0008). A written item saves each change as it is made. An empty [itemId] is a new item.
+ * finishes by itself (ADR 0008). A written item saves each change as it is made. An empty [itemId] is a new item, and
+ * a [proposalId] a proposal of the assistant's plan, whose Done hands it back to the review board (#75).
  */
 @Composable
 fun ItemScreen(
     spaceId: String,
     itemId: String,
     onBack: () -> Unit,
-    viewModel: ItemViewModel = koinViewModel { parametersOf(spaceId, itemId) },
+    proposalId: String = "",
+    viewModel: ItemViewModel = koinViewModel { parametersOf(spaceId, itemId, proposalId) },
     onOpenCost: (draftCost: String) -> Unit = {},
     plannedCost: String = "",
     onPlannedCostTaken: () -> Unit = {},
@@ -176,7 +179,7 @@ private fun primaryAction(state: ItemUiState, viewModel: ItemViewModel): (@Compo
     state.isNew -> {
         {
             OrbitButton(
-                stringResource(Res.string.item_create),
+                stringResource(if (state.proposing) Res.string.plan_done else Res.string.item_create),
                 viewModel::create,
                 Modifier.fillMaxWidth(),
                 state.canCreate
@@ -247,7 +250,9 @@ private fun LazyListScope.itemBody(
             if (state.costInvalid) {
                 item(key = "cost-invalid") { OrbitErrorText(stringResource(Res.string.cost_invalid)) }
             }
-            val rows = ItemRow.entries.filter { it != ItemRow.REMINDER || state.showsReminder }
+            val rows = ItemRow.entries.filter {
+                (it != ItemRow.REMINDER || state.showsReminder) && (it != ItemRow.COST || state.costShown)
+            }
             orbitGroup(rows, key = { it.name }) { row -> ItemActionRow(row, state, viewModel, onOpenCost) }
             gap("description")
             item(key = "description") {

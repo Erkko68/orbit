@@ -29,13 +29,23 @@ data class SpaceSettingsRoute(val spaceId: String)
 @Serializable
 data class MemberRoute(val spaceId: String, val userId: String)
 
-/** The assistant's interview, over the bar. #44 opens it from a space and #77 from a new one. */
+/**
+ * The assistant's interview, over the bar. #44 opens it from a space, [spaceId], and #77 without one, to set up a new
+ * space.
+ */
 @Serializable
-data object InterviewRoute
+data class InterviewRoute(val spaceId: String = "")
 
-/** One item of a space. Without [itemId] it is a new one, not written until the user creates it. */
+/** The review board of the plan the interview proposed (#75), for [spaceId] or, when it is empty, a new space. */
 @Serializable
-data class ItemRoute(val spaceId: String, val itemId: String = "")
+data class PlanReviewRoute(val spaceId: String)
+
+/**
+ * One item of a space. Without [itemId] it is a new one, not written until the user creates it. With [proposalId] it
+ * is a proposal of the plan under review, which Done hands back to the board (#75); its space may not exist yet.
+ */
+@Serializable
+data class ItemRoute(val spaceId: String, val itemId: String = "", val proposalId: String = "")
 
 /**
  * An expense form, above the space bar. An empty id creates an entry only on Save. From an item's Cost row the same

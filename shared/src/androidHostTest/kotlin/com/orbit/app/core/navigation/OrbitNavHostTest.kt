@@ -41,6 +41,8 @@ import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.testing.RecordingNotificationScheduler
 import com.orbit.app.di.featureModule
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Plan
+import com.orbit.app.domain.model.SpaceProposal
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.InvitationRepository
 import com.orbit.app.domain.repository.ItemRepository
@@ -70,7 +72,7 @@ class OrbitNavHostTest : ComposeTest() {
     private val items = InMemoryItemRepository(auth)
     private val ledger = InMemoryExpenseRepository(auth)
     private val lastSpace = InMemoryLastSpaceRepository()
-    private val assistant = ScriptedAssistantRepository(
+    private var assistant = ScriptedAssistantRepository(
         listOf(InterviewStep.Ask(InterviewQuestion("who", "Who is the space for?", emptyList(), false, true, 1, 8))),
     )
 
@@ -126,6 +128,26 @@ class OrbitNavHostTest : ComposeTest() {
         onNodeWithText("Create space").performScrollTo().performClick()
         onNodeWithText("Nothing in orbit yet").assertIsDisplayed()
         assertEquals("Trip to Rome", runBlocking { spaces.observeSpaces().first().single().name })
+    }
+
+    @Test
+    fun aPlanOpensItsBoardAndAProposalEditedInTheItemFormComesBackAccepted() = runComposeUiTest {
+        val plan = Plan(SpaceProposal("New flat", accent = 0), listOf(NewItem("Bins")))
+        assistant = ScriptedAssistantRepository(listOf(InterviewStep.PlanReady(plan)))
+        runBlocking {
+            auth.signIn("ana@orbit.app", "secret")
+            auth.acceptAiConsent()
+        }
+        setContent { OrbitTheme { OrbitNavHost() } }
+        onNodeWithText("Set up with the assistant").performScrollTo().performClick()
+        onNodeWithText("New flat").assertIsDisplayed()
+        onNodeWithText("0 of 1 accepted").assertIsDisplayed()
+
+        onNodeWithText("Bins").performClick()
+        onNodeWithText("Done").performClick()
+
+        onNodeWithText("1 of 1 accepted").assertIsDisplayed()
+        assertEquals(emptyList(), runBlocking { spaces.observeSpaces().first() })
     }
 
     @Test

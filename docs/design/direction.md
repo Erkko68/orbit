@@ -85,7 +85,7 @@ Over the bar: item, list, expense form, interview, review board
 | Settings | A screen like the account: Edit name (a sheet) and Invite people (a sheet) for an owner or admin, then the members with their roles, then Leave or Delete space after a dialog, each group as rows |
 | Member | A screen with a colour header: their face, name and role, then what they have and did lately. For the owner a Role row opens a sheet: Member or Admin, and "Make owner" for an admin, after a dialog |
 | Interview | One question per screen, and "Do it by hand instead" is always there |
-| Review board | Proposals grouped by kind, all kept by default. Tap to leave one out, pencil to edit, one button to add. "Nothing is saved until you confirm" |
+| Review board | Under the space's name, each proposal as the row it will get in Tasks. Its check accepts it, a tap opens it in the item form to edit (Done) or remove, and Accept all accepts the rest. Nothing is saved until you confirm (#76) |
 
 ## Lists and chores
 

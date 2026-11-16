@@ -3,7 +3,9 @@ package com.orbit.app.feature.item
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orbit.app.core.Load
+import com.orbit.app.core.PlanDraft
 import com.orbit.app.core.asLoad
+import com.orbit.app.core.membersOrYou
 import com.orbit.app.core.navigation.decodePlannedCost
 import com.orbit.app.core.attempt
 import com.orbit.app.core.orOnFailure
@@ -51,21 +53,37 @@ private val ENTRY_SETTLE = 450.milliseconds
 /**
  * One item, or with an empty [itemId] a new one. A new item keeps everything here, in any order, until [create] writes
  * it; leaving before that leaves nothing behind. A written item saves each change at once.
+ *
+ * With a [proposalId] it is a proposal of the assistant's plan under review (#75): a new item filled in from it, whose
+ * Done hands it back to the [plan] instead of writing it, and whose delete takes it out of the plan. Its space may not
+ * exist yet (an empty [spaceId]): then the user is its only member, and it has no cost, which needs a ledger.
  */
 class ItemViewModel(
     private val spaceId: String,
     private val itemId: String,
+    private val proposalId: String,
     private val items: ItemRepository,
     spaces: SpaceRepository,
     auth: AuthRepository,
+    private val plan: PlanDraft,
 ) : ViewModel() {
     private val isNew = itemId.isEmpty()
+    private val proposing = proposalId.isNotEmpty()
+    private val proposal = plan.review.value?.proposals?.firstOrNull { it.id == proposalId }?.item
 
     /** What the user is doing on the screen. The rest stays empty: [uiState] fills it from the repositories. */
-    private val form = MutableStateFlow(ItemUiState(isNew = isNew))
+    private val form = MutableStateFlow(
+        ItemUiState(
+            isNew = isNew,
+            proposing = proposing,
+            costShown = spaceId.isNotEmpty(),
+            titleDraft = proposal?.title,
+            descriptionDraft = proposal?.description,
+        ),
+    )
 
     /** The modules of the new item, until it is created. */
-    private val draft = MutableStateFlow(ItemModules())
+    private val draft = MutableStateFlow(proposal?.modules ?: ItemModules())
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
     private val item: Flow<Load<Item?>> = if (isNew) {
@@ -78,7 +96,7 @@ class ItemViewModel(
     /** Only decorates the item, so a failed read leaves no space name and unknown members. */
     private val context = combine(
         spaces.observeSpaces().orOnFailure("Loading the spaces", emptyList()),
-        spaces.observeMembers(spaceId).orOnFailure("Loading the members of $spaceId", emptyList()),
+        spaces.membersOrYou(spaceId, auth).orOnFailure("Loading the members of $spaceId", emptyList()),
         auth.session,
     ) { all, members, user ->
         val space = all.firstOrNull { it.id == spaceId }
@@ -96,7 +114,7 @@ class ItemViewModel(
             modules = (loaded?.modules ?: draft).all,
             loading = load == Load.Loading,
             loadFailed = load == Load.Failed,
-            notFound = !isNew && load is Load.Loaded && loaded == null,
+            notFound = (!isNew && load is Load.Loaded && loaded == null) || (proposing && proposal == null),
             spaceName = context.spaceName,
             memberNames = context.members.associate { it.userId to it.displayName },
             members = context.members,
@@ -108,7 +126,10 @@ class ItemViewModel(
         if (uiState.value.loadFailed) retries.trySend(Unit)
     }
 
-    /** Writes the new item with everything given to it, then the screen closes. A failure keeps it all. */
+    /**
+     * Writes the new item with everything given to it, then the screen closes. A failure keeps it all. A proposal goes
+     * back to the plan instead, accepted, and nothing is written.
+     */
     fun create() {
         val state = uiState.value
         if (!state.canCreate) return
@@ -117,6 +138,11 @@ class ItemViewModel(
             description = state.descriptionDraft?.trim()?.ifEmpty { null },
             modules = draft.value,
         )
+        if (proposing) {
+            plan.update { it.edit(proposalId, item) }
+            form.update { it.copy(created = true) }
+            return
+        }
         submit(onSuccess = { form.update { it.copy(created = true) } }) { items.create(spaceId, item) }
     }
 
@@ -174,8 +200,14 @@ class ItemViewModel(
 
     fun dismissDelete() = form.update { it.copy(confirmingDelete = false) }
 
+    /** Deletes the item for everyone, or takes a proposal out of the plan. */
     fun deleteItem() {
         if (!uiState.value.canDelete) return
+        if (proposing) {
+            plan.update { it.remove(proposalId) }
+            form.update { it.copy(deleted = true) }
+            return
+        }
         submit(onSuccess = { form.update { it.copy(deleted = true) } }) { items.delete(spaceId, itemId) }
     }
 

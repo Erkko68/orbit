@@ -30,6 +30,10 @@ data class ItemFace(val id: String, val name: String, val index: Int, val photoU
 data class ItemUiState(
     /** Opened from the add button, and not written yet. */
     val isNew: Boolean = false,
+    /** A proposal of the assistant's plan (#75): Done gives it back to the plan, and delete takes it out. */
+    val proposing: Boolean = false,
+    /** The item can plan a cost: not in a space that does not exist yet, which has no ledger. */
+    val costShown: Boolean = true,
     /** The new item was written, so the screen closes. */
     val created: Boolean = false,
     val title: String = "",
@@ -119,9 +123,12 @@ data class ItemUiState(
     /** What the name field shows while it is typed, and after. */
     val shownTitle: String get() = titleDraft ?: title
 
-    /** The rule of `firestore.rules`: its creator, or someone who manages the space. Until it is written there is nothing to delete. */
+    /**
+     * The rule of `firestore.rules`: its creator, or someone who manages the space. Until it is written there is nothing
+     * to delete, except a proposal, which leaves the plan.
+     */
     val canDelete: Boolean
-        get() = !isNew && currentUserId != null && (
+        get() = proposing || !isNew && currentUserId != null && (
                 createdBy == currentUserId || members.firstOrNull { it.userId == currentUserId }?.role?.managesSpace == true
                 )
 
