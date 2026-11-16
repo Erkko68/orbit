@@ -265,7 +265,7 @@ class MemberScreenTest : ComposeTest() {
         onNodeWithText("Choose").performClick()
         waitForIdle()
 
-        onNodeWithText("Last day").assertIsDisplayed()
+        onNodeWithText("Last day").performScrollTo().assertIsDisplayed()
     }
 
     @Test
