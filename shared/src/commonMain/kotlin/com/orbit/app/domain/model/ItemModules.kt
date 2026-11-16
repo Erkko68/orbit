@@ -9,7 +9,7 @@ import kotlinx.datetime.toInstant
 import kotlin.time.Duration
 import kotlin.time.Instant
 
-enum class ModuleType { SCHEDULE, RECURRENCE, ASSIGNMENT, CHECKLIST, REMINDER, COST }
+enum class ModuleType { SCHEDULE, RECURRENCE, ASSIGNMENT, CHECKLIST, REMINDER, COST, EFFORT }
 
 sealed interface Module {
     val type: ModuleType
@@ -23,6 +23,7 @@ data class ItemModules(
     val checklist: Checklist? = null,
     val reminder: Reminder? = null,
     val cost: Cost? = null,
+    val effort: Effort? = null,
 ) {
     operator fun get(type: ModuleType): Module? = when (type) {
         ModuleType.SCHEDULE -> schedule
@@ -31,6 +32,7 @@ data class ItemModules(
         ModuleType.CHECKLIST -> checklist
         ModuleType.REMINDER -> reminder
         ModuleType.COST -> cost
+        ModuleType.EFFORT -> effort
     }
 
     /** Present modules in card order. */
@@ -49,6 +51,7 @@ data class ItemModules(
         is Checklist -> copy(checklist = module)
         is Reminder -> copy(reminder = module)
         is Cost -> copy(cost = module)
+        is Effort -> copy(effort = module)
     }
 
     fun without(type: ModuleType): ItemModules = when (type) {
@@ -58,7 +61,13 @@ data class ItemModules(
         ModuleType.CHECKLIST -> copy(checklist = null)
         ModuleType.REMINDER -> copy(reminder = null)
         ModuleType.COST -> copy(cost = null)
+        ModuleType.EFFORT -> copy(effort = null)
     }
+}
+
+/** Optional effort credited to whoever completes the item, from 1 to 5 points. */
+data class Effort(val points: Int) : Module {
+    override val type get() = ModuleType.EFFORT
 }
 
 /** Due at a point (`date`, optionally `time`) or within a window (`date` to `endDate`). */

@@ -471,4 +471,14 @@
     </plurals>
     <string name="plan_confirm">Confirm</string>
     <string name="plan_save_failed">The plan could not be saved, so nothing was added. Try again.</string>
+    <string name="effort_title">Effort</string>
+    <string name="effort_add">Add effort</string>
+    <string name="effort_points">Points: %1$d</string>
+    <string name="effort_remove">Remove effort</string>
+    <string name="effort_body">Reopening and completing again does not award points again. Changes do not alter past contributions.</string>
+    <string name="fairness_period">Effort · last 30 days</string>
+    <string name="fairness_empty">No effort points recorded in the last 30 days.</string>
+    <string name="fairness_failed">Could not load effort</string>
+    <string name="fairness_share">%1$d% · equal share %2$d%</string>
+    <string name="fairness_points">%1$d of %2$d points · rounded percentages</string>
 </resources>

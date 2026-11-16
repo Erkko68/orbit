@@ -22,6 +22,11 @@ import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.dateLabel
 import com.orbit.app.feature.member.SpaceMember
 import com.orbit.app.feature.member.SpaceMembersViewModel
+import com.orbit.app.feature.member.fairness.FairnessViewModel
+import com.orbit.app.feature.member.fairness.FairnessStatus
+import com.orbit.app.feature.member.fairness.MemberEffort
+import com.orbit.app.core.designsystem.component.OrbitSectionHeader
+import orbit.shared.generated.resources.fairness_period
 import com.orbit.app.feature.member.activity.MemberActivity
 import com.orbit.app.feature.member.away.MemberAway
 import orbit.shared.generated.resources.Res
@@ -55,8 +60,10 @@ fun MemberScreen(
     onBack: () -> Unit,
     onOpenItem: (String) -> Unit,
     viewModel: SpaceMembersViewModel = koinViewModel(key = "members-$spaceId") { parametersOf(spaceId) },
+    fairnessViewModel: FairnessViewModel = koinViewModel(key = "fairness-$spaceId") { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val fairness by fairnessViewModel.uiState.collectAsStateWithLifecycle()
     val member = state.members.firstOrNull { it.id == userId }
     OrbitScreen(
         topBar = {
@@ -98,6 +105,9 @@ fun MemberScreen(
                     OrbitErrorText(stringResource(Res.string.member_role_failed))
                 }
                 MemberActivity(spaceId, userId, onOpenItem)
+                OrbitSectionHeader(stringResource(Res.string.fairness_period), Modifier.fillMaxWidth())
+                FairnessStatus(fairness, fairnessViewModel::retry)
+                fairness.share(userId)?.takeIf { fairness.hasPoints }?.let { MemberEffort(it) }
             }
 
             state.loading -> OrbitLoadingState(stringResource(Res.string.member_loading), Modifier.fillMaxWidth())

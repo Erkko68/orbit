@@ -4,6 +4,7 @@ import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.Cost
+import com.orbit.app.domain.model.Effort
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
@@ -23,6 +24,24 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 class ItemMapperTest {
+    @Test
+    fun effortIsOptionalRoundTripsAndSkipsMalformedValues() {
+        val base = StoredItem(title = "Bins", status = "open", createdBy = "a", createdAt = Instant.fromEpochSeconds(1))
+        assertNull(mapItem("item", base)?.modules?.effort)
+        val document = itemDocument("space", NewItem("Bins", modules = ItemModules(effort = Effort(4))), "a")
+        assertEquals(4, document.modules.effort?.points)
+        assertEquals(Effort(4), mapItem("item", base.copy(modules = document.modules))?.modules?.effort)
+        for (invalid in listOf(0, 6)) {
+            assertNull(
+                mapItem(
+                    "item",
+                    base.copy(modules = ModulesDocument(effort = EffortDocument(invalid)))
+                )?.modules?.effort
+            )
+        }
+        assertEquals(true, mapItem("item", base.copy(effortRecorded = true))?.effortRecorded)
+    }
+
     private val createdAt = Instant.fromEpochSeconds(1_760_000_000)
 
     private val stored = StoredItem(title = "Buy milk", status = "open", createdBy = "ana", createdAt = createdAt)

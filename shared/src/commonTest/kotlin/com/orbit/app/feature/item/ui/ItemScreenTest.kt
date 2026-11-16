@@ -5,6 +5,7 @@ import com.orbit.app.testing.InMemoryExpenseRepository
 import com.orbit.app.feature.expense.ExpenseViewModel
 import com.orbit.app.feature.expense.ui.ExpenseScreen
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasScrollAction
@@ -761,6 +762,30 @@ class ItemScreenTest : ComposeTest() {
 
     private fun model(id: String, repository: ItemRepository): ItemViewModel =
         ItemViewModel("space-1", id, "", repository, spaces, auth, PlanDraft()).also { viewModels.put("item", it) }
+
+    @Test
+    fun effortUsesTheExistingRowAndSheetAndWritesOnlyOnSave() = runComposeUiTest {
+        val id = createItem(NewItem("Bins"))
+        val viewModel = model(id, items)
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
+        list().performScrollToIndex(3)
+        onNodeWithText("Effort").performScrollTo().performClick()
+        waitForIdle()
+        assertTrue(viewModel.uiState.value.editingEffort)
+        onNodeWithText("Points: 4").performScrollTo().performClick()
+        assertEquals(null, runBlocking { items.observeItems("space-1").first().single().modules.effort })
+        onNodeWithText("Save").performScrollTo().performClick()
+        waitForIdle()
+        assertEquals(4, runBlocking { items.observeItems("space-1").first().single().modules.effort?.points })
+        list().performScrollToIndex(3)
+        onNodeWithText("Effort").performScrollTo().performClick()
+        waitForIdle()
+        assertTrue(viewModel.uiState.value.editingEffort)
+        onNodeWithText("Remove effort").performScrollTo().performClick()
+        onNodeWithText("Save").performScrollTo().performClick()
+        waitForIdle()
+        assertEquals(null, runBlocking { items.observeItems("space-1").first().single().modules.effort })
+    }
 
     @Test
     fun tickingTheLastEntryFinishesTheItem() = runComposeUiTest {

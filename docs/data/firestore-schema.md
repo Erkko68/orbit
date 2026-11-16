@@ -51,6 +51,7 @@ erDiagram
         timestamp createdAt
         string completedBy FK "optional"
         timestamp completedAt "optional"
+        bool effortRecorded "optional: this occurrence was completed"
         map modules
     }
     COMPLETION {
@@ -59,6 +60,8 @@ erDiagram
         string completedBy FK
         timestamp completedAt
         string action "optional: reopen"
+        int effortPoints "optional: snapshot, 1 to 5"
+        bool effortCredited "optional: false on repeat completion"
     }
     EXPENSE {
         string expenseId PK "auto id, made on the device"
@@ -160,6 +163,7 @@ The email is not stored: it comes from the Firebase Auth account.
 | `completedAt` | timestamp | with `done` | Server time, same lifecycle as `completedBy` |
 | `modules` | map | yes | One key per module present. Unknown keys are kept and skipped. |
 | `costExpenseId` | string | once this occurrence's cost is charged | The expense its completion added ([ADR 0014](../adr/0014-item-cost-per-occurrence.md)). Reopening keeps it, so completing again adds none; rolling forward to the next occurrence deletes it. |
+| `effortRecorded` | boolean | after completing this occurrence | `true` even when completed without effort. Reopening keeps it (or sets it on an older done item); rolling forward clears it. Prevents repeat effort credit ([ADR 0016](../adr/0016-effort-per-occurrence.md)). |
 
 #### `modules.schedule`
 
@@ -222,6 +226,16 @@ What completing the item adds to the ledger: an expense planned on the expense s
 
 A new item plans it before Create and writes it with the item. Completing copies it into a new expense (the item's title, the day it was completed, `itemId`) in the completion's batch, unless `costExpenseId` says this occurrence was charged already. A cost that names someone who left blocks completing until it is changed. Changing or removing it never touches expenses already added.
 
+#### `modules.effort`
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `points` | integer | yes | 1 to 5. The module is optional; adding it starts at 1. Items without it earn no points. |
+
+Completing snapshots the points to the history, in the item's batch. Editing or removing effort does not rewrite
+past contributions. A repeat completion records its current snapshot but does not earn another contribution for
+that occurrence ([ADR 0016](../adr/0016-effort-per-occurrence.md)).
+
 ### `spaces/{spaceId}/completions/{completionId}`
 
 The history of an item: who completed it or reopened it and when, one document each, written in the batch that marks the item done or open again, or that moves a recurring item to its next date. Append-only: reopening the item keeps its completions, and nobody edits or deletes one. One collection per space, so rotation and fairness (#49 to #51) read every completion of a space in one query, skipping reopenings.
@@ -232,6 +246,14 @@ The history of an item: who completed it or reopened it and when, one document e
 | `completedBy` | uid | yes | The caller: who completed or reopened it |
 | `completedAt` | timestamp | yes | Server time |
 | `action` | string | for a reopening | `reopen`. Absent on a completion, which is what every entry was before it |
+| `effortPoints` | integer | when completing with effort | Snapshot of the item's points (1 to 5). Missing on reopenings, old history and completions without effort. |
+| `effortCredited` | boolean | on repeat completions | `false` when this occurrence already recorded its effort decision. Omitted means `true`; entries without points still earn none. The original credited event keeps its timestamp and actual completer. |
+
+`calculateFairness(completions, memberIds, now)` computes current members' points and the total in the inclusive
+last-30-days window on the device. Reopenings and uncredited or missing snapshots are excluded. Former members'
+points are excluded from both their rows and the current total, without deleting history; rejoining restores
+still-recent contributions. Current members with no contributions remain at zero. No points means no measured
+share. Exact totals stay integer; the UI rounds percentages only, comparing against `1 / memberCount`.
 
 ### `spaces/{spaceId}/expenses/{expenseId}`
 
@@ -343,8 +365,9 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `removeEntry` | same | `update`: delete `modules.checklist.entries.<id>` |
 | `observeCompletions` | `spaces/{id}/completions` where `itemId ==` id, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way. Completions and reopenings |
 | `observeMemberCompletions` | `spaces/{id}/completions` where `completedBy ==` uid, ordered by `completedAt` desc, the latest 10 | Listener, retried the same way. Completions and reopenings: "Lately" skips the reopenings |
-| `complete` | same item, a new `spaces/{id}/completions/{completionId}` and, with a cost not yet charged, a new `spaces/{id}/expenses/{expenseId}` | Reads the item and `memberIds` from the cache. One batch: `update` of `status: done`, `completedBy`, `completedAt` and `costExpenseId`, `set` of the completion and of the expense. A recurring item with a next occurrence gets an `update` of `modules.schedule` instead, deletes `costExpenseId` and stays open (ADR 0011, ADR 0014) |
-| `reopen` | same item, and a new `spaces/{id}/completions/{completionId}` with `action: reopen` | One batch: `update` of `status: open`, delete `completedBy` and `completedAt`, and `set` of the reopening |
+| `observeRecentCompletions` | `spaces/{id}/completions` where `completedAt >=` the window start | Unlimited listener for fairness, retried the same way. The use case filters the current time window and credited snapshots. |
+| `complete` | same item, a new `spaces/{id}/completions/{completionId}` and, with a cost not yet charged, a new `spaces/{id}/expenses/{expenseId}` | Reads the item and `memberIds` from the cache. One batch: `update` of `status: done`, `completedBy`, `completedAt`, `effortRecorded: true` and `costExpenseId`, `set` of the completion (with effort snapshot/credit) and of the expense. A recurring item with a next occurrence gets an `update` of `modules.schedule` instead, deletes `costExpenseId` and `effortRecorded`, and stays open (ADR 0011, ADR 0014, ADR 0016) |
+| `reopen` | same item, and a new `spaces/{id}/completions/{completionId}` with `action: reopen` | One batch: `update` of `status: open` and `effortRecorded: true`, delete `completedBy` and `completedAt`, and `set` of the reopening without points |
 
 No method saves a whole existing item: every update writes only its field paths, so concurrent edits merge.
 
@@ -388,6 +411,7 @@ No method saves a whole existing item: every update writes only its field paths,
 | Ledger | `spaces/{id}/expenses` | automatic |
 | Invitations (owner, admin) | `invitations` where `spaceId ==` id | automatic |
 | Member page | `spaces/{id}/completions` where `completedBy ==` uid ordered by `completedAt` desc | composite: `completedBy` asc, `completedAt` desc, in `firebase/firestore.indexes.json` |
+| Fairness in settings and member page | `spaces/{id}/completions` where `completedAt >=` the window start | automatic single-field timestamp index |
 | Item history | `spaces/{id}/completions` where `itemId ==` id ordered by `completedAt` desc | composite: `itemId` asc, `completedAt` desc, in `firebase/firestore.indexes.json` |
 | Agenda | `spaces/{id}/items` where `status == open` and `modules.schedule.date <=` end of week or of the month shown | composite: `status` asc, `modules.schedule.date` asc, in `firebase/firestore.indexes.json` |
 

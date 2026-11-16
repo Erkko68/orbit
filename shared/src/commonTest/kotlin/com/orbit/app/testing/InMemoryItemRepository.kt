@@ -25,6 +25,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 private const val LATEST_COMPLETIONS = 10
 
@@ -39,6 +40,7 @@ class InMemoryItemRepository(
 ) : ItemRepository {
     /** The items of each space, by its id. */
     private val items = MutableStateFlow(emptyMap<String, List<Item>>())
+
     /** The completions of each space, newest first. */
     private val completions = MutableStateFlow(emptyMap<String, List<Completion>>())
     private var created = 0
@@ -113,6 +115,9 @@ class InMemoryItemRepository(
     override fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>> =
         completions.map { all -> all[spaceId].orEmpty().filter { it.completedBy == userId }.take(LATEST_COMPLETIONS) }
 
+    override fun observeRecentCompletions(spaceId: String, since: Instant): Flow<List<Completion>> =
+        completions.map { all -> all[spaceId].orEmpty().filter { it.completedAt >= since } }
+
     override suspend fun complete(spaceId: String, itemId: String, next: Schedule?) {
         val done = ItemStatus.Done(by = auth.requireUser().id, at = Clock.System.now())
         val item = items.value[spaceId].orEmpty().first { it.id == itemId }
@@ -134,21 +139,35 @@ class InMemoryItemRepository(
                 it.copy(
                     modules = if (turn != null && rotation != null) moved.with(rotation.copy(current = turn)) else moved,
                     costExpenseId = null,
+                    effortRecorded = false,
                 )
             } else {
-                it.copy(status = done, costExpenseId = charged ?: it.costExpenseId)
+                it.copy(status = done, costExpenseId = charged ?: it.costExpenseId, effortRecorded = true)
             }
         }
-        record(spaceId, itemId, done.by, reopened = false)
+        record(spaceId, itemId, done.by, false, item.modules.effort?.points, !item.effortRecorded)
     }
 
     override suspend fun reopen(spaceId: String, itemId: String) {
-        edit(spaceId, itemId) { it.copy(status = ItemStatus.Open) }
-        record(spaceId, itemId, auth.requireUser().id, reopened = true)
+        edit(spaceId, itemId) { it.copy(status = ItemStatus.Open, effortRecorded = true) }
+        record(spaceId, itemId, auth.requireUser().id, true, null, true)
     }
 
-    private fun record(spaceId: String, itemId: String, userId: String, reopened: Boolean) = completions.update { all ->
-        val entry = Completion("completion-${all.values.sumOf { it.size } + 1}", itemId, userId, Clock.System.now(), reopened)
+    private fun record(
+        spaceId: String,
+        itemId: String,
+        userId: String,
+        reopened: Boolean,
+        effortPoints: Int?,
+        effortCredited: Boolean
+    ) = completions.update { all ->
+        val entry = Completion("completion-${all.values.sumOf { it.size } + 1}",
+            itemId,
+            userId,
+            Clock.System.now(),
+            reopened,
+            effortPoints,
+            effortCredited)
         all + (spaceId to listOf(entry) + all[spaceId].orEmpty())
     }
 

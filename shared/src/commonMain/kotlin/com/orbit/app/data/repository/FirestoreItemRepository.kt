@@ -4,6 +4,7 @@ import co.touchlab.kermit.Logger
 import com.orbit.app.data.mapper.AssignmentDocument
 import com.orbit.app.data.mapper.ChecklistDocument
 import com.orbit.app.data.mapper.CostDocument
+import com.orbit.app.data.mapper.EffortDocument
 import com.orbit.app.data.mapper.ACTION_REOPEN
 import com.orbit.app.data.mapper.CompletionDocument
 import com.orbit.app.data.mapper.EntryDocument
@@ -28,6 +29,7 @@ import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.Completion
 import com.orbit.app.domain.model.Cost
+import com.orbit.app.domain.model.Effort
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.Module
 import com.orbit.app.domain.model.ModuleType
@@ -55,6 +57,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * Items in Firestore (ADR 0002), read through a live listener that Firestore's offline cache answers
@@ -113,6 +116,7 @@ class FirestoreItemRepository(
                 is Checklist -> path.to(ChecklistDocument.serializer(), checklistDocument(module))
                 is Reminder -> path.to(ReminderDocument.serializer(), reminderDocument(module))
                 is Cost -> path.to(CostDocument.serializer(), costDocument(module))
+                is Effort -> path.to(EffortDocument.serializer(), EffortDocument(module.points))
             }
         }
 
@@ -135,6 +139,7 @@ class FirestoreItemRepository(
         update(spaceId, itemId) {
             FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "text") to text
             FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "quantity") to
+                    (quantity ?: FieldValue.delete)
                 (quantity ?: FieldValue.delete)
         }
 
@@ -155,6 +160,13 @@ class FirestoreItemRepository(
             .where { COMPLETED_BY equalTo userId }
             .orderBy(COMPLETED_AT, Direction.DESCENDING)
             .limit(LATEST_COMPLETIONS)
+            .snapshots.map { snapshot -> snapshot.documents.mapNotNull(::toCompletion) }
+            .flowOn(Dispatchers.Default)
+            .retryWhileRefused()
+
+    override fun observeRecentCompletions(spaceId: String, since: Instant): Flow<List<Completion>> =
+        completions(spaceId)
+            .where { COMPLETED_AT greaterThanOrEqualTo Timestamp(since.epochSeconds, since.nanosecondsOfSecond) }
             .snapshots.map { snapshot -> snapshot.documents.mapNotNull(::toCompletion) }
             .flowOn(Dispatchers.Default)
             .retryWhileRefused()
@@ -188,15 +200,22 @@ class FirestoreItemRepository(
                 FieldPath(MODULES, moduleKey(ModuleType.SCHEDULE)).to(ScheduleDocument.serializer(), scheduleDocument(next))
                 // The next occurrence is charged again.
                 FieldPath(COST_EXPENSE_ID) to FieldValue.delete
+                FieldPath(EFFORT_RECORDED) to FieldValue.delete
                 if (turn != null) FieldPath(MODULES, moduleKey(ModuleType.ASSIGNMENT), "assigneeIds") to listOf(turn)
             } else {
                 FieldPath(STATUS) to STATUS_DONE
                 FieldPath(COMPLETED_BY) to userId
                 FieldPath(COMPLETED_AT) to FieldValue.serverTimestamp
                 if (expense != null) FieldPath(COST_EXPENSE_ID) to charge.id
+                FieldPath(EFFORT_RECORDED) to true
             }
         }
-        batch.set(completions(spaceId).document, CompletionDocument(itemId, userId, Timestamp.ServerTimestamp)) {
+        val entry = CompletionDocument(
+            itemId, userId, Timestamp.ServerTimestamp,
+            effortPoints = item.modules.effort?.points,
+            effortCredited = !item.effortRecorded,
+        )
+        batch.set(completions(spaceId).document, entry) {
             encodeDefaults = false
         }
         if (expense != null) batch.set(charge, expenseDocument(spaceId, expense, userId)) { encodeDefaults = false }
@@ -211,6 +230,7 @@ class FirestoreItemRepository(
             FieldPath(STATUS) to STATUS_OPEN
             FieldPath(COMPLETED_BY) to FieldValue.delete
             FieldPath(COMPLETED_AT) to FieldValue.delete
+            FieldPath(EFFORT_RECORDED) to true
         }
         val entry = CompletionDocument(itemId, userId, Timestamp.ServerTimestamp, ACTION_REOPEN)
         batch.set(completions(spaceId).document, entry) { encodeDefaults = false }
@@ -229,7 +249,11 @@ class FirestoreItemRepository(
             Logger.w { "Skipping the malformed completion ${document.id}" }
             return null
         }
-        return Completion(document.id, itemId, completedBy, completedAt, document.field<String>("action") == ACTION_REOPEN)
+        return Completion(
+            document.id, itemId, completedBy, completedAt, document.field<String>("action") == ACTION_REOPEN,
+            document.field<Int>("effortPoints")?.takeIf { it in 1..5 },
+            document.field<Boolean>("effortCredited") != false,
+        )
     }
 
     private fun entryPath(entryId: String) = FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId)
@@ -252,6 +276,7 @@ class FirestoreItemRepository(
             checklist = document.field("$MODULES.${moduleKey(ModuleType.CHECKLIST)}"),
             reminder = document.field("$MODULES.${moduleKey(ModuleType.REMINDER)}"),
             cost = document.field("$MODULES.${moduleKey(ModuleType.COST)}"),
+            effort = document.field("$MODULES.${moduleKey(ModuleType.EFFORT)}"),
         )
         val stored = StoredItem(
             title = document.field("title"),
@@ -266,6 +291,7 @@ class FirestoreItemRepository(
             moduleKeys = document.field<Map<String, Unit>>(MODULES)?.keys.orEmpty(),
             modules = modules,
             costExpenseId = document.field(COST_EXPENSE_ID),
+            effortRecorded = document.field<Boolean>(EFFORT_RECORDED) == true,
         )
         return mapItem(document.id, stored).also {
             if (it == null) Logger.w { "Skipping the malformed item ${document.id}" }
@@ -279,6 +305,7 @@ class FirestoreItemRepository(
         const val COMPLETED_BY = "completedBy"
         const val COMPLETED_AT = "completedAt"
         const val COST_EXPENSE_ID = "costExpenseId"
+        const val EFFORT_RECORDED = "effortRecorded"
         const val LATEST_COMPLETIONS = 10
     }
 }

@@ -10,6 +10,7 @@ import com.orbit.app.domain.repository.ItemRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 /** An [ItemRepository] whose writes fail with [failure]. Optionally emits [items]. */
 internal class FailingItemRepository(
@@ -46,6 +47,8 @@ internal class FailingItemRepository(
     override fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>> = flowOf(emptyList())
 
     override fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>> = flowOf(emptyList())
+
+    override fun observeRecentCompletions(spaceId: String, since: Instant): Flow<List<Completion>> = flowOf(emptyList())
 
     override suspend fun complete(spaceId: String, itemId: String, next: Schedule?) = throw failure
 

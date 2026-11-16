@@ -11,6 +11,24 @@ import kotlin.time.Duration.Companion.minutes
 
 class ItemValidationTest {
 
+    @Test
+    fun effortIsOptionalAndOnlyAcceptsOneToFiveWholePoints() {
+        for (points in 1..5) assertEquals(
+            emptyList(),
+            validateItem("Bins", ItemModules(effort = Effort(points)), emptyList())
+        )
+        for (points in listOf(-1, 0, 6)) {
+            assertEquals(
+                listOf(ItemError.InvalidEffort),
+                validateItem("Bins", ItemModules(effort = Effort(points)), emptyList())
+            )
+        }
+        val modules = ItemModules().with(Effort(3))
+        assertEquals(Effort(3), modules[ModuleType.EFFORT])
+        assertEquals(listOf(Effort(3)), modules.all)
+        assertNull(modules.without(ModuleType.EFFORT).effort)
+    }
+
     private val members = listOf("ana", "ben")
     private val friday = LocalDate(2026, 10, 9)
     private val sunday = LocalDate(2026, 10, 11)
@@ -166,6 +184,7 @@ class ItemValidationTest {
             .with(Checklist(emptyList()))
             .with(Reminder(emptyList()))
             .with(Cost("ana", mapOf("ana" to 500L, "ben" to 500L)))
+            .with(Effort(3))
         assertEquals(ModuleType.entries, full.all.map { it.type })
 
         ModuleType.entries.forEach { type ->

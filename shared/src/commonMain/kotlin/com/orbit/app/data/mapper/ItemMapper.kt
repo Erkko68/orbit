@@ -5,6 +5,7 @@ import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.Cost
+import com.orbit.app.domain.model.Effort
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.ItemStatus
@@ -49,6 +50,7 @@ internal fun itemDocument(spaceId: String, item: NewItem, creatorId: String) = I
         checklist = item.modules.checklist?.let(::checklistDocument),
         reminder = item.modules.reminder?.let(::reminderDocument),
         cost = item.modules.cost?.let(::costDocument),
+        effort = item.modules.effort?.let { EffortDocument(it.points) },
     ),
 )
 
@@ -110,6 +112,7 @@ internal fun mapItem(id: String, stored: StoredItem): Item? {
         createdAt = createdAt,
         modules = modulesOf(id, stored),
         costExpenseId = stored.costExpenseId,
+        effortRecorded = stored.effortRecorded,
     )
 }
 
@@ -131,6 +134,7 @@ private fun modulesOf(id: String, stored: StoredItem): ItemModules {
         checklist = modules.checklist?.let(::checklistOf),
         reminder = modules.reminder?.let(::reminderOf),
         cost = modules.cost?.let { Cost(it.paidBy, it.split, it.customAllocation) },
+        effort = modules.effort?.points?.takeIf { it in 1..5 }?.let(::Effort),
     )
     stored.moduleKeys.mapNotNull(known::get).filter { read[it] == null }.forEach {
         Logger.w { "Item $id has a malformed or unknown ${moduleKey(it)} module, skipped" }
@@ -162,8 +166,10 @@ private fun recurrenceOf(document: RecurrenceDocument): Recurrence? {
         "week" -> document.weekdays.orEmpty()
             .takeIf { days -> days.isNotEmpty() && days.all { it in 1..7 } }
             ?.let { days -> Recurrence.Weeks(document.every, days.map(::DayOfWeek).toSet(), until) }
+
         "month" -> document.dayOfMonth?.takeIf { it in 1..31 }
             ?.let { Recurrence.Months(document.every, it, until) }
+
         else -> null
     }
 }

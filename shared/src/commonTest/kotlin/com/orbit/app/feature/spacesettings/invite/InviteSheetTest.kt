@@ -14,6 +14,8 @@ import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.share.TextSharer
 import com.orbit.app.feature.member.SpaceMembersViewModel
+import com.orbit.app.feature.member.fairness.FairnessViewModel
+import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.feature.spacesettings.SpaceSettingsViewModel
 import com.orbit.app.feature.spacesettings.ui.SpaceSettingsScreen
 import com.orbit.app.domain.repository.InvitationRepository
@@ -52,6 +54,7 @@ class InviteSheetTest : ComposeTest() {
                     membersViewModel = SpaceMembersViewModel("space-1", spaces, auth),
                     inviteViewModel = InviteViewModel("space-1", invitations, spaces, auth),
                     sharer = TextSharer { shared += it },
+                    fairnessViewModel = FairnessViewModel("space-1", InMemoryItemRepository(auth), spaces),
                 )
             }
         }

@@ -471,4 +471,14 @@
     </plurals>
     <string name="plan_confirm">Conferma</string>
     <string name="plan_save_failed">Non è stato possibile salvare il piano, quindi non è stato aggiunto nulla. Riprova.</string>
+    <string name="effort_title">Impegno</string>
+    <string name="effort_add">Aggiungi impegno</string>
+    <string name="effort_points">Punti: %1$d</string>
+    <string name="effort_remove">Rimuovi impegno</string>
+    <string name="effort_body">Riaprire e completare di nuovo non assegna altri punti. Le modifiche non cambiano i contributi già registrati.</string>
+    <string name="fairness_period">Impegno · ultimi 30 giorni</string>
+    <string name="fairness_empty">Nessun punto di impegno registrato negli ultimi 30 giorni.</string>
+    <string name="fairness_failed">Impossibile caricare l’impegno</string>
+    <string name="fairness_share">%1$d% · quota uguale %2$d%</string>
+    <string name="fairness_points">%1$d punti su %2$d · percentuali arrotondate</string>
 </resources>
