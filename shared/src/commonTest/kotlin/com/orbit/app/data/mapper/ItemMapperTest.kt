@@ -207,7 +207,7 @@ class ItemMapperTest {
             moduleKeys = setOf("schedule", "assignment", "cost"),
             modules = ModulesDocument(
                 schedule = ScheduleDocument("2026-10-09"),
-                assignment = AssignmentDocument("rotation", assigneeId = "ben"),
+                assignment = AssignmentDocument("relay", assigneeId = "ben"),
             ),
         )
 

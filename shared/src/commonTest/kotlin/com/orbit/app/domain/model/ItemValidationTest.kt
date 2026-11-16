@@ -66,7 +66,7 @@ class ItemValidationTest {
             errors(modules = ItemModules(assignment = Assignment.Rotation(listOf("ana", "ana"), "ana"))),
         )
         assertEquals(
-            listOf(ItemError.InvalidRotation),
+            listOf(ItemError.AssigneeNotMember, ItemError.InvalidRotation),
             errors(modules = ItemModules(assignment = Assignment.Rotation(listOf("ana", "ben"), "cy"))),
         )
     }

@@ -608,7 +608,7 @@ class ItemScreenTest : ComposeTest() {
         onNodeWithContentDescription("Move Mika earlier").performScrollTo().performClick()
         waitForIdle()
         assertEquals(Assignment.Rotation(listOf("mika", "ana"), "ana"), assignmentOf(id))
-        onNodeWithContentDescription("Move Ana later").performScrollTo().assertExists()
+        onNodeWithContentDescription("Move Mika later").performScrollTo().assertExists()
 
         onNodeWithText("Take turns").performScrollTo().performClick()
         waitForIdle()
