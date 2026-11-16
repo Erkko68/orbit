@@ -108,7 +108,7 @@ class OrbitNavHostTest : ComposeTest() {
         onNodeWithText("Before the assistant starts").assertIsDisplayed()
         assertEquals(0, assistant.calls.size)
         onNodeWithText("Set up by hand").performScrollTo().performClick()
-        onNodeWithText("Create it myself").performScrollTo().performClick()
+        onNodeWithText("New space").performScrollTo().performClick()
         onNodeWithText("Flat 4B").performScrollTo().assertIsDisplayed()
         assertEquals(emptyList(), runBlocking { spaces.observeSpaces().first() })
     }
