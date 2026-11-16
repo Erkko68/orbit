@@ -1,5 +1,7 @@
 package com.orbit.app.data.repository
 
+import com.orbit.app.data.mapper.mapMember
+import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.User
 import com.orbit.app.domain.repository.AuthRepository
 import dev.gitlive.firebase.firestore.DocumentSnapshot
@@ -47,3 +49,13 @@ internal fun Throwable.isRefusedByTheRules(): Boolean =
 
 /** The signed-in user, for a write made as them. Throws when signed out. */
 internal suspend fun AuthRepository.requireUser(): User = checkNotNull(session.first()) { "Not signed in" }
+
+/** A member document, which the space's members and a rotation's turn both read. The document id is the uid. */
+internal fun DocumentSnapshot.toMember(): Member = mapMember(
+    userId = id,
+    displayName = field("displayName"),
+    photoUrl = field("photoUrl"),
+    role = field("role"),
+    awayFrom = field("awayFrom"),
+    awayUntil = field("awayUntil"),
+)

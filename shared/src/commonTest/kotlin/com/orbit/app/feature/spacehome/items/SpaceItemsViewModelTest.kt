@@ -156,6 +156,86 @@ class SpaceItemsViewModelTest {
         assertEquals(com.orbit.app.domain.model.ItemStatus.Open, item.status)
     }
 
+    private fun member(id: String, awayFrom: LocalDate? = null, awayUntil: LocalDate? = null) =
+        Member(id, id, photoUrl = null, role = Role.MEMBER, awayFrom = awayFrom, awayUntil = awayUntil)
+
+    @Test
+    fun completingARotatingItemPassesItOnWithTheNextDate() = runTest {
+        auth.signIn(ANA, "secret")
+        val team = InMemorySpaceRepository(auth)
+        val rotating = InMemoryItemRepository(auth, spaces = team)
+        val id = team.createSpace("Flat 4B", accent = 0)
+        team.addMember(id, member("ben"))
+        team.addMember(id, member("cy"))
+        val order = listOf(ANA, "ben", "cy")
+        val itemId = rotating.create(
+            id,
+            NewItem(
+                "Take the bins out",
+                modules = ItemModules(
+                    schedule = Schedule(LocalDate(2030, 1, 7)),
+                    recurrence = Recurrence.Days(3),
+                    assignment = Assignment.Rotation(order, ANA),
+                ),
+            ),
+        )
+        val viewModel = SpaceItemsViewModel(id, rotating, team, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.complete(itemId)
+
+        val item = rotating.observeItems(id).first().single()
+        assertEquals(LocalDate(2030, 1, 10), item.modules.schedule?.date)
+        assertEquals(Assignment.Rotation(order, "ben"), item.modules.assignment)
+    }
+
+    @Test
+    fun aRotatingItemSkipsTheMemberWhoIsAwayOnTheNextDate() = runTest {
+        auth.signIn(ANA, "secret")
+        val team = InMemorySpaceRepository(auth)
+        val rotating = InMemoryItemRepository(auth, spaces = team)
+        val id = team.createSpace("Flat 4B", accent = 0)
+        team.addMember(id, member("ben", LocalDate(2030, 1, 9), LocalDate(2030, 1, 12)))
+        team.addMember(id, member("cy"))
+        val order = listOf(ANA, "ben", "cy")
+        val itemId = rotating.create(
+            id,
+            NewItem(
+                "Take the bins out",
+                modules = ItemModules(
+                    schedule = Schedule(LocalDate(2030, 1, 7)),
+                    recurrence = Recurrence.Days(3),
+                    assignment = Assignment.Rotation(order, ANA),
+                ),
+            ),
+        )
+        val viewModel = SpaceItemsViewModel(id, rotating, team, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.complete(itemId)
+
+        assertEquals(Assignment.Rotation(order, "cy"), rotating.observeItems(id).first().single().modules.assignment)
+    }
+
+    @Test
+    fun completingARotatingItemThatDoesNotRecurLeavesItWithItsMember() = runTest {
+        auth.signIn(ANA, "secret")
+        val team = InMemorySpaceRepository(auth)
+        val rotating = InMemoryItemRepository(auth, spaces = team)
+        val id = team.createSpace("Flat 4B", accent = 0)
+        team.addMember(id, member("ben"))
+        val order = listOf(ANA, "ben")
+        val itemId = rotating.create(id, NewItem("Once", modules = ItemModules(assignment = Assignment.Rotation(order, ANA))))
+        val viewModel = SpaceItemsViewModel(id, rotating, team, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        viewModel.complete(itemId)
+
+        val item = rotating.observeItems(id).first().single()
+        assertTrue(item.status is com.orbit.app.domain.model.ItemStatus.Done)
+        assertEquals(Assignment.Rotation(order, ANA), item.modules.assignment)
+    }
+
     @Test
     fun aCompletedItemMovesToDone() = runTest {
         auth.signIn("ana@orbit.app", "secret")

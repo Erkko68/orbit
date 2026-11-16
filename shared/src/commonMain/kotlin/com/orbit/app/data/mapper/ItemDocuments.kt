@@ -50,12 +50,16 @@ internal class RecurrenceDocument(
     val until: String? = null,
 )
 
-/** [assigneeId] is how one member was stored before an item could have several: read, never written. */
+/**
+ * [assigneeId] is how one member was stored before an item could have several: read, never written. For a rotation,
+ * [rotation] is the order and [assigneeIds] holds the one member whose turn it is (ADR 0015).
+ */
 @Serializable
 internal class AssignmentDocument(
     val mode: String,
     val assigneeIds: List<String>? = null,
     val assigneeId: String? = null,
+    val rotation: List<String>? = null,
 )
 
 @Serializable
