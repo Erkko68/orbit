@@ -5,6 +5,7 @@ import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.LocalDate
 
 /**
  * Acts as the signed-in user: callers never pass a user id. Writes return once applied locally,
@@ -54,4 +55,13 @@ interface SpaceRepository {
 
     /** Makes [userId], another member, the owner, and the signed-in owner an admin. Throws when it is not allowed. */
     suspend fun transferOwnership(spaceId: String, userId: String)
+
+    /**
+     * Marks the signed-in user away from [from] to [until], both days included, replacing any period they had.
+     * Throws when [until] is before [from] or when the write is refused.
+     */
+    suspend fun setAway(spaceId: String, from: LocalDate, until: LocalDate)
+
+    /** Clears the signed-in user's away period. Throws when the write is refused. */
+    suspend fun clearAway(spaceId: String)
 }

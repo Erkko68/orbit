@@ -3,6 +3,7 @@ package com.orbit.app.data.mapper
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
+import kotlinx.datetime.LocalDate
 import dev.gitlive.firebase.firestore.Timestamp
 
 /**
@@ -31,12 +32,23 @@ internal fun mapMember(
     displayName: String?,
     photoUrl: String?,
     role: String?,
+    awayFrom: String? = null,
+    awayUntil: String? = null,
 ) = Member(
     userId = userId,
     displayName = displayName.orEmpty(),
     photoUrl = photoUrl,
     role = roleOf(role),
+    awayFrom = dateOf(awayFrom),
+    awayUntil = dateOf(awayUntil),
 )
+
+/** A stored day, or none when it is missing or unreadable: a period needs both ends, and then one bad one hides it. */
+private fun dateOf(date: String?): LocalDate? = try {
+    date?.let(LocalDate::parse)
+} catch (_: IllegalArgumentException) {
+    null
+}
 
 /** The role as stored in a member document (ADR 0002). */
 internal fun roleValue(role: Role): String = when (role) {

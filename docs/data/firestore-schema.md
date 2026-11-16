@@ -143,6 +143,7 @@ The email is not stored: it comes from the Firebase Auth account.
 | `photoUrl` | string | no | Copy of the user's profile |
 | `joinedAt` | timestamp | yes | Server time |
 | `invitationCode` | string | only for a member who joined | The invitation that let them in. Written with the join, which the rules check against it; never changed. |
+| `awayFrom`, `awayUntil` | string (`yyyy-MM-dd`) | no, both or neither | The first and last day of the member's away period (#48), one period at a time. Only the member sets or clears them, on their own document; rotation skips them while the period runs (#49). `awayUntil` is not before `awayFrom`. A period already over is kept but not shown. Cleared by deleting both fields. |
 
 ### `spaces/{spaceId}/items/{itemId}`
 

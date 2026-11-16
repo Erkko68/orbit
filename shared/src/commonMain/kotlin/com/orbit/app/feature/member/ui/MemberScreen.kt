@@ -19,15 +19,18 @@ import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.component.memberShape
 import com.orbit.app.core.designsystem.theme.Ink
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import com.orbit.app.feature.item.ui.itemDateLabel
 import com.orbit.app.feature.member.SpaceMember
 import com.orbit.app.feature.member.SpaceMembersViewModel
 import com.orbit.app.feature.member.activity.MemberActivity
+import com.orbit.app.feature.member.away.MemberAway
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.back
 import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.ic_lock
 import orbit.shared.generated.resources.ic_remove
 import orbit.shared.generated.resources.load_failed_body
+import orbit.shared.generated.resources.member_away_until
 import orbit.shared.generated.resources.member_load_failed
 import orbit.shared.generated.resources.member_loading
 import orbit.shared.generated.resources.member_not_found
@@ -70,6 +73,7 @@ fun MemberScreen(
     ) {
         when {
             member != null -> {
+                if (member.isYou) MemberAway(spaceId, userId, Modifier.fillMaxWidth())
                 if (member.canChangeRole) {
                     OrbitActionRow(
                         title = stringResource(Res.string.member_role),
@@ -125,7 +129,9 @@ private fun MemberHeader(member: SpaceMember, spaceName: String, onBack: () -> U
         label = spaceName,
         backDescription = stringResource(Res.string.back),
         onBack = onBack,
-        detail = stringResource(member.role).uppercase(),
+        detail = member.awayUntil?.let {
+            stringResource(Res.string.member_away_until, itemDateLabel(it)).uppercase()
+        } ?: stringResource(member.role).uppercase(),
         leading = {
             OrbitAvatar(
                 initials = member.initials,

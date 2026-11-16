@@ -11,6 +11,7 @@ import com.orbit.app.data.mapper.spaceDocument
 import com.orbit.app.domain.model.JoinError
 import com.orbit.app.domain.model.JoinException
 import com.orbit.app.domain.model.Member
+import com.orbit.app.domain.model.isValidAway
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.AuthRepository
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withTimeout
+import kotlinx.datetime.LocalDate
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.seconds
 
@@ -64,6 +66,8 @@ class FirestoreSpaceRepository(
                     displayName = document.field("displayName"),
                     photoUrl = document.field("photoUrl"),
                     role = document.field("role"),
+                    awayFrom = document.field("awayFrom"),
+                    awayUntil = document.field("awayUntil"),
                 )
             }
         }.retryWhileRefused()
@@ -87,6 +91,30 @@ class FirestoreSpaceRepository(
         require(role != Role.OWNER) { "Ownership moves only through a transfer" }
         val member = firestore.collection(SPACES).document(spaceId).collection(MEMBERS).document(userId)
         writeLocally("Role of $userId in space $spaceId") { member.updateFields { "role" to roleValue(role) } }
+    }
+
+    /** Writes only the two days, on the caller's own member document: the rules let a member change nothing else. */
+    override suspend fun setAway(spaceId: String, from: LocalDate, until: LocalDate) {
+        require(isValidAway(from, until)) { "An away period ends on or after the day it starts" }
+        val user = auth.requireUser()
+        val member = firestore.collection(SPACES).document(spaceId).collection(MEMBERS).document(user.id)
+        writeLocally("Away period of ${user.id} in space $spaceId") {
+            member.updateFields {
+                "awayFrom" to from.toString()
+                "awayUntil" to until.toString()
+            }
+        }
+    }
+
+    override suspend fun clearAway(spaceId: String) {
+        val user = auth.requireUser()
+        val member = firestore.collection(SPACES).document(spaceId).collection(MEMBERS).document(user.id)
+        writeLocally("Clearing the away period of ${user.id} in space $spaceId") {
+            member.updateFields {
+                "awayFrom" to FieldValue.delete
+                "awayUntil" to FieldValue.delete
+            }
+        }
     }
 
     /**

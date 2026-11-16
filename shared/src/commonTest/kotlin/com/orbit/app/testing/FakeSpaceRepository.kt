@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.datetime.LocalDate
 
 /**
  * A space with members in any role, which the in-memory repository cannot build (it only adds owners).
@@ -32,6 +33,17 @@ internal class FakeSpaceRepository(
     override suspend fun changeRole(spaceId: String, userId: String, role: Role) {
         writeFailure?.let { throw it }
         members.update { all -> all.map { if (it.userId == userId) it.copy(role = role) else it } }
+    }
+
+    /** Has no signed-in user: the first member is the one who is away, and [writeFailure] makes it throw. */
+    override suspend fun setAway(spaceId: String, from: LocalDate, until: LocalDate) {
+        writeFailure?.let { throw it }
+        members.update { all -> all.mapIndexed { i, m -> if (i == 0) m.copy(awayFrom = from, awayUntil = until) else m } }
+    }
+
+    override suspend fun clearAway(spaceId: String) {
+        writeFailure?.let { throw it }
+        members.update { all -> all.mapIndexed { i, m -> if (i == 0) m.copy(awayFrom = null, awayUntil = null) else m } }
     }
 
     override suspend fun joinSpace(code: String): String = error("Not used by these tests")

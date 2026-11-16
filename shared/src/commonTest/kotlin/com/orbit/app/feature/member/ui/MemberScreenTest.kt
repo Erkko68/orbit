@@ -25,6 +25,7 @@ import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.testing.startTestKoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.LocalDate
 import org.koin.core.context.stopKoin
 import kotlin.test.AfterTest
 import kotlin.test.Test
@@ -228,4 +229,56 @@ class MemberScreenTest : ComposeTest() {
         assertEquals(3, runBlocking { spaces.observeMembers("space-1").first().size })
     }
 
+    @Test
+    fun onlyYouSeeTheAwayRowOnYourOwnScreen() = runComposeUiTest {
+        showMemberAs("cy@orbit.app", "ben@orbit.app")
+        onNodeWithText("Not away").assertDoesNotExist()
+    }
+
+    @Test
+    fun youMarkYourselfAwayFromTheSheetAndClearIt() = runComposeUiTest {
+        showMemberAs("cy@orbit.app", "cy@orbit.app")
+        onNodeWithText("Not away").assertIsDisplayed()
+
+        onNodeWithText("Not away").performClick()
+        onNodeWithText("Save").performClick()
+        waitForIdle()
+
+        onNodeWithText("Not away").assertDoesNotExist()
+        assertEquals(true, runBlocking { spaces.observeMembers("space-1").first().single { it.userId == "cy@orbit.app" } }.awayUntil != null)
+
+        onNodeWithText("Away").performClick()
+        onNodeWithText("Clear away period").performClick()
+        waitForIdle()
+
+        onNodeWithText("Not away").assertIsDisplayed()
+        assertEquals(null, runBlocking { spaces.observeMembers("space-1").first().single { it.userId == "cy@orbit.app" } }.awayUntil)
+    }
+
+    @Test
+    fun theSheetOpensTheDatePickerAndGoesBack() = runComposeUiTest {
+        showMemberAs("cy@orbit.app", "cy@orbit.app")
+
+        onNodeWithText("Not away").performClick()
+        onNodeWithText("First day").performClick()
+        onNodeWithText("Pick a date").assertIsDisplayed()
+        onNodeWithText("Choose").performScrollTo().performClick()
+        waitForIdle()
+
+        onNodeWithText("Last day").assertExists()
+    }
+
+    @Test
+    fun saysInTheSheetWhenSavingTheAwayPeriodFails() = runComposeUiTest {
+        val offline = object : SpaceRepository by spaces {
+            override suspend fun setAway(spaceId: String, from: LocalDate, until: LocalDate) =
+                error("Could not reach the server")
+        }
+        showMemberAs("cy@orbit.app", "cy@orbit.app", offline)
+
+        onNodeWithText("Not away").performClick()
+        onNodeWithText("Save").performClick()
+
+        onNodeWithText("Could not save the away period. Try again.").assertIsDisplayed()
+    }
 }

@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -124,6 +125,11 @@ class SessionViewModelTest {
         override suspend fun createSpace(name: String, accent: Int): String = error("Not used by these tests")
 
         override suspend fun changeRole(spaceId: String, userId: String, role: Role) = error("Not used by these tests")
+
+        override suspend fun setAway(spaceId: String, from: LocalDate, until: LocalDate) =
+            error("Not used by these tests")
+
+        override suspend fun clearAway(spaceId: String) = error("Not used by these tests")
 
         override suspend fun joinSpace(code: String): String = error("Not used by these tests")
 

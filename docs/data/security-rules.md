@@ -56,6 +56,7 @@ Firebase deploys one rules file and the language has no imports, so the file is 
 | `hasValidSpaceFields`, `keepsOwner`, `addsMembers` | spaces | The name and colour are valid; `ownerId` is unchanged; `memberIds` grew |
 | `joinsSpace`, `leavesSpace`, `transfersOwnership` | spaces | The space half of a join, a leave or a transfer |
 | `isSpaceCreator`, `joinsAsMember`, `keepsJoin` | members | The creator's own owner document; the member half of a join; `invitationCode` and `joinedAt` unchanged |
+| `hasValidAway`, `keepsAway` | members | The away period is both days or none, in order, and only its member writes it |
 | `handsOwnership`, `leaves` | members | The member half of a transfer or a leave |
 | `completesAsSelf` | items | `completedBy` set only to the caller |
 | `keepsCost`, `isCost(cost)` | items | A new or changed `modules.cost` has an expense's shape among the current members (ADR 0014) |
@@ -106,6 +107,7 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 - **Read:** a member.
 - **Create:** the space's creator making their own `owner` membership (in the batch that creates the space), or someone joining (below). An owner or admin cannot add a member directly.
 - **Update:** a member changing their own document without changing their role; the owner changing anyone else between `admin` and `member`; or the member half of a transfer (above). Outside a transfer nobody sets `owner` and the role of the owner never changes. Never the `invitationCode` or `joinedAt`, which are set once with the join.
+- **Away period (#48):** `awayFrom` and `awayUntil` change only on the caller's own document (`keepsAway`), so the owner changing someone's role cannot touch them and nobody sets another member's. A write that leaves them (`hasValidAway`) has both or neither, as `yyyy-MM-dd` strings, the last not before the first.
 - **Delete:** a member leaving (above, not the owner); the owner removing anyone else; an admin removing a plain member.
 - **Name:** a create or update that writes `displayName` keeps it to 30 characters, as for the profile.
 

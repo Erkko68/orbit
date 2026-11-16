@@ -31,6 +31,7 @@ import com.orbit.app.feature.item.ItemViewModel
 import com.orbit.app.feature.item.history.ItemHistoryViewModel
 import com.orbit.app.feature.member.SpaceMembersViewModel
 import com.orbit.app.feature.member.activity.MemberActivityViewModel
+import com.orbit.app.feature.member.away.AwayViewModel
 import com.orbit.app.feature.newspace.NewSpaceViewModel
 import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.feature.space.card.SpaceCardViewModel
@@ -103,6 +104,7 @@ val featureModule = module {
     viewModelOf(::SpaceItemsViewModel)
     viewModelOf(::SpaceCalendarViewModel)
     viewModelOf(::SpaceMembersViewModel)
+    viewModelOf(::AwayViewModel)
     viewModelOf(::InviteViewModel)
     viewModelOf(::MemberActivityViewModel)
     viewModelOf(::SpaceSettingsViewModel)

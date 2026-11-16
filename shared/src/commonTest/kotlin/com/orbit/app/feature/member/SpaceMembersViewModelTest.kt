@@ -2,6 +2,7 @@ package com.orbit.app.feature.member
 
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
+import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.FlakySpaceRepository
@@ -21,6 +22,11 @@ import orbit.shared.generated.resources.members_members
 import orbit.shared.generated.resources.role_admin
 import orbit.shared.generated.resources.role_member
 import orbit.shared.generated.resources.role_owner
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
+import kotlinx.datetime.plus
+import kotlinx.datetime.todayIn
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -28,6 +34,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SpaceMembersViewModelTest {
@@ -362,4 +369,23 @@ class SpaceMembersViewModelTest {
         assertEquals(3, viewModel.uiState.value.members.size)
     }
 
+
+    @Test
+    fun `a member who is away shows when they are back and one whose period is over does not`() = runTest {
+        val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+        val back = today.plus(DatePeriod(days = 3))
+        val spaces = FakeSpaceRepository(
+            Space("space-1", "Flat 4B", accent = 0, memberIds = listOf("ana@orbit.app", "ben@orbit.app", "cy@orbit.app")),
+            listOf(
+                Member("ana@orbit.app", "ana@orbit.app", null, Role.OWNER, today, back),
+                Member("ben@orbit.app", "ben@orbit.app", null, Role.ADMIN, today.minus(DatePeriod(days = 9)), today.minus(DatePeriod(days = 2))),
+                Member("cy@orbit.app", "cy@orbit.app", null, Role.MEMBER),
+            ),
+        )
+        val viewModel = membersViewModel(spaces)
+        val away = viewModel.uiState.value.members.associate { it.id to it.awayUntil }
+        assertEquals(back, away["ana@orbit.app"])
+        assertNull(away["ben@orbit.app"])
+        assertNull(away["cy@orbit.app"])
+    }
 }

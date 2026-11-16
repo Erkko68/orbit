@@ -5,6 +5,7 @@ import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.members_admins
 import orbit.shared.generated.resources.members_members
 import orbit.shared.generated.resources.role_owner
+import kotlinx.datetime.LocalDate
 import org.jetbrains.compose.resources.StringResource
 
 /** The members of a space, and the role change or handover the owner is making. */
@@ -73,4 +74,6 @@ data class SpaceMember(
     val canTakeOwnership: Boolean = false,
     /** The user may take this member out of the space: the owner anyone else, an admin a plain member (#264). */
     val canRemove: Boolean = false,
+    /** The last day of their away period while it runs or is ahead: "Away until 3 Nov" (#48). */
+    val awayUntil: LocalDate? = null,
 )
