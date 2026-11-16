@@ -1,6 +1,7 @@
 package com.orbit.app.testing
 
 import com.orbit.app.data.repository.requireUser
+import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.Completion
 import com.orbit.app.domain.model.Item
@@ -14,6 +15,7 @@ import com.orbit.app.domain.repository.ExpenseRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.domain.usecase.itemCostExpense
+import com.orbit.app.domain.usecase.nextTurn
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -118,10 +120,21 @@ class InMemoryItemRepository(
             val members = checkNotNull(spaces) { "A cost needs the space's members" }.observeMembers(spaceId).first()
             itemCostExpense(item, members.map { it.userId }, Clock.System.todayIn(TimeZone.currentSystemDefault()))
         }
+        val rotation = item.modules.assignment as? Assignment.Rotation
+        val turn = if (next != null && rotation != null) {
+            val members = checkNotNull(spaces) { "A rotation needs the space's members" }.observeMembers(spaceId).first()
+            nextTurn(rotation, members, next.date)
+        } else {
+            null
+        }
         val charged = expense?.let { checkNotNull(ledger) { "A cost needs a ledger" }.add(spaceId, it) }
         edit(spaceId, itemId) {
             if (next != null) {
-                it.copy(modules = it.modules.with(next), costExpenseId = null)
+                val moved = it.modules.with(next)
+                it.copy(
+                    modules = if (turn != null && rotation != null) moved.with(rotation.copy(current = turn)) else moved,
+                    costExpenseId = null,
+                )
             } else {
                 it.copy(status = done, costExpenseId = charged ?: it.costExpenseId)
             }

@@ -344,6 +344,12 @@
     <string name="hide">Nascondi</string>
     <string name="item_who">Chi</string>
     <string name="item_who_empty">Aggiungi chi lo fa</string>
+    <string name="assignment_rotation">A turno</string>
+    <string name="assignment_rotation_hint">Tocca un membro per dargli il turno. Quando finisci l'attività passa al membro successivo nell'ordine che non è assente.</string>
+    <string name="assignment_rotation_add">Aggiungi all'ordine</string>
+    <string name="assignment_move_up">Sposta %1$s prima</string>
+    <string name="assignment_move_down">Sposta %1$s dopo</string>
+    <string name="item_who_rotation">Turno di %1$s</string>
     <string name="item_when">Quando</string>
     <string name="item_reminder">Promemoria</string>
     <string name="item_checklist">Lista</string>

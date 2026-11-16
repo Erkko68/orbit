@@ -578,6 +578,54 @@ class ItemScreenTest : ComposeTest() {
         assertEquals(Assignment.Anyone, updated.modules.assignment)
     }
 
+    private fun assignmentOf(id: String) =
+        runBlocking { items.observeItems("space-1").first().single { it.id == id } }.modules.assignment
+
+    @Test
+    fun theSheetMakesTheMembersTakeTurnsAndPassesTheTurnOn() = runComposeUiTest {
+        val id = createItem(NewItem("Bins", modules = ItemModules(assignment = Assignment.ToMembers(setOf("ana")))))
+        val viewModel = model(id, items)
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
+
+        runOnIdle { viewModel.openMemberPicker() }
+        onNodeWithText("Take turns").performScrollTo().performClick()
+        waitForIdle()
+        assertEquals(Assignment.Rotation(listOf("ana", "mika"), "ana"), assignmentOf(id))
+        onNodeWithText("Tap a member to give them the turn", substring = true).assertExists()
+
+        onNodeWithText("Mika").performScrollTo().performClick()
+        waitForIdle()
+        assertEquals(Assignment.Rotation(listOf("ana", "mika"), "mika"), assignmentOf(id))
+    }
+
+    @Test
+    fun theSheetReordersTheTurnsAndStopsThem() = runComposeUiTest {
+        val order = listOf("ana", "mika")
+        val id = createItem(NewItem("Bins", modules = ItemModules(assignment = Assignment.Rotation(order, "ana"))))
+        val viewModel = model(id, items)
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
+
+        runOnIdle { viewModel.openMemberPicker() }
+        onNodeWithContentDescription("Move Mika earlier").performScrollTo().performClick()
+        waitForIdle()
+        assertEquals(Assignment.Rotation(listOf("mika", "ana"), "ana"), assignmentOf(id))
+        onNodeWithContentDescription("Move Mika later").performScrollTo().assertExists()
+
+        onNodeWithText("Take turns").performScrollTo().performClick()
+        waitForIdle()
+        assertEquals(Assignment.ToMembers(setOf("ana")), assignmentOf(id))
+    }
+
+    @Test
+    fun theWhoRowSaysWhoseTurnItIs() = runComposeUiTest {
+        val order = listOf("ana", "mika")
+        val id = createItem(NewItem("Bins", modules = ItemModules(assignment = Assignment.Rotation(order, "mika"))))
+        val viewModel = model(id, items)
+        setContent { OrbitTheme { ItemScreen("space-1", id, {}, viewModel = viewModel) } }
+
+        onNodeWithText("Mika's turn").assertExists()
+    }
+
     @Test
     fun aDateIsAddedFromItsRow() = runComposeUiTest {
         val id = createItem(NewItem("Task"))

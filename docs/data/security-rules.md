@@ -150,7 +150,7 @@ is a non-empty map of booleans that covers every `split` key, and its keys are c
 Rules cannot loop, and some checks cost a document read per write. These are left to the app, where the domain validates before writing (`validateItem`, `validateExpense`):
 
 - The shape of each module (dates, modes, entries). An unknown or malformed module is skipped when read, never trusted.
-- That `assignment.assigneeId` is a member.
+- That `assignment.assigneeIds` are members, and that a `rotation` holds two or more different members with the current one among them.
 - That an expense's payer and shares belong to members, and that each share is above zero. Rules cannot loop over a split, and members who left keep their shares. Balances credit the payer with the sum of the shares, so a bad document cannot create money (ADR 0003).
 - The `users/{uid}` fields, apart from the length of `displayName`.
 - The size of a space: the plan cap of 8 members is not enforced, so a valid invitation fills a space past it.

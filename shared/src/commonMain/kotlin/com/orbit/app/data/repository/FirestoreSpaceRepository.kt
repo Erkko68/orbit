@@ -3,7 +3,6 @@ package com.orbit.app.data.repository
 import co.touchlab.kermit.Logger
 import com.orbit.app.data.mapper.joiningMemberDocument
 import com.orbit.app.data.mapper.mapInvitation
-import com.orbit.app.data.mapper.mapMember
 import com.orbit.app.data.mapper.mapSpace
 import com.orbit.app.data.mapper.ownerMemberDocument
 import com.orbit.app.data.mapper.roleValue
@@ -60,16 +59,7 @@ class FirestoreSpaceRepository(
      */
     override fun observeMembers(spaceId: String): Flow<List<Member>> =
         firestore.collection(SPACES).document(spaceId).collection(MEMBERS).snapshots.map { snapshot ->
-            snapshot.documents.map { document ->
-                mapMember(
-                    userId = document.id,
-                    displayName = document.field("displayName"),
-                    photoUrl = document.field("photoUrl"),
-                    role = document.field("role"),
-                    awayFrom = document.field("awayFrom"),
-                    awayUntil = document.field("awayUntil"),
-                )
-            }
+            snapshot.documents.map { it.toMember() }
         }.retryWhileRefused()
 
     /**

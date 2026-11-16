@@ -122,13 +122,38 @@ class ItemMapperTest {
 
     @Test
     fun everyAssignmentModeReadsBackAsWritten() {
-        val assignments = listOf(Assignment.ToMembers(setOf("ben", "ana")), Assignment.Anyone)
+        val assignments = listOf(
+            Assignment.ToMembers(setOf("ben", "ana")),
+            Assignment.Anyone,
+            Assignment.Rotation(listOf("ana", "ben", "cy"), current = "ben"),
+        )
 
         val read = assignments.map {
             mapItem("item-1", storedModules(ItemModules(assignment = it)))?.modules?.assignment
         }
 
         assertEquals(assignments, read)
+    }
+
+    @Test
+    fun aRotationIsStoredWithItsOrderAndTheOneMemberWhoseTurnItIs() {
+        val document = assignmentDocument(Assignment.Rotation(listOf("ana", "ben"), current = "ben"))
+
+        assertEquals("rotation", document.mode)
+        assertEquals(listOf("ben"), document.assigneeIds)
+        assertEquals(listOf("ana", "ben"), document.rotation)
+    }
+
+    @Test
+    fun aRotationThatDoesNotHoldTogetherReadsAsTheMemberWhoseTurnItIs() {
+        val broken = stored.copy(
+            moduleKeys = setOf("assignment"),
+            modules = ModulesDocument(
+                assignment = AssignmentDocument("rotation", assigneeIds = listOf("ben"), rotation = listOf("ana")),
+            ),
+        )
+
+        assertEquals(Assignment.ToMembers(setOf("ben")), mapItem("item-1", broken)?.modules?.assignment)
     }
 
     @Test
@@ -182,7 +207,7 @@ class ItemMapperTest {
             moduleKeys = setOf("schedule", "assignment", "cost"),
             modules = ModulesDocument(
                 schedule = ScheduleDocument("2026-10-09"),
-                assignment = AssignmentDocument("rotation", assigneeId = "ben"),
+                assignment = AssignmentDocument("relay", assigneeId = "ben"),
             ),
         )
 

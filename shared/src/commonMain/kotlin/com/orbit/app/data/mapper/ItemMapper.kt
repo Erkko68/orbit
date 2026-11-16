@@ -76,6 +76,7 @@ internal fun recurrenceDocument(recurrence: Recurrence): RecurrenceDocument {
 internal fun assignmentDocument(assignment: Assignment) = when (assignment) {
     is Assignment.ToMembers -> AssignmentDocument("member", assignment.assigneeIds.toList())
     Assignment.Anyone -> AssignmentDocument("anyone")
+    is Assignment.Rotation -> AssignmentDocument("rotation", listOf(assignment.current), rotation = assignment.order)
 }
 
 /** Entries keyed by id, their list position kept in `order`. */
@@ -174,8 +175,16 @@ private fun assignmentOf(document: AssignmentDocument): Assignment? {
         "member" -> Assignment.ToMembers(members).takeIf { members.isNotEmpty() }
         "anyone" -> Assignment.Anyone
         "claim" -> if (members.isEmpty()) Assignment.Anyone else Assignment.ToMembers(members)
+        // A rotation that does not hold together still has someone's turn: it reads as theirs.
+        "rotation" -> rotationOf(document, members) ?: Assignment.ToMembers(members).takeIf { members.isNotEmpty() }
         else -> null
     }
+}
+
+private fun rotationOf(document: AssignmentDocument, current: Set<String>): Assignment.Rotation? {
+    val order = document.rotation.orEmpty()
+    val turn = current.singleOrNull() ?: return null
+    return Assignment.Rotation(order, turn).takeIf { order.size >= 2 && order.distinct() == order && turn in order }
 }
 
 /** Entries without text are left by a tick on a removed entry, and skipped. */

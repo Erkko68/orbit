@@ -72,6 +72,7 @@ import orbit.shared.generated.resources.item_when
 import orbit.shared.generated.resources.item_who
 import orbit.shared.generated.resources.item_who_empty
 import orbit.shared.generated.resources.list_add_entry
+import orbit.shared.generated.resources.item_who_rotation
 import orbit.shared.generated.resources.module_assignment_anyone
 import orbit.shared.generated.resources.module_checklist_quantity
 import orbit.shared.generated.resources.retry
@@ -294,6 +295,10 @@ private fun ItemActionRow(row: ItemRow, state: ItemUiState, viewModel: ItemViewM
             title = stringResource(Res.string.item_who),
             supporting = when {
                 state.isAnyones -> stringResource(Res.string.module_assignment_anyone)
+                state.rotation != null -> stringResource(
+                    Res.string.item_who_rotation,
+                    state.assigneeFaces.joinToString { it.name },
+                )
                 state.assigneeFaces.isEmpty() -> stringResource(Res.string.item_who_empty)
                 else -> state.assigneeFaces.joinToString { it.name }
             },

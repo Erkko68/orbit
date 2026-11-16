@@ -38,6 +38,7 @@ import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.usecase.itemCostExpense
+import com.orbit.app.domain.usecase.nextTurn
 import dev.gitlive.firebase.firestore.Direction
 import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FieldPath
@@ -171,6 +172,14 @@ class FirestoreItemRepository(
             val members = checkNotNull(space.field<List<String>>("memberIds")) { "No members in $spaceId" }
             itemCostExpense(item, members, Clock.System.todayIn(TimeZone.currentSystemDefault()))
         }
+        // A rotation passes the item on with the roll-forward, to whoever is not away on the next occurrence.
+        val rotation = item.modules.assignment as? Assignment.Rotation
+        val turn = if (next != null && rotation != null) {
+            val members = firestore.collection(SPACES).document(spaceId).collection(MEMBERS).get(Source.CACHE)
+            nextTurn(rotation, members.documents.map { it.toMember() }, next.date)
+        } else {
+            null
+        }
         val charge = firestore.collection(SPACES).document(spaceId).collection(EXPENSES).document
         val batch = firestore.batch()
         batch.updateFields(items(spaceId).document(itemId)) {
@@ -179,6 +188,7 @@ class FirestoreItemRepository(
                 FieldPath(MODULES, moduleKey(ModuleType.SCHEDULE)).to(ScheduleDocument.serializer(), scheduleDocument(next))
                 // The next occurrence is charged again.
                 FieldPath(COST_EXPENSE_ID) to FieldValue.delete
+                if (turn != null) FieldPath(MODULES, moduleKey(ModuleType.ASSIGNMENT), "assigneeIds") to listOf(turn)
             } else {
                 FieldPath(STATUS) to STATUS_DONE
                 FieldPath(COMPLETED_BY) to userId

@@ -151,6 +151,18 @@ data class ItemUiState(
 
     val isAnyones: Boolean get() = assignment == Assignment.Anyone
 
+    /** The members take turns (ADR 0015). */
+    val rotation: Assignment.Rotation? get() = assignment as? Assignment.Rotation
+    val isRotating: Boolean get() = rotation != null
+
+    /** The members in the order of the rotation, the ones who left left out. */
+    val rotationFaces: List<ItemFace>
+        get() = rotation?.order.orEmpty().mapNotNull { id -> memberFaces.firstOrNull { it.id == id } }
+
+    /** The members the rotation does not have yet. */
+    val outsideRotationFaces: List<ItemFace>
+        get() = memberFaces.filter { face -> rotation?.order?.contains(face.id) == false }
+
     private val checklist: Checklist? get() = modules.filterIsInstance<Checklist>().firstOrNull()
     private val entries: List<ChecklistEntry> get() = checklist?.entries.orEmpty()
 
