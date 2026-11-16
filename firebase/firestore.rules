@@ -210,6 +210,22 @@ service cloud.firestore {
           return !changedKeys().hasAny(['invitationCode', 'joinedAt']);
         }
 
+        // The away period (#48): two ISO days, both or neither, the last not before the first. Only the member
+        // themselves sets or clears it, on their own document, so an owner changing a role never touches it.
+        function hasValidAway() {
+          let data = request.resource.data;
+          return (!('awayFrom' in data) && !('awayUntil' in data))
+            || (data.get('awayFrom', null) is string && data.get('awayUntil', null) is string
+              && data.awayFrom.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+              && data.awayUntil.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+              && data.awayFrom <= data.awayUntil);
+        }
+
+        function keepsAway() {
+          return !changedKeys().hasAny(['awayFrom', 'awayUntil'])
+            || (request.auth.uid == memberId && hasValidAway());
+        }
+
         // The member half of a transfer, which changes nothing but roles: the admin the space now names
         // becomes owner, and the owner becomes an admin. Neither stands alone: each needs the other and the
         // new ownerId.
@@ -240,7 +256,7 @@ service cloud.firestore {
         );
         // A member edits their own profile copy and the role stays. Only the owner sets the role of anyone
         // else to admin or member: an admin makes no admins. Nobody becomes owner this way: only a transfer does.
-        allow update: if fitsName() && keepsJoin() && (
+        allow update: if fitsName() && keepsJoin() && keepsAway() && (
           (isMember(spaceId) && request.auth.uid == memberId && request.resource.data.role == resource.data.role) ||
           (isOwner(spaceId) && resource.data.role != 'owner' && request.resource.data.role in ['admin', 'member']) ||
           handsOwnership()

@@ -1,7 +1,7 @@
 import { describe, it, beforeEach } from 'node:test';
 import assert from 'node:assert';
 import { assertFails, assertSucceeds } from '@firebase/rules-unit-testing';
-import { serverTime, testEnv } from './setup.js';
+import { firebase, serverTime, testEnv } from './setup.js';
 
 describe('Members subcollection', () => {
   beforeEach(async () => {
@@ -202,5 +202,47 @@ describe('Members subcollection', () => {
       aliceDb.collection('spaces').doc('s1').collection('members').doc('bob').delete()
     );
     assert.ok(!removeAdmin);
+  });
+
+  describe('away period (#48)', () => {
+    const away = (uid, who) =>
+      testEnv.authenticatedContext(uid).firestore().collection('spaces').doc('s1').collection('members').doc(who);
+
+    it('lets a member set and clear only their own away days', async () => {
+      await assertSucceeds(away('charlie', 'charlie').update({ awayFrom: '2026-11-20', awayUntil: '2026-11-27' }));
+      await assertSucceeds(away('charlie', 'charlie').update({ awayUntil: '2026-11-30' }));
+      await assertSucceeds(away('charlie', 'charlie').update({
+        awayFrom: firebase.firestore.FieldValue.delete(),
+        awayUntil: firebase.firestore.FieldValue.delete(),
+      }));
+    });
+
+    it('lets the owner and an admin set their own away days too', async () => {
+      await assertSucceeds(away('alice', 'alice').update({ awayFrom: '2026-11-20', awayUntil: '2026-11-20' }));
+      await assertSucceeds(away('bob', 'bob').update({ awayFrom: '2026-11-20', awayUntil: '2026-11-21' }));
+    });
+
+    it('denies setting the away days of someone else, owner and admin included', async () => {
+      const period = { awayFrom: '2026-11-20', awayUntil: '2026-11-27' };
+      await assertFails(away('alice', 'charlie').update(period));
+      await assertFails(away('bob', 'charlie').update(period));
+      await assertFails(away('charlie', 'alice').update(period));
+    });
+
+    it('denies the owner changing a role and the away days of a member in one write', async () => {
+      await assertFails(away('alice', 'charlie').update({ role: 'admin', awayFrom: '2026-11-20', awayUntil: '2026-11-27' }));
+      await assertSucceeds(away('alice', 'charlie').update({ role: 'admin' }));
+    });
+
+    it('denies a period that is half set, ends before it starts or is not a day', async () => {
+      await assertFails(away('charlie', 'charlie').update({ awayFrom: '2026-11-20' }));
+      await assertFails(away('charlie', 'charlie').update({ awayFrom: '2026-11-27', awayUntil: '2026-11-20' }));
+      await assertFails(away('charlie', 'charlie').update({ awayFrom: 'tomorrow', awayUntil: 'next week' }));
+      await assertFails(away('charlie', 'charlie').update({ awayFrom: 20261120, awayUntil: 20261127 }));
+    });
+
+    it('denies a member changing their role together with their away days', async () => {
+      await assertFails(away('charlie', 'charlie').update({ role: 'admin', awayFrom: '2026-11-20', awayUntil: '2026-11-27' }));
+    });
   });
 });
