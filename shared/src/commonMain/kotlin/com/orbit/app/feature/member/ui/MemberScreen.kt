@@ -19,7 +19,7 @@ import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.component.memberShape
 import com.orbit.app.core.designsystem.theme.Ink
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.feature.item.ui.itemDateLabel
+import com.orbit.app.core.dateLabel
 import com.orbit.app.feature.member.SpaceMember
 import com.orbit.app.feature.member.SpaceMembersViewModel
 import com.orbit.app.feature.member.activity.MemberActivity
@@ -130,7 +130,7 @@ private fun MemberHeader(member: SpaceMember, spaceName: String, onBack: () -> U
         backDescription = stringResource(Res.string.back),
         onBack = onBack,
         detail = member.awayUntil?.let {
-            stringResource(Res.string.member_away_until, itemDateLabel(it)).uppercase()
+            stringResource(Res.string.member_away_until, dateLabel(it)).uppercase()
         } ?: stringResource(member.role).uppercase(),
         leading = {
             OrbitAvatar(

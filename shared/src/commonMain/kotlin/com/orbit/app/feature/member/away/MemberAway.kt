@@ -13,7 +13,7 @@ import com.orbit.app.core.designsystem.component.OrbitSheet
 import com.orbit.app.core.designsystem.component.OrbitSheetPages
 import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.core.designsystem.theme.OrbitShape
-import com.orbit.app.feature.item.ui.itemDateLabel
+import com.orbit.app.core.dateLabel
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.back
 import orbit.shared.generated.resources.close
@@ -48,7 +48,7 @@ internal fun MemberAway(
     if (state.loading) return
     OrbitActionRow(
         title = stringResource(Res.string.member_away),
-        supporting = state.until?.let { stringResource(Res.string.member_away_until, itemDateLabel(it)) }
+        supporting = state.until?.let { stringResource(Res.string.member_away_until, dateLabel(it)) }
             ?: stringResource(if (state.loadFailed) Res.string.member_away_load_failed else Res.string.member_away_none),
         icon = Res.drawable.ic_event,
         shape = OrbitShape.Sunny,
@@ -80,7 +80,7 @@ private fun AwaySheet(state: AwayUiState, viewModel: AwayViewModel) {
                         title = stringResource(
                             if (end == AwayEnd.FROM) Res.string.member_away_from else Res.string.member_away_last,
                         ),
-                        supporting = day?.let { itemDateLabel(it) },
+                        supporting = day?.let { dateLabel(it) },
                         icon = Res.drawable.ic_event,
                         shape = if (end == AwayEnd.FROM) OrbitShape.Cookie else OrbitShape.Clover,
                         onClick = { viewModel.pick(end) },

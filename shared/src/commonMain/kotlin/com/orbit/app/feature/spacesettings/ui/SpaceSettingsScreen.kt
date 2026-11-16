@@ -26,7 +26,7 @@ import com.orbit.app.core.designsystem.component.memberShape
 import com.orbit.app.core.designsystem.theme.OrbitShape
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.share.TextSharer
-import com.orbit.app.feature.item.ui.itemDateLabel
+import com.orbit.app.core.dateLabel
 import com.orbit.app.feature.member.SpaceMember
 import com.orbit.app.feature.member.SpaceMembersViewModel
 import com.orbit.app.feature.spacesettings.SpaceSettingsUiState
@@ -218,7 +218,7 @@ private fun MemberRow(member: SpaceMember, onOpen: (String) -> Unit) {
                 style = MaterialTheme.typography.titleMedium,
             )
             Text(
-                text = member.awayUntil?.let { stringResource(Res.string.member_away_until, itemDateLabel(it)) }
+                text = member.awayUntil?.let { stringResource(Res.string.member_away_until, dateLabel(it)) }
                     ?: stringResource(member.role),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -14,7 +14,7 @@ import com.orbit.app.core.designsystem.component.OrbitGroupRow
 import com.orbit.app.core.designsystem.component.OrbitSectionHeader
 import com.orbit.app.core.designsystem.component.memberShape
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.feature.item.ui.itemDateLabel
+import com.orbit.app.core.dateLabel
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.item_history
 import orbit.shared.generated.resources.item_history_completed
@@ -52,7 +52,7 @@ internal fun ItemHistory(
                 Column(Modifier.weight(1f)) {
                     Text(historyLine(entry), style = MaterialTheme.typography.titleMedium)
                     Text(
-                        text = stringResource(Res.string.module_schedule_time, itemDateLabel(entry.date), entry.time.toString()),
+                        text = stringResource(Res.string.module_schedule_time, dateLabel(entry.date), entry.time.toString()),
                         style = OrbitTheme.data.small,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

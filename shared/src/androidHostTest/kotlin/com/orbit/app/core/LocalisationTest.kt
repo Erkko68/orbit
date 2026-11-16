@@ -9,7 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
-import com.orbit.app.feature.item.ui.itemDateLabel
+import com.orbit.app.core.dateLabel
 import kotlinx.datetime.LocalDate
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.duration_days
@@ -99,7 +99,7 @@ class LocalisationTest : ComposeTest() {
                         Text(stringResource(Res.string.sign_in))
                         Text(pluralStringResource(Res.plurals.duration_days, 1, 1))
                         Text(pluralStringResource(Res.plurals.duration_days, 2, 2))
-                        Text(itemDateLabel(LocalDate(2026, 1, 12)))
+                        Text(dateLabel(LocalDate(2026, 1, 12)))
                         Text(stringResource(Res.string.expenses_receives))
                         Text(stringResource(Res.string.expenses_pays))
                         Text(stringResource(Res.string.expenses_even))
