@@ -30,7 +30,7 @@ You need **JDK 17+**, **Android Studio** or **IntelliJ IDEA** with the Kotlin Mu
 | Test the Firestore rules | From `firebase/`: `npm ci`, then `npx firebase emulators:exec --only firestore "npm test"` |
 | Test the assistant server | From `server/`: `pip install -r requirements-dev.txt`, then `pytest` |
 
-**The assistant** needs its own server ([ADR 0007](docs/adr/0007-assistant-on-our-own-server.md)). From `server/`, put `FIREBASE_API_KEY=…` in a `.env` file, run `docker compose up -d --build`, then once `docker compose exec ollama ollama pull gemma4:e2b`, and put HTTPS in front of port 8080. The app calls `ASSISTANT_SERVER_URL` in `ServerAssistantRepository.kt`, a placeholder until the server has an address. Without it, everything but the assistant works, and its manual path always does.
+**The assistant** needs its own server ([ADR 0007](docs/adr/0007-assistant-on-our-own-server.md)). From `server/`, put `FIREBASE_API_KEY=…` in a `.env` file, run `docker compose up -d --build`, then once `docker compose exec ollama ollama pull gemma4:e2b`, and put HTTPS in front of port 8080. The app calls `ASSISTANT_SERVER_URL` in `ServerAssistantRepository.kt`, set to `https://orbit.biri.es` (the Cloudflare tunnel to our server); change it there if the address moves. Without it, everything but the assistant works, and its manual path always does.
 
 **Google sign-in on Android** needs your debug key's SHA-1 added to the Firebase Android app; without it, the sign-in fails with `NoCredentialException`.
 
