@@ -439,4 +439,17 @@
     <string name="expense_open_item">Apri l’attività che ha creato questa spesa</string>
     <!-- Checklist to expense (#60) -->
     <string name="checklist_add_expense">Aggiungi come spesa</string>
+    <!-- Plan review board (#75) -->
+    <string name="plan_title">Rivedi il piano</string>
+    <string name="plan_proposed">Proposto</string>
+    <string name="plan_accepted_count">%1$d di %2$d accettate</string>
+    <string name="plan_accept_all">Accetta tutto</string>
+    <string name="plan_accept_named">Accetta %1$s</string>
+    <string name="plan_unaccept_named">Annulla l'accettazione di %1$s</string>
+    <string name="plan_empty">Niente da rivedere</string>
+    <string name="plan_empty_body">Il piano non ha più proposte. Torna indietro per aggiungere le cose a mano o chiedi di nuovo all'assistente.</string>
+    <string name="plan_done">Fatto</string>
+    <string name="plan_remove">Rimuovi</string>
+    <string name="plan_remove_title">Rimuovere dal piano?</string>
+    <string name="plan_remove_body">Non verrà aggiunto allo spazio.</string>
 </resources>

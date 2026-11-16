@@ -439,4 +439,17 @@
     <string name="expense_open_item">Obre l’activitat que ha creat aquesta despesa</string>
     <!-- Checklist to expense (#60) -->
     <string name="checklist_add_expense">Afegeix com a despesa</string>
+    <!-- Plan review board (#75) -->
+    <string name="plan_title">Revisa el pla</string>
+    <string name="plan_proposed">Proposat</string>
+    <string name="plan_accepted_count">%1$d de %2$d acceptades</string>
+    <string name="plan_accept_all">Accepta-ho tot</string>
+    <string name="plan_accept_named">Accepta %1$s</string>
+    <string name="plan_unaccept_named">Desfés l'acceptació de %1$s</string>
+    <string name="plan_empty">Res per revisar</string>
+    <string name="plan_empty_body">El pla ja no té propostes. Torna enrere per afegir coses a mà o torna a preguntar a l'assistent.</string>
+    <string name="plan_done">Fet</string>
+    <string name="plan_remove">Treu</string>
+    <string name="plan_remove_title">Vols treure-ho del pla?</string>
+    <string name="plan_remove_body">No s'afegirà a l'espai.</string>
 </resources>

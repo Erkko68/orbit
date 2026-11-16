@@ -16,8 +16,6 @@ import com.orbit.app.domain.usecase.splitByWeights
 import com.orbit.app.domain.usecase.splitEqually
 import com.orbit.app.feature.item.ItemFace
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
 
 enum class ExpenseSplit { EQUAL, EXACT, PERCENTAGES, WEIGHTS }
 
@@ -98,7 +96,6 @@ data class ExpenseUiState(
     val currencyPrefix: String? get() = EURO.takeIf { euroBeforeAmount() }
     val currencySuffix: String? get() = EURO.takeUnless { euroBeforeAmount() }
     val payer: ItemFace? get() = people.firstOrNull { it.id == paidBy }
-    val dateMillis: Long? get() = date?.atStartOfDayIn(TimeZone.UTC)?.toEpochMilliseconds()
     val cents: Long? get() = parseMoney(amount, locale)?.takeIf { it > 0 }
 
     /** What the empty amount shows: nothing yet, written the way the device writes money. */

@@ -115,7 +115,7 @@ fun ExpenseScreen(
             closeDescription = stringResource(Res.string.close),
             onDismiss = viewModel::dismissDatePicker,
         ) {
-            OrbitDatePicker(state.dateMillis, stringResource(Res.string.schedule_pick), viewModel::pickDate)
+            OrbitDatePicker(state.date, stringResource(Res.string.schedule_pick), viewModel::pickDate)
         }
     }
     if (state.deleteOpen) {

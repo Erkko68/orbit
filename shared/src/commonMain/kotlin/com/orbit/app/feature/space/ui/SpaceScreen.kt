@@ -36,8 +36,6 @@ import orbit.shared.generated.resources.spaces_loading
 import orbit.shared.generated.resources.spaces_new
 import orbit.shared.generated.resources.spaces_section
 import orbit.shared.generated.resources.spaces_setup_assistant
-import orbit.shared.generated.resources.spaces_create_manually
-import orbit.shared.generated.resources.spaces_join_title
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -94,8 +92,8 @@ fun SpaceScreen(
             )
             OrbitCard(Modifier.fillMaxWidth()) {
                 OrbitButton(stringResource(Res.string.spaces_setup_assistant), onOpenAssistant, Modifier.fillMaxWidth())
-                OrbitTonalButton(stringResource(Res.string.spaces_create_manually), onNewSpace, Modifier.fillMaxWidth())
-                OrbitTonalButton(stringResource(Res.string.spaces_join_title), onNewSpace, Modifier.fillMaxWidth())
+                // Creating by hand and joining are both on the New space screen: one way there.
+                OrbitTonalButton(stringResource(Res.string.spaces_new), onNewSpace, Modifier.fillMaxWidth())
             }
         }
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {

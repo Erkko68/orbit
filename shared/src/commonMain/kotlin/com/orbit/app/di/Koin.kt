@@ -1,6 +1,7 @@
 package com.orbit.app.di
 
 import com.orbit.app.core.PendingInvitation
+import com.orbit.app.core.PlanDraft
 import com.orbit.app.core.notification.ReminderSync
 import com.orbit.app.core.notification.permission.NotificationPermissionViewModel
 import com.orbit.app.data.repository.FirebaseAuthRepository
@@ -33,6 +34,7 @@ import com.orbit.app.feature.member.SpaceMembersViewModel
 import com.orbit.app.feature.member.activity.MemberActivityViewModel
 import com.orbit.app.feature.member.away.AwayViewModel
 import com.orbit.app.feature.newspace.NewSpaceViewModel
+import com.orbit.app.feature.planreview.PlanReviewViewModel
 import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.feature.space.card.SpaceCardViewModel
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
@@ -86,8 +88,10 @@ val featureModule = module {
     viewModelOf(::ExpenseViewModel)
     viewModelOf(::SpaceExpensesViewModel)
     single { PendingInvitation() }
+    single { PlanDraft() }
     viewModelOf(::AccountViewModel)
     viewModelOf(::InterviewViewModel)
+    viewModelOf(::PlanReviewViewModel)
     viewModelOf(::DictationViewModel)
     viewModelOf(::AiConsentViewModel)
     viewModelOf(::SessionViewModel)

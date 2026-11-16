@@ -32,10 +32,9 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import com.orbit.app.feature.item.ItemFace
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
-import kotlin.time.Instant
 import kotlin.time.Clock
 
 /**
@@ -68,9 +67,8 @@ class ExpenseViewModel(
         if (expenseId.isEmpty()) flowOf(emptyList<Expense>()) else expenses.observeExpenses(spaceId),
         auth.session,
         when {
-            // The item whose cost this is: what the screen is about.
-            itemId.isNotEmpty() -> items.observeItems(spaceId)
-            sourceItemId.isNotEmpty() -> items.observeItems(spaceId)
+            // The item whose cost this is, or whose checklist it buys: what the screen is about.
+            itemId.isNotEmpty() || sourceItemId.isNotEmpty() -> items.observeItems(spaceId)
             // Only names the item an expense came from.
             expenseId.isNotEmpty() -> items.observeItems(spaceId).onStart { emit(emptyList()) }
                 .orOnFailure("Loading the item of expense $expenseId", emptyList())
@@ -163,10 +161,7 @@ class ExpenseViewModel(
     fun openDatePicker() = edit { it.copy(pickingDate = true) }
     fun dismissDatePicker() = edit { it.copy(pickingDate = false) }
 
-    /** The calendar gives the day as UTC midnight. */
-    fun pickDate(utcMillis: Long) = edit {
-        it.copy(date = Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date, pickingDate = false)
-    }
+    fun pickDate(day: LocalDate) = edit { it.copy(date = day, pickingDate = false) }
 
     /**
      * Custom amounts and percentages start from the split on screen (#55's simple conversion, so a round trip may move

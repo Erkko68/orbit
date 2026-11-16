@@ -9,8 +9,6 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlin.time.Duration.Companion.minutes
 
@@ -121,7 +119,8 @@ data class ScheduleEditor(
     /** The hour and the minute the time picker opens on: the time set, or the top of the morning without one. */
     val pickerTime: LocalTime get() = parsedTime ?: DefaultPickerTime
 
-    private val pickerDate: LocalDate?
+    /** The date the picker opens on. */
+    val pickerDate: LocalDate?
         get() = when (picking) {
             ScheduleDate.START -> date
             ScheduleDate.END -> endDate
@@ -137,14 +136,11 @@ data class ScheduleEditor(
             else -> today
         }
 
-    /** The date the picker opens on, as the UTC midnight millis M3's date picker takes. */
-    val pickerMillis: Long? get() = pickerDate?.utcMillis()
-
     /** The calendar's years. A date already in the past stays in them, since M3 refuses to open on a year it does not list. */
     val pickerYears: IntRange get() = minOf(pickerEarliest, pickerDate ?: pickerEarliest).year..LAST_YEAR
 
-    /** A day the calendar lets the user pick, as UTC midnight millis: a valid one, or the one it opened on. */
-    fun canPick(utcMillis: Long): Boolean = utcMillis >= pickerEarliest.utcMillis() || utcMillis == pickerMillis
+    /** A day the calendar lets the user pick: a valid one, or the one it opened on. */
+    fun canPick(day: LocalDate): Boolean = day >= pickerEarliest || day == pickerDate
 
     fun canPickYear(year: Int): Boolean = year >= pickerEarliest.year
 
@@ -182,8 +178,6 @@ enum class ScheduleDate { START, END, UNTIL }
 enum class RepeatUnit { DAYS, WEEKS, MONTHS, YEARS }
 
 private fun LocalDate.nextDay() = plus(DatePeriod(days = 1))
-
-private fun LocalDate.utcMillis() = atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
 
 private val TIME = Regex("""(\d{1,2}):(\d{2})""")
 

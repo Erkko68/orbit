@@ -14,6 +14,7 @@ import androidx.compose.material3.TimePickerDefaults
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.orbit.app.core.dateLabel
 import com.orbit.app.core.designsystem.component.OrbitActionRow
 import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitDatePicker
@@ -151,7 +152,7 @@ private fun ScheduleForm(editor: ScheduleEditor, state: ItemUiState, viewModel: 
             onClick = { viewModel.setScheduleWindow(true) },
         )
     }
-    val start = itemDateLabel(editor.date)
+    val start = dateLabel(editor.date)
     val rows = listOfNotNull(
         ScheduleRow(
             title = stringResource(if (editor.window) Res.string.schedule_from else Res.string.schedule_on, start),
@@ -162,7 +163,7 @@ private fun ScheduleForm(editor: ScheduleEditor, state: ItemUiState, viewModel: 
         ),
         if (editor.window) {
             ScheduleRow(
-                title = stringResource(Res.string.schedule_to, itemDateLabel(editor.endDate)),
+                title = stringResource(Res.string.schedule_to, dateLabel(editor.endDate)),
                 icon = Res.drawable.ic_event,
                 shape = OrbitShape.Clover,
                 set = true,
@@ -267,7 +268,7 @@ private fun CustomRepeatPage(editor: ScheduleEditor, viewModel: ItemViewModel) {
             RepeatRow.WEEKDAYS -> WeekdaysRow(editor, viewModel)
             RepeatRow.ENDS -> OrbitActionRow(
                 title = stringResource(Res.string.repeat_ends),
-                supporting = editor.repeatUntil?.let { itemDateLabel(it) } ?: stringResource(Res.string.repeat_never),
+                supporting = editor.repeatUntil?.let { dateLabel(it) } ?: stringResource(Res.string.repeat_never),
                 icon = Res.drawable.ic_event,
                 shape = OrbitShape.Clover,
                 onClick = { viewModel.pickScheduleDate(ScheduleDate.UNTIL) },
@@ -367,7 +368,7 @@ private fun DurationRow(editor: ScheduleEditor, viewModel: ItemViewModel) {
 @Composable
 private fun ScheduleDatePage(editor: ScheduleEditor, viewModel: ItemViewModel) {
     OrbitDatePicker(
-        selectedMillis = editor.pickerMillis,
+        selected = editor.pickerDate,
         pickText = stringResource(Res.string.schedule_pick),
         onPick = viewModel::onScheduleDatePicked,
         years = editor.pickerYears,

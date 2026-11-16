@@ -7,8 +7,6 @@ import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -71,20 +69,18 @@ class ScheduleEditorTest {
     fun givesThePickerTheDateItEdits() {
         val editor = ScheduleEditor(date = day, endDate = LocalDate(2026, 10, 27))
 
-        assertNull(editor.pickerMillis)
-        assertEquals(1_792_972_800_000, editor.copy(picking = ScheduleDate.START).pickerMillis)
-        assertEquals(1_793_059_200_000, editor.copy(picking = ScheduleDate.END).pickerMillis)
+        assertNull(editor.pickerDate)
+        assertEquals(day, editor.copy(picking = ScheduleDate.START).pickerDate)
+        assertEquals(LocalDate(2026, 10, 27), editor.copy(picking = ScheduleDate.END).pickerDate)
     }
-
-    private fun millis(date: LocalDate) = date.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
 
     @Test
     fun theCalendarStartsToday() {
         val editor = ScheduleEditor(date = day.plus(DatePeriod(days = 3)), today = day, picking = ScheduleDate.START)
 
-        assertFalse(editor.canPick(millis(LocalDate(2026, 10, 25))))
-        assertTrue(editor.canPick(millis(day)))
-        assertTrue(editor.canPick(millis(LocalDate(2027, 1, 1))))
+        assertFalse(editor.canPick(LocalDate(2026, 10, 25)))
+        assertTrue(editor.canPick(day))
+        assertTrue(editor.canPick(LocalDate(2027, 1, 1)))
         assertFalse(editor.canPickYear(2025))
         assertTrue(editor.canPickYear(2026))
     }
@@ -93,8 +89,8 @@ class ScheduleEditorTest {
     fun anEndComesAfterItsStart() {
         val editor = ScheduleEditor(window = true, date = day, today = day, picking = ScheduleDate.END)
 
-        assertFalse(editor.canPick(millis(day)))
-        assertTrue(editor.canPick(millis(LocalDate(2026, 10, 27))))
+        assertFalse(editor.canPick(day))
+        assertTrue(editor.canPick(LocalDate(2026, 10, 27)))
     }
 
     @Test
@@ -102,8 +98,8 @@ class ScheduleEditorTest {
         val overdue = LocalDate(2025, 12, 20)
         val editor = ScheduleEditor(date = overdue, today = day, picking = ScheduleDate.START)
 
-        assertTrue(editor.canPick(millis(overdue)))
-        assertFalse(editor.canPick(millis(LocalDate(2025, 12, 21))))
+        assertTrue(editor.canPick(overdue))
+        assertFalse(editor.canPick(LocalDate(2025, 12, 21)))
         assertEquals(2025, editor.pickerYears.first)
     }
 
@@ -145,7 +141,7 @@ class ScheduleEditorTest {
         val later = LocalDate(2026, 11, 20)
         val editor = ScheduleEditor(date = day, repeat = RepeatUnit.DAYS, picking = ScheduleDate.UNTIL)
 
-        assertFalse(editor.canPick(LocalDate(2026, 10, 25).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()))
+        assertFalse(editor.canPick(LocalDate(2026, 10, 25)))
         val until = editor.withPicked(LocalDate(2026, 11, 2))
         assertEquals(Recurrence.Days(1, LocalDate(2026, 11, 2)), until.recurrence)
 

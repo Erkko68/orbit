@@ -13,28 +13,33 @@ import androidx.compose.ui.layout.layout
 import com.orbit.app.core.designsystem.theme.Ink
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.atStartOfDayIn
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 
 /**
- * A calendar for a page of an [OrbitSheet], with the button that confirms the day: [onPick] gets it as UTC midnight
- * millis. The picker's own state holds the day being browsed; the caller only hears the one confirmed. [canPick] and
+ * A calendar for a page of an [OrbitSheet], with the button that confirms the day. M3 counts days in UTC midnight
+ * millis; this converts, so callers deal only in [LocalDate]. The picker's own state holds the day being browsed; the caller only hears the one confirmed. [canPick] and
  * [canPickYear] leave days out, and [years] are the ones it lists.
  */
 // DatePicker is experimental on iOS only (stable on Android): an exception AGENTS.md allows.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OrbitDatePicker(
-    selectedMillis: Long?,
+    selected: LocalDate?,
     pickText: String,
-    onPick: (Long) -> Unit,
+    onPick: (LocalDate) -> Unit,
     years: IntRange = DatePickerDefaults.YearRange,
-    canPick: (Long) -> Boolean = { true },
+    canPick: (LocalDate) -> Boolean = { true },
     canPickYear: (Int) -> Boolean = { true },
 ) {
     val state = rememberDatePickerState(
-        initialSelectedDateMillis = selectedMillis,
+        initialSelectedDateMillis = selected?.atStartOfDayIn(TimeZone.UTC)?.toEpochMilliseconds(),
         yearRange = years,
         selectableDates = object : SelectableDates {
-            override fun isSelectableDate(utcTimeMillis: Long) = canPick(utcTimeMillis)
+            override fun isSelectableDate(utcTimeMillis: Long) = canPick(dayOf(utcTimeMillis))
 
             override fun isSelectableYear(year: Int) = canPickYear(year)
         },
@@ -59,11 +64,13 @@ fun OrbitDatePicker(
     )
     OrbitButton(
         text = pickText,
-        onClick = { state.selectedDateMillis?.let(onPick) },
+        onClick = { state.selectedDateMillis?.let { onPick(dayOf(it)) } },
         modifier = Modifier.fillMaxWidth(),
         enabled = state.selectedDateMillis != null,
     )
 }
+
+private fun dayOf(utcMillis: Long): LocalDate = Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date
 
 /**
  * M3's picker is laid out for 360dp, more than a sheet leaves inside its gutter on a 375pt iPhone: there the last
