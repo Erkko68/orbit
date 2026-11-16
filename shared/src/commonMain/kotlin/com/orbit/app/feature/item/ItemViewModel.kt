@@ -236,9 +236,48 @@ class ItemViewModel(
     fun toggleAssignee(memberId: String) {
         val current = uiState.value
         if (memberId !in current.memberNames) return
+        current.rotation?.let { return addToRotation(it, memberId) }
         val picked = current.assigneeIds
         val next = if (memberId in picked) picked - memberId else picked + memberId
         setAssignment(if (next.isEmpty()) null else Assignment.ToMembers(next))
+    }
+
+    /**
+     * Makes the members take turns, or has them stop: the one whose turn it is keeps the item. A rotation starts on the
+     * members who have it, or on everyone when fewer than two do, with the first of them having the turn.
+     */
+    fun toggleRotation() {
+        val state = uiState.value
+        val rotating = state.rotation
+        if (rotating != null) {
+            setAssignment(Assignment.ToMembers(rotating.assigneeIds))
+            return
+        }
+        val everyone = state.memberFaces.map { it.id }
+        val picked = everyone.filter { it in state.assigneeIds }
+        val order = if (picked.size >= 2) picked else listOfNotNull(picked.firstOrNull()) + everyone.filter { it !in picked }
+        if (order.size < 2) return
+        setAssignment(Assignment.Rotation(order, order.first()))
+    }
+
+    /** Gives [memberId], who is in the rotation, the turn now. */
+    fun giveTurn(memberId: String) {
+        val rotation = uiState.value.rotation ?: return
+        if (memberId in rotation.order && memberId != rotation.current) setAssignment(rotation.copy(current = memberId))
+    }
+
+    /** Moves [memberId] one place earlier in the order, or one later when [later]. */
+    fun moveInRotation(memberId: String, later: Boolean) {
+        val rotation = uiState.value.rotation ?: return
+        val from = rotation.order.indexOf(memberId)
+        val to = if (later) from + 1 else from - 1
+        if (from < 0 || to !in rotation.order.indices) return
+        val order = rotation.order.toMutableList().also { it[from] = it[to]; it[to] = memberId }
+        setAssignment(rotation.copy(order = order))
+    }
+
+    private fun addToRotation(rotation: Assignment.Rotation, memberId: String) {
+        if (memberId !in rotation.order) setAssignment(rotation.copy(order = rotation.order + memberId))
     }
 
     /** Makes the item anyone's, or nobody's if it already was. */

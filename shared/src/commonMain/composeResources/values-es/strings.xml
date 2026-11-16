@@ -344,6 +344,12 @@
     <string name="hide">Ocultar</string>
     <string name="item_who">Quién</string>
     <string name="item_who_empty">Añade quién lo hace</string>
+    <string name="assignment_rotation">Por turnos</string>
+    <string name="assignment_rotation_hint">Toca a un miembro para darle el turno. Al terminar la tarea pasa al siguiente miembro del orden que no esté ausente.</string>
+    <string name="assignment_rotation_add">Añadir al orden</string>
+    <string name="assignment_move_up">Subir a %1$s</string>
+    <string name="assignment_move_down">Bajar a %1$s</string>
+    <string name="item_who_rotation">Turno de %1$s</string>
     <string name="item_when">Cuándo</string>
     <string name="item_reminder">Recordatorio</string>
     <string name="item_checklist">Lista</string>

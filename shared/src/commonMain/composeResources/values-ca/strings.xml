@@ -344,6 +344,12 @@
     <string name="hide">Amaga</string>
     <string name="item_who">Qui</string>
     <string name="item_who_empty">Afegeix qui ho fa</string>
+    <string name="assignment_rotation">Per torns</string>
+    <string name="assignment_rotation_hint">Toca un membre per donar-li el torn. En acabar la tasca passa al següent membre de l'ordre que no sigui absent.</string>
+    <string name="assignment_rotation_add">Afegeix a l'ordre</string>
+    <string name="assignment_move_up">Puja %1$s</string>
+    <string name="assignment_move_down">Baixa %1$s</string>
+    <string name="item_who_rotation">Torn de %1$s</string>
     <string name="item_when">Quan</string>
     <string name="item_reminder">Recordatori</string>
     <string name="item_checklist">Llista</string>

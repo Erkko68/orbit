@@ -344,6 +344,12 @@
     <string name="hide">Hide</string>
     <string name="item_who">Who</string>
     <string name="item_who_empty">Add who does it</string>
+    <string name="assignment_rotation">Take turns</string>
+    <string name="assignment_rotation_hint">Tap a member to give them the turn. Finishing the item passes it to the next member in the order who is not away.</string>
+    <string name="assignment_rotation_add">Add to the order</string>
+    <string name="assignment_move_up">Move %1$s earlier</string>
+    <string name="assignment_move_down">Move %1$s later</string>
+    <string name="item_who_rotation">%1$s's turn</string>
     <string name="item_when">When</string>
     <string name="item_reminder">Reminder</string>
     <string name="item_checklist">Checklist</string>

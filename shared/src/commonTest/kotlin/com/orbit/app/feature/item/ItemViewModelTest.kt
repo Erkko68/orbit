@@ -17,6 +17,7 @@ import com.orbit.app.domain.model.Reminder
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.domain.repository.ItemRepository
+import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.ControlledItemRepository
 import com.orbit.app.testing.FailingItemRepository
 import com.orbit.app.testing.FakeSpaceRepository
@@ -1430,5 +1431,116 @@ class ItemViewModelTest {
 
         model.uiState.first { it.isDone }
         assertEquals(1, model.uiState.value.entryCount)
+    }
+
+    private suspend fun TestScope.rotationModel(
+        modules: ItemModules = ItemModules(),
+        repository: ItemRepository = items,
+        space: SpaceRepository = spaces,
+    ): Pair<ItemViewModel, String> {
+        val id = createItem(modules)
+        val model = track(ItemViewModel("space-1", id, repository, space, auth))
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { model.uiState.collect {} }
+        return model to id
+    }
+
+    private suspend fun assignmentOf(id: String) =
+        items.observeItems("space-1").first().first { it.id == id }.modules.assignment
+
+    @Test
+    fun takingTurnsStartsOnEveryoneWithTheFirstMemberHavingTheTurn() = runTest {
+        val (model, id) = rotationModel()
+
+        model.toggleRotation()
+
+        assertEquals(Assignment.Rotation(listOf("ana@orbit.app", "mika@orbit.app"), "ana@orbit.app"), assignmentOf(id))
+        assertTrue(model.uiState.value.isRotating)
+    }
+
+    @Test
+    fun takingTurnsKeepsTheMemberWhoHasItAtTheFront() = runTest {
+        val (model, id) = rotationModel(ItemModules(assignment = Assignment.ToMembers(setOf("mika@orbit.app"))))
+
+        model.toggleRotation()
+
+        assertEquals(Assignment.Rotation(listOf("mika@orbit.app", "ana@orbit.app"), "mika@orbit.app"), assignmentOf(id))
+    }
+
+    @Test
+    fun stoppingTheTurnsLeavesTheItemWithWhoseTurnItWas() = runTest {
+        val order = listOf("ana@orbit.app", "mika@orbit.app")
+        val (model, id) = rotationModel(ItemModules(assignment = Assignment.Rotation(order, "mika@orbit.app")))
+
+        model.toggleRotation()
+
+        assertEquals(Assignment.ToMembers(setOf("mika@orbit.app")), assignmentOf(id))
+        assertFalse(model.uiState.value.isRotating)
+    }
+
+    @Test
+    fun aSpaceOfOneMemberCannotTakeTurns() = runTest {
+        val alone = FakeSpaceRepository.withMembers("ana@orbit.app" to Role.OWNER)
+        val (model, id) = rotationModel(space = alone)
+
+        model.toggleRotation()
+
+        assertNull(assignmentOf(id))
+    }
+
+    @Test
+    fun theTurnGoesToWhoeverIsTappedAndOnlyToAMemberOfTheOrder() = runTest {
+        val order = listOf("ana@orbit.app", "mika@orbit.app")
+        val (model, id) = rotationModel(ItemModules(assignment = Assignment.Rotation(order, "ana@orbit.app")))
+
+        model.giveTurn("mika@orbit.app")
+        assertEquals(Assignment.Rotation(order, "mika@orbit.app"), assignmentOf(id))
+
+        model.giveTurn("zoe@orbit.app")
+        assertEquals(Assignment.Rotation(order, "mika@orbit.app"), assignmentOf(id))
+    }
+
+    @Test
+    fun aMemberMovesEarlierOrLaterInTheOrderButNotPastItsEnds() = runTest {
+        val team = FakeSpaceRepository.withMembers("ana@orbit.app" to Role.OWNER, "mika@orbit.app" to Role.MEMBER, "cy@orbit.app" to Role.MEMBER)
+        val order = listOf("ana@orbit.app", "mika@orbit.app", "cy@orbit.app")
+        val (model, id) = rotationModel(ItemModules(assignment = Assignment.Rotation(order, "ana@orbit.app")), space = team)
+
+        model.moveInRotation("cy@orbit.app", later = false)
+        assertEquals(listOf("ana@orbit.app", "cy@orbit.app", "mika@orbit.app"), (assignmentOf(id) as Assignment.Rotation).order)
+
+        model.moveInRotation("ana@orbit.app", later = false)
+        model.moveInRotation("mika@orbit.app", later = true)
+        assertEquals(listOf("ana@orbit.app", "cy@orbit.app", "mika@orbit.app"), (assignmentOf(id) as Assignment.Rotation).order)
+
+        model.moveInRotation("ana@orbit.app", later = true)
+        assertEquals(listOf("cy@orbit.app", "ana@orbit.app", "mika@orbit.app"), (assignmentOf(id) as Assignment.Rotation).order)
+        assertEquals("ana@orbit.app", (assignmentOf(id) as Assignment.Rotation).current)
+    }
+
+    @Test
+    fun aMemberTheOrderDoesNotHaveIsAddedAtTheEnd() = runTest {
+        val team = FakeSpaceRepository.withMembers("ana@orbit.app" to Role.OWNER, "mika@orbit.app" to Role.MEMBER, "cy@orbit.app" to Role.MEMBER)
+        val order = listOf("ana@orbit.app", "mika@orbit.app")
+        val (model, id) = rotationModel(ItemModules(assignment = Assignment.Rotation(order, "ana@orbit.app")), space = team)
+        assertEquals(listOf("cy@orbit.app"), model.uiState.value.outsideRotationFaces.map { it.id })
+
+        model.toggleAssignee("cy@orbit.app")
+
+        assertEquals(order + "cy@orbit.app", (assignmentOf(id) as Assignment.Rotation).order)
+        assertTrue(model.uiState.value.outsideRotationFaces.isEmpty())
+    }
+
+    @Test
+    fun aFailedChangeOfTheRotationIsSaidAndLeavesTheOrderAsItWas() = runTest {
+        val order = listOf("ana@orbit.app", "mika@orbit.app")
+        val controlled = ControlledItemRepository(items).apply { beforeWrite = { error("Write denied") } }
+        val (model, id) = rotationModel(ItemModules(assignment = Assignment.Rotation(order, "ana@orbit.app")), controlled)
+
+        model.moveInRotation("mika@orbit.app", later = false)
+        assertTrue(model.uiState.value.failed)
+
+        model.giveTurn("mika@orbit.app")
+        assertTrue(model.uiState.value.failed)
+        assertEquals(Assignment.Rotation(order, "ana@orbit.app"), assignmentOf(id))
     }
 }
