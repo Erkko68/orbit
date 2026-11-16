@@ -69,6 +69,8 @@
     <string name="error_unknown">Qualcosa è andato storto. Riprova.</string>
     <!-- Spaces -->
     <string name="spaces_new">Nuovo spazio</string>
+    <string name="spaces_setup_assistant">Configura con l’assistente</string>
+    <string name="spaces_create_manually">Crea manualmente</string>
     <string name="spaces_create_name">Appartamento 4B</string>
     <string name="spaces_create">Crea spazio</string>
     <string name="spaces_create_failed">Impossibile creare lo spazio. Riprova.</string>
@@ -136,7 +138,7 @@
     <string name="spaces_empty">Non ci sono ancora spazi</string>
     <string name="spaces_loading">Caricamento dei tuoi spazi…</string>
     <string name="spaces_load_failed">Impossibile caricare i tuoi spazi</string>
-    <string name="spaces_empty_body">Tocca Nuovo spazio per crearne uno per le persone con cui ti organizzi, oppure per unirti a uno con un invito.</string>
+    <string name="spaces_empty_body">Configura uno spazio per le persone con cui ti organizzi, oppure unisciti a uno con un invito.</string>
     <!-- Item detail and modules -->
     <string name="item_back">Torna allo spazio</string>
     <string name="item_name">Nome</string>

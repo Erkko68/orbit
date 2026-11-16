@@ -13,4 +13,7 @@ data class SpaceUiState(
     val spaceIds: List<String> = emptyList(),
     /** An invitation link was opened and its code waits for the new space screen, which offers joining it. */
     val invitationWaiting: Boolean = false,
-)
+) {
+    /** Offer setup only when an empty list has loaded successfully. */
+    val showFirstRunChoice: Boolean get() = !loading && !loadFailed && spaceIds.isEmpty()
+}

@@ -15,6 +15,7 @@ data class NewSpaceUiState(
     /** The space the user just created or joined, which the screen opens. */
     val openSpaceId: String? = null,
 ) {
+    val canOpenAssistant: Boolean get() = !creating && !joining
     val canCreate: Boolean get() = name.isNotBlank() && !creating
     val canJoin: Boolean get() = joinCode.isNotBlank() && !joining
 }

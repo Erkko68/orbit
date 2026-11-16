@@ -23,6 +23,12 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.PendingInvitation
+import com.orbit.app.core.speech.Dictation
+import com.orbit.app.domain.repository.AssistantRepository
+import com.orbit.app.domain.model.InterviewQuestion
+import com.orbit.app.domain.model.InterviewStep
+import com.orbit.app.testing.ScriptedAssistantRepository
+import com.orbit.app.testing.FakeDictation
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.notification.ReminderSync
@@ -64,6 +70,9 @@ class OrbitNavHostTest : ComposeTest() {
     private val items = InMemoryItemRepository(auth)
     private val ledger = InMemoryExpenseRepository(auth)
     private val lastSpace = InMemoryLastSpaceRepository()
+    private val assistant = ScriptedAssistantRepository(
+        listOf(InterviewStep.Ask(InterviewQuestion("who", "Who is the space for?", emptyList(), false, true, 1, 8))),
+    )
 
     @BeforeTest
     fun startDi() {
@@ -71,6 +80,8 @@ class OrbitNavHostTest : ComposeTest() {
             modules(
                 module {
                     single<AuthRepository> { auth }
+                    single<AssistantRepository> { assistant }
+                    single<Dictation> { FakeDictation() }
                     single<SpaceRepository> { spaces }
                     single<ItemRepository> { items }
                     single<ExpenseRepository> { ledger }
@@ -87,6 +98,50 @@ class OrbitNavHostTest : ComposeTest() {
     @AfterTest
     fun stopDi() {
         stopKoin()
+    }
+
+    @Test
+    fun theEmptyListOpensConsentAndDecliningKeepsTheManualChoice() = runComposeUiTest {
+        runBlocking { auth.signIn("ana@orbit.app", "secret") }
+        setContent { OrbitTheme { OrbitNavHost() } }
+        onNodeWithText("Set up with the assistant").performScrollTo().performClick()
+        onNodeWithText("Before the assistant starts").assertIsDisplayed()
+        assertEquals(0, assistant.calls.size)
+        onNodeWithText("Set up by hand").performScrollTo().performClick()
+        onNodeWithText("Create it myself").performScrollTo().performClick()
+        onNodeWithText("Flat 4B").performScrollTo().assertIsDisplayed()
+        assertEquals(emptyList(), runBlocking { spaces.observeSpaces().first() })
+    }
+
+    @Test
+    fun newSpaceOpensConsentAndReturningKeepsTheName() = runComposeUiTest {
+        runBlocking { auth.signIn("ana@orbit.app", "secret") }
+        setContent { OrbitTheme { OrbitNavHost() } }
+        onNodeWithContentDescription("New space").performClick()
+        onAllNodes(hasSetTextAction())[0].performScrollTo().performTextInput("Trip to Rome")
+        onNodeWithText("Set up with the assistant").performScrollTo().performClick()
+        onNodeWithText("Before the assistant starts").assertIsDisplayed()
+        onNodeWithText("Set up by hand").performScrollTo().performClick()
+        onNodeWithText("Trip to Rome").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Create space").performScrollTo().performClick()
+        onNodeWithText("Nothing in orbit yet").assertIsDisplayed()
+        assertEquals("Trip to Rome", runBlocking { spaces.observeSpaces().first().single().name })
+    }
+
+    @Test
+    fun priorConsentOpensTheInterviewAndClosingReturnsToTheEmptyList() = runComposeUiTest {
+        runBlocking {
+            auth.signIn("ana@orbit.app", "secret")
+            auth.acceptAiConsent()
+        }
+        setContent { OrbitTheme { OrbitNavHost() } }
+        onNodeWithText("Set up with the assistant").performScrollTo().performClick()
+        onNodeWithText("Who is the space for?").assertIsDisplayed()
+        onNodeWithText("Before the assistant starts").assertDoesNotExist()
+        assertEquals(1, assistant.calls.size)
+        onNodeWithContentDescription("Close").performClick()
+        onNodeWithText("No spaces yet").assertIsDisplayed()
+        assertEquals(emptyList(), runBlocking { spaces.observeSpaces().first() })
     }
 
     @Test

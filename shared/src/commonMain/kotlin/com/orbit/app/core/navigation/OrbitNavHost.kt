@@ -63,11 +63,13 @@ fun OrbitNavHost(
                     onOpenSpace = { spaceId -> navController.navigate(SpaceHomeRoute(spaceId)) },
                     onOpenAccount = { navController.navigate(AccountRoute) },
                     onNewSpace = { navController.navigate(NewSpaceRoute) { launchSingleTop = true } },
+                    onOpenAssistant = { navController.navigate(InterviewRoute) { launchSingleTop = true } },
                 )
             }
             composable<NewSpaceRoute> {
                 NewSpaceScreen(
                     onClose = { navController.popBackStack() },
+                    onOpenAssistant = { navController.navigate(InterviewRoute) { launchSingleTop = true } },
                     onOpenSpace = { spaceId ->
                         navController.navigate(SpaceHomeRoute(spaceId)) {
                             popUpTo<NewSpaceRoute> { inclusive = true }

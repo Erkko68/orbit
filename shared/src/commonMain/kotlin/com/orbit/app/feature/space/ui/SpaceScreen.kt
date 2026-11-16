@@ -11,12 +11,15 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.orbit.app.core.designsystem.component.OrbitAddButton
 import com.orbit.app.core.designsystem.component.OrbitAvatarButton
+import com.orbit.app.core.designsystem.component.OrbitButton
+import com.orbit.app.core.designsystem.component.OrbitCard
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitErrorState
 import com.orbit.app.core.designsystem.component.OrbitHero
 import com.orbit.app.core.designsystem.component.OrbitLoadingState
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitTopBar
+import com.orbit.app.core.designsystem.component.OrbitTonalButton
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.feature.space.SpaceViewModel
@@ -32,6 +35,9 @@ import orbit.shared.generated.resources.spaces_load_failed
 import orbit.shared.generated.resources.spaces_loading
 import orbit.shared.generated.resources.spaces_new
 import orbit.shared.generated.resources.spaces_section
+import orbit.shared.generated.resources.spaces_setup_assistant
+import orbit.shared.generated.resources.spaces_create_manually
+import orbit.shared.generated.resources.spaces_join_title
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -44,6 +50,7 @@ fun SpaceScreen(
     onOpenSpace: (String) -> Unit,
     onOpenAccount: () -> Unit,
     onNewSpace: () -> Unit,
+    onOpenAssistant: () -> Unit,
     viewModel: SpaceViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -79,16 +86,27 @@ fun SpaceScreen(
                 onRetry = viewModel::retry,
                 modifier = Modifier.fillMaxWidth(),
             )
-        } else if (state.spaceIds.isEmpty()) {
+        } else if (state.showFirstRunChoice) {
             OrbitEmptyState(
                 title = stringResource(Res.string.spaces_empty),
                 body = stringResource(Res.string.spaces_empty_body),
                 modifier = Modifier.fillMaxWidth(),
             )
+            OrbitCard(Modifier.fillMaxWidth()) {
+                OrbitButton(stringResource(Res.string.spaces_setup_assistant), onOpenAssistant, Modifier.fillMaxWidth())
+                OrbitTonalButton(stringResource(Res.string.spaces_create_manually), onNewSpace, Modifier.fillMaxWidth())
+                OrbitTonalButton(stringResource(Res.string.spaces_join_title), onNewSpace, Modifier.fillMaxWidth())
+            }
         }
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
             for (spaceId in state.spaceIds) {
-                key(spaceId) { SpaceCard(spaceId, onClick = { onOpenSpace(spaceId) }, modifier = Modifier.fillMaxWidth()) }
+                key(spaceId) {
+                    SpaceCard(
+                        spaceId,
+                        onClick = { onOpenSpace(spaceId) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }

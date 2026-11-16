@@ -69,6 +69,8 @@
     <string name="error_unknown">Something went wrong. Try again.</string>
     <!-- Spaces -->
     <string name="spaces_new">New space</string>
+    <string name="spaces_setup_assistant">Set up with the assistant</string>
+    <string name="spaces_create_manually">Create it myself</string>
     <string name="spaces_create_name">Flat 4B</string>
     <string name="spaces_create">Create space</string>
     <string name="spaces_create_failed">Could not create the space. Try again.</string>
@@ -136,7 +138,7 @@
     <string name="spaces_empty">No spaces yet</string>
     <string name="spaces_loading">Loading your spaces…</string>
     <string name="spaces_load_failed">Could not load your spaces</string>
-    <string name="spaces_empty_body">Tap New space to create one for the people you organize with, or to join one with an invite.</string>
+    <string name="spaces_empty_body">Set up a space for the people you organize with, or join one with an invite.</string>
     <!-- Item detail and modules -->
     <string name="item_back">Back to space</string>
     <string name="item_name">Name</string>

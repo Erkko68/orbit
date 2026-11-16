@@ -8,6 +8,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
@@ -29,6 +31,26 @@ class NewSpaceViewModelTest {
     @AfterTest
     fun tearDown() {
         Dispatchers.resetMain()
+    }
+
+    @Test
+    fun theAssistantWaitsForAManualWriteToFinish() = runTest {
+        Dispatchers.setMain(StandardTestDispatcher(testScheduler))
+        val viewModel = NewSpaceViewModel(FakeSpaceRepository.withMembers(), PendingInvitation())
+        assertTrue(viewModel.uiState.value.canOpenAssistant)
+
+        viewModel.onNameChange("Flat 4B")
+        viewModel.createSpace()
+        assertFalse(viewModel.uiState.value.canOpenAssistant)
+        runCurrent()
+        assertTrue(viewModel.uiState.value.createFailed)
+        assertTrue(viewModel.uiState.value.canOpenAssistant)
+
+        viewModel.onJoinCodeChange("ABCD2345")
+        viewModel.joinSpace()
+        assertFalse(viewModel.uiState.value.canOpenAssistant)
+        runCurrent()
+        assertTrue(viewModel.uiState.value.canOpenAssistant)
     }
 
     @Test
