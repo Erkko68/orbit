@@ -5,6 +5,7 @@ import com.orbit.app.domain.model.JoinError
 import com.orbit.app.domain.model.JoinException
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
+import com.orbit.app.domain.model.isValidAway
 import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -14,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.datetime.LocalDate
 import kotlin.time.Clock
 
 /**
@@ -55,6 +57,20 @@ class InMemorySpaceRepository(
         members.update { all ->
             all + (spaceId to team.map { if (it.userId == userId) it.copy(role = role) else it })
         }
+    }
+
+    override suspend fun setAway(spaceId: String, from: LocalDate, until: LocalDate) {
+        require(isValidAway(from, until)) { "An away period ends on or after the day it starts" }
+        updateMe(spaceId) { it.copy(awayFrom = from, awayUntil = until) }
+    }
+
+    override suspend fun clearAway(spaceId: String) = updateMe(spaceId) { it.copy(awayFrom = null, awayUntil = null) }
+
+    private suspend fun updateMe(spaceId: String, change: (Member) -> Member) {
+        val userId = auth.requireUser().id
+        val team = members.value[spaceId].orEmpty()
+        check(team.any { it.userId == userId }) { "Not a member of the space" }
+        members.update { all -> all + (spaceId to team.map { if (it.userId == userId) change(it) else it }) }
     }
 
     override suspend fun renameSpace(spaceId: String, name: String) {

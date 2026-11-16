@@ -6,6 +6,7 @@ import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.SpaceRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.datetime.LocalDate
 
 /**
  * One space, Flat 4B, owned by ana. Its spaces fail to load the first [spaceFailures] times they are
@@ -32,6 +33,10 @@ internal class FlakySpaceRepository(private var spaceFailures: Int = 0, private 
     override suspend fun createSpace(name: String, accent: Int): String = error("Not used by these tests")
 
     override suspend fun changeRole(spaceId: String, userId: String, role: Role) = error("Not used by these tests")
+
+    override suspend fun setAway(spaceId: String, from: LocalDate, until: LocalDate) = error("Not used by these tests")
+
+    override suspend fun clearAway(spaceId: String) = error("Not used by these tests")
 
     override suspend fun joinSpace(code: String): String = error("Not used by these tests")
 
