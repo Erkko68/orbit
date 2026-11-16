@@ -97,9 +97,9 @@ private fun AwaySheet(state: AwayUiState, viewModel: AwayViewModel) {
                     )
                 }
             } else {
-                val earliest = state.earliestMillis
+                val earliest = state.earliestDay
                 OrbitDatePicker(
-                    selectedMillis = state.pickedMillis,
+                    selected = state.pickedDay,
                     pickText = stringResource(Res.string.schedule_pick),
                     onPick = viewModel::pickDate,
                     canPick = { earliest == null || it >= earliest },

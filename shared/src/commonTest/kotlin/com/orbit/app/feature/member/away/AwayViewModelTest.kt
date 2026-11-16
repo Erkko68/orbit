@@ -15,7 +15,6 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
 import kotlinx.datetime.plus
 import kotlinx.datetime.todayIn
 import com.orbit.app.domain.repository.SpaceRepository
@@ -50,8 +49,6 @@ class AwayViewModelTest {
     private fun team(writeFailure: Exception? = null) =
         FakeSpaceRepository.withMembers("ana" to Role.OWNER, "ben" to Role.MEMBER, writeFailure = writeFailure)
 
-    private fun millisOf(day: kotlinx.datetime.LocalDate) = day.atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
-
     @Test
     fun `a member who is not away has no period and the sheet opens on today`() = runTest {
         val viewModel = awayViewModel(team())
@@ -68,7 +65,7 @@ class AwayViewModelTest {
         val viewModel = awayViewModel(team())
         viewModel.open()
         viewModel.pick(AwayEnd.UNTIL)
-        viewModel.pickDate(millisOf(today.plus(DatePeriod(days = 5))))
+        viewModel.pickDate(today.plus(DatePeriod(days = 5)))
         viewModel.save()
         val state = viewModel.uiState.value
         assertFalse(state.editing)
@@ -82,7 +79,7 @@ class AwayViewModelTest {
         val viewModel = awayViewModel(team())
         viewModel.open()
         viewModel.pick(AwayEnd.FROM)
-        viewModel.pickDate(millisOf(today.plus(DatePeriod(days = 3))))
+        viewModel.pickDate(today.plus(DatePeriod(days = 3)))
         assertEquals(today.plus(DatePeriod(days = 3)), viewModel.uiState.value.draftUntil)
         assertNull(viewModel.uiState.value.picking)
         assertTrue(viewModel.uiState.value.canSave)
@@ -93,9 +90,9 @@ class AwayViewModelTest {
         val viewModel = awayViewModel(team())
         viewModel.open()
         viewModel.pick(AwayEnd.FROM)
-        viewModel.pickDate(millisOf(today.plus(DatePeriod(days = 4))))
+        viewModel.pickDate(today.plus(DatePeriod(days = 4)))
         viewModel.pick(AwayEnd.UNTIL)
-        assertEquals(millisOf(today.plus(DatePeriod(days = 4))), viewModel.uiState.value.earliestMillis)
+        assertEquals(today.plus(DatePeriod(days = 4)), viewModel.uiState.value.earliestDay)
     }
 
     @Test

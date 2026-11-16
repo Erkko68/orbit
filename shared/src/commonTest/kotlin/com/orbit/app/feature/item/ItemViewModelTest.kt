@@ -309,7 +309,7 @@ class ItemViewModelTest {
         model.editSchedule()
         assertEquals(LocalDate(2026, 10, 26), model.uiState.value.scheduleEditor?.date)
         model.pickScheduleDate(ScheduleDate.START)
-        model.onScheduleDatePicked(1_793_059_200_000) // 2026-10-27, UTC midnight
+        model.onScheduleDatePicked(LocalDate(2026, 10, 27))
         model.onScheduleTimePicked(18, 30)
         model.onDurationHoursChange(1)
         model.onDurationMinutesChange(45)
@@ -330,7 +330,7 @@ class ItemViewModelTest {
         model.editSchedule()
         model.setScheduleWindow(true)
         model.pickScheduleDate(ScheduleDate.END)
-        model.onScheduleDatePicked(1_793_318_400_000) // 2026-10-30
+        model.onScheduleDatePicked(LocalDate(2026, 10, 30))
         model.saveSchedule()
 
         val saved = items.observeItems("space-1").first().single { it.id == id }.modules.schedule
@@ -931,7 +931,7 @@ class ItemViewModelTest {
         model.onRepeatEveryChange(2)
         model.toggleRepeatWeekday(DayOfWeek.FRIDAY)
         model.pickScheduleDate(ScheduleDate.UNTIL)
-        model.onScheduleDatePicked(1_896_048_000_000) // 2030-01-31
+        model.onScheduleDatePicked(LocalDate(2030, 1, 31))
         model.finishCustomRepeat()
         model.saveSchedule()
 

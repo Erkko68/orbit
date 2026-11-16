@@ -368,7 +368,7 @@ private fun DurationRow(editor: ScheduleEditor, viewModel: ItemViewModel) {
 @Composable
 private fun ScheduleDatePage(editor: ScheduleEditor, viewModel: ItemViewModel) {
     OrbitDatePicker(
-        selectedMillis = editor.pickerMillis,
+        selected = editor.pickerDate,
         pickText = stringResource(Res.string.schedule_pick),
         onPick = viewModel::onScheduleDatePicked,
         years = editor.pickerYears,

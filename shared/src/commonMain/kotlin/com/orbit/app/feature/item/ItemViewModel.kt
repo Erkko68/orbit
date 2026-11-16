@@ -38,13 +38,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DayOfWeek
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Instant
 
 /** How long a ticked entry stays where it is, so the tick is seen before the row moves. */
 private val ENTRY_SETTLE = 450.milliseconds
@@ -322,10 +321,7 @@ class ItemViewModel(
 
     fun onDurationMinutesChange(minutes: Int) = updateEditor { it.copy(durationMinutes = minutes) }
 
-    /** [utcMillis] is the UTC midnight M3's date picker returns. */
-    fun onScheduleDatePicked(utcMillis: Long) = updateEditor { editor ->
-        editor.withPicked(Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date)
-    }
+    fun onScheduleDatePicked(day: LocalDate) = updateEditor { it.withPicked(day) }
 
     /** Keeps the edited schedule and its repeat and closes the editor; a failure keeps it open with what was typed. */
     fun saveSchedule() {

@@ -32,10 +32,9 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import com.orbit.app.feature.item.ItemFace
 import kotlinx.coroutines.launch
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 import kotlinx.datetime.todayIn
-import kotlin.time.Instant
 import kotlin.time.Clock
 
 /**
@@ -162,10 +161,7 @@ class ExpenseViewModel(
     fun openDatePicker() = edit { it.copy(pickingDate = true) }
     fun dismissDatePicker() = edit { it.copy(pickingDate = false) }
 
-    /** The calendar gives the day as UTC midnight. */
-    fun pickDate(utcMillis: Long) = edit {
-        it.copy(date = Instant.fromEpochMilliseconds(utcMillis).toLocalDateTime(TimeZone.UTC).date, pickingDate = false)
-    }
+    fun pickDate(day: LocalDate) = edit { it.copy(date = day, pickingDate = false) }
 
     /**
      * Custom amounts and percentages start from the split on screen (#55's simple conversion, so a round trip may move

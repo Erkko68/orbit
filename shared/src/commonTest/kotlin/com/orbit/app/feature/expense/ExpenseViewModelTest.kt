@@ -17,8 +17,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.*
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atStartOfDayIn
 import kotlin.test.*
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -51,7 +49,7 @@ class ExpenseViewModelTest {
     private fun ExpenseViewModel.fill() {
         onTitleChange("  Food  ")
         onAmountChange(moneyInput(1000, locale))
-        pickDate(LocalDate(2026, 11, 4).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds())
+        pickDate(LocalDate(2026, 11, 4))
     }
 
     private fun TestScope.purchase(itemId: String, repository: ItemRepository = items): ExpenseViewModel {
@@ -316,7 +314,7 @@ class ExpenseViewModelTest {
         assertEquals(setOf("bea", "marc"), vm.uiState.value.automatic)
         vm.onTitleChange("Renamed")
         vm.selectPayer("bea")
-        vm.pickDate(LocalDate(2026, 11, 5).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds())
+        vm.pickDate(LocalDate(2026, 11, 5))
         vm.save()
         val saved = ledger.observeExpenses("space-1").first().single()
         assertEquals(mapOf("bea" to 4L, "marc" to 6L), saved.split)
@@ -495,11 +493,9 @@ class ExpenseViewModelTest {
         assertEquals("bea", vm.uiState.value.paidBy)
         vm.openDatePicker()
         assertTrue(vm.uiState.value.pickingDate)
-        val millis = LocalDate(2026, 3, 1).atStartOfDayIn(TimeZone.UTC).toEpochMilliseconds()
-        vm.pickDate(millis)
+        vm.pickDate(LocalDate(2026, 3, 1))
         assertFalse(vm.uiState.value.pickingDate)
         assertEquals(LocalDate(2026, 3, 1), vm.uiState.value.date)
-        assertEquals(millis, vm.uiState.value.dateMillis)
         vm.openDatePicker()
         vm.dismissDatePicker()
         assertFalse(vm.uiState.value.pickingDate)
