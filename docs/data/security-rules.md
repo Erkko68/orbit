@@ -48,6 +48,7 @@ Firebase deploys one rules file and the language has no imports, so the file is 
 | `spacePath`, `memberPath` | shared | The path of a space or a member document |
 | `changedKeys()` | shared | The fields an update changes |
 | `isMember(spaceId)` | shared | The space exists and the caller's uid is in its `memberIds` |
+| `isMemberAfter(spaceId)` | shared | As `isMember`, but for the space as the write leaves it, so the batch that creates a space can add its first items (#76). `memberIds` changes only through the space's own rules, so it lets in no one `isMember` would not |
 | `hasRole(spaceId, uid, roles)` | shared | That member's document has one of `roles` |
 | `isOwner`, `isAdminOrOwner` | shared | The caller has that role in the space |
 | `keepsCreation()` | shared | The write leaves `createdBy`, `createdAt` and `spaceId` alone |
@@ -114,11 +115,11 @@ One batch of three writes by the owner (ADR 0004), each refused on its own:
 ### `spaces/{spaceId}/items/{itemId}`
 
 - **Read:** a member.
-- **Create:** a member, with `createdBy` the caller, `createdAt` the server time, `spaceId` the path's, a valid title and `status: open`.
+- **Create:** a member once the write is done (`isMemberAfter`), with `createdBy` the caller, `createdAt` the server time, `spaceId` the path's, a valid title and `status: open`. So the assistant's plan creates a new space and its items in one batch (#76).
 - **Update:** a member, keeping the creation fields, a valid title and `status` `open` or `done`; `completedBy` can only become the caller.
 - **Delete:** the item's creator, an admin or the owner.
 
-A `modules.cost` written or changed (`keepsCost`) has an expense's shape: only `paidBy`, `split` and an optional `customAllocation` map, a payer among `memberIds` and a non-empty `split` whose keys are all in `memberIds`. Its amounts are the app's to check, as for an expense (ADR 0003). An unchanged cost is not checked again, so an item whose cost names someone who left can still be edited. The expense a completion adds goes through the expense rules, in the completion's batch; nothing more is enforced, since any member can edit an expense afterwards anyway ([ADR 0014](../adr/0014-item-cost-per-occurrence.md)).
+A `modules.cost` written or changed (`keepsCost`) has an expense's shape: only `paidBy`, `split` and an optional `customAllocation` map, a payer among `memberIds` and a non-empty `split` whose keys are all in `memberIds`, as the write leaves them, so an item in the batch that creates its space can have one. Its amounts are the app's to check, as for an expense (ADR 0003). An unchanged cost is not checked again, so an item whose cost names someone who left can still be edited. The expense a completion adds goes through the expense rules, in the completion's batch; nothing more is enforced, since any member can edit an expense afterwards anyway ([ADR 0014](../adr/0014-item-cost-per-occurrence.md)).
 
 ### `spaces/{spaceId}/completions/{completionId}`
 
