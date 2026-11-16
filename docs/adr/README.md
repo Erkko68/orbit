@@ -19,6 +19,7 @@ An ADR records one decision that shapes the code: the context, what was decided,
 | [0012](0012-three-colours-and-a-flat-page.md) | Three colours on a flat page, and a space is told apart by its people | Accepted |
 | [0013](0013-expense-allocation-intent.md) | Expense allocation intent is optional metadata beside authoritative cents | Proposed |
 | [0014](0014-item-cost-per-occurrence.md) | An item's cost is a planned expense, added to the ledger once per occurrence | Proposed |
+| [0015](0015-rotation-in-the-assignment.md) | A rotation is an assignment whose current turn is the one assignee | Proposed |
 
 ## Writing one
 

@@ -190,8 +190,9 @@ The next occurrence is the first date after both the schedule's date and the com
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `mode` | string | yes | `member`, `anyone` or `claim`. Unknown skips the module. |
-| `assigneeId` | uid | for `member` | For `claim`, absent until someone claims it. Never for `anyone`. Must be in `memberIds`. |
+| `mode` | string | yes | `member`, `anyone`, `rotation` or `claim` (read only). Unknown skips the module. |
+| `assigneeIds` | array of uid | for `member` and `rotation` | The members who have it by name. Never for `anyone`. For `rotation`, exactly one: the member whose turn it is. Must be in `memberIds` (the app checks it). Older items have a single `assigneeId`, still read. |
+| `rotation` | array of uid | for `rotation` | The order of the turns (ADR 0015): two or more different members, the one in `assigneeIds` among them. Members who left stay in it and are skipped. Completing a recurring item rewrites `assigneeIds` in the same batch that moves the schedule (ADR 0011). |
 
 #### `modules.checklist`
 
