@@ -57,9 +57,31 @@ A new space shows in the list from the local write before the server has it. Its
 | A document is malformed | The mapper returns null, the repository skips it and logs. The rest of the list still shows. |
 | A field or module from a newer build | Read as unknown and skipped, never deleted: writes are narrow, so they leave it alone. |
 
+### What is only any use on the server
+
+An invitation is a code that someone else uses on their own phone, so a copy in this phone's cache is worth nothing: offline, the code would show and be shared, and the invitee would be refused until this phone reconnected. `writeOnServer` (same file) is `writeLocally`'s stricter sibling for that: it waits up to ten seconds for the server and throws when it does not answer, so the invite sheet says "Check your connection and try again" instead of showing a code that does not work yet. Joining a space uses it too. The refused write stays queued and Firestore still sends it on reconnecting, which leaves one unused invitation, or one revoked late; neither lets anyone in who was not invited.
+
 ## What needs a connection
 
-- Signing in, registering and Google sign-in.
-- Joining a space from an invitation, since the server has to check the invitation (#25).
-- Anything that runs on the assistant server, such as the assistant.
+- Signing in, registering and Google sign-in. Once signed in, the session survives without one.
+- Joining a space from an invitation, since the server has to check the invitation (#25). The join form says to check the connection.
+- Creating, renewing and revoking an invitation (`writeOnServer`).
+- Anything that runs on the assistant server, such as the assistant (#63).
+- Deleting the account, and changing the password, which Firebase Auth checks on the server.
 - A first read of something never read before on this device.
+
+## Offline check (#62)
+
+What each part does offline, from the code, and whether it has been tried on a phone in airplane mode:
+
+| Flow | Offline | Checked on a phone |
+|---|---|---|
+| Open the signed-in app | `SessionViewModel` waits two seconds for the cached spaces and starts on the list if they are slow | Not yet |
+| Browse spaces, members, items, the agenda and the ledger | Live listeners answered by the cache | Not yet |
+| Create, edit, complete, reopen and tick items, set an away period | Narrow writes that apply locally (`writeLocally`). A recurring item or a rotation completes from the cached item and members | Not yet |
+| Add and edit an expense | `writeLocally`, with the ids made on the device | Not yet |
+| Relaunch offline | The cache is on disk, so the same data shows | Not yet |
+| Reconnect | Firestore sends the queued writes in order, and a second phone's listeners show them | Not yet |
+| Join, invite, renew, revoke | Fail with a message that names the connection (`writeOnServer`, `JoinError.FAILED`) | Not yet |
+
+The "Checked on a phone" column is filled in by whoever runs the airplane-mode pass on Android and iOS: open the app, change an item and add an expense, relaunch, reconnect, and watch a second device.

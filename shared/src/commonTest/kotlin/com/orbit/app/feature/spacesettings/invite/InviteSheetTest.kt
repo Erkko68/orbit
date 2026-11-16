@@ -129,7 +129,7 @@ class InviteSheetTest : ComposeTest() {
         showCard(ownedSpace(), FailingInvitationRepository())
         waitForIdle()
 
-        onNodeWithText("Could not create the invitation. Try again.").assertIsDisplayed()
+        onNodeWithText("Could not create the invitation. Check your connection and try again.").assertIsDisplayed()
         onNodeWithText("Try again").assertIsEnabled()
         onNodeWithText("Share").assertDoesNotExist()
     }
