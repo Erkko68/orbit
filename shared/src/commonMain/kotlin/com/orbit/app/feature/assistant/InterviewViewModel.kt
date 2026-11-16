@@ -2,6 +2,7 @@ package com.orbit.app.feature.assistant
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.orbit.app.core.PlanDraft
 import com.orbit.app.core.attempt
 import com.orbit.app.domain.model.AssistantError
 import com.orbit.app.domain.model.AssistantException
@@ -16,9 +17,10 @@ import kotlinx.coroutines.launch
 
 /**
  * The assistant's interview, as a chat: once the user consents, one question at a time, each answered with chips,
- * words or both. The words can be dictated: they go after what was already written.
+ * words or both. The words can be dictated: they go after what was already written. A plan goes to the [plan] draft,
+ * which the review board shows (#75).
  */
-class InterviewViewModel(private val assistant: AssistantRepository) : ViewModel() {
+class InterviewViewModel(private val assistant: AssistantRepository, private val plan: PlanDraft) : ViewModel() {
     private val state = MutableStateFlow(InterviewUiState())
     val uiState: StateFlow<InterviewUiState> = state.asStateFlow()
 
@@ -110,7 +112,10 @@ class InterviewViewModel(private val assistant: AssistantRepository) : ViewModel
                                 question = step.question,
                                 loading = false,
                             )
-                            is InterviewStep.PlanReady -> it.copy(loading = false, planReady = true)
+                            is InterviewStep.PlanReady -> {
+                                plan.propose(step.plan)
+                                it.copy(loading = false, planReady = true)
+                            }
                         }
                     }
                 },

@@ -1,5 +1,6 @@
 package com.orbit.app.feature.assistant.ui
 
+import com.orbit.app.core.PlanDraft
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
@@ -58,7 +59,7 @@ class InterviewScreenTest : ComposeTest() {
                 InterviewScreen(
                     onClose = { closed++ },
                     onPlanReady = { plans++ },
-                    viewModel = InterviewViewModel(assistant),
+                    viewModel = InterviewViewModel(assistant, PlanDraft()),
                 )
             }
         }
@@ -174,7 +175,7 @@ class InterviewScreenTest : ComposeTest() {
         startTestKoin(auth = fresh, spaces = InMemorySpaceRepository(fresh), assistant = assistant, dictation = dictation)
         setContent {
             OrbitTheme {
-                InterviewScreen(onClose = { closed++ }, onPlanReady = {}, viewModel = InterviewViewModel(assistant))
+                InterviewScreen(onClose = { closed++ }, onPlanReady = {}, viewModel = InterviewViewModel(assistant, PlanDraft()))
             }
         }
 
