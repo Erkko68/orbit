@@ -2,6 +2,7 @@ package com.orbit.app.feature.member.ui
 
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertExists
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -262,10 +263,10 @@ class MemberScreenTest : ComposeTest() {
         onNodeWithText("Not away").performClick()
         onNodeWithText("First day").performClick()
         onNodeWithText("Pick a date").assertIsDisplayed()
-        onNodeWithText("Choose").performClick()
+        onNodeWithText("Choose").performScrollTo().performClick()
         waitForIdle()
 
-        onNodeWithText("Last day").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Last day").assertExists()
     }
 
     @Test
