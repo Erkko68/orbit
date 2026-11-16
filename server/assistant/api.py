@@ -11,9 +11,9 @@ from collections.abc import Mapping
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from assistant import auth, providers
-from assistant.interview import AssistantError, Generate, first_question
+from assistant.interview import AssistantError, Generate, next_step
 
-HTTP_STATUS = {"UNAUTHENTICATED": 401, "UNAVAILABLE": 503}
+HTTP_STATUS = {"INVALID_ARGUMENT": 400, "UNAUTHENTICATED": 401, "UNAVAILABLE": 503}
 
 
 def caller(authorization: str, verify_token: auth.VerifyToken) -> str | None:
@@ -27,16 +27,32 @@ def caller(authorization: str, verify_token: auth.VerifyToken) -> str | None:
         return None
 
 
-def respond(method: str, path: str, authorization: str, verify_token: auth.VerifyToken, generate: Generate) -> tuple[int, dict]:
+def respond(
+    method: str,
+    path: str,
+    authorization: str,
+    verify_token: auth.VerifyToken,
+    generate: Generate,
+    body: bytes = b"",
+) -> tuple[int, dict]:
     """The HTTP status and JSON body for a request, apart from the socket so tests can call it directly."""
     if (method, path) == ("GET", "/health"):
         return 200, {"ok": True}
     if (method, path) == ("POST", "/interview"):
         try:
-            return 200, {"result": first_question(caller(authorization, verify_token), generate)}
+            return 200, {"result": next_step(caller(authorization, verify_token), call_data(body), generate)}
         except AssistantError as e:
             return HTTP_STATUS[e.status], {"error": {"status": e.status, "message": e.message, "details": e.details}}
     return 404, {"error": {"status": "NOT_FOUND", "message": "No such endpoint."}}
+
+
+def call_data(body: bytes) -> object:
+    """The `data` of a callable's body, or None when the body is not one."""
+    try:
+        request = json.loads(body or b"{}")
+    except ValueError:
+        return None
+    return request.get("data") if isinstance(request, dict) else None
 
 
 def handler(verify_token: auth.VerifyToken, generate: Generate) -> type[BaseHTTPRequestHandler]:
@@ -47,12 +63,11 @@ def handler(verify_token: auth.VerifyToken, generate: Generate) -> type[BaseHTTP
             self.answer("GET")
 
         def do_POST(self):
-            # The body ({"data": …}) is read so the connection stays clean; the first question needs none of it.
-            self.rfile.read(int(self.headers.get("Content-Length") or 0))
-            self.answer("POST")
+            self.answer("POST", self.rfile.read(int(self.headers.get("Content-Length") or 0)))
 
-        def answer(self, method: str):
-            status, body = respond(method, self.path, self.headers.get("Authorization", ""), verify_token, generate)
+        def answer(self, method: str, request: bytes = b""):
+            authorization = self.headers.get("Authorization", "")
+            status, body = respond(method, self.path, authorization, verify_token, generate, request)
             data = json.dumps(body).encode()
             self.send_response(status)
             self.send_header("Content-Type", "application/json")

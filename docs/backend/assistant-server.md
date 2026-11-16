@@ -15,7 +15,7 @@ server/
 │   ├── providers.py     the model it asks: Gemma 4 on Ollama, its size by configuration
 │   ├── net.py           JSON over HTTP
 │   └── proposals.py     the catalogue's schemas, loaded whole for the model
-├── prompts/             the prompts, as files
+├── prompts/             the prompts, as versioned files: question.v1.md, plan.v1.md
 ├── schemas/             what the assistant may propose, as JSON Schemas, and samples/ of each (the app reads them too)
 ├── tests/               pytest, one file per module, with a fake model and a fake token check
 ├── Dockerfile           the server's image (port 8080); installs nothing
@@ -53,17 +53,35 @@ Entitlements (#117, #120) and push notices to other members (#102) need a server
 
 ## The interview
 
-`POST /interview` speaks the shape of a Firebase callable: `{"data": …}` in, `{"result": …}` or `{"error": {status, message, details}}` out. For now it returns the first question of the interview (#43); #66 turns it into the whole interview.
+`POST /interview` speaks the shape of a Firebase callable: `{"data": …}` in, `{"result": …}` or `{"error": {status, message, details}}` out. It runs the whole interview (#66), one step per call.
+
+The server keeps no state between calls (#64), so each call brings everything the next step needs:
+
+```json
+{"data": {
+  "answers": [{"questionId": "q1", "question": "Who lives there?", "selected": ["Family"], "text": "two kids"}],
+  "language": "es", "today": "2026-11-16", "newSpace": false,
+  "members": [{"name": "Ana"}, {"name": "Ben"}],
+  "items": ["Groceries"]
+}}
+```
+
+- **Members go by name only**, never uid or email. The server gives each a handle by its place in the list (`m1`, `m2`), which is all the model sees of them, and the app maps a plan's handles back to uids in the same order. A new space (`newSpace`) lists only the user.
+- **`language`** is the phone's (`es`, `ca`, `it`, `en`; anything else is English), and `today` its date, from which the plan's dates start.
+- **The steps.** While fewer than `QUESTION_BUDGET` (8) questions are answered, the model is asked for the next question with `prompts/question.v1.md`. It can answer `ready` instead, once at least one question is answered; then, or once the budget is spent, it writes the plan with `prompts/plan.v1.md` and `PLAN_SCHEMA`, which `checked_plan` checks before it leaves. A new space's plan must name the space; an existing space's never proposes one.
+- **The prompts are files** in `server/prompts/`, versioned in their names: a change that changes what the model is asked for gets a new version.
 
 | Call | HTTP | Body |
 |---|---|---|
-| Signed in | 200 | `{"result": {id, text, options, multiSelect, freeText, position, budget}}` |
+| Signed in, the next question | 200 | `{"result": {id, text, options, multiSelect, freeText, position, budget}}` |
+| Signed in, the plan | 200 | `{"result": {"plan": …}}`, in the shape of [the catalogue](#the-catalogue) |
+| `data` is not an interview | 400 | `{"error": {"status": "INVALID_ARGUMENT", …}}`, before the model |
 | No token, or not a valid one | 401 | `{"error": {"status": "UNAUTHENTICATED", …}}` |
 | The model failed or answered something invalid | 503 | `{"error": {"status": "UNAVAILABLE", …, "details": {"reason": "unavailable"}}}` |
 
 `GET /health` answers `{"ok": true}`.
 
-The request's `data` carries every answer so far, `{"answers": [{questionId, selected, text}]}`: the server keeps no state between calls (#64). A plan comes back as `{"result": {"plan": …}}` once #66 builds one, in the shape of [the catalogue](#the-catalogue). The refusals still to come use these statuses, which the app already reads:
+The refusals still to come use these statuses, which the app already reads:
 
 | Status | The app shows |
 |---|---|
@@ -73,7 +91,7 @@ The request's `data` carries every answer so far, `{"answers": [{questionId, sel
 
 ### The app's side
 
-`ServerAssistantRepository` (`shared/…/data/repository/`) posts to `ASSISTANT_SERVER_URL` with the user's ID token, through Ktor, and waits up to three minutes for a small model. No connection reads as a network error, and a reply that is not the callable shape (a proxy's error page) as `UNAVAILABLE`. `ASSISTANT_SERVER_URL` is `https://orbit.biri.es`, the Cloudflare tunnel to our server.
+`ServerAssistantRepository` (`shared/…/data/repository/`) posts to `ASSISTANT_SERVER_URL` with the user's ID token, through Ktor, and waits up to three minutes for a small model. It reads the space's members and item titles from the repositories for each call (the user alone for a new space), and a failed read is a network error. No connection reads as a network error, and a reply that is not the callable shape (a proxy's error page) as `UNAVAILABLE`. `ASSISTANT_SERVER_URL` is `https://orbit.biri.es`, the Cloudflare tunnel to our server.
 
 ## The catalogue
 
@@ -106,7 +124,7 @@ A model can still break a schema, or follow it and propose something the app wou
 - **The server**, before it answers: `checked_plan(plan, handles)` in `proposals.py` checks each item against the item schema and then against the rules across its fields above, with `handles` the members the request names. It drops an item that fails and logs why (`Dropped proposal 2 of the plan: modules.cost is not allowed`). The runtime has only the standard library, so `schema_errors` checks the part of JSON Schema that `schemas/` uses, and the pytest checks it agrees with the `jsonschema` package on every sample and every invalid plan.
 - **The app**, when it reads the reply: `planOf` (`ProposalMapper.kt`) reads each item on its own, with the strict `Json` so a field it does not know (an unknown module) makes that item unreadable. It maps each handle to its member's uid and checks the item with `validateItem`, as manual input is. `InterviewStep.PlanReady` carries only the items that pass, as `NewItem`s for the review board (#75). A dropped item is logged with Kermit.
 
-A plan that is not one is not used at all, on either side: another version, no `items`, or a `space` without a name or with an accent outside the six colours. `checked_plan` raises a `ValueError`, which the interview (#66, which calls it on the model's plan) answers as `UNAVAILABLE`, and the app reads it the same way, with the manual path. Until #66 sends the space's members in the request, the app maps no handle to a member, so a proposal assigned to a member is dropped.
+A plan that is not one is not used at all, on either side: another version, no `items`, or a `space` without a name or with an accent outside the six colours. `checked_plan` raises a `ValueError`, which the interview (#66, which calls it on the model's plan) answers as `UNAVAILABLE`, and the app reads it the same way, with the manual path.
 
 ### Versions
 
