@@ -6,14 +6,33 @@ import com.orbit.app.domain.model.InterviewAnswer
 import com.orbit.app.domain.model.InterviewQuestion
 import com.orbit.app.domain.model.InterviewStep
 import kotlinx.serialization.SerializationException
+import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
 
 private val json = Json { ignoreUnknownKeys = true }
 
-/** The body of `POST /interview` for every answer so far. */
-internal fun interviewRequest(answers: List<InterviewAnswer>): String = json.encodeToString(
+/** What the interview is about: the device's [language] and day, and the space's member names and item titles. */
+internal data class InterviewContext(
+    val language: String,
+    val today: LocalDate,
+    val newSpace: Boolean,
+    val memberNames: List<String>,
+    val itemTitles: List<String>,
+)
+
+/** The body of `POST /interview` for every answer so far. A member without a name is still listed, as one. */
+internal fun interviewRequest(answers: List<InterviewAnswer>, context: InterviewContext): String = json.encodeToString(
     InterviewRequest.serializer(),
-    InterviewRequest(InterviewRequestData(answers.map { AnswerDocument(it.questionId, it.selected.toList(), it.text) })),
+    InterviewRequest(
+        InterviewRequestData(
+            answers = answers.map { AnswerDocument(it.questionId, it.question, it.selected.toList(), it.text) },
+            language = context.language,
+            today = context.today.toString(),
+            newSpace = context.newSpace,
+            members = context.memberNames.mapIndexed { index, name -> InterviewMemberDocument(name.ifBlank { "Member ${index + 1}" }) },
+            items = context.itemTitles,
+        ),
+    ),
 )
 
 /**

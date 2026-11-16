@@ -44,7 +44,7 @@ class InterviewViewModelTest {
     }
 
     private fun interview(steps: List<InterviewStep>, failures: Map<Int, Exception> = emptyMap()) =
-        ScriptedAssistantRepository(steps, failures).let { it to InterviewViewModel(it, draft) }
+        ScriptedAssistantRepository(steps, failures).let { it to InterviewViewModel("space-1", it, draft) }
 
     private fun started(steps: List<InterviewStep>, failures: Map<Int, Exception> = emptyMap()) =
         interview(steps, failures).also { (_, viewModel) -> viewModel.onConsent() }
@@ -159,7 +159,8 @@ class InterviewViewModelTest {
         assertEquals(rooms, state.question)
         assertTrue(state.selected.isEmpty())
         assertEquals("", state.text)
-        assertEquals(listOf(InterviewAnswer("q1", setOf("Roommates"), "Three of us")), assistant.calls[1])
+        assertEquals(listOf(InterviewAnswer("q1", "Who lives there?", setOf("Roommates"), "Three of us")), assistant.calls[1])
+        assertEquals(listOf("space-1", "space-1"), assistant.spaceIds)
         assertEquals(
             listOf(
                 ChatMessage("Who lives there?", mine = false),

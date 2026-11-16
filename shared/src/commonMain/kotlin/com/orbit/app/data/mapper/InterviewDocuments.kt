@@ -8,11 +8,25 @@ import kotlinx.serialization.json.JsonObject
 @Serializable
 internal data class InterviewRequest(val data: InterviewRequestData)
 
+/**
+ * Everything the server needs for the next step (#66): it keeps no state. Members go by name only, never uid or email:
+ * the server gives each a handle by its place in [members] (`m1` first).
+ */
 @Serializable
-internal data class InterviewRequestData(val answers: List<AnswerDocument>)
+internal data class InterviewRequestData(
+    val answers: List<AnswerDocument>,
+    val language: String,
+    val today: String,
+    val newSpace: Boolean,
+    val members: List<InterviewMemberDocument>,
+    val items: List<String>,
+)
 
 @Serializable
-internal data class AnswerDocument(val questionId: String, val selected: List<String>, val text: String)
+internal data class AnswerDocument(val questionId: String, val question: String, val selected: List<String>, val text: String)
+
+@Serializable
+internal data class InterviewMemberDocument(val name: String)
 
 @Serializable
 internal data class InterviewReply(val result: StepDocument? = null, val error: ErrorDocument? = null)

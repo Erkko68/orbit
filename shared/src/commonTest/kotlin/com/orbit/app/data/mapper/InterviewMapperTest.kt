@@ -6,6 +6,7 @@ import com.orbit.app.domain.model.InterviewAnswer
 import com.orbit.app.domain.model.InterviewQuestion
 import com.orbit.app.domain.model.InterviewStep
 import com.orbit.app.domain.model.Plan
+import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -16,9 +17,15 @@ class InterviewMapperTest {
 
     @Test
     fun sendsEveryAnswerInTheCallableShape() {
-        val body = interviewRequest(listOf(InterviewAnswer("q1", setOf("Family"), "Three of us")))
+        val context = InterviewContext("es", LocalDate(2026, 11, 16), newSpace = false, listOf("Ana", " "), listOf("Bins"))
+        val body = interviewRequest(listOf(InterviewAnswer("q1", "Who lives there?", setOf("Family"), "Three of us")), context)
 
-        assertEquals("""{"data":{"answers":[{"questionId":"q1","selected":["Family"],"text":"Three of us"}]}}""", body)
+        assertEquals(
+            """{"data":{"answers":[{"questionId":"q1","question":"Who lives there?","selected":["Family"],""" +
+                """"text":"Three of us"}],"language":"es","today":"2026-11-16","newSpace":false,""" +
+                """"members":[{"name":"Ana"},{"name":"Member 2"}],"items":["Bins"]}}""",
+            body,
+        )
     }
 
     @Test

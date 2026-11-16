@@ -16,8 +16,14 @@ def verify(token):
     return "ana"
 
 
-def ask(path="/interview", method="POST", authorization="Bearer valid", generate=lambda prompt, schema: QUESTION):
-    return api.respond(method, path, authorization, verify, generate)
+def ask(
+    path="/interview",
+    method="POST",
+    authorization="Bearer valid",
+    generate=lambda prompt, schema: QUESTION,
+    body=b'{"data": {"answers": []}}',
+):
+    return api.respond(method, path, authorization, verify, generate, body)
 
 
 def test_answers_a_signed_in_caller_with_the_first_question():
@@ -51,6 +57,27 @@ def test_a_model_that_fails_is_unavailable():
         "message": "The assistant could not answer.",
         "details": {"reason": "unavailable"},
     }
+
+
+@pytest.mark.parametrize("body", [b"", b"not json", b"[]", b'{"data": "answers"}'])
+def test_a_body_that_is_not_an_interview_is_an_invalid_argument(body):
+    status, response = ask(body=body)
+
+    assert status == 400
+    assert response["error"]["status"] == "INVALID_ARGUMENT"
+
+
+def test_answers_with_the_plan_once_the_model_is_ready():
+    answer = {"questionId": "q1", "question": "Who lives there?", "selected": ["Family"], "text": ""}
+    body = json.dumps({"data": {"answers": [answer]}}).encode()
+
+    def model(prompt, schema):
+        return {"version": 1, "items": [{"title": "Groceries", "modules": {}}]} if "items" in schema["properties"] else {**QUESTION, "ready": True}
+
+    status, response = ask(generate=model, body=body)
+
+    assert status == 200
+    assert response["result"] == {"plan": {"version": 1, "items": [{"title": "Groceries", "modules": {}}]}}
 
 
 def test_says_it_is_up_and_knows_no_other_endpoint():
