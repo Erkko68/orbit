@@ -101,7 +101,7 @@ data class ItemUiState(
 
     val cost: Cost? get() = modules.filterIsInstance<Cost>().firstOrNull()
     val effort: Effort? get() = modules.filterIsInstance<Effort>().firstOrNull()
-    val canSaveEffort: Boolean get() = canSubmit && (removingEffort || effortDraft in 1..5)
+    val canSaveEffort: Boolean get() = canSubmit && (removingEffort || effortDraft in Effort.POINTS)
 
     /** The cost would charge someone who left: it is fixed on its screen before the item can be done. */
     val costInvalid: Boolean

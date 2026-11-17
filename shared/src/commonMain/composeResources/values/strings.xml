@@ -103,6 +103,8 @@
     <string name="filter_all">All</string>
     <string name="filter_mine">Mine</string>
     <string name="filter_lists">Lists</string>
+    <string name="filter_expenses">Expenses</string>
+    <string name="filter_reimbursements">Reimbursements</string>
     <string name="space_tab_calendar">Calendar</string>
     <string name="space_tab_tasks">Tasks</string>
     <string name="space_tab_expenses">Expenses</string>
@@ -414,11 +416,16 @@
     <string name="expense_paid_by_value">Paid by %1$s</string>
 
     <string name="expenses_balances">Balances</string>
+    <string name="expenses_balances_body">What each member paid, minus their share of every expense.</string>
     <string name="expenses_payments">Settle up</string>
     <string name="expenses_ledger">Ledger</string>
+    <string name="expenses_filter_empty">Nothing of this kind yet.</string>
     <string name="expenses_receives">Gets back</string>
     <string name="expenses_pays">Owes</string>
     <string name="expenses_even">Settled up</string>
+    <string name="expenses_you_receive">You get back</string>
+    <string name="expenses_you_pay">You owe</string>
+    <string name="expenses_you_even">You&apos;re settled up</string>
     <string name="expenses_payment">%1$s pays %2$s to %3$s</string>
     <string name="expenses_no_payments">Everyone is settled up.</string>
     <string name="expenses_mark_paid">Mark as paid</string>
@@ -476,6 +483,7 @@
     <string name="effort_add">Add effort</string>
     <string name="effort_points">Points: %1$d</string>
     <string name="effort_remove">Remove effort</string>
+    <string name="effort_save">Save</string>
     <string name="effort_body">Reopening and completing again does not award points again. Changes do not alter past contributions.</string>
     <string name="fairness_period">Effort · last 30 days</string>
     <string name="fairness_empty">No effort points recorded in the last 30 days.</string>

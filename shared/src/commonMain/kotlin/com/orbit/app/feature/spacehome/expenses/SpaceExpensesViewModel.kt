@@ -9,6 +9,7 @@ import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.Balances
 import com.orbit.app.domain.model.Expense
 import com.orbit.app.domain.model.ExpenseKind
+import com.orbit.app.domain.model.MemberBalance
 import com.orbit.app.domain.model.NewExpense
 import com.orbit.app.domain.model.SuggestedPayment
 import com.orbit.app.domain.model.newestFirst
@@ -28,6 +29,10 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.expenses_settlement_title
+import orbit.shared.generated.resources.filter_all
+import orbit.shared.generated.resources.filter_expenses
+import orbit.shared.generated.resources.filter_reimbursements
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getString
 import kotlin.time.Clock
 
@@ -43,8 +48,15 @@ data class SpaceExpensesUiState(
     val pendingPayment: SuggestedPayment? = null,
     val submitting: Boolean = false,
     val failed: Boolean = false,
+    val filter: ExpenseFilter = ExpenseFilter.ALL,
 ) {
     fun name(id: String): String = faces[id]?.name ?: id
+
+    /** The ledger's entries that pass [filter]. */
+    val shownEntries: List<Expense> get() = entries.filter(filter.matches)
+
+    /** Every member's balance, the user's own first. */
+    val balanceRows: List<MemberBalance> get() = balances.members.sortedByDescending { it.memberId == me }
 
     /** The payments the user is in, paying or getting paid: the only ones Settle up shows. */
     val myPayments: List<SuggestedPayment>
@@ -55,6 +67,13 @@ data class SpaceExpensesUiState(
 
     val canConfirm: Boolean
         get() = pendingPayment != null && pendingPayment.paidBy == me && pendingPayment in balances.payments && !loading && !loadFailed && !submitting
+}
+
+/** The filters over the ledger: spending, or the reimbursements recorded through Settle up. */
+enum class ExpenseFilter(val label: StringResource, val matches: (Expense) -> Boolean) {
+    ALL(Res.string.filter_all, { true }),
+    EXPENSES(Res.string.filter_expenses, { it.kind != ExpenseKind.SETTLEMENT }),
+    REIMBURSEMENTS(Res.string.filter_reimbursements, { it.kind == ExpenseKind.SETTLEMENT }),
 }
 
 private data class SettlementState(
@@ -75,6 +94,7 @@ class SpaceExpensesViewModel(
 ) : ViewModel() {
     private val retries = Channel<Unit>(Channel.CONFLATED)
     private val settlement = MutableStateFlow(SettlementState())
+    private val filter = MutableStateFlow(ExpenseFilter.ALL)
     private val loaded = combine(
         expenses.observeExpenses(spaceId),
         spaces.observeMembers(spaceId),
@@ -95,11 +115,20 @@ class SpaceExpensesViewModel(
         )
     }.asLoad("Loading the ledger of $spaceId", retries)
 
-    val uiState = combine(loaded, settlement) { load, selected ->
+    val uiState = combine(loaded, settlement, filter) { load, selected, filter ->
         val state =
             load.valueOrNull ?: SpaceExpensesUiState(loading = load == Load.Loading, loadFailed = load == Load.Failed)
-        state.copy(pendingPayment = selected.payment, submitting = selected.submitting, failed = selected.failed)
+        state.copy(
+            pendingPayment = selected.payment,
+            submitting = selected.submitting,
+            failed = selected.failed,
+            filter = filter,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceExpensesUiState())
+
+    fun selectFilter(filter: ExpenseFilter) {
+        this.filter.value = filter
+    }
 
     fun retry() {
         if (uiState.value.loadFailed) retries.trySend(Unit)

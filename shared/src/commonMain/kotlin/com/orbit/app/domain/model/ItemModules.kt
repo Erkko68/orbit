@@ -68,6 +68,11 @@ data class ItemModules(
 /** Optional effort credited to whoever completes the item, from 1 to 5 points. */
 data class Effort(val points: Int) : Module {
     override val type get() = ModuleType.EFFORT
+
+    companion object {
+        /** The points an item can be worth. */
+        val POINTS = 1..5
+    }
 }
 
 /** Due at a point (`date`, optionally `time`) or within a window (`date` to `endDate`). */

@@ -36,20 +36,21 @@ import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.feature.item.ItemUiState
 import com.orbit.app.feature.item.ItemViewModel
 import com.orbit.app.feature.item.history.ItemHistory
-import orbit.shared.generated.resources.effort_title
-import orbit.shared.generated.resources.ic_check
-import orbit.shared.generated.resources.effort_add
-import orbit.shared.generated.resources.effort_points
 import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.checklist_add_expense
 import orbit.shared.generated.resources.checklist_check_entry
 import orbit.shared.generated.resources.checklist_uncheck_entry
 import orbit.shared.generated.resources.cost_invalid
+import orbit.shared.generated.resources.effort_add
+import orbit.shared.generated.resources.effort_points
+import orbit.shared.generated.resources.effort_title
 import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.ic_delete
 import orbit.shared.generated.resources.ic_event
 import orbit.shared.generated.resources.ic_group
 import orbit.shared.generated.resources.ic_notifications
 import orbit.shared.generated.resources.ic_wallet
+import orbit.shared.generated.resources.ic_zap
 import orbit.shared.generated.resources.item_action_failed
 import orbit.shared.generated.resources.item_add_cost
 import orbit.shared.generated.resources.item_add_date
@@ -58,15 +59,13 @@ import orbit.shared.generated.resources.item_back
 import orbit.shared.generated.resources.item_checklist
 import orbit.shared.generated.resources.item_complete
 import orbit.shared.generated.resources.item_cost
-import orbit.shared.generated.resources.checklist_add_expense
 import orbit.shared.generated.resources.item_create
-import orbit.shared.generated.resources.plan_done
 import orbit.shared.generated.resources.item_delete
 import orbit.shared.generated.resources.item_description
 import orbit.shared.generated.resources.item_load_failed
 import orbit.shared.generated.resources.item_load_failed_body
-import orbit.shared.generated.resources.item_name
 import orbit.shared.generated.resources.item_loading
+import orbit.shared.generated.resources.item_name
 import orbit.shared.generated.resources.item_name_placeholder
 import orbit.shared.generated.resources.item_not_found
 import orbit.shared.generated.resources.item_not_found_body
@@ -75,10 +74,11 @@ import orbit.shared.generated.resources.item_reopen
 import orbit.shared.generated.resources.item_when
 import orbit.shared.generated.resources.item_who
 import orbit.shared.generated.resources.item_who_empty
-import orbit.shared.generated.resources.list_add_entry
 import orbit.shared.generated.resources.item_who_rotation
+import orbit.shared.generated.resources.list_add_entry
 import orbit.shared.generated.resources.module_assignment_anyone
 import orbit.shared.generated.resources.module_checklist_quantity
+import orbit.shared.generated.resources.plan_done
 import orbit.shared.generated.resources.retry
 import orbit.shared.generated.resources.space_item_entry_count
 import org.jetbrains.compose.resources.stringResource
@@ -346,7 +346,7 @@ private fun ItemActionRow(row: ItemRow, state: ItemUiState, viewModel: ItemViewM
             title = stringResource(Res.string.effort_title),
             supporting = state.effort?.let { stringResource(Res.string.effort_points, it.points) }
                 ?: stringResource(Res.string.effort_add),
-            icon = Res.drawable.ic_check,
+            icon = Res.drawable.ic_zap,
             onClick = viewModel::openEffort,
             modifier = modifier,
         )

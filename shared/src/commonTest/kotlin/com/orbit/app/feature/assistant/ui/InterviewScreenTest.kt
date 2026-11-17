@@ -82,6 +82,20 @@ class InterviewScreenTest : ComposeTest() {
     }
 
     @Test
+    fun theChatStaysOnTheNewestQuestion() = runComposeUiTest {
+        val questions = (1..6).map { InterviewQuestion("q$it", "Question $it?", listOf("Answer $it"), false, false, it, 8) }
+        show(ScriptedAssistantRepository(questions.map { InterviewStep.Ask(it) }))
+
+        for (question in questions.dropLast(1)) {
+            onNodeWithText(question.options.single()).performClick()
+            onNodeWithContentDescription("Send").performClick()
+        }
+
+        onNodeWithText("Question 6?").assertIsDisplayed()
+        onNodeWithText("Answer 6").assertIsDisplayed()
+    }
+
+    @Test
     fun deletedTextStaysDeletedWhenAChipIsPicked() = runComposeUiTest {
         show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(who))))
 

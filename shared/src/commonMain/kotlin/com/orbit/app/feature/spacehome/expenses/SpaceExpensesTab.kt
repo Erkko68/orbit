@@ -2,6 +2,7 @@ package com.orbit.app.feature.spacehome.expenses
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,6 +21,7 @@ import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitErrorState
 import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitFaceStack
+import com.orbit.app.core.designsystem.component.OrbitFilterChip
 import com.orbit.app.core.designsystem.component.OrbitGroup
 import com.orbit.app.core.designsystem.component.OrbitLoadingState
 import com.orbit.app.core.designsystem.component.OrbitSectionHeader
@@ -64,7 +66,7 @@ internal fun SpaceExpensesTab(
             else -> {
                 Balances(state)
                 SettleUp(state, viewModel::requestSettlement)
-                Ledger(state, onOpenExpense)
+                Ledger(state, viewModel::selectFilter, onOpenExpense)
             }
         }
     }
@@ -74,18 +76,27 @@ internal fun SpaceExpensesTab(
 @Composable
 private fun Balances(state: SpaceExpensesUiState) {
     OrbitSectionHeader(stringResource(Res.string.expenses_balances), Modifier.fillMaxWidth())
-    OrbitGroup(state.balances.members, key = { it.memberId }, Modifier.fillMaxWidth()) { balance ->
+    Text(
+        stringResource(Res.string.expenses_balances_body),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+    OrbitGroup(state.balanceRows, key = { it.memberId }, Modifier.fillMaxWidth()) { balance ->
         BalanceRow(balance, state)
     }
 }
 
-/** A balance as a sentence: the person, whether they get money back or owe it, and how much. */
+/**
+ * A balance as a sentence: the person, whether they get money back or owe it, and how much. Only the user's own is a
+ * vivid fill; the others keep their sign and words on a plain row, so the section stays light.
+ */
 @Composable
 private fun BalanceRow(balance: MemberBalance, state: SpaceExpensesUiState) {
+    val mine = balance.memberId == state.me
     val status = when {
-        balance.cents > 0 -> Res.string.expenses_receives
-        balance.cents < 0 -> Res.string.expenses_pays
-        else -> Res.string.expenses_even
+        balance.cents > 0 -> if (mine) Res.string.expenses_you_receive else Res.string.expenses_receives
+        balance.cents < 0 -> if (mine) Res.string.expenses_you_pay else Res.string.expenses_pays
+        else -> if (mine) Res.string.expenses_you_even else Res.string.expenses_even
     }
     OrbitAmountRow(
         title = state.name(balance.memberId),
@@ -105,12 +116,13 @@ private fun BalanceRow(balance: MemberBalance, state: SpaceExpensesUiState) {
                     face.color,
                     photoUrl = face.photoUrl,
                     shape = face.shape,
-                    size = OrbitAvatarSize.Medium,
+                    size = OrbitAvatarSize.Small,
                     // A face in the row's own colour still stands out on it.
                     ring = MaterialTheme.colorScheme.surfaceBright,
                 )
             }
         },
+        quiet = !mine,
     )
 }
 
@@ -155,7 +167,7 @@ private fun SettleUp(state: SpaceExpensesUiState, onRequest: (SuggestedPayment) 
 }
 
 @Composable
-private fun Ledger(state: SpaceExpensesUiState, onOpenExpense: (String) -> Unit) {
+private fun Ledger(state: SpaceExpensesUiState, onFilter: (ExpenseFilter) -> Unit, onOpenExpense: (String) -> Unit) {
     OrbitSectionHeader(stringResource(Res.string.expenses_ledger), Modifier.fillMaxWidth())
     if (state.entries.isEmpty()) {
         OrbitEmptyState(
@@ -163,8 +175,21 @@ private fun Ledger(state: SpaceExpensesUiState, onOpenExpense: (String) -> Unit)
             stringResource(Res.string.expenses_empty_body),
             Modifier.fillMaxWidth(),
         )
+        return
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.xs)) {
+        for (filter in ExpenseFilter.entries) {
+            OrbitFilterChip(stringResource(filter.label), filter == state.filter, { onFilter(filter) })
+        }
+    }
+    if (state.shownEntries.isEmpty()) {
+        Text(
+            stringResource(Res.string.expenses_filter_empty),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     } else {
-        OrbitGroup(state.entries, key = { it.id }, Modifier.fillMaxWidth()) { entry -> LedgerRow(entry, state, onOpenExpense) }
+        OrbitGroup(state.shownEntries, key = { it.id }, Modifier.fillMaxWidth()) { entry -> LedgerRow(entry, state, onOpenExpense) }
     }
 }
 

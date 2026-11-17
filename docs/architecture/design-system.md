@@ -28,8 +28,8 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 
 | Component | Use it for |
 |---|---|
-| `OrbitScreen` | Every screen: the page, scaffold, insets, gutter, gaps and scrolling (`scrollable = true`, or `list` for a lazy list). `primaryAction` pins a form's one button at the bottom, `collapsingTopBar` slides the top away on scroll, `chat` grows a `list` up from the bottom |
-| `OrbitTopBar` | The top of a signed-in screen, on the page. The title can be a button, as a space's opens the list of spaces |
+| `OrbitScreen` | Every screen: the page, scaffold, insets, gutter, gaps and scrolling (`scrollable = true`, or `list` for a lazy list). `primaryAction` pins a form's one button at the bottom, `collapsingTopBar` slides the top away on scroll, `chat` grows a `list` up from the bottom and keeps the newest message in view |
+| `OrbitTopBar` | The top of a signed-in screen, in the page's colour, so what scrolls under it is hidden. The title can be a button, as a space's opens the list of spaces |
 | `OrbitColorHeader` | The top of a screen about one thing: a vivid block with its title, a face and a detail line. It shows; only an item's title is typed in it, with a pencil |
 | `OrbitHero` | The big bold opening of a screen, on the page |
 | `OrbitScreenHeader` | The opening of a screen without a top bar (sign-in) |
@@ -49,7 +49,7 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | `OrbitGroupRow` | One row of a group, with anything in it |
 | `OrbitTaskRow` | An item in a list, a task or a list alike: the check, the title, a line of description, when and how far along, and the faces at the end |
 | `OrbitEntryRow` | One entry of a checklist, lighter than a check row |
-| `OrbitAmountRow` | A row about money: a title over a line, the amount at the end in Martian Mono, a face in front when it is a person. A ledger entry, or a balance: with a + or − sign the whole row is the vivid `credit` (teal) or `debit` (coral) fill; `done` tints a reimbursement |
+| `OrbitAmountRow` | A row about money: a title over a line, the amount at the end in Martian Mono, a face in front when it is a person. A ledger entry, or a balance: with a + or − sign the whole row is the vivid `credit` (teal) or `debit` (coral) fill, or keeps only the sign when `quiet` (another member's balance); `done` tints a reimbursement |
 | `OrbitAmountField` | An amount typed at the end of a row, such as one person's share: right-aligned in Martian Mono |
 | `OrbitTransferRow` | A payment to settle: the two faces, the sentence ("You owe Ana") over its amount, and, when the user is the one who pays, a small teal pill with an icon ("Pay") that asks to record it |
 | `OrbitActionRow` | A row that does something: an icon on a shape, a title over its value, faces or another `trailing`, and an arrow |

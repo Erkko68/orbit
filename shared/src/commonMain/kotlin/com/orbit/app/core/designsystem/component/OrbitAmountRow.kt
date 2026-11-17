@@ -36,7 +36,8 @@ enum class OrbitAmountSign { Plus, Minus }
 /**
  * A row of an [OrbitGroup] about money, as Tricount lists it: [title] over [supporting], the [amount] at the end in the
  * data type, and a [leading] face when it is about a person. With a [sign] the whole row is a vivid fill, teal for money
- * to get back (+) and coral for money owed (−), with the sign before the amount, so colour never says it alone. Tapping
+ * to get back (+) and coral for money owed (−), with the sign before the amount, so colour never says it alone. A
+ * [quiet] row keeps the sign but not the fill, for a balance that is not the user's own. Tapping
  * the row opens it when [onClick] is set. [done] tints it as a ticked row: money that has already moved, such as a
  * reimbursement in the ledger.
  */
@@ -50,12 +51,14 @@ fun OrbitAmountRow(
     leading: (@Composable () -> Unit)? = null,
     sign: OrbitAmountSign? = null,
     done: Boolean = false,
+    quiet: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val fill = when (sign) {
-        OrbitAmountSign.Plus -> OrbitTheme.colors.credit
-        OrbitAmountSign.Minus -> OrbitTheme.colors.debit
-        null -> null
+    val fill = when {
+        quiet -> null
+        sign == OrbitAmountSign.Plus -> OrbitTheme.colors.credit
+        sign == OrbitAmountSign.Minus -> OrbitTheme.colors.debit
+        else -> null
     }
     OrbitGroupRow(modifier.semantics(mergeDescendants = true) {}, onClick = onClick, done = done, fill = fill) {
         leading?.invoke()
@@ -80,16 +83,18 @@ fun OrbitAmountRow(
             horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            sign?.let { AmountSign(it) }
+            sign?.let { AmountSign(it, onFill = fill != null) }
             Text(text = amount, style = OrbitTheme.data.large, color = if (fill != null) Ink else scheme.onSurface, softWrap = false)
         }
     }
 }
 
 @Composable
-private fun AmountSign(sign: OrbitAmountSign) {
-    Box(Modifier.size(SignSize).background(Ink, CircleShape), contentAlignment = Alignment.Center) {
+private fun AmountSign(sign: OrbitAmountSign, onFill: Boolean) {
+    val scheme = MaterialTheme.colorScheme
+    val (disc, mark) = if (onFill) Ink to Paper else scheme.onSurface to scheme.surfaceBright
+    Box(Modifier.size(SignSize).background(disc, CircleShape), contentAlignment = Alignment.Center) {
         val icon = if (sign == OrbitAmountSign.Plus) Res.drawable.ic_add else Res.drawable.ic_remove
-        Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(SignIcon), tint = Paper)
+        Icon(painterResource(icon), contentDescription = null, modifier = Modifier.size(SignIcon), tint = mark)
     }
 }

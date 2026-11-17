@@ -147,7 +147,7 @@ class SpaceHomeScreenTest : ComposeTest() {
         onNodeWithContentDescription("Add").assertIsDisplayed()
 
         onNode(hasText("Expenses") and hasClickAction()).performClick().assertIsSelected()
-        onNode(hasText("Ana López") and hasText("Settled up")).performScrollTo().assertIsDisplayed()
+        onNode(hasText("Ana López") and hasText("You're settled up")).performScrollTo().assertIsDisplayed()
         onNodeWithText("No expenses yet").performScrollTo().assertIsDisplayed()
         onNodeWithContentDescription("Add expense").assertIsDisplayed()
 

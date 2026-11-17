@@ -103,6 +103,8 @@
     <string name="filter_all">Tots</string>
     <string name="filter_mine">Meus</string>
     <string name="filter_lists">Llistes</string>
+    <string name="filter_expenses">Despeses</string>
+    <string name="filter_reimbursements">Reemborsaments</string>
     <string name="space_tab_calendar">Calendari</string>
     <string name="space_tab_tasks">Tasques</string>
     <string name="space_tab_expenses">Despeses</string>
@@ -414,11 +416,16 @@
     <string name="expense_paid_by_value">Pagat per %1$s</string>
 
     <string name="expenses_balances">Saldos</string>
+    <string name="expenses_balances_body">El que ha pagat cada membre, menys la seva part de cada despesa.</string>
     <string name="expenses_payments">Saldar comptes</string>
     <string name="expenses_ledger">Registre</string>
+    <string name="expenses_filter_empty">Encara no hi ha res d&apos;aquest tipus.</string>
     <string name="expenses_receives">Recupera</string>
     <string name="expenses_pays">Deu</string>
     <string name="expenses_even">Al dia</string>
+    <string name="expenses_you_receive">Recuperes</string>
+    <string name="expenses_you_pay">Deus</string>
+    <string name="expenses_you_even">Estàs al dia</string>
     <string name="expenses_payment">%1$s paga %2$s a %3$s</string>
     <string name="expenses_no_payments">Tothom està al dia.</string>
     <string name="expenses_mark_paid">Marca com a pagat</string>
@@ -476,6 +483,7 @@
     <string name="effort_add">Afegeix esforç</string>
     <string name="effort_points">Punts: %1$d</string>
     <string name="effort_remove">Elimina l’esforç</string>
+    <string name="effort_save">Desa</string>
     <string name="effort_body">Reobrir i tornar a completar no atorga més punts. Els canvis no modifiquen les contribucions ja registrades.</string>
     <string name="fairness_period">Esforç · últims 30 dies</string>
     <string name="fairness_empty">No hi ha punts d’esforç registrats en els últims 30 dies.</string>
