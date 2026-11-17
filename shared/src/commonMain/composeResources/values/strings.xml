@@ -291,6 +291,7 @@
     <string name="interview_error_network">Check your internet and try again. Your answers so far are kept.</string>
     <string name="interview_error_quota_title">That&apos;s all for now</string>
     <string name="interview_error_quota">You have used the assistant all you can for now. Close the chat to add things by hand.</string>
+    <string name="interview_error_quota_until">You can use the assistant again on %1$s. Until then, close the chat to add things by hand.</string>
     <string name="interview_error_disabled_title">The assistant is switched off</string>
     <string name="interview_error_disabled">It is off for everyone for now. Close the chat to add things by hand.</string>
     <string name="interview_error_unavailable_title">The assistant is not available</string>

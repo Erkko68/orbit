@@ -1,5 +1,7 @@
 package com.orbit.app.domain.model
 
+import kotlin.time.Instant
+
 /**
  * One question of the assistant's interview, as the server sends it (#64): the chips in [options], several of them
  * when [multiSelect], and an answer in the user's words when [freeText]. [position] of [budget] says how far along
@@ -48,5 +50,12 @@ enum class AssistantError {
     val retryable: Boolean get() = this != QUOTA_EXCEEDED && this != DISABLED
 }
 
-/** What an [com.orbit.app.domain.repository.AssistantRepository] throws when the assistant does not answer. */
-class AssistantException(val error: AssistantError, cause: Throwable? = null) : Exception(error.name, cause)
+/**
+ * What an [com.orbit.app.domain.repository.AssistantRepository] throws when the assistant does not answer. A spent
+ * quota says when the user has the assistant again ([resetsAt]).
+ */
+class AssistantException(
+    val error: AssistantError,
+    cause: Throwable? = null,
+    val resetsAt: Instant? = null,
+) : Exception(error.name, cause)

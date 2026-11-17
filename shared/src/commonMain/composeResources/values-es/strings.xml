@@ -291,6 +291,7 @@
     <string name="interview_error_network">Revisa tu internet y vuelve a intentarlo. Tus respuestas se guardan.</string>
     <string name="interview_error_quota_title">Por ahora es todo</string>
     <string name="interview_error_quota">Has usado el asistente todo lo posible por ahora. Cierra el chat para añadir cosas a mano.</string>
+    <string name="interview_error_quota_until">Podrás volver a usar el asistente el %1$s. Hasta entonces, cierra el chat para añadir cosas a mano.</string>
     <string name="interview_error_disabled_title">El asistente está desactivado</string>
     <string name="interview_error_disabled">Está desactivado para todos por ahora. Cierra el chat para añadir cosas a mano.</string>
     <string name="interview_error_unavailable_title">El asistente no está disponible</string>

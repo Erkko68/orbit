@@ -10,6 +10,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.orbit.app.core.dateLabel
 import com.orbit.app.core.designsystem.component.OrbitChatBubble
 import com.orbit.app.core.designsystem.component.OrbitChatComposer
 import com.orbit.app.core.designsystem.component.OrbitFilterChip
@@ -28,6 +29,7 @@ import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.close
 import orbit.shared.generated.resources.ic_close
 import orbit.shared.generated.resources.interview_answer_placeholder
+import orbit.shared.generated.resources.interview_error_quota_until
 import orbit.shared.generated.resources.interview_loading
 import orbit.shared.generated.resources.interview_send
 import orbit.shared.generated.resources.interview_title
@@ -92,7 +94,8 @@ fun InterviewScreen(
                     OrbitChatBubble(mine = false) {
                         OrbitHeading(
                             title = stringResource(error.title()),
-                            subtitle = stringResource(error.message()),
+                            subtitle = state.quotaResetsOn?.let { stringResource(Res.string.interview_error_quota_until, dateLabel(it)) }
+                                ?: stringResource(error.message()),
                             titleColor = MaterialTheme.colorScheme.error,
                         )
                         if (state.canRetry) {

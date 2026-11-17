@@ -291,6 +291,7 @@
     <string name="interview_error_network">Revisa internet i torna-ho a provar. Les teves respostes es guarden.</string>
     <string name="interview_error_quota_title">Per ara ja està</string>
     <string name="interview_error_quota">Has fet servir l&apos;assistent tot el que es pot per ara. Tanca el xat per afegir coses a mà.</string>
+    <string name="interview_error_quota_until">Podràs tornar a fer servir l&apos;assistent el %1$s. Fins aleshores, tanca el xat per afegir coses a mà.</string>
     <string name="interview_error_disabled_title">L&apos;assistent està desactivat</string>
     <string name="interview_error_disabled">Està desactivat per a tothom per ara. Tanca el xat per afegir coses a mà.</string>
     <string name="interview_error_unavailable_title">L&apos;assistent no està disponible</string>

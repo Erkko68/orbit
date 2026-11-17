@@ -291,6 +291,7 @@
     <string name="interview_error_network">Controlla internet e riprova. Le tue risposte restano salvate.</string>
     <string name="interview_error_quota_title">Per ora è tutto</string>
     <string name="interview_error_quota">Hai usato l&apos;assistente quanto possibile per ora. Chiudi la chat per aggiungere cose a mano.</string>
+    <string name="interview_error_quota_until">Potrai usare di nuovo l&apos;assistente il %1$s. Fino ad allora, chiudi la chat per aggiungere cose a mano.</string>
     <string name="interview_error_disabled_title">L&apos;assistente è disattivato</string>
     <string name="interview_error_disabled">È disattivato per tutti per ora. Chiudi la chat per aggiungere cose a mano.</string>
     <string name="interview_error_unavailable_title">L&apos;assistente non è disponibile</string>

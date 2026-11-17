@@ -10,6 +10,8 @@ import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
+import kotlin.time.Instant
 
 class InterviewMapperTest {
     private fun failure(body: String) =
@@ -61,6 +63,23 @@ class InterviewMapperTest {
         assertEquals(AssistantError.DISABLED, failure("""{"error":{"status":"FAILED_PRECONDITION"}}"""))
         assertEquals(AssistantError.UNAVAILABLE, failure("""{"error":{"status":"UNAVAILABLE","message":"down"}}"""))
         assertEquals(AssistantError.UNKNOWN, failure("""{"error":{"status":"UNAUTHENTICATED"}}"""))
+    }
+
+    @Test
+    fun aSpentQuotaSaysWhenItResets() {
+        val body = """{"error":{"status":"RESOURCE_EXHAUSTED","details":{"reason":"quota","resetsAt":"2026-11-18T00:00:00Z"}}}"""
+
+        val refusal = assertFailsWith<AssistantException> { interviewStep(body, members = emptyList()) }
+
+        assertEquals(AssistantError.QUOTA_EXCEEDED, refusal.error)
+        assertEquals(Instant.parse("2026-11-18T00:00:00Z"), refusal.resetsAt)
+    }
+
+    @Test
+    fun aResetThatIsNotAnInstantIsLeftOut() {
+        val body = """{"error":{"status":"RESOURCE_EXHAUSTED","details":{"resetsAt":"tomorrow"}}}"""
+
+        assertNull(assertFailsWith<AssistantException> { interviewStep(body, members = emptyList()) }.resetsAt)
     }
 
     @Test
