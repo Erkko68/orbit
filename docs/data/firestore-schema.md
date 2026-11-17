@@ -292,7 +292,7 @@ the stored exact shares; deleting an entry uses the existing creator-or-manager 
 | `expiresAt` | timestamp | yes | Seven days after creation (`INVITATION_VALIDITY`); the rules accept up to 30 |
 | `revoked` | boolean | yes | `false` on creation. Revoking sets it to `true` for good. |
 
-The code is eight characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (no `I`, `O`, `0` or `1`), derived from a Firestore auto id. The link is `orbit://join/<code>`.
+The code is eight characters from `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` (no `I`, `O`, `0` or `1`), derived from a Firestore auto id. The link a share carries is `https://orbit-app-dev-ee2d7.web.app/join/<code>`, a page that opens `orbit://join/<code>` in the app ([the page](../process/builds-and-deployment.md#the-invitation-page)). The app reads the code from either form of the link, or typed alone.
 
 ## Access API
 
