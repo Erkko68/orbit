@@ -21,6 +21,8 @@ import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.member.SpaceMembersViewModel
+import com.orbit.app.feature.member.fairness.FairnessViewModel
+import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.feature.spacesettings.SpaceSettingsViewModel
 import com.orbit.app.feature.spacesettings.invite.InviteViewModel
 import com.orbit.app.testing.InMemoryAuthRepository
@@ -35,6 +37,7 @@ import kotlin.test.assertEquals
 class SpaceSettingsScreenTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
     private val spaces = InMemorySpaceRepository(auth)
+    private val items = InMemoryItemRepository(auth)
     private var gone = 0
     private val opened = mutableListOf<String>()
 
@@ -59,12 +62,30 @@ class SpaceSettingsScreenTest : ComposeTest() {
                     membersViewModel = SpaceMembersViewModel("space-1", repository, auth),
                     inviteViewModel = InviteViewModel("space-1", InMemoryInvitationRepository(auth), repository, auth),
                     sharer = TextSharer {},
+                    fairnessViewModel = FairnessViewModel("space-1", items, repository),
                 )
             }
         }
     }
 
     private fun spaceNow() = runBlocking { spaces.observeSpaces().first().single() }
+
+    @Test
+    fun membersShowTheMeasuredShareAgainstTheEqualShare() = runComposeUiTest {
+        showSettingsAs("ana@orbit.app")
+        runBlocking {
+            val id = items.create(
+                "space-1", com.orbit.app.domain.model.NewItem(
+                    "Bins",
+                    modules = com.orbit.app.domain.model.ItemModules(effort = com.orbit.app.domain.model.Effort(3)),
+                )
+            )
+            items.complete("space-1", id, null)
+        }
+        waitForIdle()
+        onNodeWithText("100% · equal share 33%").performScrollTo().assertIsDisplayed()
+        onNodeWithText("Effort · last 30 days").performScrollTo().assertIsDisplayed()
+    }
 
     @Test
     fun theOwnerSeesEverythingTheyCanDo() = runComposeUiTest {

@@ -67,7 +67,24 @@ class MemberScreenTest : ComposeTest() {
         }
     }
 
-    private fun roleOf(userId: String) = runBlocking { spaces.observeMembers("space-1").first().single { it.userId == userId }.role }
+    private fun roleOf(userId: String) =
+        runBlocking { spaces.observeMembers("space-1").first().single { it.userId == userId }.role }
+
+    @Test
+    fun memberShowsTheirEffortPointsAndTheirShare() = runComposeUiTest {
+        showMemberAs("cy@orbit.app", "cy@orbit.app")
+        runBlocking {
+            val id = items.create(
+                "space-1", NewItem(
+                    "Done", modules = ItemModules(effort = com.orbit.app.domain.model.Effort(4)),
+                )
+            )
+            items.complete("space-1", id, null)
+        }
+        waitForIdle()
+        onNodeWithText("100% · equal share 33%").performScrollTo().assertIsDisplayed()
+        onNodeWithText("4 of 4 points · rounded percentages").performScrollTo().assertIsDisplayed()
+    }
 
     @AfterTest
     fun tearDown() {

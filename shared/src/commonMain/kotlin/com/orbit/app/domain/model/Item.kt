@@ -22,6 +22,8 @@ data class Item(
      * clears it (ADR 0014).
      */
     val costExpenseId: String? = null,
+    /** This occurrence already recorded its effort decision, even when it had no effort module. */
+    val effortRecorded: Boolean = false,
 )
 
 /** The item is still to do, it is [userId]'s, and it is due by [today]. */

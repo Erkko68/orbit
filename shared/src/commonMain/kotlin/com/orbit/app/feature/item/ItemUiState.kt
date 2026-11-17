@@ -5,6 +5,7 @@ import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.domain.model.Cost
+import com.orbit.app.domain.model.Effort
 import com.orbit.app.domain.model.ItemStatus
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.Module
@@ -42,6 +43,9 @@ data class ItemUiState(
     val createdBy: String? = null,
     /** The sheet that lists the reminders is showing. */
     val editingReminder: Boolean = false,
+    val editingEffort: Boolean = false,
+    val effortDraft: Int = 1,
+    val removingEffort: Boolean = false,
     /** That sheet is on its page that adds one. */
     val addingReminder: Boolean = false,
     /** The moment on that page's wheels. */
@@ -96,6 +100,8 @@ data class ItemUiState(
     val canSaveChecklist: Boolean get() = canSubmit && checklistEditor?.canSave == true
 
     val cost: Cost? get() = modules.filterIsInstance<Cost>().firstOrNull()
+    val effort: Effort? get() = modules.filterIsInstance<Effort>().firstOrNull()
+    val canSaveEffort: Boolean get() = canSubmit && (removingEffort || effortDraft in 1..5)
 
     /** The cost would charge someone who left: it is fixed on its screen before the item can be done. */
     val costInvalid: Boolean

@@ -300,6 +300,28 @@ service cloud.firestore {
           return after == null || after == before || isCost(after);
         }
 
+        // Effort is optional, but a newly written value must have exactly one valid points field.
+        function keepsEffort() {
+          let before = resource == null ? null : resource.data.get('modules', {}).get('effort', null);
+          let modules = request.resource.data.get('modules', {});
+          let after = modules.get('effort', null);
+          return !('effort' in modules) || (after != null && after == before) || (after is map
+            && after.keys().hasOnly(['points']) && after.keys().hasAll(['points'])
+            && after.points is int && after.points >= 1 && after.points <= 5);
+        }
+
+        // Once an occurrence was completed, editing or reopening it cannot make its effort count again.
+        function keepsEffortRecord() {
+          let before = resource.data.get('effortRecorded', false);
+          let after = request.resource.data.get('effortRecorded', false);
+          let rolls = 'recurrence' in request.resource.data.get('modules', {})
+            && request.resource.data.get('modules', {}).get('schedule', {}).get('date', '')
+              > resource.data.get('modules', {}).get('schedule', {}).get('date', '');
+          return after is bool && (after == before
+            || (after == true && resource.data.status != request.resource.data.status)
+            || (after == false && rolls));
+        }
+
         // Completing records the caller as who completed it; reopening removes it.
         function completesAsSelf() {
           return !changedKeys().hasAny(['completedBy'])
@@ -313,12 +335,16 @@ service cloud.firestore {
           && request.resource.data.spaceId == spaceId
           && isTitle(request.resource.data.title)
           && request.resource.data.status == 'open'
+          && !request.resource.data.get('effortRecorded', false)
+          && keepsEffort()
           && keepsCost();
         allow update: if isMember(spaceId)
           && keepsCreation()
           && isTitle(request.resource.data.title)
           && request.resource.data.status in ['open', 'done']
           && completesAsSelf()
+          && keepsEffort()
+          && keepsEffortRecord()
           && keepsCost();
         allow delete: if isMember(spaceId)
           && (resource.data.createdBy == request.auth.uid || isAdminOrOwner(spaceId));
@@ -351,13 +377,28 @@ service cloud.firestore {
               && (getAfter(item(entry.itemId)).data.status == 'done' || rollsForward(entry.itemId));
         }
 
+        // Each completion snapshots effort; only the first one of its occurrence earns a contribution.
+        function matchesEffort(entry) {
+          let before = get(item(entry.itemId)).data;
+          let after = getAfter(item(entry.itemId)).data;
+          let expected = entry.get('action', '') != 'reopen'
+            ? before.get('modules', {}).get('effort', {}).get('points', null) : null;
+          return entry.get('effortCredited', true) is bool
+            && entry.get('effortPoints', null) == expected
+            && (expected != null || !('effortPoints' in entry.keys()))
+            && (expected == null || (expected is int && expected >= 1 && expected <= 5
+              && entry.get('effortCredited', true) == (before.status == 'open' && !before.get('effortRecorded', false))
+              && (after.get('effortRecorded', false) || rollsForward(entry.itemId))));
+        }
+
         allow read: if isMember(spaceId);
         allow create: if isMember(spaceId)
-          && request.resource.data.keys().hasOnly(['itemId', 'completedBy', 'completedAt', 'action'])
+          && request.resource.data.keys().hasOnly(['itemId', 'completedBy', 'completedAt', 'action', 'effortPoints', 'effortCredited'])
           && request.resource.data.itemId is string
           && request.resource.data.completedBy == request.auth.uid
           && request.resource.data.completedAt == request.time
-          && matchesItem(request.resource.data);
+          && matchesItem(request.resource.data)
+          && matchesEffort(request.resource.data);
         allow update, delete: if false;
       }
 

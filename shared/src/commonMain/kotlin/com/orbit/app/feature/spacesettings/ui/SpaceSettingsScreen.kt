@@ -29,6 +29,11 @@ import com.orbit.app.core.share.TextSharer
 import com.orbit.app.core.dateLabel
 import com.orbit.app.feature.member.SpaceMember
 import com.orbit.app.feature.member.SpaceMembersViewModel
+import com.orbit.app.feature.member.fairness.FairnessViewModel
+import com.orbit.app.feature.member.fairness.FairnessStatus
+import com.orbit.app.feature.member.fairness.fairnessLabel
+import com.orbit.app.domain.usecase.EffortShare
+import orbit.shared.generated.resources.fairness_period
 import com.orbit.app.feature.spacesettings.SpaceSettingsUiState
 import com.orbit.app.feature.spacesettings.SpaceSettingsViewModel
 import com.orbit.app.feature.spacesettings.invite.InviteSheet
@@ -87,10 +92,12 @@ fun SpaceSettingsScreen(
     membersViewModel: SpaceMembersViewModel = koinViewModel(key = "members-$spaceId") { parametersOf(spaceId) },
     inviteViewModel: InviteViewModel = koinViewModel(key = "invite-$spaceId") { parametersOf(spaceId) },
     sharer: TextSharer = koinInject(),
+    fairnessViewModel: FairnessViewModel = koinViewModel(key = "fairness-$spaceId") { parametersOf(spaceId) },
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val members by membersViewModel.uiState.collectAsStateWithLifecycle()
     val invite by inviteViewModel.uiState.collectAsStateWithLifecycle()
+    val fairness by fairnessViewModel.uiState.collectAsStateWithLifecycle()
     LaunchedEffect(state.gone) {
         if (state.gone) onGone()
     }
@@ -129,8 +136,13 @@ fun SpaceSettingsScreen(
                 count = members.members.size.toString(),
             )
             OrbitGroup(members.byRole.flatMap { it.members }, key = { it.id }, modifier = Modifier.fillMaxWidth()) {
-                MemberRow(it, onOpenMember)
+                MemberRow(it, onOpenMember, fairness.share(it.id)?.takeIf { fairness.hasPoints })
             }
+        }
+        Text(stringResource(Res.string.fairness_period), style = MaterialTheme.typography.bodySmall)
+        FairnessStatus(fairness) {
+            fairnessViewModel.retry()
+            membersViewModel.retry()
         }
         SpaceActions(
             listOfNotNull(
@@ -203,7 +215,7 @@ private fun RenameSheet(state: SpaceSettingsUiState, viewModel: SpaceSettingsVie
 }
 
 @Composable
-private fun MemberRow(member: SpaceMember, onOpen: (String) -> Unit) {
+private fun MemberRow(member: SpaceMember, onOpen: (String) -> Unit, share: EffortShare?) {
     OrbitGroupRow(Modifier.fillMaxWidth(), onClick = { onOpen(member.id) }) {
         OrbitAvatar(
             initials = member.initials,
@@ -223,6 +235,9 @@ private fun MemberRow(member: SpaceMember, onOpen: (String) -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            share?.let {
+                Text(fairnessLabel(it), style = OrbitTheme.data.small)
+            }
         }
     }
 }

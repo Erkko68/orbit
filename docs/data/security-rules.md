@@ -123,8 +123,15 @@ A `modules.cost` written or changed (`keepsCost`) has an expense's shape: only `
 
 ### `spaces/{spaceId}/completions/{completionId}`
 
+Effort (#50, [ADR 0016](../adr/0016-effort-per-occurrence.md)) adds optional `effortPoints` and `effortCredited`.
+`matchesEffort` requires the snapshot to equal the item's effort before completion; a reopening has none.
+With points present, the credit flag must match whether the occurrence was open and not yet recorded. The
+batch records `effortRecorded: true` or advances the recurring item. A changed `modules.effort` must contain
+only integer `points` from 1 to 5 (`keepsEffort`). `keepsEffortRecord` prevents edits or reopenings from clearing
+an already recorded occurrence; only advancing recurrence clears it. These checks do not change who may reopen.
+
 - **Read:** a member.
-- **Create:** a member, with only `itemId`, `completedBy` the caller, `completedAt` the server time and, for a reopening, `action: 'reopen'`, in the batch that changes the item to match (`matchesItem`).
+- **Create:** a member, with `itemId`, `completedBy` the caller, `completedAt` the server time, optional effort snapshot/credit fields and, for a reopening, `action: 'reopen'`, in the batch that changes the item to match (`matchesItem`, `matchesEffort`).
 - **Update, delete:** nobody, the owner included. The history is append-only.
 
 ### `spaces/{spaceId}/expenses/{expenseId}`
@@ -150,7 +157,7 @@ is a non-empty map of booleans that covers every `split` key, and its keys are c
 
 Rules cannot loop, and some checks cost a document read per write. These are left to the app, where the domain validates before writing (`validateItem`, `validateExpense`):
 
-- The shape of each module (dates, modes, entries). An unknown or malformed module is skipped when read, never trusted.
+- The shape of the other modules (dates, modes, entries), apart from the cost and effort checks above. An unknown or malformed module is skipped when read, never trusted.
 - That `assignment.assigneeIds` are members, and that a `rotation` holds two or more different members with the current one among them.
 - That an expense's payer and shares belong to members, and that each share is above zero. Rules cannot loop over a split, and members who left keep their shares. Balances credit the payer with the sum of the shares, so a bad document cannot create money (ADR 0003).
 - The `users/{uid}` fields, apart from the length of `displayName`.

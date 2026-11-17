@@ -8,6 +8,7 @@ import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Schedule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.datetime.LocalDate
+import kotlin.time.Instant
 
 /**
  * Narrow operations only, no `save(item)`: each write touches one field or one module so that
@@ -51,6 +52,9 @@ interface ItemRepository {
 
     /** The latest items [userId] completed or reopened in the space, newest first. */
     fun observeMemberCompletions(spaceId: String, userId: String): Flow<List<Completion>>
+
+    /** All space completions since [since], without the history screens' ten-entry limit. */
+    fun observeRecentCompletions(spaceId: String, since: Instant): Flow<List<Completion>>
 
     /**
      * Also records the completion in the item's history, which reopening keeps. With a [next] schedule the item

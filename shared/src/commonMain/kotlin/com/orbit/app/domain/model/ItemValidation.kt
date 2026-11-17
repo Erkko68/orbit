@@ -24,6 +24,7 @@ sealed interface ItemError {
     data object ReminderWithoutSchedule : ItemError
     data object NegativeReminderOffset : ItemError
     data object InvalidCost : ItemError
+    data object InvalidEffort : ItemError
 }
 
 /**
@@ -35,12 +36,15 @@ fun validateItem(
     modules: ItemModules,
     memberIds: Collection<String>,
 ): List<ItemError> = titleErrors(title) +
-    scheduleErrors(modules.schedule) +
-    recurrenceErrors(modules.recurrence, modules.schedule) +
-    assignmentErrors(modules.assignment, memberIds) +
-    checklistErrors(modules.checklist) +
-    reminderErrors(modules.reminder, hasSchedule = modules.schedule != null) +
-    listOfNotNull(ItemError.InvalidCost.takeIf { costErrors(title, modules.cost, memberIds).isNotEmpty() })
+        scheduleErrors(modules.schedule) +
+        recurrenceErrors(modules.recurrence, modules.schedule) +
+        assignmentErrors(modules.assignment, memberIds) +
+        checklistErrors(modules.checklist) +
+        reminderErrors(modules.reminder, hasSchedule = modules.schedule != null) +
+        listOfNotNull(
+            ItemError.InvalidCost.takeIf { costErrors(title, modules.cost, memberIds).isNotEmpty() },
+            ItemError.InvalidEffort.takeIf { modules.effort?.points?.let { it !in 1..5 } == true },
+        )
 
 /** A cost holds when the expense it adds would: the expense screen's own rules, the item's title as its title. */
 fun costErrors(title: String, cost: Cost?, memberIds: Collection<String>): List<ExpenseError> =

@@ -471,4 +471,14 @@
     </plurals>
     <string name="plan_confirm">Confirma</string>
     <string name="plan_save_failed">No s'ha pogut desar el pla, així que no s'ha afegit res. Torna-ho a provar.</string>
+    <string name="effort_title">Esforç</string>
+    <string name="effort_add">Afegeix esforç</string>
+    <string name="effort_points">Punts: %1$d</string>
+    <string name="effort_remove">Elimina l’esforç</string>
+    <string name="effort_body">Reobrir i tornar a completar no atorga més punts. Els canvis no modifiquen les contribucions ja registrades.</string>
+    <string name="fairness_period">Esforç · últims 30 dies</string>
+    <string name="fairness_empty">No hi ha punts d’esforç registrats en els últims 30 dies.</string>
+    <string name="fairness_failed">No s’ha pogut carregar l’esforç</string>
+    <string name="fairness_share">%1$d% · part igual %2$d%</string>
+    <string name="fairness_points">%1$d de %2$d punts · percentatges arrodonits</string>
 </resources>

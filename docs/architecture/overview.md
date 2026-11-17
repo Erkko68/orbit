@@ -55,6 +55,10 @@ flowchart TB
   typed total without overflow (#54), and turns weights (2 : 1 : 1) or percentages into cents (#55).
   `core/Money.kt` parses regional amounts directly into Long cents; platform formatters display euros from exact decimal values, without a floating-point conversion.
 - **Data** implements the interfaces against Firestore and maps documents to models. The in-memory fakes that tests use live in `commonTest/…/testing/`, not here.
+- `domain/usecase/CalculateFairness.kt` derives current members' exact effort shares from the last 30 days of
+  credited completion snapshots (#50, ADR 0016). `member/fairness/FairnessViewModel` supplies the comparison to
+  settings and the member page, with loading, failed-read retry and a one-minute time refresh. Effort is an
+  optional row on the existing item form, edited in its own sheet with explicit Save.
 
 A dependency only points down: a ViewModel never sees a Firestore class, and the domain never sees a ViewModel.
 

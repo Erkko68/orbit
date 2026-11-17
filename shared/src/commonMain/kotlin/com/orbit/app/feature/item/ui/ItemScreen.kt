@@ -36,6 +36,10 @@ import com.orbit.app.domain.model.ChecklistEntry
 import com.orbit.app.feature.item.ItemUiState
 import com.orbit.app.feature.item.ItemViewModel
 import com.orbit.app.feature.item.history.ItemHistory
+import orbit.shared.generated.resources.effort_title
+import orbit.shared.generated.resources.ic_check
+import orbit.shared.generated.resources.effort_add
+import orbit.shared.generated.resources.effort_points
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.checklist_check_entry
 import orbit.shared.generated.resources.checklist_uncheck_entry
@@ -84,7 +88,7 @@ import org.koin.core.parameter.parametersOf
 private const val ADD_ENTRY = "add-entry"
 
 /** The rows that say who has the item, when it is due, when to remind and what completing it costs. */
-private enum class ItemRow { WHO, WHEN, REMINDER, COST }
+private enum class ItemRow { WHO, WHEN, REMINDER, COST, EFFORT }
 
 /**
  * One item, the same form for all of them: a colour block with its name typed in place, who has it, when and the
@@ -145,6 +149,7 @@ fun ItemScreen(
     state.checklistEditor?.let { editor -> ChecklistEditorSheet(editor, state, viewModel) }
     if (state.pickingMember) AssigneeSheet(state, viewModel)
     if (state.editingReminder) ReminderSheet(state, viewModel)
+    if (state.editingEffort) EffortSheet(state, viewModel)
     if (state.confirmingDelete) DeleteItemSheet(state, viewModel)
     if (state.askNotifications) {
         RequireNotificationPermission(onResult = { viewModel.onNotificationsAnswered() })
@@ -299,6 +304,7 @@ private fun ItemActionRow(row: ItemRow, state: ItemUiState, viewModel: ItemViewM
                     Res.string.item_who_rotation,
                     state.assigneeFaces.joinToString { it.name },
                 )
+
                 state.assigneeFaces.isEmpty() -> stringResource(Res.string.item_who_empty)
                 else -> state.assigneeFaces.joinToString { it.name }
             },
@@ -333,6 +339,15 @@ private fun ItemActionRow(row: ItemRow, state: ItemUiState, viewModel: ItemViewM
             supporting = state.cost?.let { formatEuro(it.total) } ?: stringResource(Res.string.item_add_cost),
             icon = Res.drawable.ic_wallet,
             onClick = { onOpenCost(state.draftCost) },
+            modifier = modifier,
+        )
+
+        ItemRow.EFFORT -> OrbitActionRow(
+            title = stringResource(Res.string.effort_title),
+            supporting = state.effort?.let { stringResource(Res.string.effort_points, it.points) }
+                ?: stringResource(Res.string.effort_add),
+            icon = Res.drawable.ic_check,
+            onClick = viewModel::openEffort,
             modifier = modifier,
         )
     }

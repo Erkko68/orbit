@@ -13,6 +13,7 @@ import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
+import com.orbit.app.domain.model.Effort
 import com.orbit.app.domain.model.ITEM_TITLE_MAX_LENGTH
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.ItemModules
@@ -152,6 +153,49 @@ class ItemViewModel(
     }
 
     fun reopen() = submit { items.reopen(spaceId, itemId) }
+
+    fun openEffort() {
+        if (!uiState.value.canSubmit) return
+        form.update {
+            it.copy(
+                editingEffort = true,
+                effortDraft = uiState.value.effort?.points ?: 1,
+                removingEffort = false,
+                failed = false
+            )
+        }
+    }
+
+    fun dismissEffort() = form.update { it.copy(editingEffort = false) }
+
+    fun selectEffort(points: Int) {
+        if (points in 1..5 && !form.value.submitting) form.update {
+            it.copy(
+                effortDraft = points,
+                removingEffort = false,
+                failed = false
+            )
+        }
+    }
+
+    fun clearEffort() {
+        if (!form.value.submitting) form.update { it.copy(removingEffort = true, failed = false) }
+    }
+
+    fun saveEffort() {
+        val state = uiState.value
+        if (!state.editingEffort || !state.canSaveEffort) return
+        val effort = Effort(state.effortDraft)
+        if (isNew) {
+            draft.update { if (state.removingEffort) it.without(ModuleType.EFFORT) else it.with(effort) }
+            form.update { it.copy(editingEffort = false) }
+            return
+        }
+        submit(onSuccess = { form.update { it.copy(editingEffort = false) } }) {
+            if (state.removingEffort) items.removeModule(spaceId, itemId, ModuleType.EFFORT)
+            else items.setModule(spaceId, itemId, effort)
+        }
+    }
 
     /** A new item's cost, planned on the expense screen: kept with the rest of it until Create (#300). */
     fun planCost(plannedCost: String) {
