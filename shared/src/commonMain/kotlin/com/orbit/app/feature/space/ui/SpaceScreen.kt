@@ -3,6 +3,8 @@ package com.orbit.app.feature.space.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,6 +29,7 @@ import com.orbit.app.feature.space.card.SpaceCard
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.account_title
 import orbit.shared.generated.resources.app_name
+import orbit.shared.generated.resources.assistant_offline
 import orbit.shared.generated.resources.load_failed_body
 import orbit.shared.generated.resources.retry
 import orbit.shared.generated.resources.spaces_empty
@@ -91,7 +94,19 @@ fun SpaceScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             OrbitCard(Modifier.fillMaxWidth()) {
-                OrbitButton(stringResource(Res.string.spaces_setup_assistant), onOpenAssistant, Modifier.fillMaxWidth())
+                OrbitButton(
+                    text = stringResource(Res.string.spaces_setup_assistant),
+                    onClick = onOpenAssistant,
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = state.online,
+                )
+                if (!state.online) {
+                    Text(
+                        text = stringResource(Res.string.assistant_offline),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 // Creating by hand and joining are both on the New space screen: one way there.
                 OrbitTonalButton(stringResource(Res.string.spaces_new), onNewSpace, Modifier.fillMaxWidth())
             }

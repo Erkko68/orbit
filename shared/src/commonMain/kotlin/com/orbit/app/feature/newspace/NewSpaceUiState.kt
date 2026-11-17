@@ -14,8 +14,10 @@ data class NewSpaceUiState(
     val joinError: JoinError? = null,
     /** The space the user just created or joined, which the screen opens. */
     val openSpaceId: String? = null,
+    /** The phone has an internet connection, which the assistant needs (#63). */
+    val online: Boolean = true,
 ) {
-    val canOpenAssistant: Boolean get() = !creating && !joining
+    val canOpenAssistant: Boolean get() = online && !creating && !joining
     val canCreate: Boolean get() = name.isNotBlank() && !creating
     val canJoin: Boolean get() = joinCode.isNotBlank() && !joining
 }

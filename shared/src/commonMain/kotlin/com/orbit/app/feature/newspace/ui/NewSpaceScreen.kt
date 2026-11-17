@@ -22,6 +22,7 @@ import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.feature.newspace.NewSpaceUiState
 import com.orbit.app.feature.newspace.NewSpaceViewModel
 import orbit.shared.generated.resources.Res
+import orbit.shared.generated.resources.assistant_offline
 import orbit.shared.generated.resources.close
 import orbit.shared.generated.resources.ic_close
 import orbit.shared.generated.resources.ic_home
@@ -71,6 +72,13 @@ fun NewSpaceScreen(
             modifier = Modifier.fillMaxWidth(),
             enabled = state.canOpenAssistant,
         )
+        if (!state.online) {
+            Text(
+                text = stringResource(Res.string.assistant_offline),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
         OrbitLabeledDivider(stringResource(Res.string.or))
         CreateCard(state, viewModel)
         OrbitLabeledDivider(stringResource(Res.string.or))

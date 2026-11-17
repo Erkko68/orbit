@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -55,5 +57,36 @@ class OrbitAddMenuTest : ComposeTest() {
         onNodeWithText("New task").assertDoesNotExist()
 
         assertEquals(listOf("assistant"), picked)
+    }
+
+    @Test
+    fun aDisabledActionShowsItsExplanationAndCannotBePicked() = runComposeUiTest {
+        val picked = mutableListOf<String>()
+        setContent {
+            OrbitTheme {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomEnd) {
+                    OrbitAddMenu(
+                        expanded = true,
+                        onExpandedChange = {},
+                        contentDescription = "Add",
+                        closeDescription = "Close",
+                        actions = listOf(
+                            OrbitAddMenuAction("New task", Res.drawable.ic_task) { picked += "task" },
+                            OrbitAddMenuAction(
+                                label = "Plan with the assistant",
+                                icon = Res.drawable.ic_sparkle,
+                                enabled = false,
+                                supportingText = "The assistant needs a connection. You can still add items by hand.",
+                            ) { picked += "assistant" },
+                        ),
+                    )
+                }
+            }
+        }
+
+        onNodeWithText("Plan with the assistant").assertIsNotEnabled().performClick()
+        onNodeWithText("The assistant needs a connection. You can still add items by hand.").assertIsDisplayed()
+        onNodeWithText("New task").assertIsEnabled().performClick()
+        assertEquals(listOf("task"), picked)
     }
 }

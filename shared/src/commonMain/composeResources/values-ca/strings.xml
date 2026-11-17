@@ -70,6 +70,7 @@
     <!-- Spaces -->
     <string name="spaces_new">Espai nou</string>
     <string name="spaces_setup_assistant">Configura amb l’assistent</string>
+    <string name="assistant_offline">L&apos;assistent necessita connexió. Tot i així pots afegir tasques a mà.</string>
     <string name="spaces_create_manually">Crea manualment</string>
     <string name="spaces_create_name">Pis 4B</string>
     <string name="spaces_create">Crea un espai</string>

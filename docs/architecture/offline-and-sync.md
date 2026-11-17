@@ -66,7 +66,7 @@ An invitation is a code that someone else uses on their own phone, so a copy in 
 - Signing in, registering and Google sign-in. Once signed in, the session survives without one.
 - Joining a space from an invitation, since the server has to check the invitation (#25). The join form says to check the connection.
 - Creating, renewing and revoking an invitation (`writeOnServer`).
-- Anything that runs on the assistant server, such as the assistant (#63).
+- Anything that runs on the assistant server, such as the assistant (#63): its entry points are disabled while offline with an explanation, and an interview that loses the connection keeps its answers and offers to retry.
 - Deleting the account, and changing the password, which Firebase Auth checks on the server.
 - A first read of something never read before on this device.
 
@@ -83,5 +83,6 @@ What each part does offline, from the code, and whether it has been tried on a p
 | Relaunch offline | The cache is on disk, so the same data shows | Not yet |
 | Reconnect | Firestore sends the queued writes in order, and a second phone's listeners show them | Not yet |
 | Join, invite, renew, revoke | Fail with a message that names the connection (`writeOnServer`, `JoinError.FAILED`) | Not yet |
+| Assistant entry points | Disabled while `Connectivity` reports offline, with an explanation that manual creation still works (#63) | Not yet |
 
 The "Checked on a phone" column is filled in by whoever runs the airplane-mode pass on Android and iOS: open the app, change an item and add an expense, relaunch, reconnect, and watch a second device.

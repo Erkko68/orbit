@@ -1,12 +1,14 @@
 package com.orbit.app.feature.space
 
 import com.orbit.app.core.PendingInvitation
+import com.orbit.app.testing.FakeConnectivity
 import com.orbit.app.testing.FlakySpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemorySpaceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -34,7 +36,7 @@ class SpaceViewModelTest {
     @Test
     fun startsLoadingThenShowsTheSpaces() = runTest {
         val auth = InMemoryAuthRepository()
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation(), FakeConnectivity())
         assertTrue(viewModel.uiState.value.loading)
         assertFalse(viewModel.uiState.value.showFirstRunChoice)
 
@@ -43,6 +45,7 @@ class SpaceViewModelTest {
         assertFalse(loaded.loadFailed)
         assertEquals(emptyList(), loaded.spaceIds)
         assertTrue(loaded.showFirstRunChoice)
+        assertTrue(loaded.online)
     }
 
     @Test
@@ -51,6 +54,7 @@ class SpaceViewModelTest {
             FlakySpaceRepository(spaceFailures = 1),
             InMemoryAuthRepository(),
             PendingInvitation(),
+            FakeConnectivity(),
         )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
@@ -71,7 +75,12 @@ class SpaceViewModelTest {
     fun aFailedLoadKeepsTheAvatar() = runTest {
         val auth = InMemoryAuthRepository()
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
-        val viewModel = SpaceViewModel(FlakySpaceRepository(spaceFailures = 1), auth, PendingInvitation())
+        val viewModel = SpaceViewModel(
+            FlakySpaceRepository(spaceFailures = 1),
+            auth,
+            PendingInvitation(),
+            FakeConnectivity(),
+        )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         val failed = viewModel.uiState.value
@@ -83,7 +92,7 @@ class SpaceViewModelTest {
     fun saysWhileAnOpenedLinkWaitsToBeTaken() = runTest {
         val pending = PendingInvitation()
         val auth = InMemoryAuthRepository()
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, pending)
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, pending, FakeConnectivity())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         assertFalse(viewModel.uiState.value.invitationWaiting)
 
@@ -92,5 +101,28 @@ class SpaceViewModelTest {
 
         pending.consume()
         assertFalse(viewModel.uiState.value.invitationWaiting)
+    }
+
+    @Test
+    fun followsTheConnectionAndFallsBackOnlineOnFailure() = runTest {
+        val auth = InMemoryAuthRepository()
+        val connectivity = FakeConnectivity(online = false)
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation(), connectivity)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
+
+        assertFalse(viewModel.uiState.value.online)
+        assertTrue(viewModel.uiState.value.showFirstRunChoice)
+
+        connectivity.setOnline(true)
+        assertTrue(viewModel.uiState.value.online)
+
+        val broken = SpaceViewModel(
+            InMemorySpaceRepository(auth),
+            auth,
+            PendingInvitation(),
+            connectivity = { flow { error("Broken observer") } },
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { broken.uiState.collect {} }
+        assertTrue(broken.uiState.value.online)
     }
 }

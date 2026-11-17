@@ -2,6 +2,8 @@ package com.orbit.app.feature.space.ui
 
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -12,6 +14,7 @@ import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.domain.model.Role
 import com.orbit.app.feature.space.SpaceViewModel
 import com.orbit.app.core.PendingInvitation
+import com.orbit.app.testing.FakeConnectivity
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.FlakySpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
@@ -33,7 +36,7 @@ class SpaceScreenTest : ComposeTest() {
 
     @Test
     fun showsTheEmptyStateAndTheWayToGetASpace() = runComposeUiTest {
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation())
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation(), FakeConnectivity())
         var assistantOpened = 0
         var manualOpened = 0
         setContent {
@@ -57,11 +60,45 @@ class SpaceScreenTest : ComposeTest() {
     }
 
     @Test
+    fun disablesTheAssistantOfflineAndRestoresItWithTheConnection() = runComposeUiTest {
+        val connectivity = FakeConnectivity(online = false)
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, PendingInvitation(), connectivity)
+        var assistantOpened = 0
+        var manualOpened = 0
+        setContent {
+            OrbitTheme {
+                SpaceScreen(
+                    onOpenSpace = {},
+                    onOpenAccount = {},
+                    onNewSpace = { manualOpened++ },
+                    onOpenAssistant = { assistantOpened++ },
+                    viewModel = viewModel,
+                )
+            }
+        }
+
+        onNodeWithText("Set up with the assistant").performScrollTo().assertIsNotEnabled().performClick()
+        onNodeWithText("The assistant needs a connection. You can still add items by hand.")
+            .performScrollTo()
+            .assertIsDisplayed()
+        onNodeWithText("New space").performScrollTo().assertIsEnabled().performClick()
+        assertEquals(0, assistantOpened)
+        assertEquals(1, manualOpened)
+
+        connectivity.setOnline(true)
+        waitForIdle()
+
+        onNodeWithText("The assistant needs a connection. You can still add items by hand.").assertDoesNotExist()
+        onNodeWithText("Set up with the assistant").performScrollTo().assertIsEnabled().performClick()
+        assertEquals(1, assistantOpened)
+    }
+
+    @Test
     fun saysSoWhenTheSpacesCouldNotLoadAndLoadsThemOnRetry() = runComposeUiTest {
         val spaces = FlakySpaceRepository(spaceFailures = 1)
         // The space cards get their view models from Koin.
         startTestKoin(auth, spaces)
-        val viewModel = SpaceViewModel(spaces, auth, PendingInvitation())
+        val viewModel = SpaceViewModel(spaces, auth, PendingInvitation(), FakeConnectivity())
         setContent {
             OrbitTheme {
                 SpaceScreen(
@@ -87,7 +124,7 @@ class SpaceScreenTest : ComposeTest() {
     fun theAddButtonAndAnOpenedLinkBothAskForTheNewSpaceScreen() = runComposeUiTest {
         val pending = PendingInvitation()
         var asked = 0
-        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, pending)
+        val viewModel = SpaceViewModel(InMemorySpaceRepository(auth), auth, pending, FakeConnectivity())
         setContent {
             OrbitTheme {
                 SpaceScreen(
@@ -119,7 +156,7 @@ class SpaceScreenTest : ComposeTest() {
         )
         // The space cards get their view models from Koin.
         startTestKoin(auth, spaces)
-        val viewModel = SpaceViewModel(spaces, auth, PendingInvitation())
+        val viewModel = SpaceViewModel(spaces, auth, PendingInvitation(), FakeConnectivity())
         setContent {
             OrbitTheme {
                 SpaceScreen(

@@ -70,6 +70,7 @@
     <!-- Spaces -->
     <string name="spaces_new">New space</string>
     <string name="spaces_setup_assistant">Set up with the assistant</string>
+    <string name="assistant_offline">The assistant needs a connection. You can still add items by hand.</string>
     <string name="spaces_create_manually">Create it myself</string>
     <string name="spaces_create_name">Flat 4B</string>
     <string name="spaces_create">Create space</string>

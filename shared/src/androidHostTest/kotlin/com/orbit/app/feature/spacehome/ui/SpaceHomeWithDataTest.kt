@@ -23,6 +23,7 @@ import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
+import com.orbit.app.testing.FakeConnectivity
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
@@ -62,7 +63,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         )
         val items = InMemoryItemRepository(auth)
         startTestKoin(auth, spaces, items)
-        val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository(), auth)
+        val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository(), auth, FakeConnectivity())
         setContent {
             OrbitTheme {
                 SpaceHomeScreen(
@@ -93,7 +94,7 @@ class SpaceHomeWithDataTest : ComposeTest() {
         val groceriesId = items.create(id, NewItem("Groceries", modules = ItemModules(checklist = Checklist(listOf(ChecklistEntry("m", "Milk"))))))
         val opened = mutableListOf<String>()
         startTestKoin(auth, spaces, items)
-        val viewModel = SpaceHomeViewModel(id, spaces, items, InMemoryLastSpaceRepository(), auth)
+        val viewModel = SpaceHomeViewModel(id, spaces, items, InMemoryLastSpaceRepository(), auth, FakeConnectivity())
         setContent {
             OrbitTheme {
                 SpaceHomeScreen(

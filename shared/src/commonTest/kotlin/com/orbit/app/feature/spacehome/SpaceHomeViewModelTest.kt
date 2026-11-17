@@ -5,6 +5,7 @@ import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.testing.ControlledItemRepository
+import com.orbit.app.testing.FakeConnectivity
 import com.orbit.app.testing.FlakySpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
@@ -13,6 +14,7 @@ import com.orbit.app.testing.InMemorySpaceRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -43,6 +45,7 @@ class SpaceHomeViewModelTest {
     private val spaces = InMemorySpaceRepository(auth)
     private val items = InMemoryItemRepository(auth)
     private val lastSpace = InMemoryLastSpaceRepository()
+    private val connectivity = FakeConnectivity()
 
     @BeforeTest
     fun setUp() {
@@ -59,7 +62,7 @@ class SpaceHomeViewModelTest {
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
         val id = spaces.createSpace("Flat 4B", accent = 2)
 
-        val state = SpaceHomeViewModel(id, spaces, items, lastSpace, auth).uiState.first { it.name.isNotEmpty() }
+        val state = SpaceHomeViewModel(id, spaces, items, lastSpace, auth, connectivity).uiState.first { it.name.isNotEmpty() }
 
         assertEquals("Flat 4B", state.name)
         assertEquals("AL", state.userInitials)
@@ -77,7 +80,7 @@ class SpaceHomeViewModelTest {
     fun aSpaceWithoutItemsSaysSo() = runTest {
         auth.register("ana@orbit.app", "secret", displayName = "Ana López")
         val id = spaces.createSpace("Flat 4B", accent = 0)
-        val viewModel = collected(SpaceHomeViewModel(id, spaces, items, lastSpace, auth))
+        val viewModel = collected(SpaceHomeViewModel(id, spaces, items, lastSpace, auth, connectivity))
 
         assertEquals(SpaceHeadline.Empty, viewModel.uiState.value.headline)
     }
@@ -91,7 +94,7 @@ class SpaceHomeViewModelTest {
         dueItem("Overdue", ANA, today.minus(1, DateTimeUnit.DAY), id)
         dueItem("Tomorrow", ANA, today.plus(1, DateTimeUnit.DAY), id)
         dueItem("Not mine", "ben", today, id)
-        val viewModel = collected(SpaceHomeViewModel(id, spaces, items, lastSpace, auth))
+        val viewModel = collected(SpaceHomeViewModel(id, spaces, items, lastSpace, auth, connectivity))
 
         assertEquals(SpaceHeadline.Due(2), viewModel.uiState.value.headline)
     }
@@ -102,7 +105,7 @@ class SpaceHomeViewModelTest {
         val id = spaces.createSpace("Flat 4B", accent = 0)
         val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
         val item = dueItem("Today", ANA, today, id)
-        val viewModel = collected(SpaceHomeViewModel(id, spaces, items, lastSpace, auth))
+        val viewModel = collected(SpaceHomeViewModel(id, spaces, items, lastSpace, auth, connectivity))
 
         items.complete(id, item, null)
 
@@ -111,7 +114,7 @@ class SpaceHomeViewModelTest {
 
     @Test
     fun opensOnCalendarAndSwitchesDestination() = runTest {
-        val viewModel = SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth)
+        val viewModel = SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth, connectivity)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
         assertEquals(SpaceHomeTab.CALENDAR, viewModel.uiState.value.tab)
 
@@ -126,7 +129,7 @@ class SpaceHomeViewModelTest {
 
     @Test
     fun opensAndClosesTheAddMenu() = runTest {
-        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth))
+        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth, connectivity))
         assertFalse(viewModel.uiState.value.addMenuOpen)
 
         viewModel.openAddMenu()
@@ -137,8 +140,23 @@ class SpaceHomeViewModelTest {
     }
 
     @Test
+    fun followsTheConnectionAndFallsBackOnlineOnFailure() = runTest {
+        connectivity.setOnline(false)
+        val viewModel = collected(SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth, connectivity))
+        assertFalse(viewModel.uiState.value.online)
+
+        connectivity.setOnline(true)
+        assertTrue(viewModel.uiState.value.online)
+
+        val broken = collected(
+            SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth, connectivity = { flow { error("Broken") } }),
+        )
+        assertTrue(broken.uiState.value.online)
+    }
+
+    @Test
     fun hasNoNameForASpaceItCannotSee() = runTest {
-        val viewModel = SpaceHomeViewModel("missing", spaces, items, lastSpace, auth)
+        val viewModel = SpaceHomeViewModel("missing", spaces, items, lastSpace, auth, connectivity)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         assertEquals("", viewModel.uiState.value.name)
@@ -146,10 +164,10 @@ class SpaceHomeViewModelTest {
 
     @Test
     fun remembersTheSpaceItOpensAsTheLastOne() {
-        SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth)
+        SpaceHomeViewModel("space-1", spaces, items, lastSpace, auth, connectivity)
         assertEquals("space-1", lastSpace.lastSpaceId())
 
-        SpaceHomeViewModel("space-2", spaces, items, lastSpace, auth)
+        SpaceHomeViewModel("space-2", spaces, items, lastSpace, auth, connectivity)
         assertEquals("space-2", lastSpace.lastSpaceId())
     }
 
@@ -161,7 +179,7 @@ class SpaceHomeViewModelTest {
     fun leavesTheHeaderEmptyWhenItsReadsFail() = runTest {
         val failingItems = ControlledItemRepository(items).apply { beforeRead = { error("Could not reach the server") } }
         val spaces = FlakySpaceRepository(spaceFailures = 1, memberFailures = 1)
-        val viewModel = SpaceHomeViewModel("space-1", spaces, failingItems, lastSpace, auth)
+        val viewModel = SpaceHomeViewModel("space-1", spaces, failingItems, lastSpace, auth, connectivity)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.uiState.collect {} }
 
         val state = viewModel.uiState.value

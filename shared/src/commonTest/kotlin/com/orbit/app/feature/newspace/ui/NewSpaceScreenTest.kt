@@ -17,6 +17,7 @@ import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.feature.newspace.NewSpaceViewModel
+import com.orbit.app.testing.FakeConnectivity
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryInvitationRepository
@@ -48,8 +49,11 @@ class NewSpaceScreenTest : ComposeTest() {
         code
     }
 
-    private fun ComposeUiTest.showNewSpace(repository: SpaceRepository = spaces) {
-        val viewModel = NewSpaceViewModel(repository, pending)
+    private fun ComposeUiTest.showNewSpace(
+        repository: SpaceRepository = spaces,
+        connectivity: FakeConnectivity = FakeConnectivity(),
+    ) {
+        val viewModel = NewSpaceViewModel(repository, pending, connectivity)
         setContent {
             OrbitTheme {
                 NewSpaceScreen(
@@ -71,6 +75,33 @@ class NewSpaceScreenTest : ComposeTest() {
         assertEquals(emptyList(), runBlocking { spaces.observeSpaces().first() })
         onNodeWithText("Create it myself").performScrollTo().assertIsDisplayed()
         onNodeWithText("Got an invite?").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun disablesTheAssistantOfflineWhileManualCreationWorksAndReconnects() = runComposeUiTest {
+        runBlocking { auth.signIn("ana@orbit.app", "secret") }
+        val connectivity = FakeConnectivity(online = false)
+        showNewSpace(connectivity = connectivity)
+
+        onNodeWithText("Set up with the assistant").performScrollTo().assertIsNotEnabled().performClick()
+        onNodeWithText("The assistant needs a connection. You can still add items by hand.")
+            .performScrollTo()
+            .assertIsDisplayed()
+        assertEquals(0, assistantOpened)
+
+        onAllNodes(hasSetTextAction())[0].performTextInput("Flat 4B")
+        onNodeWithText("Create space").performScrollTo().assertIsEnabled().performClick()
+        waitForIdle()
+        val created = runBlocking { spaces.observeSpaces().first() }.single()
+        assertEquals("Flat 4B", created.name)
+        assertEquals(created.id, opened)
+
+        connectivity.setOnline(true)
+        waitForIdle()
+
+        onNodeWithText("The assistant needs a connection. You can still add items by hand.").assertDoesNotExist()
+        onNodeWithText("Set up with the assistant").performScrollTo().assertIsEnabled().performClick()
+        assertEquals(1, assistantOpened)
     }
 
     @Test

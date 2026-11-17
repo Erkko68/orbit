@@ -7,12 +7,15 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -29,7 +32,21 @@ import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
 /** One way to add, in an [OrbitAddMenu]. */
-data class OrbitAddMenuAction(val label: String, val icon: DrawableResource, val onClick: () -> Unit)
+data class OrbitAddMenuAction(
+    val label: String,
+    val icon: DrawableResource,
+    val enabled: Boolean = true,
+    val supportingText: String? = null,
+    val onClick: () -> Unit,
+) {
+    constructor(label: String, icon: DrawableResource, onClick: () -> Unit) : this(
+        label = label,
+        icon = icon,
+        enabled = true,
+        supportingText = null,
+        onClick = onClick,
+    )
+}
 
 /**
  * The add button when there is more than one way to add: tapped, it turns into a close button with [actions] fanned out
@@ -55,7 +72,11 @@ fun OrbitAddMenu(
             onDismissRequest = { onExpandedChange(false) },
             properties = PopupProperties(focusable = true),
         ) {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {
+            Column(
+                modifier = Modifier.padding(start = OrbitSpacing.xl),
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md),
+            ) {
                 val shown = remember { MutableTransitionState(false).apply { targetState = true } }
                 AnimatedVisibility(
                     visibleState = shown,
@@ -64,24 +85,56 @@ fun OrbitAddMenu(
                 ) {
                     Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm)) {
                         for (action in actions.asReversed()) {
-                            // The content overload: the one with a text slot hides the text from screen readers.
-                            ExtendedFloatingActionButton(
-                                onClick = {
-                                    onExpandedChange(false)
-                                    action.onClick()
-                                },
-                                shape = CircleShape,
-                                containerColor = MaterialTheme.colorScheme.surfaceBright,
-                                contentColor = MaterialTheme.colorScheme.onSurface,
-                            ) {
-                                Icon(painterResource(action.icon), contentDescription = null)
-                                Spacer(Modifier.width(OrbitSpacing.sm))
-                                Text(action.label, style = MaterialTheme.typography.labelLarge)
-                            }
+                            AddMenuItem(action = action, onDismiss = { onExpandedChange(false) })
                         }
                     }
                 }
                 AddCircle(Res.drawable.ic_close, closeDescription, { onExpandedChange(false) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun AddMenuItem(action: OrbitAddMenuAction, onDismiss: () -> Unit) {
+    val shape = if (action.supportingText == null) CircleShape else MaterialTheme.shapes.large
+    val containerColor = if (action.enabled) {
+        MaterialTheme.colorScheme.surfaceBright
+    } else {
+        MaterialTheme.colorScheme.surfaceContainer
+    }
+    val contentColor = if (action.enabled) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    Surface(
+        onClick = {
+            onDismiss()
+            action.onClick()
+        },
+        modifier = Modifier.heightIn(min = ControlHeight),
+        enabled = action.enabled,
+        shape = shape,
+        color = containerColor,
+        contentColor = contentColor,
+        shadowElevation = OrbitSpacing.xs,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = OrbitSpacing.md, vertical = OrbitSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(OrbitSpacing.xs, Alignment.CenterVertically),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(painterResource(action.icon), contentDescription = null)
+                Spacer(Modifier.width(OrbitSpacing.sm))
+                Text(action.label, style = MaterialTheme.typography.labelLarge)
+            }
+            if (action.supportingText != null) {
+                Text(
+                    text = action.supportingText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
         }
     }

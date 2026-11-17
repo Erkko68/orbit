@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orbit.app.core.PendingInvitation
 import com.orbit.app.core.attempt
+import com.orbit.app.core.network.Connectivity
+import com.orbit.app.core.orOnFailure
 import com.orbit.app.domain.model.JoinError
 import com.orbit.app.domain.model.JoinException
 import com.orbit.app.domain.model.invitationCodeOf
@@ -18,6 +20,7 @@ import kotlinx.coroutines.launch
 class NewSpaceViewModel(
     private val repository: SpaceRepository,
     pendingInvitation: PendingInvitation,
+    connectivity: Connectivity,
 ) : ViewModel() {
     private val form = MutableStateFlow(NewSpaceUiState(joinCode = pendingInvitation.code.value.orEmpty()))
 
@@ -25,6 +28,11 @@ class NewSpaceViewModel(
 
     init {
         pendingInvitation.consume()
+        viewModelScope.launch {
+            connectivity.isOnline()
+                .orOnFailure("Observing the connection", true)
+                .collect { online -> form.update { it.copy(online = online) } }
+        }
     }
 
     fun onNameChange(name: String) = form.update { it.copy(name = name, createFailed = false) }

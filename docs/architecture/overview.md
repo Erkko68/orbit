@@ -71,6 +71,7 @@ Everything is under `shared/src/commonMain/kotlin/com/orbit/app/`.
 | `core/` | What features share: `Load` and `attempt` (reading and writing from a ViewModel), initials, the device language |
 | `core/designsystem/` | `theme/` (colors, type, shapes, spacing, motion) and `component/` (every `Orbit…` composable). See [Design system](design-system.md). |
 | `core/navigation/` | `Routes.kt` (type-safe routes) and `OrbitNavHost` (the auth gate and the graph) |
+| `core/network/` | `Connectivity`, whether the phone can reach the internet (#63) |
 | `core/notification/` | Local notifications: the scheduler interface, permission access and the permission flow |
 | `core/share/` | `TextSharer`, the system share sheet |
 | `domain/model/` | `Space`, `Member`, `Role`, `Item`, `ItemModules` and the modules, `Invitation`, `User`, validation |
@@ -215,5 +216,6 @@ The write shows on Ana's screen at once from the cache, works offline, and reach
 | Notification permission | The runtime permission prompt | `requestAuthorization`, asked once per install |
 | Share sheet | `ACTION_SEND` chooser | `UIActivityViewController` |
 | Device language | `Locale.getDefault()` | `NSLocale.currentLocale` |
+| Connectivity | `ConnectivityManager` default network callback (`AndroidConnectivity`) | `NWPathMonitor` (`IosConnectivity`) |
 
 iOS is built and tested on the simulator only; see the README for why.

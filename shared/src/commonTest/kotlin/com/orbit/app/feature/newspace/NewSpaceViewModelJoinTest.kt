@@ -3,6 +3,7 @@ package com.orbit.app.feature.newspace
 import com.orbit.app.core.PendingInvitation
 import com.orbit.app.domain.model.JoinError
 import com.orbit.app.domain.repository.SpaceRepository
+import com.orbit.app.testing.FakeConnectivity
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryInvitationRepository
 import com.orbit.app.testing.InMemorySpaceRepository
@@ -39,7 +40,8 @@ class NewSpaceViewModelJoinTest {
         Dispatchers.resetMain()
     }
 
-    private fun newSpaceViewModel(repository: SpaceRepository = spaces) = NewSpaceViewModel(repository, pending)
+    private fun newSpaceViewModel(repository: SpaceRepository = spaces) =
+        NewSpaceViewModel(repository, pending, FakeConnectivity())
 
     /** Ana owns Flat 4B and made an invitation to it. Ben is signed in, outside the space. */
     private suspend fun invitationFromAna(): Pair<String, String> {

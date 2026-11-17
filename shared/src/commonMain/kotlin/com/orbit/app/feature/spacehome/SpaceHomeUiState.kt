@@ -29,6 +29,8 @@ data class SpaceHomeUiState(
     val headline: SpaceHeadline? = null,
     /** The add button's menu, new task or the assistant, is open. */
     val addMenuOpen: Boolean = false,
+    /** The phone has an internet connection, which the assistant needs (#63). */
+    val online: Boolean = true,
 ) {
     /** The shared add button creates an expense on Expenses, an item elsewhere. */
     val canAddItem: Boolean get() = tab != SpaceHomeTab.EXPENSES

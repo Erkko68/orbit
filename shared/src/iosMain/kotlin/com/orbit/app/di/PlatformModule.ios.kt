@@ -1,5 +1,7 @@
 package com.orbit.app.di
 
+import com.orbit.app.core.network.Connectivity
+import com.orbit.app.core.network.IosConnectivity
 import com.orbit.app.core.notification.foregroundNotifications
 import com.orbit.app.core.notification.IosNotificationAccess
 import com.orbit.app.core.notification.IosNotificationScheduler
@@ -21,6 +23,7 @@ actual val platformModule = module {
     single<NotificationScheduler> { IosNotificationScheduler() }
     single<NotificationAccess> { IosNotificationAccess() }
     single<Dictation> { IosDictation() }
+    single<Connectivity> { IosConnectivity() }
 }
 
 /** Starts Koin from Swift with the parts only Swift can provide. */

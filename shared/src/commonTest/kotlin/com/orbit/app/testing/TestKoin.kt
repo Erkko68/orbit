@@ -1,5 +1,6 @@
 package com.orbit.app.testing
 
+import com.orbit.app.core.network.Connectivity
 import com.orbit.app.core.share.TextSharer
 import com.orbit.app.core.speech.Dictation
 import com.orbit.app.domain.repository.AssistantRepository
@@ -32,6 +33,7 @@ internal fun startTestKoin(
     dictation: Dictation = FakeDictation(),
     expenses: ExpenseRepository = InMemoryExpenseRepository(auth),
     plans: PlanRepository = InMemoryPlanRepository(spaces, items),
+    connectivity: Connectivity = FakeConnectivity(),
 ) = startKoin {
     modules(
         module {
@@ -45,6 +47,7 @@ internal fun startTestKoin(
             single { dictation }
             single { expenses }
             single { plans }
+            single { connectivity }
         },
         featureModule,
     )
