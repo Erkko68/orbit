@@ -13,7 +13,15 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from assistant import auth, providers
 from assistant.interview import AssistantError, Generate, next_step
 
-HTTP_STATUS = {"INVALID_ARGUMENT": 400, "UNAUTHENTICATED": 401, "UNAVAILABLE": 503}
+HTTP_STATUS = {"INVALID_ARGUMENT": 400, "UNAUTHENTICATED": 401, "FAILED_PRECONDITION": 412, "UNAVAILABLE": 503}
+
+# Values of ASSISTANT_ENABLED that switch the assistant off (#68). Anything else, or nothing, leaves it on.
+OFF = {"false", "0", "no", "off"}
+
+
+def assistant_enabled(env: Mapping[str, str]) -> bool:
+    """Whether the kill switch is left alone: ASSISTANT_ENABLED in the environment says `false` to turn it off."""
+    return env.get("ASSISTANT_ENABLED", "true").strip().lower() not in OFF
 
 
 def caller(authorization: str, verify_token: auth.VerifyToken) -> str | None:
@@ -34,12 +42,15 @@ def respond(
     verify_token: auth.VerifyToken,
     generate: Generate,
     body: bytes = b"",
+    enabled: bool = True,
 ) -> tuple[int, dict]:
     """The HTTP status and JSON body for a request, apart from the socket so tests can call it directly."""
     if (method, path) == ("GET", "/health"):
         return 200, {"ok": True}
     if (method, path) == ("POST", "/interview"):
         try:
+            if not enabled:
+                raise AssistantError("FAILED_PRECONDITION", "The assistant is switched off.", {"reason": "disabled"})
             return 200, {"result": next_step(caller(authorization, verify_token), call_data(body), generate)}
         except AssistantError as e:
             return HTTP_STATUS[e.status], {"error": {"status": e.status, "message": e.message, "details": e.details}}
@@ -55,8 +66,10 @@ def call_data(body: bytes) -> object:
     return request.get("data") if isinstance(request, dict) else None
 
 
-def handler(verify_token: auth.VerifyToken, generate: Generate) -> type[BaseHTTPRequestHandler]:
-    """The request handler, bound to how tokens are checked and which model answers."""
+def handler(
+    verify_token: auth.VerifyToken, generate: Generate, enabled: bool = True
+) -> type[BaseHTTPRequestHandler]:
+    """The request handler, bound to how tokens are checked, which model answers and whether the assistant is on."""
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -67,7 +80,7 @@ def handler(verify_token: auth.VerifyToken, generate: Generate) -> type[BaseHTTP
 
         def answer(self, method: str, request: bytes = b""):
             authorization = self.headers.get("Authorization", "")
-            status, body = respond(method, self.path, authorization, verify_token, generate, request)
+            status, body = respond(method, self.path, authorization, verify_token, generate, request, enabled)
             data = json.dumps(body).encode()
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
@@ -84,5 +97,9 @@ def handler(verify_token: auth.VerifyToken, generate: Generate) -> type[BaseHTTP
 def server(env: Mapping[str, str]) -> ThreadingHTTPServer:
     """The server the environment describes. In Docker it listens on every interface, behind the reverse proxy."""
     address = (env.get("HOST", "0.0.0.0"), int(env.get("PORT", "8080")))
-    return ThreadingHTTPServer(address, handler(auth.firebase_tokens(env), providers.from_env(env)))
+    if not assistant_enabled(env):
+        logging.warning("The assistant is switched off (ASSISTANT_ENABLED=%s)", env.get("ASSISTANT_ENABLED"))
+    return ThreadingHTTPServer(
+        address, handler(auth.firebase_tokens(env), providers.from_env(env), assistant_enabled(env))
+    )
 

@@ -22,8 +22,9 @@ def ask(
     authorization="Bearer valid",
     generate=lambda prompt, schema: QUESTION,
     body=b'{"data": {"answers": []}}',
+    enabled=True,
 ):
-    return api.respond(method, path, authorization, verify, generate, body)
+    return api.respond(method, path, authorization, verify, generate, body, enabled)
 
 
 def test_answers_a_signed_in_caller_with_the_first_question():
@@ -43,6 +44,34 @@ def test_rejects_a_caller_without_a_valid_token_before_the_model(authorization):
     assert status == 401
     assert body["error"]["status"] == "UNAUTHENTICATED"
     assert calls == []
+
+
+def test_a_switched_off_assistant_refuses_everyone_before_the_model():
+    calls = []
+
+    status, body = ask(enabled=False, generate=lambda *args: calls.append(args))
+
+    assert status == 412
+    assert body["error"] == {
+        "status": "FAILED_PRECONDITION",
+        "message": "The assistant is switched off.",
+        "details": {"reason": "disabled"},
+    }
+    assert calls == []
+
+
+def test_a_switched_off_assistant_still_says_it_is_up():
+    assert ask("/health", "GET", enabled=False) == (200, {"ok": True})
+
+
+@pytest.mark.parametrize("value", ["false", "False", " 0 ", "no", "OFF"])
+def test_the_environment_switches_the_assistant_off(value):
+    assert not api.assistant_enabled({"ASSISTANT_ENABLED": value})
+
+
+@pytest.mark.parametrize("env", [{}, {"ASSISTANT_ENABLED": "true"}, {"ASSISTANT_ENABLED": ""}, {"ASSISTANT_ENABLED": "1"}])
+def test_the_assistant_is_on_unless_the_environment_says_otherwise(env):
+    assert api.assistant_enabled(env)
 
 
 def test_a_model_that_fails_is_unavailable():
@@ -113,6 +142,22 @@ def test_serves_the_interview_over_http(running):
 
     assert status == 200
     assert body["result"]["text"] == "Who lives there?"
+
+
+def test_refuses_over_http_when_switched_off(monkeypatch):
+    monkeypatch.setattr(api.auth, "firebase_tokens", lambda env: verify)
+    monkeypatch.setattr(api.providers, "from_env", lambda env: lambda prompt, schema: QUESTION)
+    server = api.server({"HOST": "127.0.0.1", "PORT": "0", "ASSISTANT_ENABLED": "false"})
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        url = f"http://127.0.0.1:{server.server_address[1]}"
+        status, body = call(f"{url}/interview", "POST", "Bearer valid", {"data": {}})
+    finally:
+        server.shutdown()
+        server.server_close()
+
+    assert status == 412
+    assert body["error"]["status"] == "FAILED_PRECONDITION"
 
 
 def test_answers_errors_over_http_as_json(running):
