@@ -38,6 +38,7 @@ internal data class ProposedModulesDocument(
     val assignment: ProposedAssignmentDocument? = null,
     val checklist: ProposedChecklistDocument? = null,
     val reminder: ProposedReminderDocument? = null,
+    val effort: ProposedEffortDocument? = null,
 )
 
 @Serializable
@@ -61,9 +62,16 @@ internal data class ProposedRecurrenceDocument(
     val until: String? = null,
 )
 
-/** `member` with the [assignees] by their handle in the request (`m1`), never a uid, or `anyone` without them. */
+/**
+ * `member` with the [assignees], `rotation` with the [order] they take turns in (the first has it now), or `anyone`.
+ * Members go by their handle in the request (`m1`), never a uid.
+ */
 @Serializable
-internal data class ProposedAssignmentDocument(val mode: String, val assignees: List<String> = emptyList())
+internal data class ProposedAssignmentDocument(
+    val mode: String,
+    val assignees: List<String> = emptyList(),
+    val order: List<String> = emptyList(),
+)
 
 /** The entries in order. The app gives them their ids when it saves them. */
 @Serializable
@@ -74,3 +82,6 @@ internal data class ProposedEntryDocument(val text: String, val quantity: Int? =
 
 @Serializable
 internal data class ProposedReminderDocument(val offsetsMinutes: List<Int>)
+
+@Serializable
+internal data class ProposedEffortDocument(val points: Int)

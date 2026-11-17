@@ -108,7 +108,7 @@
           ]
         },
         "assignment": {
-          "description": "Who has it: members by their handle in the request (m1, m2), or anyone.",
+          "description": "Who has it: members by their handle in the request (m1, m2), members taking turns, or anyone.",
           "anyOf": [
             {
               "type": "object",
@@ -122,6 +122,21 @@
                 }
               },
               "required": ["mode", "assignees"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "description": "Members take turns, in this order: the first has it now, and completing a recurring item passes it to the next.",
+              "properties": {
+                "mode": {"type": "string", "enum": ["rotation"]},
+                "order": {
+                  "type": "array",
+                  "items": {"type": "string", "pattern": "^m[1-9][0-9]*$"},
+                  "minItems": 2,
+                  "uniqueItems": true
+                }
+              },
+              "required": ["mode", "order"],
               "additionalProperties": false
             },
             {
@@ -166,6 +181,15 @@
             }
           },
           "required": ["offsetsMinutes"],
+          "additionalProperties": false
+        },
+        "effort": {
+          "type": "object",
+          "description": "How much work it is, from 1 (a couple of minutes) to 5 (hours): whoever completes it is credited, so the group sees who does how much.",
+          "properties": {
+            "points": {"type": "integer", "minimum": 1, "maximum": 5}
+          },
+          "required": ["points"],
           "additionalProperties": false
         }
       },

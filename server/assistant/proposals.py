@@ -109,7 +109,8 @@ def _date_errors(modules: dict) -> list[str]:
 
 def _people_and_entry_errors(modules: dict, handles: set[str]) -> list[str]:
     errors = []
-    outsiders = set(modules.get("assignment", {}).get("assignees", [])) - handles
+    assignment = modules.get("assignment", {})
+    outsiders = set(assignment.get("assignees", []) + assignment.get("order", [])) - handles
     if outsiders:
         errors.append(f"{', '.join(sorted(outsiders))} not in the space")
     if any(not entry["text"].strip() for entry in modules.get("checklist", {}).get("entries", [])):

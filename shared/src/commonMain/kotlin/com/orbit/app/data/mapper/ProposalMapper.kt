@@ -6,6 +6,7 @@ import com.orbit.app.domain.model.AssistantError
 import com.orbit.app.domain.model.AssistantException
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
+import com.orbit.app.domain.model.Effort
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Plan
@@ -94,6 +95,7 @@ private fun modulesOf(document: ProposedModulesDocument, members: List<String>):
             )
         },
         reminder = document.reminder?.let { Reminder(it.offsetsMinutes.map { offset -> offset.minutes }) },
+        effort = document.effort?.let { Effort(it.points) },
     )
 } catch (_: IllegalArgumentException) {
     null
@@ -114,6 +116,12 @@ private fun assignmentOf(document: ProposedAssignmentDocument, members: List<Str
     "member" -> {
         require(document.assignees.isNotEmpty())
         Assignment.ToMembers(document.assignees.map { handle -> memberOf(handle, members) ?: handle }.toSet())
+    }
+    // Unlike a rotation someone has since left, a proposed one only takes turns among the members it was asked about.
+    "rotation" -> {
+        val order = document.order.map { handle -> requireNotNull(memberOf(handle, members)) { "$handle is not in the space" } }
+        require(order.size >= 2 && order.distinct() == order) { "A rotation takes turns among two or more members" }
+        Assignment.Rotation(order, current = order.first())
     }
     "anyone" -> Assignment.Anyone.also { require(document.assignees.isEmpty()) }
     else -> throw IllegalArgumentException("Unknown assignment mode ${document.mode}")
