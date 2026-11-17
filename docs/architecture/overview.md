@@ -94,8 +94,9 @@ Everything is under `shared/src/commonMain/kotlin/com/orbit/app/`.
 | `expense` | A full-screen create/edit form: payer, date, equal or exact shares, explicit Save, and role-checked deletion |
 
 `spacehome/expenses/` owns the space's Expenses destination, laid out as Tricount does: every member's balance, the
-payments that settle up the ones the signed-in user is in (`myPayments`; only who pays can record one, as the rules
-require), then the ledger, latest date first. A ledger
+user's own first and the only vivid one, under a line that says what a balance is; the payments that settle up the ones
+the signed-in user is in (`myPayments`; only who pays can record one, as the rules require); then the ledger, latest
+date first, with filters for all, spending (`EXPENSES`) or reimbursements (`REIMBURSEMENTS`). A ledger
 row (`OrbitAmountRow`) shows the title over who paid and the date, and the amount; a reimbursement reads "Bea paid Ana"
 with both faces on a tinted row, so it is not mistaken for spending.
 The shared add button opens `ExpenseRoute(spaceId)` there; selecting an entry opens the same form with its id.

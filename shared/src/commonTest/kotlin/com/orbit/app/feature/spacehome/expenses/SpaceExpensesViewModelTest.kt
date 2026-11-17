@@ -78,6 +78,36 @@ class SpaceExpensesViewModelTest : ComposeTest() {
     }
 
     @Test
+    fun filtersTheLedgerBetweenExpensesAndReimbursements() = runTest {
+        auth.register("ana", "secret", "Ana")
+        val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER)
+        val vm = SpaceExpensesViewModel("space-1", ledger, spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
+        val food = ledger.add("space-1", NewExpense("Food", "ana", mapOf("bea" to 500L), LocalDate(2026, 11, 1)))
+        val paid = ledger.add(
+            "space-1",
+            NewExpense("Reimbursement", "bea", mapOf("ana" to 500L), LocalDate(2026, 11, 2), ExpenseKind.SETTLEMENT),
+        )
+
+        assertEquals(listOf(paid, food), vm.uiState.value.shownEntries.map { it.id })
+        vm.selectFilter(ExpenseFilter.EXPENSES)
+        assertEquals(listOf(food), vm.uiState.value.shownEntries.map { it.id })
+        vm.selectFilter(ExpenseFilter.REIMBURSEMENTS)
+        assertEquals(listOf(paid), vm.uiState.value.shownEntries.map { it.id })
+        assertEquals(2, vm.uiState.value.entries.size)
+    }
+
+    @Test
+    fun listsEveryMembersBalanceWithTheUsersOwnFirst() = runTest {
+        auth.register("marc", "secret", "Marc")
+        val spaces = FakeSpaceRepository.withMembers("ana" to Role.OWNER, "bea" to Role.MEMBER, "marc" to Role.MEMBER)
+        val vm = SpaceExpensesViewModel("space-1", ledger, spaces, auth)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect() }
+
+        assertEquals(listOf("marc", "ana", "bea"), vm.uiState.value.balanceRows.map { it.memberId })
+    }
+
+    @Test
     fun ledgerAndMemberAndSpaceReadsAllExposeFailureAndRetry() = runTest {
         val controlled = ControlledExpenseRepository(ledger).apply { readFailures = 1 }
         val cases = listOf(

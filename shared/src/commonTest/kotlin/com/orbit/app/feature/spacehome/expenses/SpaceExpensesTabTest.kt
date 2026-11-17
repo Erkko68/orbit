@@ -64,7 +64,7 @@ class SpaceExpensesTabTest : ComposeTest() {
         val controlled = ControlledExpenseRepository(ledger)
         val vm = SpaceExpensesViewModel("space-1", controlled, spaces, auth)
         setContent { OrbitTheme { OrbitScreen(scrollable = true) { SpaceExpensesTab("space-1", {}, viewModel = vm) } } }
-        onNode(hasText("Ana") and hasText("Owes")).performScrollTo().assertIsDisplayed()
+        onNode(hasText("Ana") and hasText("You owe")).performScrollTo().assertIsDisplayed()
         onNode(hasText("Bea") and hasText("Gets back")).performScrollTo().assertIsDisplayed()
         onNodeWithText("You owe Bea").performScrollTo().assertIsDisplayed()
         onNodeWithContentDescription("Mark as paid: You owe Bea").performScrollTo().performClick()
@@ -76,7 +76,7 @@ class SpaceExpensesTabTest : ComposeTest() {
         onNodeWithContentDescription("Mark as paid: You owe Bea").performScrollTo().performClick()
         onAllNodesWithText("Mark as paid").onLast().performScrollTo().performClick()
         onNodeWithText("Record this payment?").assertDoesNotExist()
-        onNode(hasText("Ana") and hasText("Settled up")).performScrollTo().assertIsDisplayed()
+        onNode(hasText("Ana") and hasText("You're settled up")).performScrollTo().assertIsDisplayed()
         onNode(hasText("Bea") and hasText("Settled up")).performScrollTo().assertIsDisplayed()
         onNodeWithText("Everyone is settled up.").performScrollTo().assertIsDisplayed()
         onNode(hasText("Ana paid Bea") and hasText("Reimbursement", substring = true)).performScrollTo().assertIsDisplayed()
@@ -121,6 +121,30 @@ class SpaceExpensesTabTest : ComposeTest() {
     }
 
     @Test
+    fun theLedgerFiltersShowExpensesOrReimbursements() = runComposeUiTest {
+        val auth = InMemoryAuthRepository()
+        val spaces = InMemorySpaceRepository(auth)
+        val ledger = InMemoryExpenseRepository(auth)
+        runBlocking {
+            auth.register("ana", "secret", "Ana")
+            spaces.createSpace("Flat", 0)
+            ledger.add("space-1", NewExpense("Groceries", "ana", mapOf("ana" to 500L), LocalDate(2026, 11, 1)))
+            ledger.add(
+                "space-1",
+                NewExpense("Reimbursement", "ana", mapOf("ana" to 300L), LocalDate(2026, 11, 2), ExpenseKind.SETTLEMENT),
+            )
+        }
+        val vm = SpaceExpensesViewModel("space-1", ledger, spaces, auth)
+        setContent { OrbitTheme { OrbitScreen(scrollable = true) { SpaceExpensesTab("space-1", {}, viewModel = vm) } } }
+
+        onNodeWithText("Reimbursements").performScrollTo().performClick()
+        onNodeWithText("Groceries").assertDoesNotExist()
+        onNodeWithText("Expenses").performScrollTo().performClick()
+        onNodeWithText("Groceries").performScrollTo().assertIsDisplayed()
+        onNode(hasText("Reimbursement", substring = true) and hasText("Ana paid Ana")).assertDoesNotExist()
+    }
+
+    @Test
     fun emptyLedgerStillShowsCurrentMembersAtZero() = runComposeUiTest {
         val auth = InMemoryAuthRepository()
         val spaces = InMemorySpaceRepository(auth)
@@ -130,7 +154,7 @@ class SpaceExpensesTabTest : ComposeTest() {
         }
         val vm = SpaceExpensesViewModel("space-1", InMemoryExpenseRepository(auth), spaces, auth)
         setContent { OrbitTheme { OrbitScreen(scrollable = true) { SpaceExpensesTab("space-1", {}, viewModel = vm) } } }
-        onNode(hasText("Ana") and hasText("Settled up")).performScrollTo().assertIsDisplayed()
+        onNode(hasText("Ana") and hasText("You're settled up")).performScrollTo().assertIsDisplayed()
         onNodeWithText(formatEuro(0)).assertIsDisplayed()
         onNodeWithText("Everyone is settled up.").performScrollTo().assertIsDisplayed()
         onNodeWithText("No expenses yet").performScrollTo().assertIsDisplayed()

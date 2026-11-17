@@ -49,7 +49,7 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 | `OrbitGroupRow` | One row of a group, with anything in it |
 | `OrbitTaskRow` | An item in a list, a task or a list alike: the check, the title, a line of description, when and how far along, and the faces at the end |
 | `OrbitEntryRow` | One entry of a checklist, lighter than a check row |
-| `OrbitAmountRow` | A row about money: a title over a line, the amount at the end in Martian Mono, a face in front when it is a person. A ledger entry, or a balance: with a + or − sign the whole row is the vivid `credit` (teal) or `debit` (coral) fill; `done` tints a reimbursement |
+| `OrbitAmountRow` | A row about money: a title over a line, the amount at the end in Martian Mono, a face in front when it is a person. A ledger entry, or a balance: with a + or − sign the whole row is the vivid `credit` (teal) or `debit` (coral) fill, or keeps only the sign when `quiet` (another member's balance); `done` tints a reimbursement |
 | `OrbitAmountField` | An amount typed at the end of a row, such as one person's share: right-aligned in Martian Mono |
 | `OrbitTransferRow` | A payment to settle: the two faces, the sentence ("You owe Ana") over its amount, and, when the user is the one who pays, a small teal pill with an icon ("Pay") that asks to record it |
 | `OrbitActionRow` | A row that does something: an icon on a shape, a title over its value, faces or another `trailing`, and an arrow |
