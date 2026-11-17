@@ -7,11 +7,14 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -78,6 +81,8 @@ class InterviewScreenTest : ComposeTest() {
         onNodeWithContentDescription("Send").assertIsEnabled().performClick()
 
         onNodeWithText("Which rooms?").assertIsDisplayed()
+        // The chat stays on the newest question: the earlier ones are above it, composed only once scrolled to.
+        onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Who lives there?"))
         onNodeWithText("Who lives there?").assertIsDisplayed()
         onNodeWithText("Family").assertIsDisplayed()
         onNodeWithText("Roommates").assertDoesNotExist()

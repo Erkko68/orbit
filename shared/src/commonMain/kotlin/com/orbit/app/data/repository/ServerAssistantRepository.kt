@@ -31,7 +31,8 @@ internal const val ASSISTANT_SERVER_URL = "https://orbit.biri.es"
 
 /**
  * Calls `POST /interview` on the assistant server, as the signed-in user, with what the interview is about (#66): the
- * phone's language and day, and the space's member names and item titles. A new space has only the user.
+ * phone's language and day, and the space's name, what the assistant learned about it before, member names (the user's first, so the server names them m1) and item
+ * titles. A new space has only the user.
  */
 class ServerAssistantRepository(
     private val client: HttpClient,
@@ -42,12 +43,17 @@ class ServerAssistantRepository(
 ) : AssistantRepository {
     override suspend fun nextStep(spaceId: String, answers: List<InterviewAnswer>): InterviewStep {
         val token = auth.idToken()
-        val members = orNetworkError { spaces.membersOrYou(spaceId, auth).first() }
+        val me = orNetworkError { auth.session.first()?.id }
+        // Stable: the others keep their order. The plan's handles map back through this same list.
+        val members = orNetworkError { spaces.membersOrYou(spaceId, auth).first() }.sortedByDescending { it.userId == me }
         val titles = if (spaceId.isEmpty()) emptyList() else orNetworkError { items.observeItems(spaceId).first().map { it.title } }
+        val space = if (spaceId.isEmpty()) null else orNetworkError { spaces.observeSpaces().first().find { it.id == spaceId } }
         val context = InterviewContext(
             language = Locale.current.language,
             today = Clock.System.todayIn(TimeZone.currentSystemDefault()),
             newSpace = spaceId.isEmpty(),
+            spaceName = space?.name.orEmpty(),
+            assistantSummary = space?.assistantSummary.orEmpty(),
             memberNames = members.map { it.displayName },
             itemTitles = titles,
         )

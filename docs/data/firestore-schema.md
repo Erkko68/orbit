@@ -29,6 +29,7 @@ erDiagram
         int accent "the badge, index into spaceAccents"
         array memberIds "uids"
         map formerMembers "uid to name, optional"
+        string assistantSummary "what the assistant knows, optional"
         string createdBy FK
         string ownerId FK "the member whose role is owner"
         timestamp createdAt
@@ -133,6 +134,7 @@ The email is not stored: it comes from the Firebase Auth account.
 | `accent` | integer | yes | The badge of a space with no one else in it: the index of its fill in `OrbitTheme.colors.spaceAccents` and of its shape. Taken automatically, the one after the user's other spaces ([ADR 0012](../adr/0012-three-colours-and-a-flat-page.md)) |
 | `memberIds` | array of uid | yes | Kept in step with the `members` subcollection, in the same batch. At most 8 (plan cap). |
 | `formerMembers` | map of uid to string | no | The name of each member who left, written with the leave. Their member document is gone, but their balance still shows. A member who rejoins keeps an entry, and their member document wins. |
+| `assistantSummary` | string | no | What the assistant knows about the space (what it is for, who is in it, how they share the work), at most 1000 characters. Written by the assistant's plan and saved, after the user sees it, with the plan they confirm; the next conversation reads it. Empty or absent until then. Any member may change it, and nothing else with it. |
 | `createdBy` | uid | yes | Never changes |
 | `ownerId` | uid | yes | The member whose role is `owner`. The creator at first; changes only in the transfer batch, with the two roles (ADR 0004). Spaces made before #27 have none until their first transfer. |
 | `createdAt` | timestamp | yes | Server time, never changes |
@@ -375,7 +377,7 @@ No method saves a whole existing item: every update writes only its field paths,
 
 | Method | Path | Operation |
 |---|---|---|
-| `confirm` | `spaces/{id}/items/{itemId}` for each accepted proposal and, for a new space, `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: the new space and the owner's membership as `createSpace` writes them, and a `set` of each item as `create` writes it. Saved whole or not at all, and queued offline like any write (#76) |
+| `confirm` | `spaces/{id}/items/{itemId}` for each accepted proposal and, for a new space, `spaces/{id}` and `spaces/{id}/members/{uid}`; `spaces/{id}` `assistantSummary` when the plan has one | One batch: the new space and the owner's membership as `createSpace` writes them (with the summary), or an update of an existing space's `assistantSummary`, and a `set` of each item as `create` writes it. Saved whole or not at all, and queued offline like any write (#76) |
 
 ### `FirestoreExpenseRepository`
 

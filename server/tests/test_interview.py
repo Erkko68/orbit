@@ -116,33 +116,47 @@ class Model:
         return self.plan if schema is PLAN_SCHEMA else self.question
 
 
-def test_asks_the_first_question_with_the_space_and_the_language():
+def test_the_first_question_asks_what_to_organise_without_the_model():
     model = Model()
 
     result = next_step(SIGNED_IN, interview(), model)
 
-    assert result["id"] == "q1"
-    assert result["position"] == 1
-    [(prompt, schema)] = model.prompts
-    assert schema is QUESTION_SCHEMA
-    assert "- m1: Ana" in prompt and "- m2: Ben" in prompt
-    assert "- Groceries" in prompt
-    assert "and the suggestion in Spanish." in prompt
-    assert "(nothing asked yet)" in prompt
+    assert result == {
+        "id": "q1",
+        "text": "¡Hola! ¿Qué quieres organizar? Un viaje, las tareas de casa, una fiesta de cumpleaños…",
+        "options": [],
+        "multiSelect": False,
+        "freeText": True,
+        "position": 1,
+        "budget": QUESTION_BUDGET,
+    }
+    assert model.prompts == []
 
 
-def test_the_first_question_is_asked_even_if_the_model_says_it_is_ready():
-    assert next_step(SIGNED_IN, interview(), Model(question=valid(ready=True)))["id"] == "q1"
-
-
-def test_asks_the_next_question_with_what_was_answered():
+def test_asks_the_next_question_with_the_space_and_what_was_answered():
     model = Model()
 
-    result = next_step(SIGNED_IN, interview([ANSWER]), model)
+    result = next_step(SIGNED_IN, interview([ANSWER], space=" Rome trip "), model)
 
     assert result["id"] == "q2"
-    assert "Q: Who lives there?\nA: Family, two kids" in model.prompts[0][0]
-    assert f"you may ask at most {QUESTION_BUDGET - 1} more" in model.prompts[0][0]
+    [(prompt, schema)] = model.prompts
+    assert schema is QUESTION_SCHEMA
+    assert 'The space is called "Rome trip". Its members, the user first:' in prompt
+    assert "- m1: Ana" in prompt and "- m2: Ben" in prompt
+    assert "- Groceries" in prompt
+    assert "Q: Who lives there?\nA: Family, two kids" in prompt
+    assert f"You may ask at most {QUESTION_BUDGET - 1} more questions" in prompt
+    assert "and the suggestion in Spanish." in prompt
+    assert "earlier conversations" not in prompt
+
+
+def test_what_earlier_conversations_learned_reaches_both_prompts():
+    model = Model(question=valid(ready=True))
+
+    next_step(SIGNED_IN, interview([ANSWER], summary=" Four friends going to Lisbon. "), model)
+
+    assert all("told you about this space:\nFour friends going to Lisbon." in prompt for prompt, _ in model.prompts)
+    assert "Also write summary" in model.prompts[1][0]
 
 
 def test_once_the_model_is_ready_it_proposes_the_checked_plan_for_the_space():
@@ -193,18 +207,19 @@ def test_a_new_space_plan_without_a_space_is_unavailable():
 def test_an_unknown_language_is_english():
     model = Model()
 
-    next_step(SIGNED_IN, interview(language="fr"), model)
-    next_step(SIGNED_IN, interview(language=["es"]), model)
+    next_step(SIGNED_IN, interview([ANSWER], language="fr"), model)
+    next_step(SIGNED_IN, interview([ANSWER], language=["es"]), model)
 
     assert all("and the suggestion in English." in prompt for prompt, _ in model.prompts)
+    assert next_step(SIGNED_IN, interview(language="fr"), model)["text"].startswith("Hi! What do you want to organise?")
 
 
 def test_the_prompt_text_comes_from_the_versioned_prompt_files():
     model = Model()
 
-    next_step(SIGNED_IN, {"answers": []}, model)
+    next_step(SIGNED_IN, {"answers": [ANSWER]}, model)
 
-    assert "one question at a time" in model.prompts[0][0]
+    assert "The user's first answer says what they want to organise" in model.prompts[0][0]
     assert "- (none listed)" in model.prompts[0][0]
     assert "and the suggestion in English." in model.prompts[0][0]
 
@@ -223,6 +238,8 @@ def test_the_prompt_text_comes_from_the_versioned_prompt_files():
         {"members": "Ana"},
         {"items": [3]},
         {"today": "tomorrow"},
+        {"space": 3},
+        {"summary": ["A trip"]},
     ],
 )
 def test_rejects_what_is_not_an_interview_before_the_model(data):
@@ -252,8 +269,8 @@ def fail(*args):
 @pytest.mark.parametrize(
     "answers, generate",
     [
-        ([], fail),
-        ([], lambda *args: valid(text="")),
+        ([ANSWER], fail),
+        ([ANSWER], lambda *args: valid(text="")),
         ([ANSWER], Model(question=valid(ready=True), plan={"version": 2, "items": []})),
     ],
 )

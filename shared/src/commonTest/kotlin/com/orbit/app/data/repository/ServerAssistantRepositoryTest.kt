@@ -5,12 +5,14 @@ import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Role
+import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.testing.FakeSpaceRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
@@ -73,7 +75,38 @@ class ServerAssistantRepositoryTest {
         assertEquals("""[{"name":"ana@orbit.app"},{"name":"ben@orbit.app"}]""", data["members"].toString())
         assertEquals("""["Bins"]""", data["items"].toString())
         assertEquals("false", data["newSpace"].toString())
+        assertEquals("Flat 4B", data["space"]?.jsonPrimitive?.content)
+        // The assistant has not learned anything about the space yet.
+        assertEquals(null, data["summary"])
         assertEquals(2, data["language"]?.jsonPrimitive?.content?.length)
+    }
+
+    @Test
+    fun sendsWhatTheAssistantLearnedAboutTheSpaceBefore() = runTest {
+        val remembered = object : SpaceRepository by spaces {
+            override fun observeSpaces() =
+                flowOf(listOf(Space("space-1", "Lisbon", 0, emptyList(), assistantSummary = "Four friends going to Lisbon.")))
+        }
+        val auth = signedIn()
+        val client = answering(HttpStatusCode.OK, """{"result":{"id":"q2","text":"Which rooms?"}}""")
+
+        ServerAssistantRepository(client, auth, remembered, InMemoryItemRepository(auth), "https://assistant.test/")
+            .nextStep("space-1", emptyList())
+
+        assertEquals("Four friends going to Lisbon.", sent().getValue("data").jsonObject["summary"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun theUserIsTheFirstMemberSoAPlanForM1IsTheirs() = runTest {
+        val plan = """{"version":1,"items":[{"title":"Bins","modules":{"assignment":{"mode":"member","assignees":["m1"]}}}]}"""
+        val client = answering(HttpStatusCode.OK, """{"result":{"plan":$plan}}""")
+        val ben = InMemoryAuthRepository().apply { register("ben@orbit.app", "secret", "Ben") }
+
+        val step = repository(client, ben).nextStep("space-1", emptyList())
+
+        assertEquals("""[{"name":"ben@orbit.app"},{"name":"ana@orbit.app"}]""", sent().getValue("data").jsonObject["members"].toString())
+        val item = assertIs<InterviewStep.PlanReady>(step).plan.items.single()
+        assertEquals(Assignment.ToMembers(setOf("ben@orbit.app")), item.modules.assignment)
     }
 
     @Test

@@ -20,6 +20,8 @@ data class PlanReviewUiState(
     val today: LocalDate? = null,
     /** The plan makes a new space, rather than adding to [spaceName]. */
     val newSpace: Boolean = false,
+    /** What the assistant will remember about the space, saved with the confirmed items. Null when it wrote nothing. */
+    val assistantSummary: String? = null,
     /** The summary of what confirming creates is open. */
     val confirming: Boolean = false,
     val saving: Boolean = false,

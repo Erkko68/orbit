@@ -56,6 +56,7 @@ class PlanReviewViewModel(
             proposals = review?.proposals.orEmpty().map { ProposalRow(toSpaceItem(it.asItem(), members), it.accepted) },
             today = today,
             newSpace = spaceId.isEmpty(),
+            assistantSummary = review?.summary,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PlanReviewUiState())
 

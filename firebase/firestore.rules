@@ -100,7 +100,22 @@ service cloud.firestore {
       function hasValidSpaceFields() {
         return request.resource.data.name is string
           && request.resource.data.name.trim().size() > 0
-          && request.resource.data.accent is int;
+          && request.resource.data.accent is int
+          && hasValidAssistantSummary();
+      }
+
+      // What the assistant knows about the space, if anything: a short text it reads in its next conversation.
+      function hasValidAssistantSummary() {
+        return !('assistantSummary' in request.resource.data)
+          || (request.resource.data.assistantSummary is string && request.resource.data.assistantSummary.size() <= 1000);
+      }
+
+      // Any member confirming an assistant's plan saves what it learned about the space, and nothing else.
+      function writesAssistantSummary() {
+        return isAuthenticated()
+          && request.auth.uid in resource.data.memberIds
+          && changedKeys().hasOnly(['assistantSummary'])
+          && hasValidAssistantSummary();
       }
 
       // Who owns the space changes only through a transfer.
@@ -179,8 +194,10 @@ service cloud.firestore {
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.createdAt == request.time
         && hasValidSpaceFields();
-      // The settings (an owner or admin), or one half of a join, a leave, a removal or a transfer.
+      // The settings (an owner or admin), the assistant's summary (any member), or one half of a join, a leave, a
+      // removal or a transfer.
       allow update: if (isAdminOrOwner(spaceId) && keepsCreation() && keepsOwner() && keepsMembers() && hasValidSpaceFields())
+        || writesAssistantSummary()
         || joinsSpace()
         || leavesSpace()
         || removesMember()

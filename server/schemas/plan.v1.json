@@ -17,6 +17,11 @@
       "type": "array",
       "items": {"$ref": "item.v1.json"},
       "description": "The items to add to the space."
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 1000,
+      "description": "What the assistant knows about the space, for its next conversation: saved on the space when the user confirms the plan."
     }
   },
   "required": ["version", "items"],

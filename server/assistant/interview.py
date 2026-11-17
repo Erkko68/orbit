@@ -21,7 +21,7 @@ PLAN_PROMPT = Template((PROMPTS / "plan.v2.md").read_text(encoding="utf-8"))
 
 # How many questions an interview may ask, QUESTION_BUDGET in the environment. Once they are answered, the assistant
 # proposes with what it has (#74).
-QUESTION_BUDGET = int(os.environ.get("QUESTION_BUDGET", "8"))
+QUESTION_BUDGET = int(os.environ.get("QUESTION_BUDGET", "5"))
 
 # How far ahead the plan's prompt lays out the calendar, so the model reads weekdays instead of working them out.
 CALENDAR_DAYS = 14
@@ -29,10 +29,20 @@ CALENDAR_DAYS = 14
 # The languages the app speaks, by the code it sends. Anything else gets English.
 LANGUAGES = {"en": "English", "es": "Spanish", "ca": "Catalan", "it": "Italian"}
 
+# The interview's first question, asked without the model: the user says what they want to organise, in their words.
+OPENERS = {
+    "English": "Hi! What do you want to organise? A trip, the chores at home, a birthday party…",
+    "Spanish": "¡Hola! ¿Qué quieres organizar? Un viaje, las tareas de casa, una fiesta de cumpleaños…",
+    "Catalan": "Hola! Què vols organitzar? Un viatge, les tasques de casa, una festa d'aniversari…",
+    "Italian": "Ciao! Cosa vuoi organizzare? Un viaggio, le faccende di casa, una festa di compleanno…",
+}
+
 # What the request may carry, so a caller cannot grow the prompt without bound.
 MAX_MEMBERS = 50
 MAX_ITEMS = 100
 MAX_TEXT = 300
+# What the assistant knows about a space, as it wrote it in the last plan and the space keeps it (the rules' limit).
+MAX_SUMMARY = 1000
 
 # What the model writes, as JSON Schema. The server adds the id, the position and the budget, which are not the
 # model's to decide. [suggestion] is what the model would answer, for "Decide for me". [ready] says it knows enough to
@@ -82,9 +92,13 @@ class Interview:
     language: str
     today: date
     new_space: bool
-    # (handle, name) of each member, in the order the app maps handles back to uids.
+    # (handle, name) of each member, in the order the app maps handles back to uids. The user comes first, as m1.
     members: list[tuple[str, str]]
     items: list[str]
+    # The space's name, empty for a new space.
+    space: str = ""
+    # What the assistant learned about the space in earlier conversations, as its last plan summed it up.
+    summary: str = ""
 
 
 def parse_interview(data: object) -> Interview:
@@ -110,6 +124,8 @@ def parse_interview(data: object) -> Interview:
         members=[(f"m{index}", _text(member.get("name") if isinstance(member, dict) else None, "member name"))
                  for index, member in enumerate(members, start=1)],
         items=[title[:MAX_TEXT] for title in items[:MAX_ITEMS]],
+        space=_optional_text(data.get("space"), "space"),
+        summary=_optional_text(data.get("summary"), "summary", MAX_SUMMARY),
     )
 
 
@@ -126,6 +142,14 @@ def _answer(answer: object) -> Answer:
         text[:MAX_TEXT] if isinstance(text, str) else "",
         answer.get("decided") is True,
     )
+
+
+def _optional_text(value: object, what: str, limit: int = MAX_TEXT) -> str:
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise ValueError(f"the {what} is not a text")
+    return value.strip()[:limit]
 
 
 def _text(value: object, what: str) -> str:
@@ -171,14 +195,19 @@ def parse_question(answer: object, position: int) -> dict:
 
 
 def context_text(interview: Interview) -> str:
-    """What the model knows about the space, with each member as a handle and a name."""
+    """What the model knows about the space, with each member as a handle and a name, the user first."""
     if interview.new_space:
         space = "The user is setting up a new space. Until they invite people, they are its only member:"
+    elif interview.space:
+        space = f'The space is called "{interview.space}". Its members, the user first:'
     else:
-        space = "The space already exists. Its members:"
+        space = "The space already exists. Its members, the user first:"
     members = "\n".join(f"- {handle}: {name}" for handle, name in interview.members) or "- (none listed)"
     items = "\n".join(f"- {title}" for title in interview.items) or "- (none yet)"
-    return f"{space}\n{members}\n\nItems the space already has:\n{items}"
+    context = f"{space}\n{members}\n\nItems the space already has:\n{items}"
+    if interview.summary:
+        context += f"\n\nWhat earlier conversations told you about this space:\n{interview.summary}"
+    return context
 
 
 def answers_text(interview: Interview) -> str:
@@ -222,17 +251,31 @@ def next_step(uid: str | None, data: object, generate: Generate) -> dict:
         interview = parse_interview(data)
     except ValueError as e:
         raise AssistantError("INVALID_ARGUMENT", f"Not an interview: {e}.") from e
+    asked = len(interview.answers)
+    if not asked:
+        return opener(interview.language)
     try:
-        asked = len(interview.answers)
         if asked < QUESTION_BUDGET:
             answer = generate(_question_prompt(interview), QUESTION_SCHEMA)
-            # The first question is always asked: there is nothing to plan from yet.
-            if not (asked and isinstance(answer, dict) and answer.get("ready") is True):
+            if not (isinstance(answer, dict) and answer.get("ready") is True):
                 return parse_question(answer, position=asked + 1)
         return {"plan": _plan(interview, generate)}
     except Exception as e:
         logging.exception("The assistant could not take the interview's next step")
         raise AssistantError("UNAVAILABLE", "The assistant could not answer.", details={"reason": "unavailable"}) from e
+
+
+def opener(language: str) -> dict:
+    """The first question: what the user wants to organise, in their own words. Asked without the model, so it is quick."""
+    return {
+        "id": "q1",
+        "text": OPENERS[language],
+        "options": [],
+        "multiSelect": False,
+        "freeText": True,
+        "position": 1,
+        "budget": QUESTION_BUDGET,
+    }
 
 
 def _question_prompt(interview: Interview) -> str:

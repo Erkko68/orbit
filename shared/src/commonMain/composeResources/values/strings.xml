@@ -484,6 +484,7 @@
         <item quantity="other">Adds %2$d items to %1$s.</item>
     </plurals>
     <string name="plan_confirm">Confirm</string>
+    <string name="plan_confirm_remember">What the assistant will remember about this space</string>
     <string name="plan_save_failed">The plan could not be saved, so nothing was added. Try again.</string>
     <string name="effort_title">Effort</string>
     <string name="effort_add">Add effort</string>

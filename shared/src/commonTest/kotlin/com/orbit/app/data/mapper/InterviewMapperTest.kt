@@ -20,13 +20,15 @@ class InterviewMapperTest {
 
     @Test
     fun sendsEveryAnswerInTheCallableShape() {
-        val context = InterviewContext("es", LocalDate(2026, 11, 16), newSpace = false, listOf("Ana", " "), listOf("Bins"))
+        val context = InterviewContext(
+            "es", LocalDate(2026, 11, 16), newSpace = false, "Flat 4B", "Three flatmates.", listOf("Ana", " "), listOf("Bins"),
+        )
         val body = interviewRequest(listOf(InterviewAnswer("q1", "Who lives there?", setOf("Family"), "Three of us")), context)
 
         assertEquals(
             """{"data":{"answers":[{"questionId":"q1","question":"Who lives there?","selected":["Family"],""" +
                 """"text":"Three of us"}],"language":"es","today":"2026-11-16","newSpace":false,""" +
-                """"members":[{"name":"Ana"},{"name":"Member 2"}],"items":["Bins"]}}""",
+                """"members":[{"name":"Ana"},{"name":"Member 2"}],"items":["Bins"],"space":"Flat 4B","summary":"Three flatmates."}}""",
             body,
         )
     }
@@ -64,7 +66,7 @@ class InterviewMapperTest {
         val step = interviewStep(body, members = emptyList()) as InterviewStep.Ask
 
         assertEquals("B", step.question.suggestion)
-        val context = InterviewContext("en", LocalDate(2026, 11, 17), false, emptyList(), emptyList())
+        val context = InterviewContext("en", LocalDate(2026, 11, 17), false, "", "", emptyList(), emptyList())
         val request = interviewRequest(listOf(InterviewAnswer("q1", "Who?", setOf("B"), "", decided = true)), context)
         assertTrue(""""decided":true""" in request)
     }

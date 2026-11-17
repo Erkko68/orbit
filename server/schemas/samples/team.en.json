@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "summary": "A team of three sharing the office chores. They take turns on the kitchen.",
   "items": [
     {
       "title": "Book the meeting room",

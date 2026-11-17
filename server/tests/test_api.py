@@ -8,6 +8,9 @@ import pytest
 from assistant import api
 
 QUESTION = {"text": "Who lives there?", "options": ["Roommates", "Family"], "multiSelect": False, "freeText": True}
+# The first question is asked without the model: these calls answer it, so the model asks the next.
+GOAL = {"questionId": "q1", "question": "What do you want to organise?", "selected": [], "text": "A trip"}
+INTERVIEW = {"answers": [GOAL]}
 
 
 def verify(token):
@@ -21,18 +24,18 @@ def ask(
     method="POST",
     authorization="Bearer valid",
     generate=lambda prompt, schema: QUESTION,
-    body=b'{"data": {"answers": []}}',
+    body=json.dumps({"data": INTERVIEW}).encode(),
     enabled=True,
 ):
     return api.respond(method, path, authorization, verify, generate, body, enabled)
 
 
-def test_answers_a_signed_in_caller_with_the_first_question():
+def test_answers_a_signed_in_caller_with_the_next_question():
     status, body = ask()
 
     assert status == 200
     assert body["result"]["text"] == "Who lives there?"
-    assert body["result"]["id"] == "q1"
+    assert body["result"]["id"] == "q2"
 
 
 @pytest.mark.parametrize("authorization", ["", "Bearer forged", "Basic valid"])
@@ -138,7 +141,7 @@ def call(url, method, authorization=None, body=None):
 
 
 def test_serves_the_interview_over_http(running):
-    status, body = call(f"{running}/interview", "POST", "Bearer valid", {"data": {}})
+    status, body = call(f"{running}/interview", "POST", "Bearer valid", {"data": INTERVIEW})
 
     assert status == 200
     assert body["result"]["text"] == "Who lives there?"

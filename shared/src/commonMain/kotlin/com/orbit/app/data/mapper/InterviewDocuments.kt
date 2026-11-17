@@ -20,6 +20,10 @@ internal data class InterviewRequestData(
     val newSpace: Boolean,
     val members: List<InterviewMemberDocument>,
     val items: List<String>,
+    /** The space's name, left out for a new space. */
+    val space: String = "",
+    /** What the assistant learned about the space in earlier conversations, left out while it knows nothing. */
+    val summary: String = "",
 )
 
 @Serializable

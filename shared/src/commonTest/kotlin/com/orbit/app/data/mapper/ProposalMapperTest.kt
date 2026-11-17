@@ -21,6 +21,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.minutes
 
 class ProposalMapperTest {
@@ -87,6 +88,17 @@ class ProposalMapperTest {
         assertEquals(emptyList(), plan(item(""""assignment":{"mode":"rotation","order":["m1"]}""")).items)
         assertEquals(emptyList(), plan(item(""""assignment":{"mode":"rotation","order":["m1","m1"]}""")).items)
         assertEquals(emptyList(), plan(item(""""effort":{"points":6}""")).items)
+    }
+
+    @Test
+    fun readsTheSummaryAndIgnoresOneThatIsNotText() {
+        fun summary(field: String) =
+            planOf(Json.parseToJsonElement("""{"version":1,"summary":$field,"items":[${item("")}]}""").jsonObject, members).summary
+
+        assertEquals("Three flatmates.", summary("\" Three flatmates. \""))
+        assertEquals(1000, summary("\"${"x".repeat(1200)}\"")?.length)
+        assertNull(summary("3"))
+        assertNull(summary("\" \""))
     }
 
     @Test

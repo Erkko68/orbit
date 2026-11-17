@@ -484,6 +484,7 @@
         <item quantity="other">Aggiunge %2$d elementi a %1$s.</item>
     </plurals>
     <string name="plan_confirm">Conferma</string>
+    <string name="plan_confirm_remember">Cosa ricorderà l'assistente di questo spazio</string>
     <string name="plan_save_failed">Non è stato possibile salvare il piano, quindi non è stato aggiunto nulla. Riprova.</string>
     <string name="effort_title">Impegno</string>
     <string name="effort_add">Aggiungi impegno</string>

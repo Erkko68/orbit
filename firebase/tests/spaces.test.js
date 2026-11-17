@@ -158,6 +158,33 @@ describe('Spaces collection', () => {
     assert.strictEqual(after.data().accent, 0);
   });
 
+  it('lets any member save the assistant summary, and only that', async () => {
+    const charlie = testEnv.authenticatedContext('charlie').firestore().collection('spaces').doc('s1');
+    const david = testEnv.authenticatedContext('david').firestore().collection('spaces').doc('s1');
+
+    await assertSucceeds(charlie.update({ assistantSummary: 'Four friends going to Lisbon by train.' }));
+    await assertFails(charlie.update({ assistantSummary: 'Renamed', name: 'Lisbon' }));
+    await assertFails(david.update({ assistantSummary: 'Not mine' }));
+  });
+
+  it('keeps the assistant summary a text of at most 1000 characters', async () => {
+    const charlie = testEnv.authenticatedContext('charlie').firestore().collection('spaces').doc('s1');
+    const alice = testEnv.authenticatedContext('alice').firestore().collection('spaces').doc('s1');
+
+    await assertFails(charlie.update({ assistantSummary: 3 }));
+    await assertFails(charlie.update({ assistantSummary: 'x'.repeat(1001) }));
+    await assertFails(alice.update({ name: 'Home', assistantSummary: 'x'.repeat(1001) }));
+    await assertSucceeds(charlie.update({ assistantSummary: 'x'.repeat(1000) }));
+  });
+
+  it('lets a new space start with the assistant summary', async () => {
+    const davidDb = testEnv.authenticatedContext('david').firestore();
+    const space = { name: 'Lisbon', accent: 1, memberIds: ['david'], createdBy: 'david', ownerId: 'david', createdAt: serverTime() };
+
+    await assertSucceeds(davidDb.collection('spaces').doc('s3').set({ ...space, assistantSummary: 'A trip to Lisbon.' }));
+    await assertFails(davidDb.collection('spaces').doc('s4').set({ ...space, assistantSummary: ['A trip'] }));
+  });
+
   it('allows only the owner to delete the space', async () => {
     const bobDb = testEnv.authenticatedContext('bob').firestore();
     const charlieDb = testEnv.authenticatedContext('charlie').firestore();

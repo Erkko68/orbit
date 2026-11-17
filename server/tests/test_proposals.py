@@ -108,6 +108,8 @@ NOT_PLANS = [
         plan_with(item=item_with(effort={})),
         plan_with(item=item_with(effort={"points": 0})),
         plan_with(item=item_with(effort={"points": 6})),
+        plan_with(summary=3),
+        plan_with(summary="x" * 1001),
         plan_with(item=item_with(checklist={"entries": []})),
         plan_with(item=item_with(checklist={"entries": [{"text": "Milk", "quantity": 0}]})),
         plan_with(item=item_with(reminder={"offsetsMinutes": [-10]})),
@@ -182,6 +184,17 @@ def test_drops_the_invalid_proposals_and_logs_why(caplog):
     assert checked == {**plan, "items": [good]}
     assert "Dropped proposal 1 of the plan: the title is blank" in caplog.text
     assert "Dropped proposal 2 of the plan: modules.cost is not allowed" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("summary", "kept"),
+    [(" Four friends going to Lisbon. ", "Four friends going to Lisbon."), ("x" * 1200, "x" * 1000), (3, None), (" ", None)],
+)
+def test_a_bad_summary_is_cut_or_dropped_but_the_plan_stays(summary, kept):
+    plan = checked_plan(plan_with(summary=summary), handles={"m1"})
+
+    assert plan.get("summary") == kept
+    assert len(plan["items"]) == 1
 
 
 @pytest.mark.parametrize(
