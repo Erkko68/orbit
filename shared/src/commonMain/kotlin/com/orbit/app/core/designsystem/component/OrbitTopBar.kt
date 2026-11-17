@@ -1,5 +1,7 @@
 package com.orbit.app.core.designsystem.component
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -19,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -27,7 +30,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.orbit.app.core.designsystem.theme.OrbitMotion
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
+import com.orbit.app.core.designsystem.theme.OrbitTheme
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.ic_expand_more
 import org.jetbrains.compose.resources.painterResource
@@ -37,7 +42,7 @@ private val ControlSize = 48.dp
 private val ChevronSize = 18.dp
 
 /**
- * Top of a screen, passed to [OrbitScreen]'s `topBar`. It sits on the page, with no fill of its own: an optional
+ * Top of a screen, passed to [OrbitScreen]'s `topBar`. It is the page's colour, so what scrolls under it is hidden: an optional
  * [navigationIcon] (back), [title], big and after the Orbit mark when [showMark] is set, and [actions]. With [onTitleClick] the
  * title is a soft button with the mark and a chevron, which [onTitleClickLabel] names for screen readers, such as a
  * space's name that opens the list of spaces. Built on stable APIs because M3's `TopAppBar` is experimental. It pads
@@ -54,9 +59,11 @@ fun OrbitTopBar(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     val insets = WindowInsets.systemBars.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+    val page by animateColorAsState(OrbitTheme.accent.page, OrbitMotion.effects())
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .background(page)
             .windowInsetsPadding(insets)
             .heightIn(min = TopBarHeight)
             .padding(horizontal = OrbitSpacing.sm),

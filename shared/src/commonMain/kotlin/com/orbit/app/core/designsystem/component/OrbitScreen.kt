@@ -19,12 +19,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -109,8 +112,16 @@ fun OrbitScreen(
             val direction = LocalLayoutDirection.current
             val clearance = if (floatingActionButton == null) OrbitSpacing.lg else FloatingClearance
             if (list != null) {
+                val listState = rememberLazyListState()
+                if (chat) {
+                    // A new message goes in below the one in view, which the list would otherwise keep in place.
+                    LaunchedEffect(listState) {
+                        snapshotFlow { listState.layoutInfo.totalItemsCount }.collect { listState.scrollToItem(0) }
+                    }
+                }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().consumeWindowInsets(padding).imePadding(),
+                    state = listState,
                     reverseLayout = chat,
                     verticalArrangement = if (chat) {
                         Arrangement.spacedBy(OrbitSpacing.md, Alignment.Bottom)

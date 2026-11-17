@@ -28,8 +28,8 @@ All in `core/designsystem/component/`, each with a UI test in `commonTest`. Befo
 
 | Component | Use it for |
 |---|---|
-| `OrbitScreen` | Every screen: the page, scaffold, insets, gutter, gaps and scrolling (`scrollable = true`, or `list` for a lazy list). `primaryAction` pins a form's one button at the bottom, `collapsingTopBar` slides the top away on scroll, `chat` grows a `list` up from the bottom |
-| `OrbitTopBar` | The top of a signed-in screen, on the page. The title can be a button, as a space's opens the list of spaces |
+| `OrbitScreen` | Every screen: the page, scaffold, insets, gutter, gaps and scrolling (`scrollable = true`, or `list` for a lazy list). `primaryAction` pins a form's one button at the bottom, `collapsingTopBar` slides the top away on scroll, `chat` grows a `list` up from the bottom and keeps the newest message in view |
+| `OrbitTopBar` | The top of a signed-in screen, in the page's colour, so what scrolls under it is hidden. The title can be a button, as a space's opens the list of spaces |
 | `OrbitColorHeader` | The top of a screen about one thing: a vivid block with its title, a face and a detail line. It shows; only an item's title is typed in it, with a pencil |
 | `OrbitHero` | The big bold opening of a screen, on the page |
 | `OrbitScreenHeader` | The opening of a screen without a top bar (sign-in) |
