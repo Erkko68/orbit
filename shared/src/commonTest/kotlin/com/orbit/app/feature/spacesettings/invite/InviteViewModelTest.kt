@@ -107,7 +107,7 @@ class InviteViewModelTest {
 
         val invitation = assertNotNull(viewModel.uiState.value.invitation)
         assertEquals(8, invitation.code.length)
-        assertEquals("orbit://join/${invitation.code}", invitation.link)
+        assertEquals("https://orbit-app-dev-ee2d7.web.app/join/${invitation.code}", invitation.link)
         assertFalse(viewModel.uiState.value.busy)
         assertNull(viewModel.uiState.value.failure)
     }

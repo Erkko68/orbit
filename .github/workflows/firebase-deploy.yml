@@ -1,4 +1,4 @@
-name: Deploy Firestore rules
+name: Deploy Firebase
 
 # What firebase/ deploys goes live once it is on main (#301). The rules tests run again first: an admin can merge
 # past CI, and a refused rule must never reach the app's project.
@@ -9,6 +9,7 @@ on:
       - firebase/firestore.rules
       - firebase/firestore.indexes.json
       - firebase/firebase.json
+      - firebase/hosting/**
       - firebase/.firebaserc
   workflow_dispatch:
 
@@ -22,7 +23,7 @@ permissions:
 
 jobs:
   deploy:
-    name: Deploy rules and indexes
+    name: Deploy rules, indexes and hosting
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -51,5 +52,5 @@ jobs:
           key="$RUNNER_TEMP/service-account.json"
           printf '%s' "$SERVICE_ACCOUNT" > "$key"
           GOOGLE_APPLICATION_CREDENTIALS="$key" npx --yes firebase-tools deploy \
-            --only firestore:rules,firestore:indexes --non-interactive
+            --only firestore:rules,firestore:indexes,hosting --non-interactive
           rm -f "$key"

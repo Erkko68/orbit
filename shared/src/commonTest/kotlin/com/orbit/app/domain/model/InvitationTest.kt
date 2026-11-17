@@ -37,8 +37,13 @@ class InvitationTest {
 
     @Test
     fun hasALinkThatCarriesTheCode() {
-        assertEquals("orbit://join/ABCD2345", invitation().link)
-        assertEquals("orbit://join/ABCD2345", invitationLink("ABCD2345"))
+        assertEquals("https://orbit-app-dev-ee2d7.web.app/join/ABCD2345", invitation().link)
+        assertEquals("https://orbit-app-dev-ee2d7.web.app/join/ABCD2345", invitationLink("ABCD2345"))
+    }
+
+    @Test
+    fun theLinkIsOneAChatAppMakesTappable() {
+        assertTrue(invitationLink("ABCD2345").startsWith("https://"))
     }
 
     @Test
@@ -66,6 +71,15 @@ class InvitationTest {
     }
 
     @Test
+    fun readsTheCodeFromBothFormsOfTheLinkHoweverItIsClosed() {
+        assertEquals("ABCD2345", invitationCodeOf("https://orbit-app-dev-ee2d7.web.app/join/ABCD2345"))
+        assertEquals("ABCD2345", invitationCodeOf("https://orbit-app-dev-ee2d7.web.app/join/abcd2345/"))
+        assertEquals("ABCD2345", invitationCodeOf("https://orbit-app-dev-ee2d7.web.app/join/ABCD2345#open"))
+        assertEquals("ABCD2345", invitationCodeOf("orbit://join/ABCD2345/"))
+        assertEquals("ABCD2345", invitationCodeOf("orbit://join/ABCD2345?from=chat"))
+    }
+
+    @Test
     fun readsNoCodeFromTextThatIsNotOne() {
         assertNull(invitationCodeOf(""))
         assertNull(invitationCodeOf("   "))
@@ -74,6 +88,8 @@ class InvitationTest {
         assertNull(invitationCodeOf("ABCD-2345"))
         assertNull(invitationCodeOf("ABCDO345"))
         assertNull(invitationCodeOf("orbit://join/"))
+        assertNull(invitationCodeOf("https://orbit-app-dev-ee2d7.web.app/join/"))
+        assertNull(invitationCodeOf("https://orbit-app-dev-ee2d7.web.app/"))
         assertNull(invitationCodeOf("join my space please"))
     }
 }

@@ -16,14 +16,21 @@ fun invitationCodeFrom(randomId: String): String {
     return randomId.take(INVITATION_CODE_LENGTH).map { CODE_ALPHABET[it.code % CODE_ALPHABET.length] }.joinToString("")
 }
 
-/** The link that opens an invitation in the app. A link for any browser needs a domain the app does not have yet. */
-fun invitationLink(code: String): String = "orbit://join/$code"
+/** Where `firebase/hosting` serves the page of an invitation link: Firebase Hosting on the app's project (#295). */
+private const val INVITATION_HOST = "orbit-app-dev-ee2d7.web.app"
 
 /**
- * The code in [text], which is typed or pasted: the code itself or an invitation link, in any case and with
- * spaces around. Null when it is not shaped like a code.
+ * The link a shared invitation carries. Chat and mail apps only make https addresses tappable, so it is a page that
+ * shows the code and opens the app through `orbit://join/<code>`, which both apps still read (ADR 0002).
+ */
+fun invitationLink(code: String): String = "https://$INVITATION_HOST/join/$code"
+
+/**
+ * The code in [text], which is typed or pasted: the code itself or an invitation link of either form
+ * (`https://…/join/<code>` or `orbit://join/<code>`), in any case, with spaces around, a closing slash, a query or a
+ * fragment. Null when it is not shaped like a code.
  */
 fun invitationCodeOf(text: String): String? {
-    val code = text.trim().substringBefore('?').substringAfterLast('/').uppercase()
+    val code = text.trim().substringBefore('#').substringBefore('?').trimEnd('/').substringAfterLast('/').uppercase()
     return code.takeIf { it.length == INVITATION_CODE_LENGTH && it.all { char -> char in CODE_ALPHABET } }
 }

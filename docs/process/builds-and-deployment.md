@@ -38,11 +38,17 @@ Both apps talk to one Firebase project, `orbit-app-dev`. Their configs (`google-
 
 ## Firebase
 
-A change to the rules, the indexes or `firebase.json` deploys itself once it is on `main` (#301): [`firebase-deploy.yml`](../../.github/workflows/firebase-deploy.yml) runs the rules tests again and then `firebase deploy --only firestore:rules,firestore:indexes` to the project in `firebase/.firebaserc`. It can also be run by hand from the Actions tab. One deploy runs at a time, and none is cancelled halfway.
+A change to the rules, the indexes, `firebase.json` or the hosted page deploys itself once it is on `main` (#301, #295): [`firebase-deploy.yml`](../../.github/workflows/firebase-deploy.yml) runs the rules tests again and then `firebase deploy --only firestore:rules,firestore:indexes,hosting` to the project in `firebase/.firebaserc`. It can also be run by hand from the Actions tab. One deploy runs at a time, and none is cancelled halfway.
 
-It signs in with a service account key kept in the repository secret `FIREBASE_SERVICE_ACCOUNT` (the whole JSON), never in the repository. The account needs only the **Firebase Rules Admin** and **Cloud Datastore Index Admin** roles. Without the secret the job fails and says so.
+It signs in with a service account key kept in the repository secret `FIREBASE_SERVICE_ACCOUNT` (the whole JSON), never in the repository. The account needs only the **Firebase Rules Admin**, **Cloud Datastore Index Admin** and **Firebase Hosting Admin** roles. Without the secret the job fails and says so.
 
-By hand, from `firebase/`, by someone with access to the project: `npx firebase deploy --only firestore:rules,firestore:indexes`. The project stays on the free Spark plan.
+By hand, from `firebase/`, by someone with access to the project: `npx firebase deploy --only firestore:rules,firestore:indexes,hosting`. The project stays on the free Spark plan.
+
+### The invitation page
+
+Firebase Hosting serves `firebase/hosting/` at `https://orbit-app-dev-ee2d7.web.app`, the default site of the project, which needs no domain of our own. Its only page answers `/join/<code>`: it shows the code, a button that opens `orbit://join/<code>` in the app and one that copies the code, and says to install the app first when it is not there. A shared invitation carries this address (`invitationLink`), because chat and mail apps only make https addresses tappable. The page is static, calls no service and collects nothing, and the Spark plan covers it. The first deploy needs Hosting turned on once for the project, in the Firebase console.
+
+Opening the link on a phone with Orbit takes a tap on the page's button. Opening it straight in the app, with no page between, needs Android App Links and iOS Universal Links (`assetlinks.json`, `apple-app-site-association`, which need the signing keys and the Apple team id, #174), so it waits for the store accounts.
 
 ## The assistant server
 
