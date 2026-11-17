@@ -119,7 +119,7 @@ def running(monkeypatch):
     """The real server on a free local port, with fake token checks and a fake model."""
     monkeypatch.setattr(api.auth, "firebase_tokens", lambda env: verify)
     monkeypatch.setattr(api.providers, "from_env", lambda env: lambda prompt, schema: QUESTION)
-    server = api.server({"HOST": "127.0.0.1", "PORT": "0"})
+    server = api.server({"HOST": "127.0.0.1", "PORT": "0", "QUOTA_DB": ":memory:"})
     threading.Thread(target=server.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{server.server_address[1]}"
     server.shutdown()
@@ -147,7 +147,7 @@ def test_serves_the_interview_over_http(running):
 def test_refuses_over_http_when_switched_off(monkeypatch):
     monkeypatch.setattr(api.auth, "firebase_tokens", lambda env: verify)
     monkeypatch.setattr(api.providers, "from_env", lambda env: lambda prompt, schema: QUESTION)
-    server = api.server({"HOST": "127.0.0.1", "PORT": "0", "ASSISTANT_ENABLED": "false"})
+    server = api.server({"HOST": "127.0.0.1", "PORT": "0", "QUOTA_DB": ":memory:", "ASSISTANT_ENABLED": "false"})
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
         url = f"http://127.0.0.1:{server.server_address[1]}"
