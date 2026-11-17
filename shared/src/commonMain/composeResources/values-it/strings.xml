@@ -289,6 +289,12 @@
     <string name="interview_loading">Sto pensando…</string>
     <string name="interview_answer_placeholder">Rispondi con parole tue</string>
     <string name="interview_send">Invia</string>
+    <string name="interview_progress">Domanda %1$d di %2$d</string>
+    <string name="interview_back">Indietro</string>
+    <string name="interview_skip">Salta</string>
+    <string name="interview_decide">Decidi tu</string>
+    <string name="interview_skipped">Saltata</string>
+    <string name="interview_decided">%1$s (scelto dall&apos;assistente)</string>
     <string name="interview_error_network_title">Nessuna connessione</string>
     <string name="interview_error_network">Controlla internet e riprova. Le tue risposte restano salvate.</string>
     <string name="interview_error_quota_title">Per ora è tutto</string>

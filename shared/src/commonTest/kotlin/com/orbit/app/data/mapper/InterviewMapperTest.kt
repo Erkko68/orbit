@@ -12,6 +12,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 import kotlin.time.Instant
+import kotlin.test.assertTrue
 
 class InterviewMapperTest {
     private fun failure(body: String) =
@@ -55,6 +56,17 @@ class InterviewMapperTest {
     @Test
     fun aPlanThatIsNotAnObjectIsNotUsed() {
         assertEquals(AssistantError.UNAVAILABLE, failure("""{"result":{"plan":"Take out the bins"}}"""))
+    }
+
+    @Test
+    fun readsTheSuggestionAndSendsWhetherTheAssistantDecided() {
+        val body = """{"result":{"id":"q1","text":"Who?","options":["A","B"],"position":1,"budget":8,"suggestion":"B"}}"""
+        val step = interviewStep(body, members = emptyList()) as InterviewStep.Ask
+
+        assertEquals("B", step.question.suggestion)
+        val context = InterviewContext("en", LocalDate(2026, 11, 17), false, emptyList(), emptyList())
+        val request = interviewRequest(listOf(InterviewAnswer("q1", "Who?", setOf("B"), "", decided = true)), context)
+        assertTrue(""""decided":true""" in request)
     }
 
     @Test

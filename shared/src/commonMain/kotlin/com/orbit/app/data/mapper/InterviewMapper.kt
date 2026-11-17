@@ -26,7 +26,7 @@ internal fun interviewRequest(answers: List<InterviewAnswer>, context: Interview
     InterviewRequest.serializer(),
     InterviewRequest(
         InterviewRequestData(
-            answers = answers.map { AnswerDocument(it.questionId, it.question, it.selected.toList(), it.text) },
+            answers = answers.map { AnswerDocument(it.questionId, it.question, it.selected.toList(), it.text, it.decided) },
             language = context.language,
             today = context.today.toString(),
             newSpace = context.newSpace,
@@ -59,7 +59,10 @@ internal fun interviewStep(body: String, members: List<String>): InterviewStep {
     val text = step.text
     if (id.isNullOrBlank() || text.isNullOrBlank()) throw AssistantException(AssistantError.UNAVAILABLE)
     return InterviewStep.Ask(
-        InterviewQuestion(id, text, step.options, step.multiSelect, step.freeText, step.position, step.budget),
+        InterviewQuestion(
+            id, text, step.options, step.multiSelect, step.freeText, step.position, step.budget,
+            step.suggestion?.takeIf(String::isNotBlank),
+        ),
     )
 }
 

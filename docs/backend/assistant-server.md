@@ -16,7 +16,7 @@ server/
 │   ├── quota.py         each user's calls a day and a month, counted in SQLite
 │   ├── net.py           JSON over HTTP
 │   └── proposals.py     the catalogue's schemas, loaded whole for the model
-├── prompts/             the prompts, as versioned files: question.v1.md, plan.v1.md
+├── prompts/             the prompts, as versioned files: question.v2.md, plan.v2.md
 ├── schemas/             what the assistant may propose, as JSON Schemas, and samples/ of each (the app reads them too)
 ├── tests/               pytest, one file per module, with a fake model and a fake token check
 ├── Dockerfile           the server's image (port 8080); installs nothing
@@ -69,12 +69,14 @@ The server keeps no state between calls (#64), so each call brings everything th
 
 - **Members go by name only**, never uid or email. The server gives each a handle by its place in the list (`m1`, `m2`), which is all the model sees of them, and the app maps a plan's handles back to uids in the same order. A new space (`newSpace`) lists only the user.
 - **`language`** is the phone's (`es`, `ca`, `it`, `en`; anything else is English), and `today` its date, from which the plan's dates start.
-- **The steps.** While fewer than `QUESTION_BUDGET` (8) questions are answered, the model is asked for the next question with `prompts/question.v1.md`. It can answer `ready` instead, once at least one question is answered; then, or once the budget is spent, it writes the plan with `prompts/plan.v1.md` and `PLAN_SCHEMA`, which `checked_plan` checks before it leaves. A new space's plan must name the space; an existing space's never proposes one.
+- **The steps.** While fewer than `QUESTION_BUDGET` (8, from the environment) questions are answered, the model is asked for the next question with `prompts/question.v2.md`. It can answer `ready` instead, once at least one question is answered; then, or once the budget is spent, it writes the plan with `prompts/plan.v2.md` and `PLAN_SCHEMA`, which `checked_plan` checks before it leaves. A new space's plan must name the space, and assigns only to the user or anyone; an existing space's never proposes one.
+- **The prompts** explain every module with examples, and walk through an example interview and example items. The plan's prompt lays out the next 14 days with their weekday numbers, and its examples' dates are filled in from `today`, so a small model reads dates instead of working them out and never copies one in the past.
+- **Skip, Decide for me and Back (#74).** Each question carries a `suggestion`: what the model would answer, one of its options or a few words. "Decide for me" answers with it in the app and marks the answer `decided`, which the next prompt shows as "(chosen by the assistant)". A skipped answer has nothing selected nor written, and reads "(skipped)". Back happens in the app alone: the server keeps no state, so the next call simply sends fewer answers.
 - **The prompts are files** in `server/prompts/`, versioned in their names: a change that changes what the model is asked for gets a new version.
 
 | Call | HTTP | Body |
 |---|---|---|
-| Signed in, the next question | 200 | `{"result": {id, text, options, multiSelect, freeText, position, budget}}` |
+| Signed in, the next question | 200 | `{"result": {id, text, options, multiSelect, freeText, position, budget, suggestion}}`; `suggestion` only when there is one |
 | Signed in, the plan | 200 | `{"result": {"plan": …}}`, in the shape of [the catalogue](#the-catalogue) |
 | `data` is not an interview | 400 | `{"error": {"status": "INVALID_ARGUMENT", …}}`, before the model |
 | No token, or not a valid one | 401 | `{"error": {"status": "UNAUTHENTICATED", …}}` |
@@ -124,9 +126,10 @@ An item's modules are the ones the app has today, each at most once, in the shap
 |---|---|---|
 | `schedule` | `date`, `time`, `endDate`, `durationMinutes` | Nothing |
 | `recurrence` | `unit` (`day`, `week`, `month`), `every`, `weekdays` for `week`, `dayOfMonth` for `month`, `until` | Nothing. Only with a schedule |
-| `assignment` | `mode`: `member` with `assignees`, or `anyone` | `assignees` are the members' handles in the request (`m1`, `m2`), never uids: the app maps them back ([#238](https://github.com/Erkko68/orbit/issues/238)). A new space has only the user, so its plan assigns to the user or to anyone |
+| `assignment` | `mode`: `member` with `assignees`, `rotation` with the `order` they take turns in (at least two; the first has it now), or `anyone` | `assignees` and `order` are the members' handles in the request (`m1`, `m2`), never uids: the app maps them back ([#238](https://github.com/Erkko68/orbit/issues/238)). A new space has only the user, so its plan assigns to the user or to anyone |
 | `checklist` | `entries`: a list of `text` and `quantity` | A list in order, without ids or ticks: the app gives each entry its id and order |
 | `reminder` | `offsetsMinutes` | Nothing. Only with a schedule |
+| `effort` | `points`, 1 to 5 | Nothing. Credited to whoever completes it (#50) |
 
 The schemas say the shape: the fields, their types, the date and time formats, the handles. What depends on more than one field (no `time` with an `endDate`, an `endDate` after the `date`, a reminder or a recurrence only with a schedule, an `until` not before the `date`, assignees who are in the request) the schemas cannot say to every model, so both sides check it, as described under [Checking proposals](#checking-proposals).
 

@@ -1,7 +1,17 @@
+import json
+from datetime import date
+
 import pytest
 
-from assistant.interview import QUESTION_BUDGET, QUESTION_SCHEMA, AssistantError, next_step, parse_question
-from assistant.proposals import PLAN_SCHEMA
+from assistant.interview import (
+    QUESTION_BUDGET,
+    QUESTION_SCHEMA,
+    AssistantError,
+    example_dates,
+    next_step,
+    parse_question,
+)
+from assistant.proposals import PLAN_SCHEMA, item_errors
 
 SIGNED_IN = "ana"
 
@@ -26,7 +36,30 @@ def test_parses_a_question_and_adds_what_the_model_does_not_decide():
         "freeText": True,
         "position": 3,
         "budget": QUESTION_BUDGET,
+        "suggestion": "Roommates",
     }
+
+
+def test_suggests_the_option_the_model_would_choose():
+    assert parse_question(valid(suggestion=" Family "), position=1)["suggestion"] == "Family"
+
+
+def test_a_suggestion_that_is_not_an_option_falls_back_to_the_first():
+    assert parse_question(valid(suggestion="A boat"), position=1)["suggestion"] == "Roommates"
+
+
+def test_a_question_without_options_suggests_words_or_nothing():
+    assert parse_question(valid(options=[], suggestion="Three of us"), position=1)["suggestion"] == "Three of us"
+    assert "suggestion" not in parse_question(valid(options=[], suggestion=" "), position=1)
+
+
+def test_an_answer_the_assistant_chose_says_so():
+    model = Model()
+    decided = {**ANSWER, "decided": True}
+
+    next_step(SIGNED_IN, interview([decided]), model)
+
+    assert "A: Family, two kids (chosen by the assistant)" in model.prompts[0][0]
 
 
 def test_a_free_text_question_needs_no_options():
@@ -94,7 +127,7 @@ def test_asks_the_first_question_with_the_space_and_the_language():
     assert schema is QUESTION_SCHEMA
     assert "- m1: Ana" in prompt and "- m2: Ben" in prompt
     assert "- Groceries" in prompt
-    assert "Write in Spanish." in prompt
+    assert "and the suggestion in Spanish." in prompt
     assert "(nothing asked yet)" in prompt
 
 
@@ -109,7 +142,7 @@ def test_asks_the_next_question_with_what_was_answered():
 
     assert result["id"] == "q2"
     assert "Q: Who lives there?\nA: Family, two kids" in model.prompts[0][0]
-    assert f"You may ask {QUESTION_BUDGET - 1} more questions" in model.prompts[0][0]
+    assert f"you may ask at most {QUESTION_BUDGET - 1} more" in model.prompts[0][0]
 
 
 def test_once_the_model_is_ready_it_proposes_the_checked_plan_for_the_space():
@@ -121,7 +154,9 @@ def test_once_the_model_is_ready_it_proposes_the_checked_plan_for_the_space():
     assert result == {"plan": {"version": 1, "items": [BINS]}}
     plan_prompt, schema = model.prompts[1]
     assert schema is PLAN_SCHEMA
-    assert "Today is 2026-11-16." in plan_prompt
+    assert "Today is Monday 2026-11-16." in plan_prompt
+    assert "- 2026-11-22 Sunday (7)" in plan_prompt
+    assert "2026-11-30" not in plan_prompt
     assert "do not propose one" in plan_prompt
 
 
@@ -161,7 +196,7 @@ def test_an_unknown_language_is_english():
     next_step(SIGNED_IN, interview(language="fr"), model)
     next_step(SIGNED_IN, interview(language=["es"]), model)
 
-    assert all("Write in English." in prompt for prompt, _ in model.prompts)
+    assert all("and the suggestion in English." in prompt for prompt, _ in model.prompts)
 
 
 def test_the_prompt_text_comes_from_the_versioned_prompt_files():
@@ -171,7 +206,7 @@ def test_the_prompt_text_comes_from_the_versioned_prompt_files():
 
     assert "one question at a time" in model.prompts[0][0]
     assert "- (none listed)" in model.prompts[0][0]
-    assert "Write in English." in model.prompts[0][0]
+    assert "and the suggestion in English." in model.prompts[0][0]
 
 
 @pytest.mark.parametrize(
@@ -228,3 +263,26 @@ def test_a_failed_or_invalid_answer_is_unavailable_and_never_passed_on(answers, 
 
     assert error.value.status == "UNAVAILABLE"
     assert error.value.details == {"reason": "unavailable"}
+
+
+@pytest.mark.parametrize(
+    ("today", "expected"),
+    [
+        (date(2026, 11, 16), {"monday": "2026-11-16", "saturday": "2026-11-21", "sunday": "2026-11-22", "first": "2026-12-01"}),
+        (date(2026, 11, 22), {"monday": "2026-11-23", "saturday": "2026-11-28", "sunday": "2026-11-29", "first": "2026-12-01"}),
+        (date(2026, 12, 31), {"monday": "2027-01-04", "saturday": "2027-01-02", "sunday": "2027-01-03", "first": "2027-01-01"}),
+    ],
+)
+def test_the_examples_dates_are_never_in_the_past(today, expected):
+    assert example_dates(today) == expected
+
+
+def test_every_example_item_in_the_plan_prompt_is_a_valid_proposal():
+    model = Model(question=valid(ready=True))
+    next_step(SIGNED_IN, interview([ANSWER]), model)
+    plan_prompt = model.prompts[1][0]
+
+    examples = [json.loads(line) for line in plan_prompt.splitlines() if line.startswith('{"title"')]
+
+    assert len(examples) == 5
+    assert all(item_errors(example, {"m1", "m2", "m3"}) == [] for example in examples)

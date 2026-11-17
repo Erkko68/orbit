@@ -7,19 +7,24 @@ or email.
 """
 
 import logging
+import os
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 from string import Template
 
 from assistant import PROMPTS
 from assistant.proposals import PLAN_SCHEMA, checked_plan
 
-QUESTION_PROMPT = Template((PROMPTS / "question.v1.md").read_text(encoding="utf-8"))
-PLAN_PROMPT = Template((PROMPTS / "plan.v1.md").read_text(encoding="utf-8"))
+QUESTION_PROMPT = Template((PROMPTS / "question.v2.md").read_text(encoding="utf-8"))
+PLAN_PROMPT = Template((PROMPTS / "plan.v2.md").read_text(encoding="utf-8"))
 
-# How many questions an interview may ask. Once they are answered, the assistant proposes with what it has (#74).
-QUESTION_BUDGET = 8
+# How many questions an interview may ask, QUESTION_BUDGET in the environment. Once they are answered, the assistant
+# proposes with what it has (#74).
+QUESTION_BUDGET = int(os.environ.get("QUESTION_BUDGET", "8"))
+
+# How far ahead the plan's prompt lays out the calendar, so the model reads weekdays instead of working them out.
+CALENDAR_DAYS = 14
 
 # The languages the app speaks, by the code it sends. Anything else gets English.
 LANGUAGES = {"en": "English", "es": "Spanish", "ca": "Catalan", "it": "Italian"}
@@ -30,7 +35,8 @@ MAX_ITEMS = 100
 MAX_TEXT = 300
 
 # What the model writes, as JSON Schema. The server adds the id, the position and the budget, which are not the
-# model's to decide. [ready] says it knows enough to propose instead.
+# model's to decide. [suggestion] is what the model would answer, for "Decide for me". [ready] says it knows enough to
+# propose instead.
 QUESTION_SCHEMA = {
     "type": "object",
     "properties": {
@@ -38,9 +44,10 @@ QUESTION_SCHEMA = {
         "options": {"type": "array", "items": {"type": "string"}, "maxItems": 5},
         "multiSelect": {"type": "boolean"},
         "freeText": {"type": "boolean"},
+        "suggestion": {"type": "string"},
         "ready": {"type": "boolean"},
     },
-    "required": ["text", "options", "multiSelect", "freeText", "ready"],
+    "required": ["text", "options", "multiSelect", "freeText", "suggestion", "ready"],
     "additionalProperties": False,
 }
 
@@ -63,6 +70,8 @@ class Answer:
     question: str
     selected: list[str]
     text: str
+    # The user let the assistant answer with its suggestion (#74).
+    decided: bool = False
 
 
 @dataclass(frozen=True)
@@ -115,6 +124,7 @@ def _answer(answer: object) -> Answer:
         _text(answer.get("question"), "question"),
         [option[:MAX_TEXT] for option in selected],
         text[:MAX_TEXT] if isinstance(text, str) else "",
+        answer.get("decided") is True,
     )
 
 
@@ -140,15 +150,24 @@ def parse_question(answer: object, position: int) -> dict:
         raise ValueError("multiSelect and freeText must be true or false")
     if not options and not free_text:
         raise ValueError("the question has no way to answer it")
-    return {
+    options = [o.strip() for o in options]
+    suggestion = answer.get("suggestion")
+    suggestion = suggestion.strip() if isinstance(suggestion, str) else ""
+    # A question with options suggests one of them; one without takes a few words, but only if it can be typed.
+    if options and suggestion not in options:
+        suggestion = options[0]
+    question = {
         "id": f"q{position}",
         "text": text.strip(),
-        "options": [o.strip() for o in options],
+        "options": options,
         "multiSelect": multi_select,
         "freeText": free_text,
         "position": position,
         "budget": QUESTION_BUDGET,
     }
+    if suggestion:
+        question["suggestion"] = suggestion[:MAX_TEXT]
+    return question
 
 
 def context_text(interview: Interview) -> str:
@@ -169,8 +188,27 @@ def answers_text(interview: Interview) -> str:
     lines = []
     for answer in interview.answers:
         said = ", ".join(answer.selected + ([answer.text] if answer.text.strip() else [])) or "(skipped)"
+        if answer.decided:
+            said += " (chosen by the assistant)"
         lines.append(f"Q: {answer.question}\nA: {said}")
     return "\n".join(lines)
+
+
+def calendar_text(today: date) -> str:
+    """The days from [today] on, one per line with its weekday's name and number (1 is Monday), as the schema counts."""
+    days = (today + timedelta(days=offset) for offset in range(CALENDAR_DAYS))
+    return "\n".join(f"- {day.isoformat()} {day.strftime('%A')} ({day.isoweekday()})" for day in days)
+
+
+def example_dates(today: date) -> dict[str, str]:
+    """The dates of the plan prompt's examples, from [today] on, so the model never sees a date in the past."""
+
+    def next_weekday(number: int) -> date:
+        return today + timedelta(days=(number - today.isoweekday()) % 7)
+
+    first = date(today.year + today.month // 12, today.month % 12 + 1, 1)
+    days = {"monday": next_weekday(1), "saturday": next_weekday(6), "sunday": next_weekday(6) + timedelta(days=1)}
+    return {name: day.isoformat() for name, day in {**days, "first": first}.items()}
 
 
 def next_step(uid: str | None, data: object, generate: Generate) -> dict:
@@ -211,14 +249,17 @@ def _plan(interview: Interview, generate: Generate) -> dict:
     if interview.new_space:
         space_rule = (
             'Also propose the space: a short name for it, as the group would call it ("Flat 4B", "The Garcías"), '
-            "and an accent from 0 to 5."
+            "and an accent from 0 to 5. Until the user invites people they are its only member, m1: assign items to "
+            'm1 or to anyone, and never propose a rotation.'
         )
     else:
         space_rule = "The space exists already: do not propose one."
     prompt = PLAN_PROMPT.substitute(
         context=context_text(interview),
         answers=answers_text(interview),
-        today=interview.today.isoformat(),
+        today=f"{interview.today.strftime('%A')} {interview.today.isoformat()}",
+        calendar=calendar_text(interview.today),
+        **example_dates(interview.today),
         space_rule=space_rule,
         language=interview.language,
     )

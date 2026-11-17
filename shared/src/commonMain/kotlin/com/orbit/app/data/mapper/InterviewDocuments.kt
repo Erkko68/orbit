@@ -23,7 +23,13 @@ internal data class InterviewRequestData(
 )
 
 @Serializable
-internal data class AnswerDocument(val questionId: String, val question: String, val selected: List<String>, val text: String)
+internal data class AnswerDocument(
+    val questionId: String,
+    val question: String,
+    val selected: List<String>,
+    val text: String,
+    val decided: Boolean = false,
+)
 
 @Serializable
 internal data class InterviewMemberDocument(val name: String)
@@ -41,6 +47,7 @@ internal data class StepDocument(
     val freeText: Boolean = false,
     val position: Int = 0,
     val budget: Int = 0,
+    val suggestion: String? = null,
     val plan: JsonObject? = null,
 )
 

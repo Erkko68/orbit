@@ -17,6 +17,7 @@ import com.orbit.app.core.designsystem.component.OrbitFilterChip
 import com.orbit.app.core.designsystem.component.OrbitHeading
 import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
+import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.core.designsystem.component.OrbitTonalButton
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
@@ -30,8 +31,14 @@ import orbit.shared.generated.resources.close
 import orbit.shared.generated.resources.ic_close
 import orbit.shared.generated.resources.interview_answer_placeholder
 import orbit.shared.generated.resources.interview_error_quota_until
+import orbit.shared.generated.resources.interview_back
+import orbit.shared.generated.resources.interview_decide
+import orbit.shared.generated.resources.interview_decided
 import orbit.shared.generated.resources.interview_loading
+import orbit.shared.generated.resources.interview_progress
 import orbit.shared.generated.resources.interview_send
+import orbit.shared.generated.resources.interview_skip
+import orbit.shared.generated.resources.interview_skipped
 import orbit.shared.generated.resources.interview_title
 import orbit.shared.generated.resources.retry
 import org.jetbrains.compose.resources.stringResource
@@ -102,21 +109,50 @@ fun InterviewScreen(
                             val retry = stringResource(Res.string.retry)
                             OrbitTonalButton(retry, viewModel::retry, Modifier.fillMaxWidth())
                         }
+                        if (state.canGoBack) {
+                            OrbitTextButton(stringResource(Res.string.interview_back), viewModel::back)
+                        }
                     }
                 }
             }
             val messages = state.messages.asReversed()
             items(messages.size, key = { messages.size - it }) { index ->
                 val message = messages[index]
+                // The question waiting for an answer carries its place in the interview, its chips and its controls.
+                val waiting = if (index == 0) question else null
                 OrbitChatBubble(mine = message.mine) {
-                    Text(message.text)
-                    if (index == 0 && question != null && question.options.isNotEmpty()) {
+                    if (waiting != null) {
+                        Text(
+                            stringResource(Res.string.interview_progress, waiting.position, waiting.budget),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Text(
+                        when {
+                            message.skipped -> stringResource(Res.string.interview_skipped)
+                            message.decided -> stringResource(Res.string.interview_decided, message.text)
+                            else -> message.text
+                        },
+                    )
+                    if (waiting != null && waiting.options.isNotEmpty()) {
                         FlowRow(
                             horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
                             verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
                         ) {
-                            for (option in question.options) {
+                            for (option in waiting.options) {
                                 OrbitFilterChip(option, option in state.selected, { viewModel.select(option) })
+                            }
+                        }
+                    }
+                    if (waiting != null) {
+                        FlowRow {
+                            if (state.canGoBack) {
+                                OrbitTextButton(stringResource(Res.string.interview_back), viewModel::back)
+                            }
+                            OrbitTextButton(stringResource(Res.string.interview_skip), viewModel::skip, enabled = state.canAct)
+                            if (state.canDecide) {
+                                OrbitTextButton(stringResource(Res.string.interview_decide), viewModel::decide)
                             }
                         }
                     }
