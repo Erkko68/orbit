@@ -44,8 +44,8 @@ private val DayGap = 2.dp
 
 /**
  * A month on a panel, laid out like the date picker: its name with the buttons to the month before and after, then its
- * weeks, starting on the day the phone's region starts them. [marked] days are filled, the [selected] one is ink and
- * today has a ring. [month] is any day of the month to show. [markedLabel] tells a screen reader that a day is marked.
+ * weeks, starting on the day the phone's region starts them. [marked] days are filled, the [selected] one is ink,
+ * today has a ring and the days before it are greyed out, as done. [month] is any day of the month to show. [markedLabel] tells a screen reader that a day is marked.
  */
 @Composable
 fun OrbitMonth(
@@ -96,7 +96,8 @@ fun OrbitMonth(
                         val day = week.getOrNull(index)
                         Box(Modifier.weight(1f).aspectRatio(1f).padding(DayGap), Alignment.Center) {
                             if (day != null) {
-                                Day(day, day == today, day == selected, day in marked, markedLabel) { onSelect(day) }
+                                val past = today != null && day < today
+                                Day(day, day == today, past, day == selected, day in marked, markedLabel) { onSelect(day) }
                             }
                         }
                     }
@@ -107,10 +108,20 @@ fun OrbitMonth(
 }
 
 @Composable
-private fun Day(day: LocalDate, today: Boolean, selected: Boolean, marked: Boolean, markedLabel: String, onClick: () -> Unit) {
+private fun Day(
+    day: LocalDate,
+    today: Boolean,
+    past: Boolean,
+    selected: Boolean,
+    marked: Boolean,
+    markedLabel: String,
+    onClick: () -> Unit,
+) {
     val scheme = MaterialTheme.colorScheme
     val (fill, ink) = when {
         selected -> scheme.primary to scheme.onPrimary
+        past && marked -> OrbitTheme.accent.done to scheme.onSurfaceVariant
+        past -> Color.Transparent to scheme.onSurfaceVariant
         marked -> OrbitTheme.accent.vivid to Ink
         else -> Color.Transparent to scheme.onSurface
     }
