@@ -134,7 +134,7 @@ private fun modulesOf(id: String, stored: StoredItem): ItemModules {
         checklist = modules.checklist?.let(::checklistOf),
         reminder = modules.reminder?.let(::reminderOf),
         cost = modules.cost?.let { Cost(it.paidBy, it.split, it.customAllocation) },
-        effort = modules.effort?.points?.takeIf { it in 1..5 }?.let(::Effort),
+        effort = modules.effort?.points?.takeIf { it in Effort.POINTS }?.let(::Effort),
     )
     stored.moduleKeys.mapNotNull(known::get).filter { read[it] == null }.forEach {
         Logger.w { "Item $id has a malformed or unknown ${moduleKey(it)} module, skipped" }
@@ -166,10 +166,8 @@ private fun recurrenceOf(document: RecurrenceDocument): Recurrence? {
         "week" -> document.weekdays.orEmpty()
             .takeIf { days -> days.isNotEmpty() && days.all { it in 1..7 } }
             ?.let { days -> Recurrence.Weeks(document.every, days.map(::DayOfWeek).toSet(), until) }
-
         "month" -> document.dayOfMonth?.takeIf { it in 1..31 }
             ?.let { Recurrence.Months(document.every, it, until) }
-
         else -> null
     }
 }

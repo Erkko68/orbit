@@ -169,7 +169,7 @@ class ItemViewModel(
     fun dismissEffort() = form.update { it.copy(editingEffort = false) }
 
     fun selectEffort(points: Int) {
-        if (points in 1..5 && !form.value.submitting) form.update {
+        if (points in Effort.POINTS && !form.value.submitting) form.update {
             it.copy(
                 effortDraft = points,
                 removingEffort = false,

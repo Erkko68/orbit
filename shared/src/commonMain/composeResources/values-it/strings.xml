@@ -482,3 +482,4 @@
     <string name="fairness_share">%1$d% · quota uguale %2$d%</string>
     <string name="fairness_points">%1$d punti su %2$d · percentuali arrotondate</string>
 </resources>
+    <string name="effort_save">Salva</string>

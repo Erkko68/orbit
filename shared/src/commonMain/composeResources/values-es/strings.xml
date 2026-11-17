@@ -482,3 +482,4 @@
     <string name="fairness_share">%1$d% · parte igual %2$d%</string>
     <string name="fairness_points">%1$d de %2$d puntos · porcentajes redondeados</string>
 </resources>
+    <string name="effort_save">Guardar</string>

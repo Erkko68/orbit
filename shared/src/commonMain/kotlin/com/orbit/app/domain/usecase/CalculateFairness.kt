@@ -1,6 +1,7 @@
 package com.orbit.app.domain.usecase
 
 import com.orbit.app.domain.model.Completion
+import com.orbit.app.domain.model.Effort
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
@@ -16,9 +17,10 @@ fun calculateFairness(completions: List<Completion>, memberIds: Collection<Strin
     val members = memberIds.distinct().sorted()
     val since = now - 30.days
     val points = completions.asSequence()
-        .filter { !it.reopened && it.effortCredited && it.completedBy in members && it.completedAt in since..now && it.effortPoints in 1..5 }
-        .groupBy { it.completedBy }
-        .mapValues { (_, entries) -> entries.sumOf { it.effortPoints!!.toLong() } }
+        .filter { !it.reopened && it.effortCredited && it.completedBy in members && it.completedAt in since..now }
+        .mapNotNull { completion -> completion.effortPoints?.takeIf { it in Effort.POINTS }?.let { completion.completedBy to it.toLong() } }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (_, points) -> points.sum() }
     val total = points.values.sum()
     return members.map { EffortShare(it, points[it] ?: 0L, total, members.size) }
 }

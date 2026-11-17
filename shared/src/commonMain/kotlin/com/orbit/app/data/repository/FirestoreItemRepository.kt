@@ -1,12 +1,12 @@
 package com.orbit.app.data.repository
 
 import co.touchlab.kermit.Logger
+import com.orbit.app.data.mapper.ACTION_REOPEN
 import com.orbit.app.data.mapper.AssignmentDocument
 import com.orbit.app.data.mapper.ChecklistDocument
+import com.orbit.app.data.mapper.CompletionDocument
 import com.orbit.app.data.mapper.CostDocument
 import com.orbit.app.data.mapper.EffortDocument
-import com.orbit.app.data.mapper.ACTION_REOPEN
-import com.orbit.app.data.mapper.CompletionDocument
 import com.orbit.app.data.mapper.EntryDocument
 import com.orbit.app.data.mapper.ModulesDocument
 import com.orbit.app.data.mapper.RecurrenceDocument
@@ -139,7 +139,6 @@ class FirestoreItemRepository(
         update(spaceId, itemId) {
             FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "text") to text
             FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "quantity") to
-                    (quantity ?: FieldValue.delete)
                 (quantity ?: FieldValue.delete)
         }
 
@@ -251,7 +250,7 @@ class FirestoreItemRepository(
         }
         return Completion(
             document.id, itemId, completedBy, completedAt, document.field<String>("action") == ACTION_REOPEN,
-            document.field<Int>("effortPoints")?.takeIf { it in 1..5 },
+            document.field<Int>("effortPoints")?.takeIf { it in Effort.POINTS },
             document.field<Boolean>("effortCredited") != false,
         )
     }

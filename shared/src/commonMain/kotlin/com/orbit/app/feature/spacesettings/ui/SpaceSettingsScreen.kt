@@ -5,10 +5,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.orbit.app.core.dateLabel
 import com.orbit.app.core.designsystem.component.OrbitActionRow
 import com.orbit.app.core.designsystem.component.OrbitAvatar
 import com.orbit.app.core.designsystem.component.OrbitAvatarSize
@@ -26,14 +27,12 @@ import com.orbit.app.core.designsystem.component.memberShape
 import com.orbit.app.core.designsystem.theme.OrbitShape
 import com.orbit.app.core.designsystem.theme.OrbitTheme
 import com.orbit.app.core.share.TextSharer
-import com.orbit.app.core.dateLabel
+import com.orbit.app.domain.usecase.EffortShare
 import com.orbit.app.feature.member.SpaceMember
 import com.orbit.app.feature.member.SpaceMembersViewModel
-import com.orbit.app.feature.member.fairness.FairnessViewModel
 import com.orbit.app.feature.member.fairness.FairnessStatus
+import com.orbit.app.feature.member.fairness.FairnessViewModel
 import com.orbit.app.feature.member.fairness.fairnessLabel
-import com.orbit.app.domain.usecase.EffortShare
-import orbit.shared.generated.resources.fairness_period
 import com.orbit.app.feature.spacesettings.SpaceSettingsUiState
 import com.orbit.app.feature.spacesettings.SpaceSettingsViewModel
 import com.orbit.app.feature.spacesettings.invite.InviteSheet
@@ -47,6 +46,7 @@ import orbit.shared.generated.resources.delete_space_body
 import orbit.shared.generated.resources.delete_space_confirm
 import orbit.shared.generated.resources.delete_space_failed
 import orbit.shared.generated.resources.delete_space_title
+import orbit.shared.generated.resources.fairness_period
 import orbit.shared.generated.resources.ic_arrow_back
 import orbit.shared.generated.resources.ic_delete
 import orbit.shared.generated.resources.ic_edit

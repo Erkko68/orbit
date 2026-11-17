@@ -482,3 +482,4 @@
     <string name="fairness_share">%1$d% · part igual %2$d%</string>
     <string name="fairness_points">%1$d de %2$d punts · percentatges arrodonits</string>
 </resources>
+    <string name="effort_save">Desa</string>
