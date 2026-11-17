@@ -14,6 +14,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 /**
  * The assistant's interview, as a chat: once the user consents, one question at a time, each answered with chips,
@@ -124,8 +126,11 @@ class InterviewViewModel(
                     }
                 },
                 onFailure = { failure ->
-                    val error = (failure as? AssistantException)?.error ?: AssistantError.UNKNOWN
-                    state.update { it.copy(loading = false, error = error) }
+                    val refusal = failure as? AssistantException
+                    val resetsOn = refusal?.resetsAt?.toLocalDateTime(TimeZone.currentSystemDefault())?.date
+                    state.update {
+                        it.copy(loading = false, error = refusal?.error ?: AssistantError.UNKNOWN, quotaResetsOn = resetsOn)
+                    }
                 },
             )
         }

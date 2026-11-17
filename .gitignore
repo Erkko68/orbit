@@ -35,3 +35,4 @@ server/coverage.xml
 server/.coverage
 # Dashboard build output (.github/scripts/dashboard.py)
 /site/
+server/quota.sqlite3

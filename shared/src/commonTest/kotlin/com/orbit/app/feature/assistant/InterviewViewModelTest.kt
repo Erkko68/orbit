@@ -15,6 +15,8 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -22,6 +24,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class InterviewViewModelTest {
@@ -240,6 +243,16 @@ class InterviewViewModelTest {
         val (_, viewModel) = started(emptyList(), mapOf(0 to IllegalStateException("boom")))
 
         assertEquals(AssistantError.UNKNOWN, viewModel.uiState.value.error)
+    }
+
+    @Test
+    fun aSpentQuotaSaysWhichDayItIsBack() {
+        val resetsAt = Instant.parse("2026-11-18T00:00:00Z")
+        val refusal = AssistantException(AssistantError.QUOTA_EXCEEDED, resetsAt = resetsAt)
+
+        val (_, viewModel) = started(emptyList(), mapOf(0 to refusal))
+
+        assertEquals(resetsAt.toLocalDateTime(TimeZone.currentSystemDefault()).date, viewModel.uiState.value.quotaResetsOn)
     }
 
     @Test

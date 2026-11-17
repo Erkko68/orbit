@@ -7,6 +7,9 @@ COPY assistant/ assistant/
 COPY prompts/ prompts/
 COPY schemas/*.json schemas/
 
+# Where the quota's counts live (#67): a volume in compose.yaml, which takes this folder's owner.
+RUN mkdir /data && chown nobody /data
+
 # Not root: the server needs no privileges.
 USER nobody
 EXPOSE 8080

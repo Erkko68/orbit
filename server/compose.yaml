@@ -20,7 +20,13 @@ services:
       ASSISTANT_ENABLED: ${ASSISTANT_ENABLED:-true}
       # How long the model thinks before it answers: none (off, the quick default), low, medium or high.
       ASSISTANT_REASONING_EFFORT: ${ASSISTANT_REASONING_EFFORT:-none}
+      # Each user's calls a UTC day and a UTC month (#67), counted in QUOTA_DB on the quota volume.
+      ASSISTANT_DAILY_QUOTA: ${ASSISTANT_DAILY_QUOTA:-50}
+      ASSISTANT_MONTHLY_QUOTA: ${ASSISTANT_MONTHLY_QUOTA:-500}
+      QUOTA_DB: /data/quota.sqlite3
       MODEL_URL: http://ollama:11434/v1
+    volumes:
+      - quota:/data
     depends_on:
       model:
         condition: service_completed_successfully
@@ -48,3 +54,4 @@ services:
 
 volumes:
   ollama:
+  quota:

@@ -10,10 +10,16 @@ import logging
 from collections.abc import Mapping
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from assistant import auth, providers
+from assistant import auth, providers, quota
 from assistant.interview import AssistantError, Generate, next_step
 
-HTTP_STATUS = {"INVALID_ARGUMENT": 400, "UNAUTHENTICATED": 401, "FAILED_PRECONDITION": 412, "UNAVAILABLE": 503}
+HTTP_STATUS = {
+    "INVALID_ARGUMENT": 400,
+    "UNAUTHENTICATED": 401,
+    "FAILED_PRECONDITION": 412,
+    "RESOURCE_EXHAUSTED": 429,
+    "UNAVAILABLE": 503,
+}
 
 # Values of ASSISTANT_ENABLED that switch the assistant off (#68). Anything else, or nothing, leaves it on.
 OFF = {"false", "0", "no", "off"}
@@ -43,15 +49,22 @@ def respond(
     generate: Generate,
     body: bytes = b"",
     enabled: bool = True,
+    meter: quota.Meter = lambda uid: None,
 ) -> tuple[int, dict]:
-    """The HTTP status and JSON body for a request, apart from the socket so tests can call it directly."""
+    """
+    The HTTP status and JSON body for a request, apart from the socket so tests can call it directly. Every signed-in
+    call to the interview counts against the caller's quota ([meter]) before the model is asked.
+    """
     if (method, path) == ("GET", "/health"):
         return 200, {"ok": True}
     if (method, path) == ("POST", "/interview"):
         try:
             if not enabled:
                 raise AssistantError("FAILED_PRECONDITION", "The assistant is switched off.", {"reason": "disabled"})
-            return 200, {"result": next_step(caller(authorization, verify_token), call_data(body), generate)}
+            uid = caller(authorization, verify_token)
+            if uid is not None:
+                meter(uid)
+            return 200, {"result": next_step(uid, call_data(body), generate)}
         except AssistantError as e:
             return HTTP_STATUS[e.status], {"error": {"status": e.status, "message": e.message, "details": e.details}}
     return 404, {"error": {"status": "NOT_FOUND", "message": "No such endpoint."}}
@@ -67,9 +80,9 @@ def call_data(body: bytes) -> object:
 
 
 def handler(
-    verify_token: auth.VerifyToken, generate: Generate, enabled: bool = True
+    verify_token: auth.VerifyToken, generate: Generate, enabled: bool = True, meter: quota.Meter = lambda uid: None
 ) -> type[BaseHTTPRequestHandler]:
-    """The request handler, bound to how tokens are checked, which model answers and whether the assistant is on."""
+    """The request handler, bound to how tokens are checked, which model answers, whether it is on and the quota."""
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -80,7 +93,7 @@ def handler(
 
         def answer(self, method: str, request: bytes = b""):
             authorization = self.headers.get("Authorization", "")
-            status, body = respond(method, self.path, authorization, verify_token, generate, request, enabled)
+            status, body = respond(method, self.path, authorization, verify_token, generate, request, enabled, meter)
             data = json.dumps(body).encode()
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
@@ -100,6 +113,7 @@ def server(env: Mapping[str, str]) -> ThreadingHTTPServer:
     if not assistant_enabled(env):
         logging.warning("The assistant is switched off (ASSISTANT_ENABLED=%s)", env.get("ASSISTANT_ENABLED"))
     return ThreadingHTTPServer(
-        address, handler(auth.firebase_tokens(env), providers.from_env(env), assistant_enabled(env))
+        address,
+        handler(auth.firebase_tokens(env), providers.from_env(env), assistant_enabled(env), quota.from_env(env)),
     )
 

@@ -13,6 +13,7 @@ server/
 │   ├── auth.py          the check of the caller's Firebase ID token
 │   ├── interview.py     the interview and the check of what the model answers, testable without the server
 │   ├── providers.py     the model it asks: Gemma 4 on Ollama, its size by configuration
+│   ├── quota.py         each user's calls a day and a month, counted in SQLite
 │   ├── net.py           JSON over HTTP
 │   └── proposals.py     the catalogue's schemas, loaded whole for the model
 ├── prompts/             the prompts, as versioned files: question.v1.md, plan.v1.md
@@ -77,6 +78,7 @@ The server keeps no state between calls (#64), so each call brings everything th
 | Signed in, the plan | 200 | `{"result": {"plan": …}}`, in the shape of [the catalogue](#the-catalogue) |
 | `data` is not an interview | 400 | `{"error": {"status": "INVALID_ARGUMENT", …}}`, before the model |
 | No token, or not a valid one | 401 | `{"error": {"status": "UNAUTHENTICATED", …}}` |
+| The caller's quota is spent ([the quota](#the-quota)) | 429 | `{"error": {"status": "RESOURCE_EXHAUSTED", …, "details": {"reason": "quota", "resetsAt": "2026-11-18T00:00:00Z"}}}`, before the model |
 | The assistant is switched off ([the kill switch](#the-kill-switch)) | 412 | `{"error": {"status": "FAILED_PRECONDITION", …, "details": {"reason": "disabled"}}}`, before the model, whoever calls |
 | The model failed or answered something invalid | 503 | `{"error": {"status": "UNAVAILABLE", …, "details": {"reason": "unavailable"}}}` |
 
@@ -86,7 +88,7 @@ The refusals use these statuses, which the app reads (`InterviewMapper`):
 
 | Status | The app shows |
 |---|---|
-| `RESOURCE_EXHAUSTED` | The quota is spent (#67, still to come): the manual path only |
+| `RESOURCE_EXHAUSTED` | The quota is spent (#67): the day it is back (`resetsAt`, on the phone's calendar) and the manual path only |
 | `FAILED_PRECONDITION` | The assistant is switched off (#68): the manual path only |
 | `UNAVAILABLE` | Not answering: try again, or the manual path |
 
@@ -95,6 +97,12 @@ The refusals use these statuses, which the app reads (`InterviewMapper`):
 `ASSISTANT_ENABLED=false` in the server's `.env` (or the Portainer stack's variables) turns the assistant off for everyone (#68). `POST /interview` then answers `FAILED_PRECONDITION` before the model is asked, and the app's interview says it is switched off and leaves the manual path, which is `AssistantError.DISABLED` (not retryable: asking again changes nothing). `GET /health` still answers, so the server is seen to be up. Unset, or anything but `false`, `0`, `no` or `off`, leaves it on.
 
 The server reads the environment when it starts, so after changing it recreate the container (`docker compose up -d`, or redeploy the stack); a restart alone keeps the old value. It logs a warning at start while it is off.
+
+### The quota
+
+Each signed-in call to `POST /interview` counts against the caller's quota (#67): `ASSISTANT_DAILY_QUOTA` calls a UTC day and `ASSISTANT_MONTHLY_QUOTA` a UTC month. One interview takes a call per question plus one for the plan, so at most `QUESTION_BUDGET` + 1. The server keeps the counts itself, in SQLite (`QUOTA_DB`, on the `quota` volume in compose), out of every client's reach: it cannot sign in to Firestore, and a count the app could write is no limit.
+
+The count is checked after the token and before the model. A caller over either limit gets `RESOURCE_EXHAUSTED` with `resetsAt`, the start of the next UTC day or month, and the refused call does not count. A call the model then fails still counts: it reached the model. A caller without a valid token is never counted. Limits per plan come with #120.
 
 ### The app's side
 
@@ -151,6 +159,8 @@ The plan says which version it follows (`"version": 1`), and `PLAN_VERSION` is t
 | `ASSISTANT_MODEL` | `gemma4:e2b` | The Gemma tag in Ollama. The stack pulls it when it starts. `gemma4:e2b` is Gemma 4's smallest, made for phones, so it runs on a CPU in little memory; `gemma4:e4b` is the next size up |
 | `ASSISTANT_REASONING_EFFORT` | `none` | How long the model thinks before it answers, sent as `reasoning_effort`. `none` turns thinking off, so a question takes seconds instead of minutes on a CPU; `low`, `medium` or `high` turn it back on |
 | `ASSISTANT_ENABLED` | `true` | The kill switch: `false` (or `0`, `no`, `off`) turns the assistant off for everyone, and the app shows the manual path. See [the kill switch](#the-kill-switch) |
+| `ASSISTANT_DAILY_QUOTA`, `ASSISTANT_MONTHLY_QUOTA` | `50`, `500` | Each user's calls a UTC day and a UTC month. `0` refuses every call. See [the quota](#the-quota) |
+| `QUOTA_DB` | `quota.sqlite3` | The SQLite file with the counts. Compose sets `/data/quota.sqlite3`, on the `quota` volume, so they survive a redeploy |
 | `MODEL_URL` | `http://ollama:11434/v1` | Ollama's OpenAI-compatible endpoint |
 | `ASSISTANT_PORT` | `8080` | The host port compose publishes the server on |
 

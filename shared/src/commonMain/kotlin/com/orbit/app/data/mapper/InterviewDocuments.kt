@@ -45,4 +45,8 @@ internal data class StepDocument(
 )
 
 @Serializable
-internal data class ErrorDocument(val status: String, val message: String? = null)
+internal data class ErrorDocument(val status: String, val message: String? = null, val details: ErrorDetailsDocument? = null)
+
+/** What a refusal adds: when a spent quota resets (#67), as an ISO instant. */
+@Serializable
+internal data class ErrorDetailsDocument(val resetsAt: String? = null)

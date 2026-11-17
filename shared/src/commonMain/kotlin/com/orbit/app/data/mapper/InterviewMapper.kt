@@ -8,6 +8,7 @@ import com.orbit.app.domain.model.InterviewStep
 import kotlinx.serialization.SerializationException
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.json.Json
+import kotlin.time.Instant
 
 private val json = Json { ignoreUnknownKeys = true }
 
@@ -48,7 +49,10 @@ internal fun interviewStep(body: String, members: List<String>): InterviewStep {
     } catch (e: IllegalArgumentException) {
         throw AssistantException(AssistantError.UNAVAILABLE, e)
     }
-    reply.error?.let { throw AssistantException(assistantError(it.status)) }
+    reply.error?.let { error ->
+        val resetsAt = error.details?.resetsAt?.let { runCatching { Instant.parse(it) }.getOrNull() }
+        throw AssistantException(assistantError(error.status), resetsAt = resetsAt)
+    }
     val step = reply.result ?: throw AssistantException(AssistantError.UNAVAILABLE)
     step.plan?.let { return InterviewStep.PlanReady(planOf(it, members)) }
     val id = step.id

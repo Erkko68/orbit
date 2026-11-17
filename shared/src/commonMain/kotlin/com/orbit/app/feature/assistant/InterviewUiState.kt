@@ -2,6 +2,7 @@ package com.orbit.app.feature.assistant
 
 import com.orbit.app.domain.model.AssistantError
 import com.orbit.app.domain.model.InterviewQuestion
+import kotlinx.datetime.LocalDate
 
 /** One message of the interview's chat: a question from the assistant, or what the user answered ([mine]). */
 data class ChatMessage(val text: String, val mine: Boolean)
@@ -21,6 +22,8 @@ data class InterviewUiState(
     val loading: Boolean = false,
     /** Why the interview stopped. Cleared by the next attempt. */
     val error: AssistantError? = null,
+    /** The day a spent quota gives the assistant back, on this phone's calendar, when the server said. */
+    val quotaResetsOn: LocalDate? = null,
     /** The assistant has a plan: the screen moves on to the review board. */
     val planReady: Boolean = false,
 ) {
