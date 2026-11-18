@@ -132,13 +132,23 @@ The ☰ menu switches between views, and the scope buttons between the whole pro
 | View | Shows |
 |---|---|
 | Overview | The earned value indicators on any day, picked from the calendar (today by default), each with what it means and its formula with that day's numbers, the issues that drove the cost variance and the planned work still open, and the PV, EV and AC curves against the budget. In hours (team effort only) by default, or in money |
-| Burn charts | Burn-up and burn-down in hours |
-| Roadmap | The board as it stood on any day, picked from the calendar: real bars for the work that had started, the plan of that day for the rest. A sprint zooms to its own issues |
+| Burn charts | Burn-up and burn-down in hours, and the velocity of every sprint that has started |
+| Roadmap | The board as it stood on any day, picked from the calendar: real bars for the work that had started, the plan of that day for the rest. A sprint zooms to its own issues. **Compare with plan** draws, behind each bar, the plan the issue was held to |
 | Cost | Planned against actual cost, by resource |
 | Time tracking | Hours by member (planned and unplanned issues), how many hours are logged, estimate against actual, and the flagged issues |
 
 The roadmap replays `project_sync.py`'s own plan for each past day, from the issues as they stood that day
 (created, assigned, PR opened, closed). Estimates, milestones and "Blocked by" links are today's.
+
+### Plan and velocity
+
+- **The plan an issue was held to** is the bar it had on the first day it was on the board inside its sprint: for an
+  issue there from the start, the plan of the sprint's first day; for one added later, the plan of the day it came.
+  With **Compare with plan** on, it is a dashed outline behind the real bar, so an issue that ended on time sits inside
+  it, and the summary counts the done issues that ended after it.
+- **Velocity**, per sprint, in `Estimate` hours: committed (its issues that existed when it started), added after
+  that, completed, and closed as not planned, which is never counted as completed. The average line takes the
+  sprints that have ended. Milestones are today's, so an issue moved to another sprint counts in its new one.
 
 ### Earned value
 
