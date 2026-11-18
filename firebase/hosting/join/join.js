@@ -70,7 +70,11 @@
   var copy = show("copy", text.copy);
   copy.addEventListener("click", function () {
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(code).then(function () { copy.textContent = text.copied; });
+      // Refused (no permission, not a secure context): the button goes, and the code stays on screen to type.
+      navigator.clipboard.writeText(code).then(
+        function () { copy.textContent = text.copied; },
+        function () { copy.hidden = true; }
+      );
     }
   });
   show("get", text.get);
