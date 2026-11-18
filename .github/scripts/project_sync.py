@@ -18,6 +18,8 @@ PROJECT = 3  # the repo owner's "orbit" project
 HOURS_PER_DAY = 2  # what one member is expected to put into the project per day, weekends included
 TEAM = 4  # members, so at most this many issues run at once
 SIZE_HOURS = {"XS": 0.25, "S": 0.5, "M": 1, "L": 2, "XL": 4}  # for issues without an Estimate
+# The board's own names, which the fields and the Status option are looked up by.
+START, TARGET, DEVIATION, IN_PROGRESS = "Start date", "Target date", "Deviation (days)", "In progress"
 QUERY = """query($owner: String!, $name: String!, $project: Int!, $cursor: String) {
   repository(owner: $owner, name: $name) {
     milestones(first: 50) { nodes { title createdAt dueOn } }
@@ -165,39 +167,42 @@ def schedule(items, sprints, today):
     return plan
 
 
-def wanted(item, today, plan):
+def wanted(item, plan):
     """The field values an item should have right now."""
     issue = item["content"]
     start, end = progress(item)
     if end:
-        values = {"Start date": start, "Target date": end}
+        values = {START: start, TARGET: end}
         if hours(item):
-            values["Deviation (days)"] = (date.fromisoformat(end) - date.fromisoformat(last_day(start, item))).days
+            values[DEVIATION] = (date.fromisoformat(end) - date.fromisoformat(last_day(start, item))).days
         return values
     if issue["state"] == "CLOSED":
         return {}
     if start:
-        return {"Status": "In progress", "Start date": start, "Target date": last_day(start, item)}
-    values = dict(zip(("Start date", "Target date"), plan.get(issue["number"], ())))
-    if value(item, "status") == "In progress":  # nobody has it any more
+        return {"Status": IN_PROGRESS, START: start, TARGET: last_day(start, item)}
+    values = dict(zip((START, TARGET), plan.get(issue["number"], ())))
+    if value(item, "status") == IN_PROGRESS:  # nobody has it any more
         values["Status"] = "Planned"
     return values
 
 
+def field_value(field, new):
+    """A value as the project API takes it: an option's id for Status, else a number or a date."""
+    if field["name"] == "Status":
+        return {"singleSelectOptionId": next(o["id"] for o in field["options"] if o["name"] == new)}
+    return {"number": new} if isinstance(new, int) else {"date": new}
+
+
 def apply(project, fields, changes, dry):
     """Writes the (item, {field: value}) pairs that differ from the board, twenty field values per request."""
-    now = {"Status": "status", "Start date": "start", "Target date": "target", "Deviation (days)": "deviation"}
+    now = {"Status": "status", START: "start", TARGET: "target", DEVIATION: "deviation"}
     updates = []
     for item, values in changes:
         for field, new in values.items():
             if value(item, now[field]) == new:
                 continue
             print(f"#{item['content']['number']}: {field} = {new}")
-            if field == "Status":
-                new = {"singleSelectOptionId": next(o["id"] for o in fields[field]["options"] if o["name"] == new)}
-            else:
-                new = {"number": new} if isinstance(new, int) else {"date": new}
-            updates.append((item["id"], fields[field]["id"], new))
+            updates.append((item["id"], fields[field]["id"], field_value(fields[field], new)))
     for at in range(0, 0 if dry else len(updates), 20):
         batch = updates[at:at + 20]
         mutation = "mutation(%s) {\n%s\n}" % (
@@ -212,7 +217,7 @@ def main():
     today = date.today().isoformat()
     project, fields, items, sprints = load()
     plan = schedule(items, sprints, today)
-    apply(project, fields, [(i, wanted(i, today, plan)) for i in items], "--print" in sys.argv)
+    apply(project, fields, [(i, wanted(i, plan)) for i in items], "--print" in sys.argv)
 
 
 def check():
@@ -238,11 +243,11 @@ def check():
         raise RuntimeError("schedule() self-check failed")
     taken = issue(1, assigned="2026-10-07T09:00:00Z", estimate=8, status="Planned")
     late = issue(1, assigned="2026-10-07T09:00:00Z", opened="2026-10-12T09:00:00Z", estimate=8)
-    if (wanted(second, today, plan) != {"Start date": "2026-10-11", "Target date": "2026-10-12"}
-            or wanted(taken, today, plan) != {"Status": "In progress", "Start date": today,
-                                              "Target date": "2026-10-10"}
-            or wanted(late, today, plan) != {"Start date": today, "Target date": "2026-10-12", "Deviation (days)": 2}
-            or wanted(issue(4, status="In progress"), today, {}) != {"Status": "Planned"}):
+    if (wanted(second, plan) != {START: "2026-10-11", TARGET: "2026-10-12"}
+            or wanted(taken, plan) != {"Status": IN_PROGRESS, START: today,
+                                              TARGET: "2026-10-10"}
+            or wanted(late, plan) != {START: today, TARGET: "2026-10-12", DEVIATION: 2}
+            or wanted(issue(4, status=IN_PROGRESS), {}) != {"Status": "Planned"}):
         raise RuntimeError("wanted() self-check failed")
 
 

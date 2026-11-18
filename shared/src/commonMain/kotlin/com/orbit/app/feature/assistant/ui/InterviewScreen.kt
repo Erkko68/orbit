@@ -21,6 +21,10 @@ import com.orbit.app.core.designsystem.component.OrbitTextButton
 import com.orbit.app.core.designsystem.component.OrbitTonalButton
 import com.orbit.app.core.designsystem.component.OrbitTopBar
 import com.orbit.app.core.designsystem.theme.OrbitSpacing
+import com.orbit.app.domain.model.AssistantError
+import com.orbit.app.domain.model.InterviewQuestion
+import com.orbit.app.feature.assistant.ChatMessage
+import com.orbit.app.feature.assistant.InterviewUiState
 import com.orbit.app.feature.assistant.InterviewViewModel
 import com.orbit.app.feature.assistant.consent.RequireAiConsent
 import com.orbit.app.feature.assistant.dictation.DictationButton
@@ -97,67 +101,85 @@ fun InterviewScreen(
                 item(key = "thinking") { OrbitChatBubble(mine = false, loading = true) { Text(thinking) } }
             }
             if (error != null) {
-                item(key = "error") {
-                    OrbitChatBubble(mine = false) {
-                        OrbitHeading(
-                            title = stringResource(error.title()),
-                            subtitle = state.quotaResetsOn?.let { stringResource(Res.string.interview_error_quota_until, dateLabel(it)) }
-                                ?: stringResource(error.message()),
-                            titleColor = MaterialTheme.colorScheme.error,
-                        )
-                        if (state.canRetry) {
-                            val retry = stringResource(Res.string.retry)
-                            OrbitTonalButton(retry, viewModel::retry, Modifier.fillMaxWidth())
-                        }
-                        if (state.canGoBack) {
-                            OrbitTextButton(stringResource(Res.string.interview_back), viewModel::back)
-                        }
-                    }
-                }
+                item(key = "error") { ErrorBubble(error, state, viewModel) }
             }
             val messages = state.messages.asReversed()
             items(messages.size, key = { messages.size - it }) { index ->
-                val message = messages[index]
                 // The question waiting for an answer carries its place in the interview, its chips and its controls.
-                val waiting = if (index == 0) question else null
-                OrbitChatBubble(mine = message.mine) {
-                    if (waiting != null) {
-                        Text(
-                            stringResource(Res.string.interview_progress, waiting.position, waiting.budget),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Text(
-                        when {
-                            message.skipped -> stringResource(Res.string.interview_skipped)
-                            message.decided -> stringResource(Res.string.interview_decided, message.text)
-                            else -> message.text
-                        },
-                    )
-                    if (waiting != null && waiting.options.isNotEmpty()) {
-                        FlowRow(
-                            horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
-                            verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
-                        ) {
-                            for (option in waiting.options) {
-                                OrbitFilterChip(option, option in state.selected, { viewModel.select(option) })
-                            }
-                        }
-                    }
-                    if (waiting != null) {
-                        FlowRow {
-                            if (state.canGoBack) {
-                                OrbitTextButton(stringResource(Res.string.interview_back), viewModel::back)
-                            }
-                            OrbitTextButton(stringResource(Res.string.interview_skip), viewModel::skip, enabled = state.canAct)
-                            if (state.canDecide) {
-                                OrbitTextButton(stringResource(Res.string.interview_decide), viewModel::decide)
-                            }
-                        }
-                    }
-                }
+                MessageBubble(messages[index], if (index == 0) question else null, state, viewModel)
             }
         },
     )
+}
+
+/** Why the assistant cannot answer, with a retry when it can help and Back once something was answered. */
+@Composable
+private fun ErrorBubble(error: AssistantError, state: InterviewUiState, viewModel: InterviewViewModel) {
+    OrbitChatBubble(mine = false) {
+        OrbitHeading(
+            title = stringResource(error.title()),
+            subtitle = state.quotaResetsOn?.let { stringResource(Res.string.interview_error_quota_until, dateLabel(it)) }
+                ?: stringResource(error.message()),
+            titleColor = MaterialTheme.colorScheme.error,
+        )
+        if (state.canRetry) {
+            OrbitTonalButton(stringResource(Res.string.retry), viewModel::retry, Modifier.fillMaxWidth())
+        }
+        if (state.canGoBack) {
+            OrbitTextButton(stringResource(Res.string.interview_back), viewModel::back)
+        }
+    }
+}
+
+/** One message of the chat. The [waiting] question also shows its progress, its chips and its controls. */
+@Composable
+private fun MessageBubble(
+    message: ChatMessage,
+    waiting: InterviewQuestion?,
+    state: InterviewUiState,
+    viewModel: InterviewViewModel,
+) {
+    OrbitChatBubble(mine = message.mine) {
+        if (waiting != null) {
+            Text(
+                stringResource(Res.string.interview_progress, waiting.position, waiting.budget),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            when {
+                message.skipped -> stringResource(Res.string.interview_skipped)
+                message.decided -> stringResource(Res.string.interview_decided, message.text)
+                else -> message.text
+            },
+        )
+        if (waiting != null) {
+            QuestionControls(waiting, state, viewModel)
+        }
+    }
+}
+
+/** The chips of the [waiting] question, then Back, Skip and Decide for me. */
+@Composable
+private fun QuestionControls(waiting: InterviewQuestion, state: InterviewUiState, viewModel: InterviewViewModel) {
+    if (waiting.options.isNotEmpty()) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
+            verticalArrangement = Arrangement.spacedBy(OrbitSpacing.sm),
+        ) {
+            for (option in waiting.options) {
+                OrbitFilterChip(option, option in state.selected, { viewModel.select(option) })
+            }
+        }
+    }
+    FlowRow {
+        if (state.canGoBack) {
+            OrbitTextButton(stringResource(Res.string.interview_back), viewModel::back)
+        }
+        OrbitTextButton(stringResource(Res.string.interview_skip), viewModel::skip, enabled = state.canAct)
+        if (state.canDecide) {
+            OrbitTextButton(stringResource(Res.string.interview_decide), viewModel::decide)
+        }
+    }
 }

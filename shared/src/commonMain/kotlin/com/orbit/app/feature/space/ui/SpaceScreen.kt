@@ -77,38 +77,38 @@ fun SpaceScreen(
         scrollable = true,
     ) {
         OrbitHero(stringResource(Res.string.spaces_section), Modifier.fillMaxWidth())
-        if (state.loading) {
-            OrbitLoadingState(stringResource(Res.string.spaces_loading), Modifier.fillMaxWidth())
-        } else if (state.loadFailed) {
-            OrbitErrorState(
+        when {
+            state.loading -> OrbitLoadingState(stringResource(Res.string.spaces_loading), Modifier.fillMaxWidth())
+            state.loadFailed -> OrbitErrorState(
                 title = stringResource(Res.string.spaces_load_failed),
                 body = stringResource(Res.string.load_failed_body),
                 retryText = stringResource(Res.string.retry),
                 onRetry = viewModel::retry,
                 modifier = Modifier.fillMaxWidth(),
             )
-        } else if (state.showFirstRunChoice) {
-            OrbitEmptyState(
-                title = stringResource(Res.string.spaces_empty),
-                body = stringResource(Res.string.spaces_empty_body),
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OrbitCard(Modifier.fillMaxWidth()) {
-                OrbitButton(
-                    text = stringResource(Res.string.spaces_setup_assistant),
-                    onClick = onOpenAssistant,
+            state.showFirstRunChoice -> {
+                OrbitEmptyState(
+                    title = stringResource(Res.string.spaces_empty),
+                    body = stringResource(Res.string.spaces_empty_body),
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = state.online,
                 )
-                if (!state.online) {
-                    Text(
-                        text = stringResource(Res.string.assistant_offline),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                OrbitCard(Modifier.fillMaxWidth()) {
+                    OrbitButton(
+                        text = stringResource(Res.string.spaces_setup_assistant),
+                        onClick = onOpenAssistant,
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = state.online,
                     )
+                    if (!state.online) {
+                        Text(
+                            text = stringResource(Res.string.assistant_offline),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    // Creating by hand and joining are both on the New space screen: one way there.
+                    OrbitTonalButton(stringResource(Res.string.spaces_new), onNewSpace, Modifier.fillMaxWidth())
                 }
-                // Creating by hand and joining are both on the New space screen: one way there.
-                OrbitTonalButton(stringResource(Res.string.spaces_new), onNewSpace, Modifier.fillMaxWidth())
             }
         }
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(OrbitSpacing.md)) {

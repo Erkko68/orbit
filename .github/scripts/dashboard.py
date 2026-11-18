@@ -121,7 +121,7 @@ def snapshot(item, when):
 
 def bar(item, when, plan, start):
     """[issue, first day, last day, state] for one board item on `when`, in day offsets, or None without dates."""
-    dates = ps.wanted(item, when.isoformat(), plan)
+    dates = ps.wanted(item, plan)
     first, last = dates.get("Start date"), dates.get("Target date")
     if not first:
         return None
