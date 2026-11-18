@@ -154,6 +154,9 @@ tr.total td { font-weight: 600; border-bottom: 0; }
 .g-track { position: relative; height: 26px; }
 .g-bar { position: absolute; top: 7px; height: 12px; border-radius: 4px; background: var(--c); cursor: default; }
 .g-bar:hover { outline: 2px solid var(--ink); outline-offset: 1px; }
+.road-controls button[aria-pressed="true"] { font-weight: 600; border-color: var(--ink); }
+/* The plan an issue was held to, drawn behind its real bar: on time, the bar sits inside it. */
+.g-plan { position: absolute; top: 3px; height: 20px; box-sizing: border-box; border: 1.5px dashed var(--ink-2); border-radius: 6px; pointer-events: none; }
 .g-head { position: sticky; top: 0; z-index: 4; background: var(--surface); border-bottom: 1px solid var(--grid); }
 .g-head .g-track { height: 30px; }
 .g-tick { position: absolute; top: 8px; font-size: 11px; color: var(--muted); transform: translateX(-50%); white-space: nowrap; }
@@ -187,7 +190,7 @@ footer code { font-size: 12px; }
     </nav>
     <nav class="menu" id="menu" hidden>
       <a href="#overview"><b>Overview</b><span>Indicators on any day, from the calendar, and the earned value curve</span></a>
-      <a href="#burn"><b>Burn charts</b><span>Burn-up and burn-down in hours</span></a>
+      <a href="#burn"><b>Burn charts</b><span>Burn-up, burn-down and velocity in hours</span></a>
       <a href="#roadmap"><b>Roadmap</b><span>The board on any day, from the calendar</span></a>
       <a href="#cost"><b>Cost</b><span>Planned against actual, by resource</span></a>
       <a href="#time"><b>Time tracking</b><span>Hours by member, estimates and issues to check</span></a>
@@ -256,6 +259,13 @@ footer code { font-size: 12px; }
       </div>
       <div id="burndown-chart"></div>
     </section>
+    <section class="card">
+      <div class="card-head">
+        <div><h2>Velocity</h2><p class="note">Estimated hours per sprint: committed when it started, and completed. Work closed as not planned is not completed.</p></div>
+        <div class="legend" id="velocity-legend"></div>
+      </div>
+      <div id="velocity-chart"></div>
+    </section>
   </div>
 
   <div class="view" data-view="roadmap">
@@ -267,6 +277,7 @@ footer code { font-size: 12px; }
           <input type="date" id="road-day" aria-label="Roadmap day">
           <button id="road-next" aria-label="Next day">▶</button>
           <button id="road-today">Today</button>
+          <button id="road-plan" aria-pressed="false" title="Draw, behind each bar, the plan the issue had when it entered its sprint">Compare with plan</button>
         </div>
       </div>
       <div class="legend" id="road-legend"></div>
@@ -348,7 +359,7 @@ const STATE = {
   done: ["Done on time", "--good"], late: ["Done late", "--serious"], progress: ["In progress", "--s1"],
   overdue: ["In progress, past its end", "--critical"], planned: ["Planned", "--planned"],
 };
-let data, scope = "all", unit = "h";
+let data, scope = "all", unit = "h", showPlan = false;
 
 /* ---------- tooltip ---------- */
 const tip = $("tip");
@@ -522,6 +533,59 @@ function deviationChart(host, issues) {
     svg.append(value);
   });
   host.append(svg);
+}
+
+/* ---------- grouped columns: committed and completed per sprint ---------- */
+function velocityChart(host, rows, parts) {
+  host.innerHTML = "";
+  if (!rows.length) { host.innerHTML = `<p class="empty">No sprints yet.</p>`; return; }
+  const W = Math.max(host.clientWidth, 300), H = 260, m = { l: 52, r: 16, t: 18, b: 42 };
+  const ended = rows.filter((r) => r.due <= data.today), avg = ended.length ? ended.reduce((a, r) => a + r.completed, 0) / ended.length : null;
+  const top = niceMax(Math.max(...rows.flatMap((r) => parts.map((p) => r[p.key])), avg || 0) * 1.1);
+  const y = (v) => m.t + (1 - v / top) * (H - m.t - m.b), slot = (W - m.l - m.r) / rows.length;
+  const bw = Math.min(56, (slot - 24) / parts.length);
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img" });
+  for (let t = 0; t <= 4; t++) {
+    const v = (top / 4) * t;
+    svg.append(el("line", { x1: m.l, x2: W - m.r, y1: y(v), y2: y(v), stroke: css(t ? "--grid" : "--axis") }));
+    const label = el("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end" });
+    label.textContent = v + " h";
+    svg.append(label);
+  }
+  rows.forEach((r, i) => {
+    const mid = m.l + slot * (i + 0.5), running = r.due > data.today;
+    parts.forEach((p, k) => {
+      const x = mid + (k - parts.length / 2) * (bw + 2) + 1;
+      const bar = el("path", { d: roundedTop(x, y(r[p.key]), bw, y(0) - y(r[p.key]), 4), fill: p.color });
+      bar.addEventListener("pointermove", (e) => showTip(`<b>${esc(r.title)}${running ? " (so far)" : ""}</b>` +
+        tipRow("Committed at the start", hours(r.committed), parts[0].color) + tipRow("Added after the start", hours(r.added)) +
+        tipRow("Closed as not planned", hours(r.removed)) + tipRow("Completed", hours(r.completed), parts[1].color) +
+        tipRow("Issues completed", r.issues), e.clientX, e.clientY));
+      bar.addEventListener("pointerleave", hideTip);
+      svg.append(bar);
+      const value = el("text", { x: x + bw / 2, y: y(r[p.key]) - 5, "text-anchor": "middle" });
+      value.textContent = hours(r[p.key]);
+      value.style.fill = css("--ink");
+      svg.append(value);
+    });
+    const name = el("text", { x: mid, y: H - 24, "text-anchor": "middle" });
+    name.textContent = r.title + (running ? " (so far)" : "");
+    name.style.fill = css("--ink-2");
+    const count = el("text", { x: mid, y: H - 8, "text-anchor": "middle" });
+    count.textContent = r.issues + " issues";
+    svg.append(name, count);
+  });
+  if (avg != null) {
+    svg.append(el("line", { x1: m.l, x2: W - m.r, y1: y(avg), y2: y(avg), stroke: css("--muted"), "stroke-dasharray": "4 4" }));
+    const label = el("text", { x: W - m.r - 4, y: y(avg) - 6, "text-anchor": "end" });
+    label.textContent = `Average of finished sprints ${hours(avg)}`;
+    svg.append(label);
+  }
+  host.append(svg);
+}
+function roundedTop(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`;
 }
 
 /* ---------- sections ---------- */
@@ -732,6 +796,14 @@ function renderBurn() {
       ...(b.ideal ? [{ name: "Ideal", values: b.ideal, color: colors.ideal, dash: true }] : [])] });
 }
 
+function renderVelocity() {
+  // Only sprints that have started: a future sprint has nothing to show yet.
+  const rows = (data.velocity || []).filter((r) => data.sprints.find((s) => s.title === r.title).start <= data.today);
+  const parts = [{ key: "committed", name: "Committed at the start", color: css("--planned") }, { key: "completed", name: "Completed", color: css("--s1") }];
+  legend($("velocity-legend"), [...parts.map((p) => [p.name, p.color, "box"]), ["Average", css("--muted"), "ref"]]);
+  velocityChart($("velocity-chart"), rows, parts);
+}
+
 function renderCost() {
   const s = sprint(), rows = costRows();
   const list = Object.values(rows), sum = (k) => list.reduce((a, r) => a + r[k], 0);
@@ -801,13 +873,19 @@ function renderRoadmap() {
   // A chosen sprint zooms the roadmap to its own issues; the whole project shows every sprint.
   const bars = r.days[when].filter((b) => byNumber[b[0]] && (!s || byNumber[b[0]].sprint === s.title));
   const offset = (day) => (parse(day) - parse(start)) / 864e5;
+  // The plan an issue was held to, once it had entered its sprint by the chosen day.
+  const planOf = (n) => { const p = showPlan && r.plan?.[n]; return p && p[2] <= offset(when) ? p : null; };
   const counts = {};
   bars.forEach((b) => { counts[r.states[b[3]]] = (counts[r.states[b[3]]] || 0) + 1; });
-  legend($("road-legend"), Object.entries(STATE).map(([k, [label, color]]) => [`${label} (${counts[k] || 0})`, css(color), "box"]));
-  $("road-summary").textContent = `${fmtDay(when, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}: ${bars.length} issues on the board.`;
+  legend($("road-legend"), [...Object.entries(STATE).map(([k, [label, color]]) => [`${label} (${counts[k] || 0})`, css(color), "box"]),
+    ...(showPlan ? [["Plan when it entered its sprint", css("--ink-2"), "ref"]] : [])]);
+  const after = bars.filter((b) => b[3] <= 1 && planOf(b[0]) && b[2] > planOf(b[0])[1]).length;
+  $("road-summary").textContent = `${fmtDay(when, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}: ${bars.length} issues on the board.` +
+    (showPlan ? ` ${after} of the done ones ended after their plan.` : "");
 
-  const last = Math.max(...(s ? [offset(s.due)] : data.sprints.map((x) => offset(x.due))), ...bars.map((b) => b[2])) + 2;
-  const first = Math.min(s ? offset(s.start) : 0, ...bars.map((b) => b[1])) - 1;
+  const plans = bars.map((b) => planOf(b[0])).filter(Boolean);
+  const last = Math.max(...(s ? [offset(s.due)] : data.sprints.map((x) => offset(x.due))), ...bars.map((b) => b[2]), ...plans.map((p) => p[1])) + 2;
+  const first = Math.min(s ? offset(s.start) : 0, ...bars.map((b) => b[1]), ...plans.map((p) => p[0])) - 1;
   const px = Math.max(8, Math.min(40, ($("gantt").clientWidth - 260) / (last - first + 1)));
   const left = (d) => (d - first) * px, width = (last - first + 1) * px;
   const ticks = [];
@@ -831,8 +909,9 @@ function renderRoadmap() {
     const done = rows.filter(([b]) => b[3] <= 1).length;
     return `<details class="g-group" ${title === current || title === scope ? "open" : ""}><summary>${esc(title)}<span class="note">${done} of ${rows.length} done</span></summary>` +
       rows.map(([b, i]) => {
-        const state = r.states[b[3]], [label, color] = STATE[state];
+        const state = r.states[b[3]], [label, color] = STATE[state], p = planOf(i.number);
         return `<div class="g-row"><div class="g-label"><a href="${esc(i.url)}">#${i.number}</a> ${esc(i.title)}</div><div class="g-track" style="width:${width}px">` +
+          (p ? `<div class="g-plan" style="left:${left(p[0]) - 2}px;width:${(p[1] - p[0] + 1) * px + 2}px"></div>` : "") +
           `<div class="g-bar" style="--c:var(${color});left:${left(b[1])}px;width:${(b[2] - b[1] + 1) * px - 2}px" data-n="${i.number}" data-s="${state}" data-a="${b[1]}" data-b="${b[2]}"></div></div></div>`;
       }).join("") + `</details>`;
   }).join("");
@@ -842,6 +921,7 @@ function renderRoadmap() {
       const i = byNumber[bar.dataset.n], [label, color] = STATE[bar.dataset.s];
       showTip(`<b>#${i.number} ${esc(i.title)}</b>` + tipRow(label, "", css(color)) +
         tipRow("From", fmtDay(addDays(start, +bar.dataset.a))) + tipRow("To", fmtDay(addDays(start, +bar.dataset.b))) +
+        (planOf(i.number) ? tipRow("Planned", `${fmtDay(addDays(start, planOf(i.number)[0]))} – ${fmtDay(addDays(start, planOf(i.number)[1]))}`) : "") +
         tipRow("Assignee", esc(i.who || "–")) + tipRow("Estimate", hours(i.estimate)), e.clientX, e.clientY);
     });
     bar.addEventListener("pointerleave", hideTip);
@@ -860,7 +940,7 @@ function moveDay(input, days, n, draw) {
 
 const VIEWS = {
   overview: ["Overview", [renderMetrics, renderDrivers, renderEarnedValue]],
-  burn: ["Burn charts", [renderBurn]],
+  burn: ["Burn charts", [renderBurn, renderVelocity]],
   roadmap: ["Roadmap", [renderRoadmap]],
   cost: ["Cost", [renderCost]],
   time: ["Time tracking", [renderMembers, renderQuality, renderDeviation, renderFlags]],
@@ -902,6 +982,7 @@ fetch("data.json").then((r) => r.json()).then((d) => {
   $("ov-next").addEventListener("click", () => moveDay(ov, data.history, 1, render));
   $("ov-today").addEventListener("click", () => { ov.value = data.today; render(); });
   $("road-today").addEventListener("click", () => { $("road-day").value = data.today; renderRoadmap(); });
+  $("road-plan").addEventListener("click", () => { showPlan = !showPlan; $("road-plan").setAttribute("aria-pressed", showPlan); renderRoadmap(); });
   render();
   addEventListener("hashchange", () => { toggleMenu(false); render(); });
   $("burger").addEventListener("click", () => toggleMenu());
