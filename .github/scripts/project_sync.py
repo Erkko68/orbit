@@ -45,7 +45,7 @@ QUERY = """query($owner: String!, $name: String!, $project: Int!, $cursor: Strin
           deviation: fieldValueByName(name: "Deviation (days)") { ... on ProjectV2ItemFieldNumberValue { number } }
           content {
             ... on Issue {
-              number state title url createdAt closedAt
+              number state stateReason title url createdAt closedAt
               milestone { title }
               labels(first: 20) { nodes { name } }
               assignees(first: 5) { totalCount nodes { login } }

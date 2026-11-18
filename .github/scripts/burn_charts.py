@@ -190,7 +190,8 @@ def issue(node, board, now):
     values = board.get(node["number"], {})
     size = values.get("size") or next((l["name"][6:] for l in node["labels"]["nodes"] if l["name"].startswith("size: ")), None)
     return {"number": node["number"], "title": node["title"], "created": day(node["createdAt"]),
-            "closed": day(node["closedAt"]), "milestone": node["milestone"], "estimate": values.get("estimate"),
+            "closed": day(node["closedAt"]), "reason": node.get("stateReason"), "milestone": node["milestone"],
+            "estimate": values.get("estimate"),
             "actual": values.get("actual"), "work": work(values.get("estimate"), size),
             "started": bool(node["timelineItems"]["nodes"]),
             "measured": worked(node, None if node["closedAt"] else now),

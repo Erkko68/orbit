@@ -147,6 +147,34 @@ def roadmap(items, sprints, start, today):
     return out
 
 
+def entry_plans(days, items, sprints, start):
+    """Issue -> [first, last, entered]: the bar it had on the first day it was on the board within its sprint, which is
+    the plan it was held to, and that day, all as day offsets from `start`. `days` is the roadmap, oldest day first."""
+    opens = {i["content"]["number"]: day(sprints[t][0]) for i in items
+             if (t := (i["content"]["milestone"] or {}).get("title")) in sprints}
+    out = {}
+    for when, bars in days.items():
+        for number, first, last, _ in bars:
+            if number not in out and number in opens and day(when) >= opens[number]:
+                out[number] = [first, last, (day(when) - start).days]
+    return out
+
+
+def velocity(issues, sprints):
+    """Per sprint, in estimated hours: committed (its issues that existed when it started), added after that,
+    completed, and removed (closed as not planned), with the issues completed."""
+    out = []
+    for title, (first, due) in sorted(sprints.items(), key=lambda s: s[1][1]):
+        own = [i for i in issues if (i["milestone"] or {}).get("title") == title]
+        removed = [i for i in own if i["closed"] and i.get("reason") == "NOT_PLANNED"]
+        done = [i for i in own if i["closed"] and i not in removed]
+        hours = lambda xs: sum(i["estimate"] or 0 for i in xs)
+        out.append({"title": title, "due": due, "committed": hours(i for i in own if i["created"] <= day(first)),
+                    "added": hours(i for i in own if i["created"] > day(first)), "completed": hours(done),
+                    "removed": hours(removed), "issues": len(done)})
+    return out
+
+
 def breakdown(title, value):
     """Planned against actual cost of a sprint, by resource."""
     hours, months = PLAN[title]
@@ -195,6 +223,7 @@ def build(items, sprints, today):
     start = min(day(w[0]) for w in sprints.values())
     end = max(day(w[1]) for w in sprints.values())
     now_values, now = values(issues, sprints, today, today), overview(issues, sprints, today, today)
+    days = roadmap(items, sprints, start, today)
     sprint_out = []
     for title, (first, due) in sorted(sprints.items(), key=lambda s: s[1][1]):
         own = [i for i in issues if (i["milestone"] or {}).get("title") == title]
@@ -213,7 +242,9 @@ def build(items, sprints, today):
                         "sprint": (i["milestone"] or {}).get("title"), "created": i["created"].isoformat(),
                         "closed": i["closed"] and i["closed"].isoformat(), "started": i["started"],
                         "spent": bc.spent(i)[0], "source": bc.spent(i)[1]} for i in issues],
-            "roadmap": {"start": start.isoformat(), "states": STATES, "days": roadmap(items, sprints, start, today)}}
+            "velocity": velocity(issues, sprints),
+            "roadmap": {"start": start.isoformat(), "states": STATES, "days": days,
+                        "plan": entry_plans(days, items, sprints, start)}}
 
 
 def main():
@@ -255,6 +286,21 @@ def check():
             raise RuntimeError(f"values() full-scope self-check failed: {v}")
     finally:
         del PLAN["S1"], PLANNED_CASH["S1"]
+    # Velocity: committed is what existed when the sprint started; an issue closed as not planned is removed, not done.
+    v_issue = lambda est, created, closed=None, reason=None: {"milestone": {"title": "S1"}, "estimate": est,
+                                                              "created": date.fromisoformat(created),
+                                                              "closed": closed and date.fromisoformat(closed),
+                                                              "reason": reason}
+    v = velocity([v_issue(5, "2026-10-01", "2026-10-10"), v_issue(3, "2026-10-01", "2026-10-11", "NOT_PLANNED"),
+                  v_issue(2, "2026-10-08", "2026-10-12"), v_issue(4, "2026-10-06"), v_issue(None, "2026-10-09", "2026-10-09")],
+                 {"S1": ("2026-10-06", "2026-10-27")})[0]
+    if (v["committed"], v["added"], v["completed"], v["removed"], v["issues"]) != (12, 2, 7, 3, 3):
+        raise RuntimeError(f"velocity() self-check failed: {v}")
+    # The plan an issue is held to is its bar on the first day it was on the board within its sprint.
+    plan_items = [{"content": {"number": n, "milestone": {"title": "S1"}}} for n in (1, 2)]
+    days = {"2026-10-05": [[1, 0, 2, 4]], "2026-10-06": [[1, 1, 3, 4]], "2026-10-07": [[1, 2, 4, 2], [2, 2, 2, 4]]}
+    if entry_plans(days, plan_items, {"S1": ("2026-10-06", "2026-10-27")}, date(2026, 10, 5)) != {1: [1, 3, 1], 2: [2, 2, 2]}:
+        raise RuntimeError("entry_plans() self-check failed")
     item = {"content": {"createdAt": "2026-10-06T10:00:00Z", "closedAt": "2026-10-09T10:00:00Z",
                         "timelineItems": {"nodes": [{"createdAt": "2026-10-08T10:00:00Z"}]},
                         "closedByPullRequestsReferences": {"nodes": [{"createdAt": "2026-10-09T09:00:00Z"}]},
