@@ -163,6 +163,16 @@ def test_refuses_over_http_when_switched_off(monkeypatch):
     assert body["error"]["status"] == "FAILED_PRECONDITION"
 
 
+def test_every_answer_carries_the_security_headers(running):
+    for path, method, body in (("/health", "GET", None), ("/interview", "POST", {"data": {}}), ("/nope", "GET", None)):
+        request = urllib.request.Request(f"{running}{path}", method=method, data=body and json.dumps(body).encode())
+        try:
+            headers = urllib.request.urlopen(request, timeout=5).headers
+        except urllib.error.HTTPError as error:
+            headers = error.headers
+        assert {name: headers[name] for name in api.SECURITY_HEADERS} == api.SECURITY_HEADERS, path
+
+
 def test_answers_errors_over_http_as_json(running):
     assert call(f"{running}/interview", "POST", body={"data": {}})[0] == 401
     assert call(f"{running}/health", "GET") == (200, {"ok": True})

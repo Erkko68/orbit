@@ -51,6 +51,7 @@ Entitlements (#117, #120) and push notices to other members (#102) need a server
 - What the model answers is checked before it reaches the app. An answer that is not valid is an `UNAVAILABLE` error, never passed on.
 - What the assistant returns is a proposal. The server never writes it to Firestore; the app saves it only after the user confirms.
 - Every assistant flow has a manual path in the app.
+- Every answer carries `X-Content-Type-Options: nosniff`, `Cache-Control: no-store` and `Strict-Transport-Security` (`SECURITY_HEADERS` in `api.py`, #324, from the OWASP ZAP scan).
 
 ## The interview
 

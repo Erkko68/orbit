@@ -24,6 +24,14 @@ HTTP_STATUS = {
 # Values of ASSISTANT_ENABLED that switch the assistant off (#68). Anything else, or nothing, leaves it on.
 OFF = {"false", "0", "no", "off"}
 
+# Sent with every answer (#324, from the OWASP ZAP scan): the body is JSON and never to be sniffed as something else,
+# an interview belongs to one user so nothing on the way keeps a copy, and the server is only reached over HTTPS.
+SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "Cache-Control": "no-store",
+    "Strict-Transport-Security": "max-age=31536000",
+}
+
 
 def assistant_enabled(env: Mapping[str, str]) -> bool:
     """Whether the kill switch is left alone: ASSISTANT_ENABLED in the environment says `false` to turn it off."""
@@ -98,6 +106,8 @@ def handler(
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
+            for name, value in SECURITY_HEADERS.items():
+                self.send_header(name, value)
             self.end_headers()
             self.wfile.write(data)
 
