@@ -36,6 +36,9 @@ ITEM_SCHEMA = PLAN_SCHEMA["properties"]["items"]["items"]
 # The item rules the app's validateItem has too.
 TITLE_MAX_LENGTH = 120
 
+# What the space's assistantSummary may hold, as the rules allow.
+SUMMARY_MAX_LENGTH = PLAN_SCHEMA["properties"]["summary"]["maxLength"]
+
 
 def checked_plan(plan: object, handles: set[str]) -> dict:
     """The model's [plan] without the items that break the schemas or the rules, each logged with why. [handles] are
@@ -43,6 +46,11 @@ def checked_plan(plan: object, handles: set[str]) -> dict:
     version, or a space that is not one."""
     if not isinstance(plan, dict) or plan.get("version") != PLAN_VERSION or not isinstance(plan.get("items"), list):
         raise ValueError(f"not a plan of version {PLAN_VERSION}")
+    # The summary only feeds the next conversation: a bad one is not worth the plan. Too long is cut, not text dropped.
+    summary = plan.get("summary")
+    plan = {key: value for key, value in plan.items() if key != "summary"}
+    if isinstance(summary, str) and summary.strip():
+        plan["summary"] = summary.strip()[:SUMMARY_MAX_LENGTH]
     shape = {key: value for key, value in plan.items() if key != "items"}
     plan_errors = schema_errors({**shape, "items": []}, PLAN_SCHEMA)
     if "space" in plan:
@@ -109,7 +117,8 @@ def _date_errors(modules: dict) -> list[str]:
 
 def _people_and_entry_errors(modules: dict, handles: set[str]) -> list[str]:
     errors = []
-    outsiders = set(modules.get("assignment", {}).get("assignees", [])) - handles
+    assignment = modules.get("assignment", {})
+    outsiders = set(assignment.get("assignees", []) + assignment.get("order", [])) - handles
     if outsiders:
         errors.append(f"{', '.join(sorted(outsiders))} not in the space")
     if any(not entry["text"].strip() for entry in modules.get("checklist", {}).get("entries", [])):

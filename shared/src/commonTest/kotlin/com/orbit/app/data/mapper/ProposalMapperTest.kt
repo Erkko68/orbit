@@ -5,6 +5,7 @@ import com.orbit.app.domain.model.AssistantError
 import com.orbit.app.domain.model.AssistantException
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.ChecklistEntry
+import com.orbit.app.domain.model.Effort
 import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Plan
@@ -20,6 +21,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNull
 import kotlin.time.Duration.Companion.minutes
 
 class ProposalMapperTest {
@@ -64,6 +66,39 @@ class ProposalMapperTest {
             ),
             item,
         )
+    }
+
+    @Test
+    fun readsARotationInItsOrderAndTheEffort() {
+        val proposal = item(
+            """"schedule":{"date":"2026-11-21"},"recurrence":{"unit":"week","every":1,"weekdays":[6]},""" +
+                """"assignment":{"mode":"rotation","order":["m2","m1"]},"effort":{"points":3}""",
+        )
+
+        val modules = plan(proposal).items.single().modules
+
+        assertEquals(Assignment.Rotation(listOf("uid-biel", "uid-ana"), current = "uid-biel"), modules.assignment)
+        assertEquals(Effort(3), modules.effort)
+    }
+
+    @Test
+    fun dropsARotationWithSomeoneOutsideTheSpaceOrAnEffortOffTheScale() {
+        assertEquals(emptyList(), plan(item(""""assignment":{"mode":"rotation","order":["m1","m3"]}""")).items)
+        assertEquals(emptyList(), plan(item(""""assignment":{"mode":"rotation","order":[]}""")).items)
+        assertEquals(emptyList(), plan(item(""""assignment":{"mode":"rotation","order":["m1"]}""")).items)
+        assertEquals(emptyList(), plan(item(""""assignment":{"mode":"rotation","order":["m1","m1"]}""")).items)
+        assertEquals(emptyList(), plan(item(""""effort":{"points":6}""")).items)
+    }
+
+    @Test
+    fun readsTheSummaryAndIgnoresOneThatIsNotText() {
+        fun summary(field: String) =
+            planOf(Json.parseToJsonElement("""{"version":1,"summary":$field,"items":[${item("")}]}""").jsonObject, members).summary
+
+        assertEquals("Three flatmates.", summary("\" Three flatmates. \""))
+        assertEquals(1000, summary("\"${"x".repeat(1200)}\"")?.length)
+        assertNull(summary("3"))
+        assertNull(summary("\" \""))
     }
 
     @Test

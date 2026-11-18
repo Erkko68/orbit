@@ -289,6 +289,12 @@
     <string name="interview_loading">Thinking…</string>
     <string name="interview_answer_placeholder">Answer in your own words</string>
     <string name="interview_send">Send</string>
+    <string name="interview_progress">Question %1$d of %2$d</string>
+    <string name="interview_back">Back</string>
+    <string name="interview_skip">Skip</string>
+    <string name="interview_decide">Decide for me</string>
+    <string name="interview_skipped">Skipped</string>
+    <string name="interview_decided">%1$s (the assistant chose)</string>
     <string name="interview_error_network_title">Can&apos;t connect</string>
     <string name="interview_error_network">Check your internet and try again. Your answers so far are kept.</string>
     <string name="interview_error_quota_title">That&apos;s all for now</string>
@@ -478,6 +484,7 @@
         <item quantity="other">Adds %2$d items to %1$s.</item>
     </plurals>
     <string name="plan_confirm">Confirm</string>
+    <string name="plan_confirm_remember">What the assistant will remember about this space</string>
     <string name="plan_save_failed">The plan could not be saved, so nothing was added. Try again.</string>
     <string name="effort_title">Effort</string>
     <string name="effort_add">Add effort</string>

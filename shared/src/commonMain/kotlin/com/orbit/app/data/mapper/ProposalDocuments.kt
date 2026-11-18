@@ -11,12 +11,17 @@ import kotlinx.serialization.Serializable
 /** The version of `plan.v<n>.json` this app reads. */
 internal const val PLAN_VERSION = 1
 
+/** How long the assistant's summary of a space may be, as `plan.v1.json` and the rules allow. */
+internal const val ASSISTANT_SUMMARY_MAX_LENGTH = 1000
+
 /** `plan.v1.json`: the new space when the interview was for one, and the items to add. */
 @Serializable
 internal data class PlanDocument(
     val version: Int,
     val space: SpaceProposalDocument? = null,
     val items: List<ItemProposalDocument>,
+    /** What the assistant knows about the space. [planOf] reads it on its own, so an odd one never costs the plan. */
+    val summary: String? = null,
 )
 
 /** `space.v1.json`. [accent] is an index into the space colours, as a space stores it. */
@@ -38,6 +43,7 @@ internal data class ProposedModulesDocument(
     val assignment: ProposedAssignmentDocument? = null,
     val checklist: ProposedChecklistDocument? = null,
     val reminder: ProposedReminderDocument? = null,
+    val effort: ProposedEffortDocument? = null,
 )
 
 @Serializable
@@ -61,9 +67,16 @@ internal data class ProposedRecurrenceDocument(
     val until: String? = null,
 )
 
-/** `member` with the [assignees] by their handle in the request (`m1`), never a uid, or `anyone` without them. */
+/**
+ * `member` with the [assignees], `rotation` with the [order] they take turns in (the first has it now), or `anyone`.
+ * Members go by their handle in the request (`m1`), never a uid.
+ */
 @Serializable
-internal data class ProposedAssignmentDocument(val mode: String, val assignees: List<String> = emptyList())
+internal data class ProposedAssignmentDocument(
+    val mode: String,
+    val assignees: List<String> = emptyList(),
+    val order: List<String> = emptyList(),
+)
 
 /** The entries in order. The app gives them their ids when it saves them. */
 @Serializable
@@ -74,3 +87,6 @@ internal data class ProposedEntryDocument(val text: String, val quantity: Int? =
 
 @Serializable
 internal data class ProposedReminderDocument(val offsetsMinutes: List<Int>)
+
+@Serializable
+internal data class ProposedEffortDocument(val points: Int)

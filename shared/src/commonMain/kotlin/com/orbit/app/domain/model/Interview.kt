@@ -15,13 +15,22 @@ data class InterviewQuestion(
     val freeText: Boolean,
     val position: Int,
     val budget: Int,
+    /** What the assistant would answer: one of [options], or a few words. "Decide for me" answers with it (#74). */
+    val suggestion: String? = null,
 )
 
 /**
  * What the user answered to the question [questionId], whose text was [question]: the chips they picked and what they
- * wrote, either may be empty. The server keeps no state, so the question goes back with its answer (#66).
+ * wrote, either may be empty, or both when they skipped it. The server keeps no state, so the question goes back with its answer (#66).
  */
-data class InterviewAnswer(val questionId: String, val question: String, val selected: Set<String>, val text: String)
+data class InterviewAnswer(
+    val questionId: String,
+    val question: String,
+    val selected: Set<String>,
+    val text: String,
+    /** The user let the assistant answer with its suggestion (#74). Nothing selected nor written is a skip. */
+    val decided: Boolean = false,
+)
 
 /** What the assistant does with the answers so far: ask the next question, or say it has a plan to propose. */
 sealed interface InterviewStep {

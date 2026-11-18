@@ -12,11 +12,16 @@ import kotlin.time.Instant
 
 private val json = Json { ignoreUnknownKeys = true }
 
-/** What the interview is about: the device's [language] and day, and the space's member names and item titles. */
+/**
+ * What the interview is about: the device's [language] and day, and the space's name and what the assistant already
+ * knows about it (both empty for a new one), member names, the user's first, and item titles.
+ */
 internal data class InterviewContext(
     val language: String,
     val today: LocalDate,
     val newSpace: Boolean,
+    val spaceName: String,
+    val assistantSummary: String,
     val memberNames: List<String>,
     val itemTitles: List<String>,
 )
@@ -26,12 +31,14 @@ internal fun interviewRequest(answers: List<InterviewAnswer>, context: Interview
     InterviewRequest.serializer(),
     InterviewRequest(
         InterviewRequestData(
-            answers = answers.map { AnswerDocument(it.questionId, it.question, it.selected.toList(), it.text) },
+            answers = answers.map { AnswerDocument(it.questionId, it.question, it.selected.toList(), it.text, it.decided) },
             language = context.language,
             today = context.today.toString(),
             newSpace = context.newSpace,
             members = context.memberNames.mapIndexed { index, name -> InterviewMemberDocument(name.ifBlank { "Member ${index + 1}" }) },
             items = context.itemTitles,
+            space = context.spaceName,
+            summary = context.assistantSummary,
         ),
     ),
 )
@@ -59,7 +66,10 @@ internal fun interviewStep(body: String, members: List<String>): InterviewStep {
     val text = step.text
     if (id.isNullOrBlank() || text.isNullOrBlank()) throw AssistantException(AssistantError.UNAVAILABLE)
     return InterviewStep.Ask(
-        InterviewQuestion(id, text, step.options, step.multiSelect, step.freeText, step.position, step.budget),
+        InterviewQuestion(
+            id, text, step.options, step.multiSelect, step.freeText, step.position, step.budget,
+            step.suggestion?.takeIf(String::isNotBlank),
+        ),
     )
 }
 

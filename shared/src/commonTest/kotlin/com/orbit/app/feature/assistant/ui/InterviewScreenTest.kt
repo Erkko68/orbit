@@ -6,10 +6,15 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasScrollToIndexAction
+import androidx.compose.ui.test.hasScrollToNodeAction
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.v2.runComposeUiTest
@@ -76,6 +81,8 @@ class InterviewScreenTest : ComposeTest() {
         onNodeWithContentDescription("Send").assertIsEnabled().performClick()
 
         onNodeWithText("Which rooms?").assertIsDisplayed()
+        // The chat stays on the newest question: the earlier ones are above it, composed only once scrolled to.
+        onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Who lives there?"))
         onNodeWithText("Who lives there?").assertIsDisplayed()
         onNodeWithText("Family").assertIsDisplayed()
         onNodeWithText("Roommates").assertDoesNotExist()
@@ -93,6 +100,35 @@ class InterviewScreenTest : ComposeTest() {
 
         onNodeWithText("Question 6?").assertIsDisplayed()
         onNodeWithText("Answer 6").assertIsDisplayed()
+    }
+
+    @Test
+    fun showsTheProgressAndSkipsGoesBackAndDecides() = runComposeUiTest {
+        val suggested = who.copy(suggestion = "Family")
+        show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(suggested), InterviewStep.Ask(rooms), InterviewStep.Ask(rooms))))
+
+        onNodeWithText("Question 1 of 8").assertIsDisplayed()
+        onNodeWithText("Back").assertDoesNotExist()
+        tapOnQuestion("Skip")
+        onNodeWithText("Skipped").assertIsDisplayed()
+        onNodeWithText("Question 2 of 8").assertIsDisplayed()
+        onNodeWithText("Decide for me").assertDoesNotExist()
+
+        tapOnQuestion("Back")
+        onNodeWithText("Skipped").assertDoesNotExist()
+        onNodeWithText("Question 1 of 8").assertIsDisplayed()
+        tapOnQuestion("Decide for me")
+
+        onNodeWithText("Family (the assistant chose)").assertIsDisplayed()
+    }
+
+    /**
+     * Taps a control of the waiting question. The chat runs under the composer, so scrolling to the control can leave it
+     * there in the small test window: scrolled to the newest message, the question clears the composer.
+     */
+    private fun ComposeUiTest.tapOnQuestion(text: String) {
+        onNode(hasScrollToIndexAction()).performScrollToIndex(0)
+        onNodeWithText(text).performClick()
     }
 
     @Test

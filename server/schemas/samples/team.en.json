@@ -1,5 +1,6 @@
 {
   "version": 1,
+  "summary": "A team of three sharing the office chores. They take turns on the kitchen.",
   "items": [
     {
       "title": "Book the meeting room",
@@ -10,6 +11,18 @@
       "title": "Water the office plants",
       "modules": {
         "assignment": {"mode": "anyone"}
+      }
+    },
+    {
+      "title": "Clean the kitchen",
+      "description": "Dishwasher, counters and the fridge shelf.",
+      "modules": {
+        "schedule": {"date": "2026-11-20", "time": "17:00", "durationMinutes": 30},
+        "recurrence": {"unit": "week", "every": 1, "weekdays": [5]},
+        "assignment": {"mode": "rotation", "order": ["m2", "m1", "m3"]},
+        "checklist": {"entries": [{"text": "Empty the dishwasher"}, {"text": "Wipe the counters"}, {"text": "Clear the fridge shelf"}]},
+        "reminder": {"offsetsMinutes": [60]},
+        "effort": {"points": 3}
       }
     }
   ]

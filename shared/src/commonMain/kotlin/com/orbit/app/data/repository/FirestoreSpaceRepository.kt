@@ -204,6 +204,7 @@ class FirestoreSpaceRepository(
             accent = document.field("accent"),
             memberIds = document.field("memberIds"),
             formerMembers = document.field("formerMembers"),
+            assistantSummary = document.field("assistantSummary"),
         ).also {
             if (it == null) Logger.w { "Skipping the malformed space ${document.id}" }
         }

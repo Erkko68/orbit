@@ -20,10 +20,20 @@ internal data class InterviewRequestData(
     val newSpace: Boolean,
     val members: List<InterviewMemberDocument>,
     val items: List<String>,
+    /** The space's name, left out for a new space. */
+    val space: String = "",
+    /** What the assistant learned about the space in earlier conversations, left out while it knows nothing. */
+    val summary: String = "",
 )
 
 @Serializable
-internal data class AnswerDocument(val questionId: String, val question: String, val selected: List<String>, val text: String)
+internal data class AnswerDocument(
+    val questionId: String,
+    val question: String,
+    val selected: List<String>,
+    val text: String,
+    val decided: Boolean = false,
+)
 
 @Serializable
 internal data class InterviewMemberDocument(val name: String)
@@ -41,6 +51,7 @@ internal data class StepDocument(
     val freeText: Boolean = false,
     val position: Int = 0,
     val budget: Int = 0,
+    val suggestion: String? = null,
     val plan: JsonObject? = null,
 )
 

@@ -24,6 +24,8 @@ services:
       ASSISTANT_DAILY_QUOTA: ${ASSISTANT_DAILY_QUOTA:-50}
       ASSISTANT_MONTHLY_QUOTA: ${ASSISTANT_MONTHLY_QUOTA:-500}
       QUOTA_DB: /data/quota.sqlite3
+      # How many questions an interview asks at most before the assistant proposes (#74).
+      QUESTION_BUDGET: ${QUESTION_BUDGET:-5}
       MODEL_URL: http://ollama:11434/v1
     volumes:
       - quota:/data

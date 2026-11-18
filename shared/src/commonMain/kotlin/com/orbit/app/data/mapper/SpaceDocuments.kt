@@ -3,7 +3,7 @@ package com.orbit.app.data.mapper
 import dev.gitlive.firebase.firestore.Timestamp
 import kotlinx.serialization.Serializable
 
-/** `spaces/{spaceId}` as written (ADR 0002). The server sets [createdAt]. */
+/** `spaces/{spaceId}` as written (ADR 0002). The server sets [createdAt]. [assistantSummary] is empty until a plan sets it. */
 @Serializable
 internal class SpaceDocument(
     val name: String,
@@ -12,6 +12,7 @@ internal class SpaceDocument(
     val createdBy: String,
     val ownerId: String,
     val createdAt: Timestamp.ServerTimestamp,
+    val assistantSummary: String = "",
 )
 
 /**

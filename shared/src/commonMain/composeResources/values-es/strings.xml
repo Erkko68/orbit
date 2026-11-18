@@ -289,6 +289,12 @@
     <string name="interview_loading">Pensando…</string>
     <string name="interview_answer_placeholder">Responde con tus palabras</string>
     <string name="interview_send">Enviar</string>
+    <string name="interview_progress">Pregunta %1$d de %2$d</string>
+    <string name="interview_back">Atrás</string>
+    <string name="interview_skip">Saltar</string>
+    <string name="interview_decide">Decide tú</string>
+    <string name="interview_skipped">Saltada</string>
+    <string name="interview_decided">%1$s (lo eligió el asistente)</string>
     <string name="interview_error_network_title">No hay conexión</string>
     <string name="interview_error_network">Revisa tu internet y vuelve a intentarlo. Tus respuestas se guardan.</string>
     <string name="interview_error_quota_title">Por ahora es todo</string>
@@ -478,6 +484,7 @@
         <item quantity="other">Añade %2$d elementos a %1$s.</item>
     </plurals>
     <string name="plan_confirm">Confirmar</string>
+    <string name="plan_confirm_remember">Lo que el asistente recordará de este espacio</string>
     <string name="plan_save_failed">No se ha podido guardar el plan, así que no se ha añadido nada. Inténtalo de nuevo.</string>
     <string name="effort_title">Esfuerzo</string>
     <string name="effort_add">Añadir esfuerzo</string>

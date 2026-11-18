@@ -117,6 +117,19 @@ class PlanReviewScreenTest : ComposeTest() {
     }
 
     @Test
+    fun continueShowsWhatTheAssistantWillRemember() = runComposeUiTest {
+        val plan = PlanDraft().apply { propose(Plan(null, listOf(NewItem("Bins")), summary = "Three flatmates who take turns.")) }
+        val viewModel = PlanReviewViewModel("space-1", plan, plans, spaces, auth)
+        setContent { OrbitTheme { PlanReviewScreen("space-1", {}, {}, {}, viewModel) } }
+
+        onNodeWithText("Accept all").performScrollTo().performClick()
+        onNodeWithText("Continue").performClick()
+
+        onNodeWithText("What the assistant will remember about this space").assertIsDisplayed()
+        onNodeWithText("Three flatmates who take turns.").assertIsDisplayed()
+    }
+
+    @Test
     fun aNewSpaceSaysItWillBeCreated() = runComposeUiTest {
         val viewModel = PlanReviewViewModel("", draft(SpaceProposal("New flat", accent = 0)), plans, spaces, auth)
         setContent { OrbitTheme { PlanReviewScreen("", {}, {}, {}, viewModel) } }

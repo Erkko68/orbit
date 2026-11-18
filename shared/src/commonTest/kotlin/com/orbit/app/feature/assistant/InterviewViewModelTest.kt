@@ -256,6 +256,87 @@ class InterviewViewModelTest {
     }
 
     @Test
+    fun skipLeavesTheQuestionUnansweredAndMovesOn() {
+        val (assistant, viewModel) = started(listOf(InterviewStep.Ask(who), InterviewStep.Ask(rooms)))
+
+        viewModel.skip()
+
+        assertEquals(InterviewAnswer("q1", "Who lives there?", emptySet(), ""), assistant.calls[1].single())
+        val state = viewModel.uiState.value
+        assertEquals(rooms, state.question)
+        assertTrue(state.messages[1].skipped)
+    }
+
+    @Test
+    fun decideAnswersWithTheSuggestionAndShowsIt() {
+        val suggested = who.copy(suggestion = "Family")
+        val (assistant, viewModel) = started(listOf(InterviewStep.Ask(suggested), InterviewStep.Ask(rooms)))
+
+        assertTrue(viewModel.uiState.value.canDecide)
+        viewModel.decide()
+
+        assertEquals(InterviewAnswer("q1", "Who lives there?", setOf("Family"), "", decided = true), assistant.calls[1].single())
+        assertEquals(ChatMessage("Family", mine = true, decided = true), viewModel.uiState.value.messages[1])
+    }
+
+    @Test
+    fun aSuggestionInWordsIsWrittenAsTheAnswer() {
+        val words = who.copy(options = emptyList(), suggestion = "Three of us")
+        val (assistant, viewModel) = started(listOf(InterviewStep.Ask(words), InterviewStep.Ask(rooms)))
+
+        viewModel.decide()
+
+        assertEquals(InterviewAnswer("q1", "Who lives there?", emptySet(), "Three of us", decided = true), assistant.calls[1].single())
+    }
+
+    @Test
+    fun withoutASuggestionTheAssistantCannotDecide() {
+        val (assistant, viewModel) = started(listOf(InterviewStep.Ask(who)))
+
+        assertFalse(viewModel.uiState.value.canDecide)
+        viewModel.decide()
+
+        assertEquals(1, assistant.calls.size)
+    }
+
+    @Test
+    fun backReturnsToThePreviousQuestionWithItsAnswerKept() {
+        val (assistant, viewModel) = started(listOf(InterviewStep.Ask(who), InterviewStep.Ask(rooms), InterviewStep.Ask(rooms)))
+        assertFalse(viewModel.uiState.value.canGoBack)
+        viewModel.select("Family")
+        viewModel.onTextChange("two kids")
+        viewModel.send()
+
+        viewModel.back()
+
+        val state = viewModel.uiState.value
+        assertEquals(who, state.question)
+        assertEquals(setOf("Family"), state.selected)
+        assertEquals("two kids", state.text)
+        assertEquals(listOf(ChatMessage("Who lives there?", mine = false)), state.messages)
+        assertFalse(state.canGoBack)
+        assertEquals(2, assistant.calls.size)
+
+        viewModel.select("Roommates")
+        viewModel.send()
+        assertEquals(setOf("Roommates"), assistant.calls[2].single().selected)
+    }
+
+    @Test
+    fun backAfterAFailureReturnsToTheQuestionThatFailed() {
+        val (_, viewModel) = started(listOf(InterviewStep.Ask(who)), mapOf(1 to AssistantException(AssistantError.NETWORK)))
+        viewModel.select("Family")
+        viewModel.send()
+        assertEquals(AssistantError.NETWORK, viewModel.uiState.value.error)
+
+        viewModel.back()
+
+        assertNull(viewModel.uiState.value.error)
+        assertEquals(who, viewModel.uiState.value.question)
+        assertEquals(setOf("Family"), viewModel.uiState.value.selected)
+    }
+
+    @Test
     fun aRefusalCannotBeRetried() {
         val (quotaAssistant, quota) = started(emptyList(), mapOf(0 to AssistantException(AssistantError.QUOTA_EXCEEDED)))
         val (offAssistant, off) = started(emptyList(), mapOf(0 to AssistantException(AssistantError.DISABLED)))

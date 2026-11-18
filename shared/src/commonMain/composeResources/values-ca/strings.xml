@@ -289,6 +289,12 @@
     <string name="interview_loading">Pensant…</string>
     <string name="interview_answer_placeholder">Respon amb les teves paraules</string>
     <string name="interview_send">Envia</string>
+    <string name="interview_progress">Pregunta %1$d de %2$d</string>
+    <string name="interview_back">Enrere</string>
+    <string name="interview_skip">Omet</string>
+    <string name="interview_decide">Decideix tu</string>
+    <string name="interview_skipped">Omesa</string>
+    <string name="interview_decided">%1$s (ho ha triat l&apos;assistent)</string>
     <string name="interview_error_network_title">No hi ha connexió</string>
     <string name="interview_error_network">Revisa internet i torna-ho a provar. Les teves respostes es guarden.</string>
     <string name="interview_error_quota_title">Per ara ja està</string>
@@ -478,6 +484,7 @@
         <item quantity="other">Afegeix %2$d elements a %1$s.</item>
     </plurals>
     <string name="plan_confirm">Confirma</string>
+    <string name="plan_confirm_remember">El que l'assistent recordarà d'aquest espai</string>
     <string name="plan_save_failed">No s'ha pogut desar el pla, així que no s'ha afegit res. Torna-ho a provar.</string>
     <string name="effort_title">Esforç</string>
     <string name="effort_add">Afegeix esforç</string>
