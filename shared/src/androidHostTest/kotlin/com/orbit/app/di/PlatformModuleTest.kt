@@ -2,6 +2,7 @@ package com.orbit.app.di
 
 import android.app.Activity
 import com.orbit.app.core.designsystem.ComposeTest
+import com.orbit.app.core.network.Connectivity
 import com.orbit.app.core.notification.NotificationAccess
 import com.orbit.app.core.notification.NotificationScheduler
 import com.orbit.app.core.speech.Dictation
@@ -38,6 +39,7 @@ class PlatformModuleTest : ComposeTest() {
         assertNotNull(koin.get<NotificationScheduler>())
         assertNotNull(koin.get<NotificationAccess>())
         assertNotNull(koin.get<Dictation>())
+        assertNotNull(koin.get<Connectivity>())
         koinApp.close()
     }
 

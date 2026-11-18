@@ -28,6 +28,7 @@ import com.orbit.app.feature.spacehome.expenses.SpaceExpensesTab
 import com.orbit.app.feature.spacehome.items.SpaceItemsTab
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.account_title
+import orbit.shared.generated.resources.assistant_offline
 import orbit.shared.generated.resources.close
 import orbit.shared.generated.resources.expense_add
 import orbit.shared.generated.resources.ic_sparkle
@@ -105,7 +106,13 @@ fun SpaceHomeScreen(
                     closeDescription = stringResource(Res.string.close),
                     actions = listOf(
                         OrbitAddMenuAction(stringResource(Res.string.space_new_task), Res.drawable.ic_task, onNewItem),
-                        OrbitAddMenuAction(stringResource(Res.string.space_assistant), Res.drawable.ic_sparkle, onOpenAssistant),
+                        OrbitAddMenuAction(
+                            label = stringResource(Res.string.space_assistant),
+                            icon = Res.drawable.ic_sparkle,
+                            enabled = state.online,
+                            supportingText = if (state.online) null else stringResource(Res.string.assistant_offline),
+                            onClick = onOpenAssistant,
+                        ),
                     ),
                 )
             } else {

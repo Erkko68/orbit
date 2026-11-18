@@ -6,6 +6,8 @@ import com.orbit.app.core.Load
 import com.orbit.app.core.PendingInvitation
 import com.orbit.app.core.asLoad
 import com.orbit.app.core.initialsOf
+import com.orbit.app.core.network.Connectivity
+import com.orbit.app.core.orOnFailure
 import com.orbit.app.core.valueOrNull
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.SpaceRepository
@@ -20,6 +22,7 @@ class SpaceViewModel(
     repository: SpaceRepository,
     auth: AuthRepository,
     pendingInvitation: PendingInvitation,
+    connectivity: Connectivity,
 ) : ViewModel() {
     private val retries = Channel<Unit>(Channel.CONFLATED)
 
@@ -32,7 +35,8 @@ class SpaceViewModel(
         spaceIds,
         auth.session,
         pendingInvitation.code,
-    ) { ids, user, waiting ->
+        connectivity.isOnline().orOnFailure("Observing the connection", true),
+    ) { ids, user, waiting, online ->
         SpaceUiState(
             invitationWaiting = waiting != null,
             loading = ids == Load.Loading,
@@ -40,6 +44,7 @@ class SpaceViewModel(
             userInitials = initialsOf(user?.displayName.orEmpty()),
             userPhotoUrl = user?.photoUrl,
             spaceIds = ids.valueOrNull.orEmpty(),
+            online = online,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SpaceUiState(loading = true))
 

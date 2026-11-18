@@ -23,11 +23,13 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.v2.runComposeUiTest
 import com.orbit.app.core.PendingInvitation
+import com.orbit.app.core.network.Connectivity
 import com.orbit.app.core.speech.Dictation
 import com.orbit.app.domain.repository.AssistantRepository
 import com.orbit.app.domain.model.InterviewQuestion
 import com.orbit.app.domain.model.InterviewStep
 import com.orbit.app.testing.ScriptedAssistantRepository
+import com.orbit.app.testing.FakeConnectivity
 import com.orbit.app.testing.FakeDictation
 import com.orbit.app.core.designsystem.ComposeTest
 import com.orbit.app.core.designsystem.theme.OrbitTheme
@@ -93,6 +95,7 @@ class OrbitNavHostTest : ComposeTest() {
                     single<InvitationRepository> { InMemoryInvitationRepository(auth) }
                     single<TextSharer> { TextSharer {} }
                     single<PlanRepository> { InMemoryPlanRepository(spaces, items) }
+                    single<Connectivity> { FakeConnectivity() }
                     single { ReminderSync(auth, spaces, items, RecordingNotificationScheduler(), MapSettings()) }
                 },
                 featureModule,

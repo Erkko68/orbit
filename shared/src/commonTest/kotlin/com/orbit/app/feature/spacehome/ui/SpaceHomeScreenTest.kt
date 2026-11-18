@@ -4,6 +4,8 @@ import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
@@ -20,6 +22,7 @@ import com.orbit.app.domain.model.ItemModules
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Schedule
 import com.orbit.app.feature.spacehome.SpaceHomeViewModel
+import com.orbit.app.testing.FakeConnectivity
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemoryLastSpaceRepository
@@ -41,7 +44,8 @@ class SpaceHomeScreenTest : ComposeTest() {
     private val auth = InMemoryAuthRepository()
     private val spaces = InMemorySpaceRepository(auth)
     private val items = InMemoryItemRepository(auth)
-    private val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository(), auth)
+    private val connectivity = FakeConnectivity()
+    private val viewModel = SpaceHomeViewModel("space-1", spaces, items, InMemoryLastSpaceRepository(), auth, connectivity)
     private var settingsOpened = 0
 
     // The items get their view models from Koin.
@@ -274,5 +278,39 @@ class SpaceHomeScreenTest : ComposeTest() {
         onNodeWithText("Plan with the assistant").performClick()
 
         assertEquals(1, opened)
+    }
+
+    @Test
+    fun theAddMenuDisablesTheAssistantOfflineAndKeepsNewTaskAvailable() = runComposeUiTest {
+        connectivity.setOnline(false)
+        var added = 0
+        var assistantOpened = 0
+        setContent {
+            OrbitTheme {
+                SpaceHomeScreen(
+                    "space-1",
+                    onBack = {},
+                    onOpenAccount = {},
+                    onOpenItem = {},
+                    onNewItem = { added++ },
+                    onOpenAssistant = { assistantOpened++ },
+                    onOpenSettings = {},
+                    viewModel = viewModel,
+                )
+            }
+        }
+        onNodeWithContentDescription("Add").performClick()
+        onNodeWithText("Plan with the assistant").assertIsNotEnabled().performClick()
+        onNodeWithText("The assistant needs a connection. You can still add items by hand.").assertIsDisplayed()
+        assertEquals(0, assistantOpened)
+
+        onNodeWithText("New task").assertIsEnabled().performClick()
+        assertEquals(1, added)
+
+        connectivity.setOnline(true)
+        onNodeWithContentDescription("Add").performClick()
+        onNodeWithText("The assistant needs a connection. You can still add items by hand.").assertDoesNotExist()
+        onNodeWithText("Plan with the assistant").assertIsEnabled().performClick()
+        assertEquals(1, assistantOpened)
     }
 }

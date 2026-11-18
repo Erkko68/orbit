@@ -70,6 +70,7 @@
     <!-- Spaces -->
     <string name="spaces_new">Nuovo spazio</string>
     <string name="spaces_setup_assistant">Configura con l’assistente</string>
+    <string name="assistant_offline">L&apos;assistente richiede una connessione. Puoi comunque aggiungere attività manualmente.</string>
     <string name="spaces_create_manually">Crea manualmente</string>
     <string name="spaces_create_name">Appartamento 4B</string>
     <string name="spaces_create">Crea spazio</string>

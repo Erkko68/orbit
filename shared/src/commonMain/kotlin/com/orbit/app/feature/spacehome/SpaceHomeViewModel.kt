@@ -3,6 +3,7 @@ package com.orbit.app.feature.spacehome
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.orbit.app.core.initialsOf
+import com.orbit.app.core.network.Connectivity
 import com.orbit.app.core.orOnFailure
 import com.orbit.app.domain.model.Item
 import com.orbit.app.domain.model.isDueFor
@@ -31,6 +32,7 @@ class SpaceHomeViewModel(
     items: ItemRepository,
     lastSpace: LastSpaceRepository,
     auth: AuthRepository,
+    connectivity: Connectivity,
 ) : ViewModel() {
     /** The destination. The rest stays empty: [uiState] fills it from the repositories. */
     private val form = MutableStateFlow(SpaceHomeUiState())
@@ -47,11 +49,13 @@ class SpaceHomeViewModel(
         .orOnFailure("Loading the items of $spaceId", null)
 
     val uiState: StateFlow<SpaceHomeUiState> = combine(
-        spaces.observeSpaces().orOnFailure("Loading the spaces", emptyList()),
-        spaces.observeMembers(spaceId).orOnFailure("Loading the members of $spaceId", emptyList()),
+        spaces.observeSpaces().onStart { emit(emptyList()) }.orOnFailure("Loading the spaces", emptyList()),
+        spaces.observeMembers(spaceId).onStart { emit(emptyList()) }.orOnFailure("Loading the members of $spaceId", emptyList()),
         loadedItems,
         auth.session,
-        form,
+        combine(form, connectivity.isOnline().orOnFailure("Observing the connection", true)) { state, online ->
+            state.copy(online = online)
+        },
     ) { allSpaces, members, loaded, user, form ->
         val space = allSpaces.firstOrNull { it.id == spaceId }
         val today = Clock.System.todayIn(TimeZone.currentSystemDefault())

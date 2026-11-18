@@ -2,6 +2,8 @@ package com.orbit.app.di
 
 import android.app.Application
 import android.content.Context
+import com.orbit.app.core.network.AndroidConnectivity
+import com.orbit.app.core.network.Connectivity
 import com.orbit.app.core.notification.AndroidNotificationAccess
 import com.orbit.app.core.notification.AndroidNotificationScheduler
 import com.orbit.app.core.notification.NotificationAccess
@@ -44,4 +46,5 @@ actual val platformModule = module {
     } bind NotificationScheduler::class
     single<NotificationAccess> { AndroidNotificationAccess(androidContext()) }
     single<Dictation> { AndroidDictation(androidContext()) }
+    single<Connectivity> { AndroidConnectivity(androidContext()) }
 }
