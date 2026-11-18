@@ -21,6 +21,7 @@ An ADR records one decision that shapes the code: the context, what was decided,
 | [0014](0014-item-cost-per-occurrence.md) | An item's cost is a planned expense, added to the ledger once per occurrence | Proposed |
 | [0015](0015-rotation-in-the-assignment.md) | A rotation is an assignment whose current turn is the one assignee | Proposed |
 | [0016](0016-effort-per-occurrence.md) | Optional effort is credited once per occurrence; fairness uses recent snapshots and current members | Proposed |
+| [0017](0017-monetisation-spike-revenuecat-and-admob.md) | RevenueCat and AdMob fit the stack; billing stays simulated until the team wants real stores | Proposed |
 
 ## Writing one
 
