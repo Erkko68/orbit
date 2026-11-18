@@ -303,8 +303,9 @@ class FirebaseAuthRepository(
         photoUrl = profile?.field("photoUrl"),
         fallbackDisplayName = displayName ?: email?.substringBefore('@'),
         fallbackPhotoUrl = photoURL,
-        email = email,
         aiConsent = profile?.instant("aiConsentAt") != null,
+    ).copy(
+        email = email,
         hasPassword = providerData.any { it.providerId == PASSWORD_PROVIDER },
         signsInWithGoogle = providerData.any { it.providerId == GOOGLE_PROVIDER },
     )
