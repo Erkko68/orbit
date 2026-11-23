@@ -71,14 +71,14 @@ The server keeps no state between calls (#64), so each call brings everything th
 - **Members go by name only**, never uid or email. The server gives each a handle by its place in the list (`m1`, `m2`), which is all the model sees of them, and the app maps a plan's handles back to uids in the same order. The user comes first, so `m1` is always the one talking to the assistant. A new space (`newSpace`) lists only the user; an existing one also sends its name (`space`), the first clue to what it is about, and `summary`, what the assistant learned about it before.
 - **The space's summary.** Every plan also writes `summary`: what the assistant knows about the space now, its last `summary` with what this conversation added, at most 1000 characters (`checked_plan` cuts a longer one and drops one that is not text, keeping the plan). The review shows it in the confirmation, and confirming saves it on the space (`assistantSummary`) with the items, so each conversation starts from the last one. The app writes it, not the server: the server has no Firebase credentials of its own and never learns whether the user confirmed.
 - **`language`** is the phone's (`es`, `ca`, `it`, `en`; anything else is English), and `today` its date, from which the plan's dates start.
-- **The steps.** The first question is always the same, asked without the model: a hello and "What do you want to organise?", in the user's words. While fewer than `QUESTION_BUDGET` (5, from the environment) questions are answered, the model is then asked for the next question with `prompts/question.v2.md`: the details of what the user asked for (for a trip: how many, where, how, when), then how to share the work. It can answer `ready` instead; then, or once the budget is spent, it writes the plan with `prompts/plan.v2.md` and `PLAN_SCHEMA`, which `checked_plan` checks before it leaves. A new space's plan must name the space, and assigns only to the user or anyone; an existing space's never proposes one.
+- **The steps.** The first question is always the same, asked without the model: a hello and "What do you want to organise?", in the user's words. The model is then asked with `prompts/question.v2.md` whether it needs to ask anything. It decides `ready` first, before it writes a question: a clear request ("a list with bread, tomatoes and eggs") is proposed straight away, and it asks only what changes the plan and cannot be guessed (for a trip: where and when), and how to share chores that repeat. How many questions it asks is its own call: it never sees a budget. Once `ready`, or past `MAX_QUESTIONS` (10, from the environment, only a safety net), it writes the plan with `prompts/plan.v2.md` and `PLAN_SCHEMA`, which `checked_plan` checks before it leaves. A new space's plan must name the space, and assigns only to the user or anyone; an existing space's never proposes one.
 - **The prompts** explain every module with examples, and walk through an example conversation and example items. The plan covers only what the user asked to organise, never the rest of their life, and shares the work as they said. The plan's prompt lays out the next 14 days with their weekday numbers, and its examples' dates are filled in from `today`, so a small model reads dates instead of working them out and never copies one in the past.
 - **Skip, Decide for me and Back (#74).** Each question carries a `suggestion`: what the model would answer, one of its options or a few words. "Decide for me" answers with it in the app and marks the answer `decided`, which the next prompt shows as "(chosen by the assistant)". A skipped answer has nothing selected nor written, and reads "(skipped)". Back happens in the app alone: the server keeps no state, so the next call simply sends fewer answers.
 - **The prompts are files** in `server/prompts/`, versioned in their names: a change that changes what the model is asked for gets a new version.
 
 | Call | HTTP | Body |
 |---|---|---|
-| Signed in, the next question | 200 | `{"result": {id, text, options, multiSelect, freeText, position, budget, suggestion}}`; `suggestion` only when there is one |
+| Signed in, the next question | 200 | `{"result": {id, text, options, multiSelect, freeText, position, suggestion}}`; `suggestion` only when there is one |
 | Signed in, the plan | 200 | `{"result": {"plan": …}}`, in the shape of [the catalogue](#the-catalogue) |
 | `data` is not an interview | 400 | `{"error": {"status": "INVALID_ARGUMENT", …}}`, before the model |
 | No token, or not a valid one | 401 | `{"error": {"status": "UNAUTHENTICATED", …}}` |
@@ -104,7 +104,7 @@ The server reads the environment when it starts, so after changing it recreate t
 
 ### The quota
 
-Each signed-in call to `POST /interview` counts against the caller's quota (#67): `ASSISTANT_DAILY_QUOTA` calls a UTC day and `ASSISTANT_MONTHLY_QUOTA` a UTC month. One interview takes a call per question plus one for the plan, so at most `QUESTION_BUDGET` + 1. The server keeps the counts itself, in SQLite (`QUOTA_DB`, on the `quota` volume in compose), out of every client's reach: it cannot sign in to Firestore, and a count the app could write is no limit.
+Each signed-in call to `POST /interview` counts against the caller's quota (#67): `ASSISTANT_DAILY_QUOTA` calls a UTC day and `ASSISTANT_MONTHLY_QUOTA` a UTC month. One interview takes a call per question plus one for the plan, so at most `MAX_QUESTIONS` + 1. The server keeps the counts itself, in SQLite (`QUOTA_DB`, on the `quota` volume in compose), out of every client's reach: it cannot sign in to Firestore, and a count the app could write is no limit.
 
 The count is checked after the token and before the model. A caller over either limit gets `RESOURCE_EXHAUSTED` with `resetsAt`, the start of the next UTC day or month, and the refused call does not count. A call the model then fails still counts: it reached the model. A caller without a valid token is never counted. Limits per plan come with #120.
 
@@ -161,7 +161,7 @@ The plan says which version it follows (`"version": 1`), and `PLAN_VERSION` is t
 | `FIREBASE_API_KEY` | | An `orbit-app-dev` API key allowed to call the Identity Toolkit API, to check ID tokens. Make one for the server in Google Cloud (Credentials → API key → restrict to Identity Toolkit API): the apps' keys are restricted to the apps. In `.env`, never committed |
 | `PUBLIC_URL` | | The server's public address (`https://…`). Sent as `Referer` on the token check, so the key can be restricted to that website |
 | `HOST`, `PORT` | `0.0.0.0`, `8080` | Where the server listens |
-| `ASSISTANT_MODEL` | `gemma4:e2b` | The Gemma tag in Ollama. The stack pulls it when it starts. `gemma4:e2b` is Gemma 4's smallest, made for phones, so it runs on a CPU in little memory; `gemma4:e4b` is the next size up |
+| `ASSISTANT_MODEL` | `gemma4:e4b` | The Gemma tag in Ollama. The stack pulls it when it starts. `gemma4:e4b` (4B effective parameters) still runs on a CPU, and follows the prompts much better than `gemma4:e2b`, Gemma 4's smallest, which kept asking questions it did not need |
 | `ASSISTANT_REASONING_EFFORT` | `none` | How long the model thinks before it answers, sent as `reasoning_effort`. `none` turns thinking off, so a question takes seconds instead of minutes on a CPU; `low`, `medium` or `high` turn it back on |
 | `ASSISTANT_ENABLED` | `true` | The kill switch: `false` (or `0`, `no`, `off`) turns the assistant off for everyone, and the app shows the manual path. See [the kill switch](#the-kill-switch) |
 | `ASSISTANT_DAILY_QUOTA`, `ASSISTANT_MONTHLY_QUOTA` | `50`, `500` | Each user's calls a UTC day and a UTC month. `0` refuses every call. See [the quota](#the-quota) |
@@ -194,7 +194,7 @@ pip install -r requirements-dev.txt
 pytest --cov
 ```
 
-To run it on your machine against Ollama there (`ollama pull gemma4:e2b` first):
+To run it on your machine against Ollama there (`ollama pull gemma4:e4b` first):
 
 ```sh
 FIREBASE_API_KEY=… MODEL_URL=http://localhost:11434/v1 python -m assistant

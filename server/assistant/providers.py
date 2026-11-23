@@ -32,6 +32,6 @@ def from_env(env: Mapping[str, str]) -> Generate:
     """Gemma on the Ollama next to the server: MODEL_URL and ASSISTANT_MODEL name them, ASSISTANT_REASONING_EFFORT how long it thinks."""
     return openai_compatible(
         env.get("MODEL_URL", "http://ollama:11434/v1"),
-        env.get("ASSISTANT_MODEL", "gemma4:e2b"),
+        env.get("ASSISTANT_MODEL", "gemma4:e4b"),
         env.get("ASSISTANT_REASONING_EFFORT", "none"),
     )

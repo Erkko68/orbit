@@ -1,7 +1,7 @@
 """The AI assistant's interview (#66), without the HTTP server around it so it can be tested with a fake model.
 
 The server keeps no state: each call brings the space's context and every answer so far. The model asks one question
-at a time, in the user's language, until it knows enough or the budget is spent; then it proposes a plan, which is
+at a time, in the user's language, and decides itself when it knows enough; then it proposes a plan, which is
 checked before it leaves (#65). Members reach the model by name and a handle for this request (m1, m2), never by uid
 or email.
 """
@@ -19,9 +19,9 @@ from assistant.proposals import PLAN_SCHEMA, checked_plan
 QUESTION_PROMPT = Template((PROMPTS / "question.v2.md").read_text(encoding="utf-8"))
 PLAN_PROMPT = Template((PROMPTS / "plan.v2.md").read_text(encoding="utf-8"))
 
-# How many questions an interview may ask, QUESTION_BUDGET in the environment. Once they are answered, the assistant
-# proposes with what it has (#74).
-QUESTION_BUDGET = int(os.environ.get("QUESTION_BUDGET", "5"))
+# The model decides how many questions it needs, and never sees this: it is only a safety net, MAX_QUESTIONS in the
+# environment, that bounds the request and the calls one interview spends. Past it, the assistant proposes with what it has.
+MAX_QUESTIONS = int(os.environ.get("MAX_QUESTIONS", "10"))
 
 # How far ahead the plan's prompt lays out the calendar, so the model reads weekdays instead of working them out.
 CALENDAR_DAYS = 14
@@ -44,20 +44,21 @@ MAX_TEXT = 300
 # What the assistant knows about a space, as it wrote it in the last plan and the space keeps it (the rules' limit).
 MAX_SUMMARY = 1000
 
-# What the model writes, as JSON Schema. The server adds the id, the position and the budget, which are not the
+# What the model writes, as JSON Schema. The server adds the id and the position, which are not the
 # model's to decide. [suggestion] is what the model would answer, for "Decide for me". [ready] says it knows enough to
-# propose instead.
+# propose instead. It comes first: the model writes the fields in order, so it decides whether to ask before it has
+# written a question it would then want to send.
 QUESTION_SCHEMA = {
     "type": "object",
     "properties": {
+        "ready": {"type": "boolean"},
         "text": {"type": "string"},
         "options": {"type": "array", "items": {"type": "string"}, "maxItems": 5},
         "multiSelect": {"type": "boolean"},
         "freeText": {"type": "boolean"},
         "suggestion": {"type": "string"},
-        "ready": {"type": "boolean"},
     },
-    "required": ["text", "options", "multiSelect", "freeText", "suggestion", "ready"],
+    "required": ["ready", "text", "options", "multiSelect", "freeText", "suggestion"],
     "additionalProperties": False,
 }
 
@@ -106,8 +107,8 @@ def parse_interview(data: object) -> Interview:
     if not isinstance(data, dict):
         raise ValueError("data is not an object")
     answers = data.get("answers", [])
-    if not isinstance(answers, list) or len(answers) > QUESTION_BUDGET:
-        raise ValueError(f"answers must be a list of at most {QUESTION_BUDGET}")
+    if not isinstance(answers, list) or len(answers) > MAX_QUESTIONS:
+        raise ValueError(f"answers must be a list of at most {MAX_QUESTIONS}")
     members = data.get("members", [])
     if not isinstance(members, list) or len(members) > MAX_MEMBERS:
         raise ValueError(f"members must be a list of at most {MAX_MEMBERS}")
@@ -187,7 +188,6 @@ def parse_question(answer: object, position: int) -> dict:
         "multiSelect": multi_select,
         "freeText": free_text,
         "position": position,
-        "budget": QUESTION_BUDGET,
     }
     if suggestion:
         question["suggestion"] = suggestion[:MAX_TEXT]
@@ -243,7 +243,7 @@ def example_dates(today: date) -> dict[str, str]:
 def next_step(uid: str | None, data: object, generate: Generate) -> dict:
     """
     The interview's next step for the signed-in caller [uid]: the next question, or `{"plan": …}` once the model has
-    enough or the budget is spent. A rejected call never reaches the AI.
+    enough or MAX_QUESTIONS are answered. A rejected call never reaches the AI.
     """
     if uid is None:
         raise AssistantError("UNAUTHENTICATED", "Sign in to use the assistant.")
@@ -255,7 +255,7 @@ def next_step(uid: str | None, data: object, generate: Generate) -> dict:
     if not asked:
         return opener(interview.language)
     try:
-        if asked < QUESTION_BUDGET:
+        if asked < MAX_QUESTIONS:
             answer = generate(_question_prompt(interview), QUESTION_SCHEMA)
             if not (isinstance(answer, dict) and answer.get("ready") is True):
                 return parse_question(answer, position=asked + 1)
@@ -274,7 +274,6 @@ def opener(language: str) -> dict:
         "multiSelect": False,
         "freeText": True,
         "position": 1,
-        "budget": QUESTION_BUDGET,
     }
 
 
@@ -282,7 +281,6 @@ def _question_prompt(interview: Interview) -> str:
     return QUESTION_PROMPT.substitute(
         context=context_text(interview),
         answers=answers_text(interview),
-        remaining=QUESTION_BUDGET - len(interview.answers),
         language=interview.language,
     )
 
