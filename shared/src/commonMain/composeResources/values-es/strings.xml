@@ -290,7 +290,6 @@
     <string name="interview_loading">Pensando…</string>
     <string name="interview_answer_placeholder">Responde con tus palabras</string>
     <string name="interview_send">Enviar</string>
-    <string name="interview_progress">Pregunta %1$d de %2$d</string>
     <string name="interview_back">Atrás</string>
     <string name="interview_skip">Saltar</string>
     <string name="interview_decide">Decide tú</string>

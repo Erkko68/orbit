@@ -4,8 +4,8 @@ import kotlin.time.Instant
 
 /**
  * One question of the assistant's interview, as the server sends it (#64): the chips in [options], several of them
- * when [multiSelect], and an answer in the user's words when [freeText]. [position] of [budget] says how far along
- * the interview is.
+ * when [multiSelect], and an answer in the user's words when [freeText]. How many questions come is the assistant's
+ * call, so a question says nothing about how far along the interview is.
  */
 data class InterviewQuestion(
     val id: String,
@@ -13,8 +13,6 @@ data class InterviewQuestion(
     val options: List<String>,
     val multiSelect: Boolean,
     val freeText: Boolean,
-    val position: Int,
-    val budget: Int,
     /** What the assistant would answer: one of [options], or a few words. "Decide for me" answers with it (#74). */
     val suggestion: String? = null,
 )

@@ -67,7 +67,7 @@ internal fun interviewStep(body: String, members: List<String>): InterviewStep {
     if (id.isNullOrBlank() || text.isNullOrBlank()) throw AssistantException(AssistantError.UNAVAILABLE)
     return InterviewStep.Ask(
         InterviewQuestion(
-            id, text, step.options, step.multiSelect, step.freeText, step.position, step.budget,
+            id, text, step.options, step.multiSelect, step.freeText,
             step.suggestion?.takeIf(String::isNotBlank),
         ),
     )
