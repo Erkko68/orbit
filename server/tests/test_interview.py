@@ -145,17 +145,20 @@ def test_asks_the_next_question_with_the_space_and_what_was_answered():
     assert "Q: Who lives there?\nA: Family, two kids" in prompt
     # How many questions to ask is the model's to decide: the prompt names no budget.
     assert "at most" not in prompt
-    assert "and the suggestion in Spanish." in prompt
-    assert "earlier conversations" not in prompt
+    assert "# The user's language\n\nSpanish" in prompt
+    # What changes between calls comes last, so the model reuses its cache of the fixed text before it.
+    assert prompt.index("# The space") < prompt.index("# The conversation so far")
+    assert prompt.endswith("Q: Who lives there?\nA: Family, two kids\n")
 
 
-def test_what_earlier_conversations_learned_reaches_both_prompts():
+def test_the_plan_prompt_ends_with_what_changes_between_calls():
     model = Model(question=valid(ready=True))
 
-    next_step(SIGNED_IN, interview([ANSWER], summary=" Four friends going to Lisbon. "), model)
+    next_step(SIGNED_IN, interview([ANSWER]), model)
 
-    assert all("told you about this space:\nFour friends going to Lisbon." in prompt for prompt, _ in model.prompts)
-    assert "Also write summary" in model.prompts[1][0]
+    prompt = model.prompts[1][0]
+    assert prompt.index("# Rules") < prompt.index("Today is") < prompt.index("# The space") < prompt.index("# The conversation")
+    assert "summary" not in prompt
 
 
 def test_once_the_model_is_ready_it_proposes_the_checked_plan_for_the_space():
@@ -209,7 +212,7 @@ def test_an_unknown_language_is_english():
     next_step(SIGNED_IN, interview([ANSWER], language="fr"), model)
     next_step(SIGNED_IN, interview([ANSWER], language=["es"]), model)
 
-    assert all("and the suggestion in English." in prompt for prompt, _ in model.prompts)
+    assert all("# The user's language\n\nEnglish" in prompt for prompt, _ in model.prompts)
     assert next_step(SIGNED_IN, interview(language="fr"), model)["text"].startswith("Hi! What do you want to organise?")
 
 
@@ -220,7 +223,7 @@ def test_the_prompt_text_comes_from_the_versioned_prompt_files():
 
     assert "The user's first answer says what they want to organise" in model.prompts[0][0]
     assert "- (none listed)" in model.prompts[0][0]
-    assert "and the suggestion in English." in model.prompts[0][0]
+    assert "# The user's language\n\nEnglish" in model.prompts[0][0]
 
 
 @pytest.mark.parametrize(
@@ -238,7 +241,6 @@ def test_the_prompt_text_comes_from_the_versioned_prompt_files():
         {"items": [3]},
         {"today": "tomorrow"},
         {"space": 3},
-        {"summary": ["A trip"]},
     ],
 )
 def test_rejects_what_is_not_an_interview_before_the_model(data):

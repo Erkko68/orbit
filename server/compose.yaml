@@ -39,10 +39,12 @@ services:
     # Not published: only the assistant reaches the model, over the compose network.
     volumes:
       - ollama:/root/.ollama
+    # Checked every 5s while it starts, then once a minute, so the log is not a health check every 5 seconds.
     healthcheck:
       test: ["CMD", "ollama", "list"]
-      interval: 5s
-      retries: 30
+      start_period: 150s
+      start_interval: 5s
+      interval: 60s
 
   # Pulls ASSISTANT_MODEL into Ollama, then exits. A model already in the volume is only checked, so restarts are quick.
   model:

@@ -77,14 +77,6 @@ class PlanReviewViewModelTest {
     }
 
     @Test
-    fun showsWhatTheAssistantWillRememberOnlyWhenItWroteIt() = runTest {
-        val remembering = PlanDraft().apply { propose(Plan(null, listOf(bins), summary = "Three flatmates.")) }
-
-        assertEquals("Three flatmates.", board(remembering).uiState.value.assistantSummary)
-        assertNull(board(draft()).uiState.value.assistantSummary)
-    }
-
-    @Test
     fun theCheckAcceptsAProposalAndTakesItBack() = runTest {
         val plan = draft()
         val viewModel = board(plan)

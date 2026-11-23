@@ -91,17 +91,6 @@ class ProposalMapperTest {
     }
 
     @Test
-    fun readsTheSummaryAndIgnoresOneThatIsNotText() {
-        fun summary(field: String) =
-            planOf(Json.parseToJsonElement("""{"version":1,"summary":$field,"items":[${item("")}]}""").jsonObject, members).summary
-
-        assertEquals("Three flatmates.", summary("\" Three flatmates. \""))
-        assertEquals(1000, summary("\"${"x".repeat(1200)}\"")?.length)
-        assertNull(summary("3"))
-        assertNull(summary("\" \""))
-    }
-
-    @Test
     fun readsTheNewSpace() {
         assertEquals(SpaceProposal("Flat", 2), plan(item(""), space = """{"name":" Flat ","accent":2}""").space)
     }

@@ -47,10 +47,7 @@ internal fun planOf(plan: JsonObject, members: List<String>): Plan {
             ?.let { SpaceProposal(it.name.trim(), it.accent) }
             ?: throw AssistantException(AssistantError.UNAVAILABLE)
     }
-    // The summary only feeds the next conversation: a missing or odd one costs nothing but that.
-    val summary = (plan["summary"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.trim()
-        ?.takeIf(String::isNotEmpty)?.take(ASSISTANT_SUMMARY_MAX_LENGTH)
-    return Plan(space, items.mapIndexedNotNull { index, element -> itemOf(index, element, members) }, summary)
+    return Plan(space, items.mapIndexedNotNull { index, element -> itemOf(index, element, members) })
 }
 
 private fun itemOf(index: Int, element: JsonElement, members: List<String>): NewItem? {

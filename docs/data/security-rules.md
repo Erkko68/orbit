@@ -76,7 +76,7 @@ Read and written by its owner only. A `displayName` written is at most 30 charac
 
 - **Read:** a member.
 - **Create:** `memberIds` is exactly `[caller]`, `createdBy` and `ownerId` are the caller, `createdAt` is the server time, `name` is a non-blank string, `accent` an integer. Others join through an invitation (#25), never by being written in.
-- **Update:** an owner or admin, without changing `createdBy`, `createdAt` or `ownerId`, without adding to `memberIds`, and leaving `name` a non-blank string and `accent` an integer (`hasValidSpaceFields`): this is how the space settings change the name and the colour. Or any member changing `assistantSummary` alone, a string of at most 1000 characters (`writesAssistantSummary`): a plain member's confirmed plan saves what the assistant learned. Or the space half of a join, a leave or a transfer (below). A new space may start with `assistantSummary` too, under the same limit.
+- **Update:** an owner or admin, without changing `createdBy`, `createdAt` or `ownerId`, without adding to `memberIds`, and leaving `name` a non-blank string and `accent` an integer (`hasValidSpaceFields`): this is how the space settings change the name and the colour. Or the space half of a join, a leave or a transfer (below).
 - **Delete:** the owner. The members and items stay behind, and nobody can read them: `isMember` needs the space (ADR 0004).
 
 ### Joining a space

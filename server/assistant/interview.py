@@ -16,8 +16,8 @@ from string import Template
 from assistant import PROMPTS
 from assistant.proposals import PLAN_SCHEMA, checked_plan
 
-QUESTION_PROMPT = Template((PROMPTS / "question.v2.md").read_text(encoding="utf-8"))
-PLAN_PROMPT = Template((PROMPTS / "plan.v2.md").read_text(encoding="utf-8"))
+QUESTION_PROMPT = Template((PROMPTS / "question.v3.md").read_text(encoding="utf-8"))
+PLAN_PROMPT = Template((PROMPTS / "plan.v3.md").read_text(encoding="utf-8"))
 
 # The model decides how many questions it needs, and never sees this: it is only a safety net, MAX_QUESTIONS in the
 # environment, that bounds the request and the calls one interview spends. Past it, the assistant proposes with what it has.
@@ -41,8 +41,6 @@ OPENERS = {
 MAX_MEMBERS = 50
 MAX_ITEMS = 100
 MAX_TEXT = 300
-# What the assistant knows about a space, as it wrote it in the last plan and the space keeps it (the rules' limit).
-MAX_SUMMARY = 1000
 
 # What the model writes, as JSON Schema. The server adds the id and the position, which are not the
 # model's to decide. [suggestion] is what the model would answer, for "Decide for me". [ready] says it knows enough to
@@ -98,8 +96,6 @@ class Interview:
     items: list[str]
     # The space's name, empty for a new space.
     space: str = ""
-    # What the assistant learned about the space in earlier conversations, as its last plan summed it up.
-    summary: str = ""
 
 
 def parse_interview(data: object) -> Interview:
@@ -126,7 +122,6 @@ def parse_interview(data: object) -> Interview:
                  for index, member in enumerate(members, start=1)],
         items=[title[:MAX_TEXT] for title in items[:MAX_ITEMS]],
         space=_optional_text(data.get("space"), "space"),
-        summary=_optional_text(data.get("summary"), "summary", MAX_SUMMARY),
     )
 
 
@@ -204,10 +199,7 @@ def context_text(interview: Interview) -> str:
         space = "The space already exists. Its members, the user first:"
     members = "\n".join(f"- {handle}: {name}" for handle, name in interview.members) or "- (none listed)"
     items = "\n".join(f"- {title}" for title in interview.items) or "- (none yet)"
-    context = f"{space}\n{members}\n\nItems the space already has:\n{items}"
-    if interview.summary:
-        context += f"\n\nWhat earlier conversations told you about this space:\n{interview.summary}"
-    return context
+    return f"{space}\n{members}\n\nItems the space already has:\n{items}"
 
 
 def answers_text(interview: Interview) -> str:
