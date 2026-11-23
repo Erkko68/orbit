@@ -12,7 +12,6 @@ import com.orbit.app.core.designsystem.component.OrbitButton
 import com.orbit.app.core.designsystem.component.OrbitEmptyState
 import com.orbit.app.core.designsystem.component.OrbitErrorText
 import com.orbit.app.core.designsystem.component.OrbitGroup
-import com.orbit.app.core.designsystem.component.OrbitHeading
 import com.orbit.app.core.designsystem.component.OrbitIconButton
 import com.orbit.app.core.designsystem.component.OrbitScreen
 import com.orbit.app.core.designsystem.component.OrbitSectionHeader
@@ -32,7 +31,6 @@ import orbit.shared.generated.resources.plan_accepted_count
 import orbit.shared.generated.resources.plan_confirm
 import orbit.shared.generated.resources.plan_confirm_items
 import orbit.shared.generated.resources.plan_confirm_new_space
-import orbit.shared.generated.resources.plan_confirm_remember
 import orbit.shared.generated.resources.plan_confirm_title
 import orbit.shared.generated.resources.plan_continue
 import orbit.shared.generated.resources.plan_empty
@@ -126,7 +124,6 @@ fun PlanReviewScreen(
             confirmEnabled = state.canConfirm,
         ) {
             Text(confirmSummary(state), style = MaterialTheme.typography.bodyLarge)
-            state.assistantSummary?.let { OrbitHeading(title = stringResource(Res.string.plan_confirm_remember), subtitle = it) }
             if (state.saveFailed) OrbitErrorText(stringResource(Res.string.plan_save_failed))
         }
     }

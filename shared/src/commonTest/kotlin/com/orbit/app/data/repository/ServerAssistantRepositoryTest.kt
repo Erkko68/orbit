@@ -76,24 +76,7 @@ class ServerAssistantRepositoryTest {
         assertEquals("""["Bins"]""", data["items"].toString())
         assertEquals("false", data["newSpace"].toString())
         assertEquals("Flat 4B", data["space"]?.jsonPrimitive?.content)
-        // The assistant has not learned anything about the space yet.
-        assertEquals(null, data["summary"])
         assertEquals(2, data["language"]?.jsonPrimitive?.content?.length)
-    }
-
-    @Test
-    fun sendsWhatTheAssistantLearnedAboutTheSpaceBefore() = runTest {
-        val remembered = object : SpaceRepository by spaces {
-            override fun observeSpaces() =
-                flowOf(listOf(Space("space-1", "Lisbon", 0, emptyList(), assistantSummary = "Four friends going to Lisbon.")))
-        }
-        val auth = signedIn()
-        val client = answering(HttpStatusCode.OK, """{"result":{"id":"q2","text":"Which rooms?"}}""")
-
-        ServerAssistantRepository(client, auth, remembered, InMemoryItemRepository(auth), "https://assistant.test/")
-            .nextStep("space-1", emptyList())
-
-        assertEquals("Four friends going to Lisbon.", sent().getValue("data").jsonObject["summary"]?.jsonPrimitive?.content)
     }
 
     @Test

@@ -484,7 +484,6 @@
         <item quantity="other">Afegeix %2$d elements a %1$s.</item>
     </plurals>
     <string name="plan_confirm">Confirma</string>
-    <string name="plan_confirm_remember">El que l'assistent recordarà d'aquest espai</string>
     <string name="plan_save_failed">No s'ha pogut desar el pla, així que no s'ha afegit res. Torna-ho a provar.</string>
     <string name="effort_title">Esforç</string>
     <string name="effort_add">Afegeix esforç</string>

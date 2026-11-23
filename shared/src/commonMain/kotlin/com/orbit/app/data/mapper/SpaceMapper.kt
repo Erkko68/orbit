@@ -16,7 +16,6 @@ internal fun mapSpace(
     accent: Int?,
     memberIds: List<String>?,
     formerMembers: Map<String, String>? = null,
-    assistantSummary: String? = null,
 ): Space? = name?.let {
     Space(
         id = id,
@@ -24,7 +23,6 @@ internal fun mapSpace(
         accent = accent ?: 0,
         memberIds = memberIds.orEmpty(),
         formerMembers = formerMembers.orEmpty(),
-        assistantSummary = assistantSummary.orEmpty(),
     )
 }
 
@@ -66,15 +64,14 @@ private fun roleOf(role: String?): Role = when (role) {
     else -> Role.MEMBER
 }
 
-/** The new space: its only member is its creator. A plan's space starts with what the assistant learned. */
-internal fun spaceDocument(name: String, accent: Int, creatorId: String, assistantSummary: String = "") = SpaceDocument(
+/** The new space: its only member is its creator. */
+internal fun spaceDocument(name: String, accent: Int, creatorId: String) = SpaceDocument(
     name = name,
     accent = accent,
     memberIds = listOf(creatorId),
     createdBy = creatorId,
     ownerId = creatorId,
     createdAt = Timestamp.ServerTimestamp,
-    assistantSummary = assistantSummary,
 )
 
 /** The membership of someone who joined with the invitation [code]: a plain member. */

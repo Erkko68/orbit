@@ -31,7 +31,7 @@ internal const val ASSISTANT_SERVER_URL = "https://orbit.biri.es"
 
 /**
  * Calls `POST /interview` on the assistant server, as the signed-in user, with what the interview is about (#66): the
- * phone's language and day, and the space's name, what the assistant learned about it before, member names (the user's first, so the server names them m1) and item
+ * phone's language and day, and the space's name, member names (the user's first, so the server names them m1) and item
  * titles. A new space has only the user.
  */
 class ServerAssistantRepository(
@@ -53,7 +53,6 @@ class ServerAssistantRepository(
             today = Clock.System.todayIn(TimeZone.currentSystemDefault()),
             newSpace = spaceId.isEmpty(),
             spaceName = space?.name.orEmpty(),
-            assistantSummary = space?.assistantSummary.orEmpty(),
             memberNames = members.map { it.displayName },
             itemTitles = titles,
         )
