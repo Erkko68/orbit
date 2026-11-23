@@ -15,7 +15,7 @@ services:
       FIREBASE_API_KEY: ${FIREBASE_API_KEY:?set FIREBASE_API_KEY in .env}
       # The server's public address (https://…), sent as Referer for a key restricted to that website.
       PUBLIC_URL: ${PUBLIC_URL:-}
-      ASSISTANT_MODEL: ${ASSISTANT_MODEL:-gemma4:e2b}
+      ASSISTANT_MODEL: ${ASSISTANT_MODEL:-gemma4:e4b}
       # The kill switch (#68): false turns the assistant off for everyone, and the app shows the manual path.
       ASSISTANT_ENABLED: ${ASSISTANT_ENABLED:-true}
       # How long the model thinks before it answers: none (off, the quick default), low, medium or high.
@@ -24,8 +24,8 @@ services:
       ASSISTANT_DAILY_QUOTA: ${ASSISTANT_DAILY_QUOTA:-50}
       ASSISTANT_MONTHLY_QUOTA: ${ASSISTANT_MONTHLY_QUOTA:-500}
       QUOTA_DB: /data/quota.sqlite3
-      # How many questions an interview asks at most before the assistant proposes (#74).
-      QUESTION_BUDGET: ${QUESTION_BUDGET:-5}
+      # A safety net on how many questions one interview can ask: the model decides how many it needs and never sees it.
+      MAX_QUESTIONS: ${MAX_QUESTIONS:-10}
       MODEL_URL: http://ollama:11434/v1
     volumes:
       - quota:/data
@@ -49,7 +49,7 @@ services:
     image: ollama/ollama
     environment:
       OLLAMA_HOST: http://ollama:11434
-    entrypoint: ["ollama", "pull", "${ASSISTANT_MODEL:-gemma4:e2b}"]
+    entrypoint: ["ollama", "pull", "${ASSISTANT_MODEL:-gemma4:e4b}"]
     depends_on:
       ollama:
         condition: service_healthy

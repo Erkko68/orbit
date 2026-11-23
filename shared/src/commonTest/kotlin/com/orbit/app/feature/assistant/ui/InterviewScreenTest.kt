@@ -39,8 +39,8 @@ import kotlin.test.assertEquals
 
 @OptIn(ExperimentalTestApi::class)
 class InterviewScreenTest : ComposeTest() {
-    private val who = InterviewQuestion("q1", "Who lives there?", listOf("Roommates", "Family"), false, true, 1, 8)
-    private val rooms = InterviewQuestion("q2", "Which rooms?", listOf("Kitchen", "Bathroom"), true, false, 2, 8)
+    private val who = InterviewQuestion("q1", "Who lives there?", listOf("Roommates", "Family"), false, true)
+    private val rooms = InterviewQuestion("q2", "Which rooms?", listOf("Kitchen", "Bathroom"), true, false)
     private val noPlan = InterviewStep.PlanReady(Plan(space = null, items = emptyList()))
     private val auth = InMemoryAuthRepository().apply {
         runBlocking {
@@ -90,7 +90,7 @@ class InterviewScreenTest : ComposeTest() {
 
     @Test
     fun theChatStaysOnTheNewestQuestion() = runComposeUiTest {
-        val questions = (1..6).map { InterviewQuestion("q$it", "Question $it?", listOf("Answer $it"), false, false, it, 8) }
+        val questions = (1..6).map { InterviewQuestion("q$it", "Question $it?", listOf("Answer $it"), false, false) }
         show(ScriptedAssistantRepository(questions.map { InterviewStep.Ask(it) }))
 
         for (question in questions.dropLast(1)) {
@@ -103,20 +103,19 @@ class InterviewScreenTest : ComposeTest() {
     }
 
     @Test
-    fun showsTheProgressAndSkipsGoesBackAndDecides() = runComposeUiTest {
+    fun skipsGoesBackAndDecides() = runComposeUiTest {
         val suggested = who.copy(suggestion = "Family")
         show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(suggested), InterviewStep.Ask(rooms), InterviewStep.Ask(rooms))))
 
-        onNodeWithText("Question 1 of 8").assertIsDisplayed()
         onNodeWithText("Back").assertDoesNotExist()
         tapOnQuestion("Skip")
         onNodeWithText("Skipped").assertIsDisplayed()
-        onNodeWithText("Question 2 of 8").assertIsDisplayed()
+        onNodeWithText("Which rooms?").assertIsDisplayed()
         onNodeWithText("Decide for me").assertDoesNotExist()
 
         tapOnQuestion("Back")
         onNodeWithText("Skipped").assertDoesNotExist()
-        onNodeWithText("Question 1 of 8").assertIsDisplayed()
+        onNodeWithText("Which rooms?").assertDoesNotExist()
         tapOnQuestion("Decide for me")
 
         onNodeWithText("Family (the assistant chose)").assertIsDisplayed()

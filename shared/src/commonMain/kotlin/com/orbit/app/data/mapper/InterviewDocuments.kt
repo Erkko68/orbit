@@ -49,8 +49,6 @@ internal data class StepDocument(
     val options: List<String> = emptyList(),
     val multiSelect: Boolean = false,
     val freeText: Boolean = false,
-    val position: Int = 0,
-    val budget: Int = 0,
     val suggestion: String? = null,
     val plan: JsonObject? = null,
 )

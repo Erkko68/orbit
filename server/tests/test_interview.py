@@ -4,7 +4,7 @@ from datetime import date
 import pytest
 
 from assistant.interview import (
-    QUESTION_BUDGET,
+    MAX_QUESTIONS,
     QUESTION_SCHEMA,
     AssistantError,
     example_dates,
@@ -35,7 +35,6 @@ def test_parses_a_question_and_adds_what_the_model_does_not_decide():
         "multiSelect": False,
         "freeText": True,
         "position": 3,
-        "budget": QUESTION_BUDGET,
         "suggestion": "Roommates",
     }
 
@@ -128,7 +127,6 @@ def test_the_first_question_asks_what_to_organise_without_the_model():
         "multiSelect": False,
         "freeText": True,
         "position": 1,
-        "budget": QUESTION_BUDGET,
     }
     assert model.prompts == []
 
@@ -145,7 +143,8 @@ def test_asks_the_next_question_with_the_space_and_what_was_answered():
     assert "- m1: Ana" in prompt and "- m2: Ben" in prompt
     assert "- Groceries" in prompt
     assert "Q: Who lives there?\nA: Family, two kids" in prompt
-    assert f"You may ask at most {QUESTION_BUDGET - 1} more questions" in prompt
+    # How many questions to ask is the model's to decide: the prompt names no budget.
+    assert "at most" not in prompt
     assert "and the suggestion in Spanish." in prompt
     assert "earlier conversations" not in prompt
 
@@ -174,10 +173,10 @@ def test_once_the_model_is_ready_it_proposes_the_checked_plan_for_the_space():
     assert "do not propose one" in plan_prompt
 
 
-def test_at_the_budget_it_proposes_without_asking_again():
+def test_at_the_safety_limit_it_proposes_without_asking_again():
     model = Model()
 
-    result = next_step(SIGNED_IN, interview([ANSWER] * QUESTION_BUDGET), model)
+    result = next_step(SIGNED_IN, interview([ANSWER] * MAX_QUESTIONS), model)
 
     assert "plan" in result
     assert [schema for _, schema in model.prompts] == [PLAN_SCHEMA]
@@ -230,7 +229,7 @@ def test_the_prompt_text_comes_from_the_versioned_prompt_files():
         None,
         "answers",
         {"answers": "none"},
-        {"answers": [ANSWER] * (QUESTION_BUDGET + 1)},
+        {"answers": [ANSWER] * (MAX_QUESTIONS + 1)},
         {"answers": ["not an answer"]},
         {"answers": [{**ANSWER, "question": " "}]},
         {"answers": [{**ANSWER, "selected": "Family"}]},

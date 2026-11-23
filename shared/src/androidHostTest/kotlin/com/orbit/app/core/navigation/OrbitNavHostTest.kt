@@ -77,7 +77,7 @@ class OrbitNavHostTest : ComposeTest() {
     private val ledger = InMemoryExpenseRepository(auth)
     private val lastSpace = InMemoryLastSpaceRepository()
     private var assistant = ScriptedAssistantRepository(
-        listOf(InterviewStep.Ask(InterviewQuestion("who", "Who is the space for?", emptyList(), false, true, 1, 8))),
+        listOf(InterviewStep.Ask(InterviewQuestion("who", "Who is the space for?", emptyList(), false, true))),
     )
 
     @BeforeTest

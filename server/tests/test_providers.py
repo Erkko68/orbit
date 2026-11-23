@@ -34,7 +34,7 @@ def test_the_local_model_is_the_default(monkeypatch):
 
     providers.from_env({})
 
-    assert made == [("http://ollama:11434/v1", "gemma4:e2b", "none")]
+    assert made == [("http://ollama:11434/v1", "gemma4:e4b", "none")]
 
 
 def test_thinking_can_be_turned_back_on(monkeypatch):

@@ -37,12 +37,12 @@ class InterviewMapperTest {
     fun readsAQuestion() {
         val step = interviewStep(
             """{"result":{"id":"q1","text":"Who lives there?","options":["Roommates"],"multiSelect":false,""" +
-                """"freeText":true,"position":1,"budget":8,"extra":"ignored"}}""",
+                """"freeText":true,"position":1,"extra":"ignored"}}""",
             members = emptyList(),
         )
 
         assertEquals(
-            InterviewStep.Ask(InterviewQuestion("q1", "Who lives there?", listOf("Roommates"), false, true, 1, 8)),
+            InterviewStep.Ask(InterviewQuestion("q1", "Who lives there?", listOf("Roommates"), false, true)),
             step,
         )
     }
@@ -62,7 +62,7 @@ class InterviewMapperTest {
 
     @Test
     fun readsTheSuggestionAndSendsWhetherTheAssistantDecided() {
-        val body = """{"result":{"id":"q1","text":"Who?","options":["A","B"],"position":1,"budget":8,"suggestion":"B"}}"""
+        val body = """{"result":{"id":"q1","text":"Who?","options":["A","B"],"position":1,"suggestion":"B"}}"""
         val step = interviewStep(body, members = emptyList()) as InterviewStep.Ask
 
         assertEquals("B", step.question.suggestion)

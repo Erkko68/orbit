@@ -34,7 +34,7 @@ class InterviewViewModelTest {
     private val draft = PlanDraft()
 
     private fun question(id: String, text: String, options: List<String>, multiSelect: Boolean = false) =
-        InterviewQuestion(id, text, options, multiSelect, freeText = true, position = 1, budget = 8)
+        InterviewQuestion(id, text, options, multiSelect, freeText = true)
 
     @BeforeTest
     fun setUp() {

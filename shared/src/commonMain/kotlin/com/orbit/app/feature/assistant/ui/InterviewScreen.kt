@@ -39,7 +39,6 @@ import orbit.shared.generated.resources.interview_back
 import orbit.shared.generated.resources.interview_decide
 import orbit.shared.generated.resources.interview_decided
 import orbit.shared.generated.resources.interview_loading
-import orbit.shared.generated.resources.interview_progress
 import orbit.shared.generated.resources.interview_send
 import orbit.shared.generated.resources.interview_skip
 import orbit.shared.generated.resources.interview_skipped
@@ -131,7 +130,7 @@ private fun ErrorBubble(error: AssistantError, state: InterviewUiState, viewMode
     }
 }
 
-/** One message of the chat. The [waiting] question also shows its progress, its chips and its controls. */
+/** One message of the chat. The [waiting] question also shows its chips and its controls. */
 @Composable
 private fun MessageBubble(
     message: ChatMessage,
@@ -140,13 +139,6 @@ private fun MessageBubble(
     viewModel: InterviewViewModel,
 ) {
     OrbitChatBubble(mine = message.mine) {
-        if (waiting != null) {
-            Text(
-                stringResource(Res.string.interview_progress, waiting.position, waiting.budget),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
         Text(
             when {
                 message.skipped -> stringResource(Res.string.interview_skipped)

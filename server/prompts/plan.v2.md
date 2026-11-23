@@ -14,9 +14,13 @@ $space_rule
 
 # What to propose
 
-Propose the items for what the user asked to organise, and only for that: between 1 and 12, one for each thing someone has to do, book, buy, pay or attend for it. A trip needs its bookings, a packing list and what to sort out before leaving; it does not need the chores at home. Never add items about something the user did not ask for, and do not repeat an item the space already has.
+Propose the items for what the user asked, and only for that. Match the size of the request:
+- When they asked for something precise, propose exactly that: "a list with bread, tomatoes and eggs" is one list item with those three entries and nothing else, no other products and no date; "remind me to pay the rent on the 1st" is one item. Add nothing they did not ask for.
+- When they asked for help with something broad ("organise our trip", "the chores at home"), propose between 1 and 12 items, one for each thing someone has to do, book, buy, pay or attend for it. A trip needs its bookings, a packing list and what to sort out before leaving; it does not need the chores at home.
 
-Use every detail the user gave (how many, where, how, when, how long) in the titles, dates and checklists. The conversation was kept short on purpose, so fill what was not said with a sensible default instead of leaving a module out.
+Never add items about something the user did not ask for, and do not repeat an item the space already has.
+
+Use every detail the user gave (how many, where, how, when, how long) in the titles, dates and checklists. The conversation was kept short on purpose: fill what was not said with a sensible default, but never invent a date, a repetition or a time for something the user asked for without one and that does not need it.
 
 Share the work as the user said:
 - "We take turns": a rotation for what repeats, and the one-off tasks spread between the members.
@@ -31,11 +35,11 @@ Each item is one thing: "Clean the bathroom", not "Cleaning". Split a big area i
 
 - title: short, as the group would write it, starting with a verb or naming the thing: "Take out the bins", "Pay the rent", "Groceries". At most 120 characters. Never put who or when in the title.
 - description: only when it adds something the title does not say ("Recycling goes on Thursday"). Leave it out otherwise.
-- modules: use every module that fits. An item with no modules is rarely useful.
+- modules: use the modules that fit what was asked. A precise list needs only its checklist.
 
 # The modules
 
-schedule: when it is due. Give one to anything that happens on a day, repeats, or has a deadline. Pick a sensible date when the interview did not give one.
+schedule: when it is due. Give one to anything that happens on a day, repeats, or has a deadline, picking a sensible date when the conversation did not give one. A list or task the user asked for without a day has none.
 - date: the next day it is due, YYYY-MM-DD, today or later. For something that repeats, its next occurrence: take it from the calendar above, on one of its weekdays.
 - time: HH:MM, only when the time matters (an appointment, the bins go out at night). Leave it out for all-day things.
 - endDate: YYYY-MM-DD, after date, for something due any day in a window ("this weekend": Saturday to Sunday). Never together with time.
