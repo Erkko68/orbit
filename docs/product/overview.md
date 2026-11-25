@@ -24,7 +24,7 @@ Each sprint is a GitHub milestone; the [project board](https://github.com/users/
 |---|---|---|
 | 1 | A shared space that works on two phones | Accounts (email, Google), spaces and members with roles, invitations, items with Schedule, Assignment, Checklist and Reminder modules, local reminders, security rules |
 | 2 | Planning help and money | The assistant interview and plan review, agenda and month view, recurrence and rotating chores, expenses and balances, bills, localisation in Spanish, Catalan, Italian and English |
-| 3 | A product people could pay for | Plans and paywall, ads with consent, receipt scanner, activity history and undo, templates, child profiles, accessibility and performance passes |
+| 3 | A smarter, more complete app | Quick add, removals and plan changes through the assistant, receipt scanner, filters and an interactive calendar, space permissions, activity history and undo, push on Android, templates, accessibility and performance passes. Monetisation moved to the backlog (#330) |
 | 4 | Delivery | Pitch, demo, landing page, final documentation and retrospective |
 
 ## Glossary
