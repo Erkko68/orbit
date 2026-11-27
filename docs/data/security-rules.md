@@ -134,6 +134,14 @@ an already recorded occurrence; only advancing recurrence clears it. These check
 - **Create:** a member, with `itemId`, `completedBy` the caller, `completedAt` the server time, optional effort snapshot/credit fields and, for a reopening, `action: 'reopen'`, in the batch that changes the item to match (`matchesItem`, `matchesEffort`).
 - **Update, delete:** nobody, the owner included. The history is append-only.
 
+### `spaces/{spaceId}/activity/{entryId}`
+
+- **Read:** a member.
+- **Create:** a member once the batch is done (so a new space's plan can log its items), with only the fields of the schema, `actorId` the caller, `at` the server time, a known `action` and `target`, a string `title` of at most 120 characters, `changes` a map when present, `source` only `assistant`, and a target that exists after the batch, or no longer does for a `delete` (`matchesTarget`).
+- **Update, delete:** nobody, the owner included. The history is append-only.
+
+The rules cannot make a write carry its entry: the entry's id is random, so nothing ties an item write to it. The repositories always add one in the same batch, and an entry without its write is refused.
+
 ### `spaces/{spaceId}/expenses/{expenseId}`
 
 - **Read:** a member.
@@ -162,6 +170,7 @@ Rules cannot loop, and some checks cost a document read per write. These are lef
 - That an expense's payer and shares belong to members, and that each share is above zero. Rules cannot loop over a split, and members who left keep their shares. Balances credit the payer with the sum of the shares, so a bad document cannot create money (ADR 0003).
 - The `users/{uid}` fields, apart from the length of `displayName`.
 - The size of a space: the plan cap of 8 members is not enforced, so a valid invitation fills a space past it.
+- That every item or expense write has its activity entry, and that an entry's `changes` hold the real previous values.
 
 ## Running the tests
 
