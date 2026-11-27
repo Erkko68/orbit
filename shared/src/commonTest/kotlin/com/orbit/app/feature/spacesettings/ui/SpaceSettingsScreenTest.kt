@@ -39,6 +39,7 @@ class SpaceSettingsScreenTest : ComposeTest() {
     private val spaces = InMemorySpaceRepository(auth)
     private val items = InMemoryItemRepository(auth)
     private var gone = 0
+    private var activityOpened = 0
     private val opened = mutableListOf<String>()
 
     /** Ana owns Flat 4B. Ben is an admin of it and Cy a plain member. */
@@ -57,6 +58,7 @@ class SpaceSettingsScreenTest : ComposeTest() {
                     "space-1",
                     onBack = {},
                     onOpenMember = { opened += it },
+                    onOpenActivity = { activityOpened++ },
                     onGone = { gone++ },
                     viewModel = SpaceSettingsViewModel("space-1", repository, auth),
                     membersViewModel = SpaceMembersViewModel("space-1", repository, auth),
@@ -126,6 +128,15 @@ class SpaceSettingsScreenTest : ComposeTest() {
         onNodeWithText("Ben").performScrollTo().performClick()
 
         assertEquals(listOf("ben@orbit.app"), opened)
+    }
+
+    @Test
+    fun everyMemberOpensTheActivity() = runComposeUiTest {
+        showSettingsAs("cy@orbit.app")
+
+        onNodeWithText("Activity").performScrollTo().performClick()
+
+        assertEquals(1, activityOpened)
     }
 
     @Test

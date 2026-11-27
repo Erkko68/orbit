@@ -1,8 +1,11 @@
 package com.orbit.app.data.repository
 
+import com.orbit.app.data.mapper.activityDocument
 import com.orbit.app.data.mapper.itemDocument
 import com.orbit.app.data.mapper.ownerMemberDocument
 import com.orbit.app.data.mapper.spaceDocument
+import com.orbit.app.domain.model.ActivityAction
+import com.orbit.app.domain.model.ActivityTarget
 import com.orbit.app.domain.model.PlanReview
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.PlanRepository
@@ -10,8 +13,9 @@ import dev.gitlive.firebase.firestore.FirebaseFirestore
 
 /**
  * One batch: the new space with the user as owner, as [FirestoreSpaceRepository.createSpace] writes it, every accepted
- * item. The rules check an item against the space as the batch
- * leaves it, so a new space's items pass.
+ * item, and for each its entry in the activity history (#83), marked as the assistant's and sharing one plan id so
+ * the whole plan can be undone (#84). The rules check an item against the space as the batch leaves it, so a new
+ * space's items pass.
  */
 class FirestorePlanRepository(
     private val auth: AuthRepository,
@@ -29,10 +33,16 @@ class FirestorePlanRepository(
                 batch.set(it.collection(MEMBERS).document(user.id), ownerMemberDocument(user.displayName, user.photoUrl))
             }
         }
+        val planId = space.collection(ACTIVITY).document.id
         plan.accepted.forEach { proposal ->
-            batch.set(space.collection(ITEMS).document, itemDocument(space.id, proposal.item, user.id)) {
-                encodeDefaults = false
-            }
+            val item = space.collection(ITEMS).document
+            batch.set(item, itemDocument(space.id, proposal.item, user.id)) { encodeDefaults = false }
+            batch.logActivity(
+                firestore, space.id,
+                activityDocument(
+                    user.id, ActivityAction.CREATE, ActivityTarget.ITEM, item.id, proposal.item.title, planId = planId,
+                ),
+            )
         }
         writeLocally("Plan for space ${space.id}") { batch.commit() }
         return space.id

@@ -49,6 +49,7 @@ class InviteSheetTest : ComposeTest() {
                     spaceId = "space-1",
                     onBack = {},
                     onOpenMember = {},
+                    onOpenActivity = {},
                     onGone = {},
                     viewModel = SpaceSettingsViewModel("space-1", spaces, auth),
                     membersViewModel = SpaceMembersViewModel("space-1", spaces, auth),

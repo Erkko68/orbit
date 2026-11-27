@@ -12,6 +12,7 @@ import com.orbit.app.data.mapper.ModulesDocument
 import com.orbit.app.data.mapper.RecurrenceDocument
 import com.orbit.app.data.mapper.ReminderDocument
 import com.orbit.app.data.mapper.STATUS_DONE
+import com.orbit.app.data.mapper.activityDocument
 import com.orbit.app.data.mapper.STATUS_OPEN
 import com.orbit.app.data.mapper.ScheduleDocument
 import com.orbit.app.data.mapper.StoredItem
@@ -25,6 +26,8 @@ import com.orbit.app.data.mapper.moduleKey
 import com.orbit.app.data.mapper.recurrenceDocument
 import com.orbit.app.data.mapper.reminderDocument
 import com.orbit.app.data.mapper.scheduleDocument
+import com.orbit.app.domain.model.ActivityAction
+import com.orbit.app.domain.model.ActivityTarget
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Checklist
 import com.orbit.app.domain.model.Completion
@@ -85,29 +88,50 @@ class FirestoreItemRepository(
             snapshot.documents.mapNotNull(::toItem)
         }.flowOn(Dispatchers.Default).retryWhileRefused()
 
+    /** The item and its entry in the history go in one batch (#83). */
     override suspend fun create(spaceId: String, item: NewItem): String {
+        val userId = auth.requireUser().id
         val document = items(spaceId).document
-        val data = itemDocument(spaceId, item, auth.requireUser().id)
-        writeLocally("Item ${document.id}") { document.set(data) { encodeDefaults = false } }
+        val batch = firestore.batch()
+        batch.set(document, itemDocument(spaceId, item, userId)) { encodeDefaults = false }
+        batch.logActivity(
+            firestore, spaceId,
+            activityDocument(userId, ActivityAction.CREATE, ActivityTarget.ITEM, document.id, item.title),
+        )
+        writeLocally("Item ${document.id}") { batch.commit() }
         return document.id
     }
 
+    /** Its entry in the history keeps every field the delete takes away, read from the cache the screen keeps. */
     override suspend fun delete(spaceId: String, itemId: String) {
+        val userId = auth.requireUser().id
         val document = items(spaceId).document(itemId)
-        writeLocally("Deleting item $itemId") { document.delete() }
+        val before = document.get(Source.CACHE)
+        val batch = firestore.batch()
+        batch.delete(document)
+        batch.logActivity(
+            firestore, spaceId,
+            activityDocument(userId, ActivityAction.DELETE, ActivityTarget.ITEM, itemId, titleOf(before), removed(before)),
+        )
+        writeLocally("Deleting item $itemId") { batch.commit() }
     }
 
     override suspend fun rename(spaceId: String, itemId: String, title: String) =
-        update(spaceId, itemId) { FieldPath("title") to title }
+        update(spaceId, itemId, { mapOf(it.previous<String>("title")) }, title) { FieldPath("title") to title }
 
     override suspend fun setDescription(spaceId: String, itemId: String, description: String?) =
-        update(spaceId, itemId) {
+        update(spaceId, itemId, { before ->
+            listOfNotNull(
+                before.previous<String>("description"),
+                before.previous<String>("details").takeIf { before.field<String>("details") != null },
+            ).toMap()
+        }) {
             FieldPath("description") to (description ?: FieldValue.delete)
             FieldPath("details") to FieldValue.delete
         }
 
     override suspend fun setModule(spaceId: String, itemId: String, module: Module) =
-        update(spaceId, itemId) {
+        update(spaceId, itemId, { mapOf(it.previousModule(module.type)) }) {
             val path = FieldPath(MODULES, moduleKey(module.type))
             when (module) {
                 is Schedule -> path.to(ScheduleDocument.serializer(), scheduleDocument(module))
@@ -121,29 +145,38 @@ class FirestoreItemRepository(
         }
 
     override suspend fun removeModule(spaceId: String, itemId: String, type: ModuleType) =
-        update(spaceId, itemId) { FieldPath(MODULES, moduleKey(type)) to FieldValue.delete }
+        update(spaceId, itemId, { mapOf(it.previousModule(type)) }) {
+            FieldPath(MODULES, moduleKey(type)) to FieldValue.delete
+        }
 
     override suspend fun setEntryChecked(spaceId: String, itemId: String, entryId: String, checked: Boolean) =
-        update(spaceId, itemId) {
+        update(spaceId, itemId, { mapOf(it.previous<Boolean>("${entryKey(entryId)}.checked")) }) {
             FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "checked") to checked
         }
 
     override suspend fun addEntry(spaceId: String, itemId: String, text: String, quantity: Int?, order: Int) {
         val entryId = items(spaceId).document.id
-        update(spaceId, itemId) {
+        update(spaceId, itemId, { mapOf(it.previous<EntryDocument>(entryKey(entryId))) }) {
             entryPath(entryId).to(EntryDocument.serializer(), EntryDocument(text, false, quantity, order))
         }
     }
 
     override suspend fun updateEntry(spaceId: String, itemId: String, entryId: String, text: String, quantity: Int?) =
-        update(spaceId, itemId) {
+        update(spaceId, itemId, { before ->
+            mapOf(
+                before.previous<String>("${entryKey(entryId)}.text"),
+                before.previous<Int>("${entryKey(entryId)}.quantity"),
+            )
+        }) {
             FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "text") to text
             FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId, "quantity") to
                 (quantity ?: FieldValue.delete)
         }
 
     override suspend fun removeEntry(spaceId: String, itemId: String, entryId: String) =
-        update(spaceId, itemId) { entryPath(entryId) to FieldValue.delete }
+        update(spaceId, itemId, { mapOf(it.previous<EntryDocument>(entryKey(entryId))) }) {
+            entryPath(entryId) to FieldValue.delete
+        }
 
     override fun observeCompletions(spaceId: String, itemId: String): Flow<List<Completion>> =
         completions(spaceId)
@@ -172,12 +205,14 @@ class FirestoreItemRepository(
 
     /**
      * The item, its completion and the expense of its cost go in one batch, so the history never misses one nor has one
-     * too many, and a charge never lands without its completion (ADR 0014). The item and the members come from the
+     * too many, and a charge never lands without its completion (ADR 0014). The activity history (#83) gets the
+     * completion, with the date and turn a roll-forward moves, and the charge. The item and the members come from the
      * cache the screen's listeners keep, so completing still works offline.
      */
     override suspend fun complete(spaceId: String, itemId: String, next: Schedule?) {
         val userId = auth.requireUser().id
-        val item = checkNotNull(toItem(items(spaceId).document(itemId).get(Source.CACHE))) { "No item $itemId" }
+        val before = items(spaceId).document(itemId).get(Source.CACHE)
+        val item = checkNotNull(toItem(before)) { "No item $itemId" }
         val expense = item.modules.cost?.let {
             val space = firestore.collection(SPACES).document(spaceId).get(Source.CACHE)
             val members = checkNotNull(space.field<List<String>>("memberIds")) { "No members in $spaceId" }
@@ -217,13 +252,32 @@ class FirestoreItemRepository(
         batch.set(completions(spaceId).document, entry) {
             encodeDefaults = false
         }
-        if (expense != null) batch.set(charge, expenseDocument(spaceId, expense, userId)) { encodeDefaults = false }
+        val moved = if (next == null) {
+            emptyMap()
+        } else {
+            listOfNotNull(
+                before.previous<ScheduleDocument>("$MODULES.${moduleKey(ModuleType.SCHEDULE)}"),
+                turn?.let { before.previous<List<String>>("$MODULES.${moduleKey(ModuleType.ASSIGNMENT)}.assigneeIds") },
+            ).toMap()
+        }
+        batch.logActivity(
+            firestore, spaceId,
+            activityDocument(userId, ActivityAction.COMPLETE, ActivityTarget.ITEM, itemId, item.title, moved),
+        )
+        if (expense != null) {
+            batch.set(charge, expenseDocument(spaceId, expense, userId)) { encodeDefaults = false }
+            batch.logActivity(
+                firestore, spaceId,
+                activityDocument(userId, ActivityAction.CREATE, ActivityTarget.EXPENSE, charge.id, expense.title),
+            )
+        }
         writeLocally("Completing item $itemId") { batch.commit() }
     }
 
-    /** Like [complete], the item and the entry in its history go in one batch. */
+    /** Like [complete], the item, the entry in its history and the one in the space's activity go in one batch. */
     override suspend fun reopen(spaceId: String, itemId: String) {
         val userId = auth.requireUser().id
+        val before = items(spaceId).document(itemId).get(Source.CACHE)
         val batch = firestore.batch()
         batch.updateFields(items(spaceId).document(itemId)) {
             FieldPath(STATUS) to STATUS_OPEN
@@ -233,6 +287,10 @@ class FirestoreItemRepository(
         }
         val entry = CompletionDocument(itemId, userId, Timestamp.ServerTimestamp, ACTION_REOPEN)
         batch.set(completions(spaceId).document, entry) { encodeDefaults = false }
+        batch.logActivity(
+            firestore, spaceId,
+            activityDocument(userId, ActivityAction.REOPEN, ActivityTarget.ITEM, itemId, titleOf(before)),
+        )
         writeLocally("Reopening item $itemId") { batch.commit() }
     }
 
@@ -257,18 +315,68 @@ class FirestoreItemRepository(
 
     private fun entryPath(entryId: String) = FieldPath(MODULES, moduleKey(ModuleType.CHECKLIST), "entries", entryId)
 
-    private suspend fun update(spaceId: String, itemId: String, fields: FieldsAndValuesUpdateDSL.() -> Unit) {
+    /** The dotted path of a checklist entry, as the activity history names the fields it changed. */
+    private fun entryKey(entryId: String) = "$MODULES.${moduleKey(ModuleType.CHECKLIST)}.entries.$entryId"
+
+    /**
+     * One narrow edit and its entry in the history, in one batch (#83). The entry keeps the [changes] the write makes,
+     * read from the item as the cache holds it before the write, and its title as the write leaves it.
+     */
+    private suspend fun update(
+        spaceId: String,
+        itemId: String,
+        changes: (DocumentSnapshot) -> Map<String, String>,
+        title: String? = null,
+        fields: FieldsAndValuesUpdateDSL.() -> Unit,
+    ) {
+        val userId = auth.requireUser().id
         val document = items(spaceId).document(itemId)
-        writeLocally("A change to item $itemId") {
-            document.updateFields {
-                encodeDefaults = false
-                fields()
-            }
+        val before = document.get(Source.CACHE)
+        val batch = firestore.batch()
+        batch.updateFields(document) {
+            encodeDefaults = false
+            fields()
+        }
+        batch.logActivity(
+            firestore, spaceId,
+            activityDocument(
+                userId, ActivityAction.EDIT, ActivityTarget.ITEM, itemId, title ?: titleOf(before), changes(before),
+            ),
+        )
+        writeLocally("A change to item $itemId") { batch.commit() }
+    }
+
+    private fun titleOf(document: DocumentSnapshot): String = document.field<String>("title").orEmpty()
+
+    /** The module of [type] as it was, under its path. */
+    private fun DocumentSnapshot.previousModule(type: ModuleType): Pair<String, String> {
+        val path = "$MODULES.${moduleKey(type)}"
+        return when (type) {
+            ModuleType.SCHEDULE -> previous<ScheduleDocument>(path)
+            ModuleType.RECURRENCE -> previous<RecurrenceDocument>(path)
+            ModuleType.ASSIGNMENT -> previous<AssignmentDocument>(path)
+            ModuleType.CHECKLIST -> previous<ChecklistDocument>(path)
+            ModuleType.REMINDER -> previous<ReminderDocument>(path)
+            ModuleType.COST -> previous<CostDocument>(path)
+            ModuleType.EFFORT -> previous<EffortDocument>(path)
         }
     }
 
-    private fun toItem(document: DocumentSnapshot): Item? {
-        val modules = ModulesDocument(
+    /** Every field a delete takes away that undo (#84) needs to put the item back. Only `createdAt` is the server's. */
+    private fun removed(document: DocumentSnapshot): Map<String, String> = listOf(
+        document.previous<String>("title"),
+        document.previous<String>("description"),
+        document.previous<String>("details"),
+        document.previous<String>(STATUS),
+        document.previous<String>("createdBy"),
+        document.previous<String>(COMPLETED_BY),
+        MODULES to activityJson.encodeToString(ModulesDocument.serializer(), modulesOf(document)),
+        document.previous<String>(COST_EXPENSE_ID),
+        document.previous<Boolean>(EFFORT_RECORDED),
+    ).filterNot { it.second == "null" }.toMap()
+
+    /** Read module by module, so one this build cannot read is left out instead of losing them all. */
+    private fun modulesOf(document: DocumentSnapshot) = ModulesDocument(
             schedule = document.field("$MODULES.${moduleKey(ModuleType.SCHEDULE)}"),
             recurrence = document.field("$MODULES.${moduleKey(ModuleType.RECURRENCE)}"),
             assignment = document.field("$MODULES.${moduleKey(ModuleType.ASSIGNMENT)}"),
@@ -277,6 +385,9 @@ class FirestoreItemRepository(
             cost = document.field("$MODULES.${moduleKey(ModuleType.COST)}"),
             effort = document.field("$MODULES.${moduleKey(ModuleType.EFFORT)}"),
         )
+
+    private fun toItem(document: DocumentSnapshot): Item? {
+        val modules = modulesOf(document)
         val stored = StoredItem(
             title = document.field("title"),
             description = document.field("description"),

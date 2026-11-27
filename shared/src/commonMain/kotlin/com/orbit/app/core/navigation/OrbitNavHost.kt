@@ -13,6 +13,7 @@ import androidx.navigation.toRoute
 import com.orbit.app.core.PendingInvitation
 import com.orbit.app.core.designsystem.component.OrbitStartup
 import com.orbit.app.feature.account.ui.AccountScreen
+import com.orbit.app.feature.activity.ui.ActivityScreen
 import com.orbit.app.feature.assistant.ui.InterviewScreen
 import com.orbit.app.feature.planreview.ui.PlanReviewScreen
 import com.orbit.app.feature.auth.SessionStart
@@ -101,7 +102,14 @@ fun OrbitNavHost(
                     spaceId = spaceId,
                     onBack = { navController.popBackStack() },
                     onOpenMember = { userId -> navController.navigate(MemberRoute(spaceId, userId)) },
+                    onOpenActivity = { navController.navigate(ActivityRoute(spaceId)) },
                     onGone = { navController.showSpaces() },
+                )
+            }
+            composable<ActivityRoute> { entry ->
+                ActivityScreen(
+                    spaceId = entry.toRoute<ActivityRoute>().spaceId,
+                    onBack = { navController.popBackStack() },
                 )
             }
             composable<MemberRoute> { entry ->

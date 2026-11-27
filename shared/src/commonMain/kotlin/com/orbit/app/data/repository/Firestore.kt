@@ -21,6 +21,7 @@ internal const val ITEMS = "items"
 internal const val EXPENSES = "expenses"
 internal const val COMPLETIONS = "completions"
 internal const val INVITATIONS = "invitations"
+internal const val ACTIVITY = "activity"
 
 /**
  * A field of the document, or null when it is missing or not of the type asked for. A dotted [name]

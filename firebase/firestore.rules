@@ -402,6 +402,38 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
+      // ── spaces/{spaceId}/activity/{entryId} ────────────────────────────────────────────────────
+      // The history of the space (#83): who created, edited, completed, reopened or deleted an item or an expense.
+      // A member adds their own entry in the batch of the change it records: its target exists once the batch is done,
+      // or is gone for a delete. Entries a confirmed assistant plan wrote say so with `source: 'assistant'`.
+      // Append-only: nobody edits or deletes one, so it can be trusted for undo (#84).
+
+      match /activity/{entryId} {
+        function targetPath(entry) {
+          return /databases/$(database)/documents/spaces/$(spaceId)/$(entry.target == 'item' ? 'items' : 'expenses')/$(entry.targetId);
+        }
+
+        function matchesTarget(entry) {
+          return entry.action == 'delete' ? !existsAfter(targetPath(entry)) : existsAfter(targetPath(entry));
+        }
+
+        allow read: if isMember(spaceId);
+        allow create: if isMemberAfter(spaceId)
+          && request.resource.data.keys().hasOnly(['actorId', 'at', 'action', 'target', 'targetId', 'title', 'changes', 'source', 'planId'])
+          && request.resource.data.keys().hasAll(['actorId', 'at', 'action', 'target', 'targetId', 'title'])
+          && request.resource.data.actorId == request.auth.uid
+          && request.resource.data.at == request.time
+          && request.resource.data.action in ['create', 'edit', 'complete', 'reopen', 'delete']
+          && request.resource.data.target in ['item', 'expense']
+          && request.resource.data.targetId is string
+          && request.resource.data.title is string && request.resource.data.title.size() <= 120
+          && request.resource.data.get('changes', {}) is map
+          && request.resource.data.get('source', 'assistant') == 'assistant'
+          && request.resource.data.get('planId', '') is string
+          && matchesTarget(request.resource.data);
+        allow update, delete: if false;
+      }
+
       // ── spaces/{spaceId}/expenses/{expenseId} ──────────────────────────────────────────────────
       // The ledger. Editing and deleting follow the item table: every member edits, only the creator, an
       // admin or the owner deletes. Rules cannot sum a split of any size, so the domain checks that the shares

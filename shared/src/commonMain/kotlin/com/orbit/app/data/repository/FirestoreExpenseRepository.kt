@@ -2,8 +2,11 @@ package com.orbit.app.data.repository
 
 import co.touchlab.kermit.Logger
 import com.orbit.app.data.mapper.StoredExpense
+import com.orbit.app.data.mapper.activityDocument
 import com.orbit.app.data.mapper.expenseDocument
 import com.orbit.app.data.mapper.mapExpense
+import com.orbit.app.domain.model.ActivityAction
+import com.orbit.app.domain.model.ActivityTarget
 import com.orbit.app.domain.model.Expense
 import com.orbit.app.domain.model.NewExpense
 import com.orbit.app.domain.model.newestFirst
@@ -13,6 +16,7 @@ import dev.gitlive.firebase.firestore.DocumentSnapshot
 import dev.gitlive.firebase.firestore.FieldPath
 import dev.gitlive.firebase.firestore.FieldValue
 import dev.gitlive.firebase.firestore.FirebaseFirestore
+import dev.gitlive.firebase.firestore.Source
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.datetime.LocalDate
@@ -31,13 +35,24 @@ class FirestoreExpenseRepository(
             snapshot.documents.mapNotNull(::toExpense).newestFirst()
         }.retryWhileRefused()
 
+    /** The expense and its entry in the history go in one batch (#83). */
     override suspend fun add(spaceId: String, expense: NewExpense): String {
+        val userId = auth.requireUser().id
         val document = expenses(spaceId).document
-        val data = expenseDocument(spaceId, expense, auth.requireUser().id)
-        writeLocally("Expense ${document.id}") { document.set(data) { encodeDefaults = false } }
+        val batch = firestore.batch()
+        batch.set(document, expenseDocument(spaceId, expense, userId)) { encodeDefaults = false }
+        batch.logActivity(
+            firestore, spaceId,
+            activityDocument(userId, ActivityAction.CREATE, ActivityTarget.EXPENSE, document.id, expense.title),
+        )
+        writeLocally("Expense ${document.id}") { batch.commit() }
         return document.id
     }
 
+    /**
+     * Its entry in the history keeps the previous value of each field that differs, read from the cache the screen
+     * keeps. The fields are compared as stored, so an edit that changes nothing still says it was saved.
+     */
     override suspend fun edit(
         spaceId: String,
         expenseId: String,
@@ -47,21 +62,57 @@ class FirestoreExpenseRepository(
         date: LocalDate,
         customAllocation: Map<String, Boolean>?,
     ) {
+        val userId = auth.requireUser().id
         val document = expenses(spaceId).document(expenseId)
-        writeLocally("A change to expense $expenseId") {
-            document.updateFields {
-                FieldPath("title") to title
-                FieldPath("paidBy") to paidBy
-                FieldPath("split") to split
-                FieldPath("date") to date.toString()
-                FieldPath("customAllocation") to (customAllocation ?: FieldValue.delete)
-            }
+        val before = document.get(Source.CACHE)
+        val changes = listOfNotNull(
+            before.previous<String>("title").takeIf { before.field<String>("title") != title },
+            before.previous<String>("paidBy").takeIf { before.field<String>("paidBy") != paidBy },
+            before.previous<Map<String, Long>>("split").takeIf { before.field<Map<String, Long>>("split") != split },
+            before.previous<String>("date").takeIf { before.field<String>("date") != date.toString() },
+            before.previous<Map<String, Boolean>>(CUSTOM_ALLOCATION)
+                .takeIf { before.field<Map<String, Boolean>>(CUSTOM_ALLOCATION) != customAllocation },
+        ).toMap()
+        val batch = firestore.batch()
+        batch.updateFields(document) {
+            FieldPath("title") to title
+            FieldPath("paidBy") to paidBy
+            FieldPath("split") to split
+            FieldPath("date") to date.toString()
+            FieldPath(CUSTOM_ALLOCATION) to (customAllocation ?: FieldValue.delete)
         }
+        batch.logActivity(
+            firestore, spaceId,
+            activityDocument(userId, ActivityAction.EDIT, ActivityTarget.EXPENSE, expenseId, title, changes),
+        )
+        writeLocally("A change to expense $expenseId") { batch.commit() }
     }
 
+    /** Its entry in the history keeps every field undo (#84) needs to put the expense back. */
     override suspend fun delete(spaceId: String, expenseId: String) {
+        val userId = auth.requireUser().id
         val document = expenses(spaceId).document(expenseId)
-        writeLocally("Deleting expense $expenseId") { document.delete() }
+        val before = document.get(Source.CACHE)
+        val removed = listOf(
+            before.previous<String>("title"),
+            before.previous<String>("paidBy"),
+            before.previous<Map<String, Long>>("split"),
+            before.previous<String>("date"),
+            before.previous<String>("createdBy"),
+            before.previous<String>("kind"),
+            before.previous<String>("itemId"),
+            before.previous<Map<String, Boolean>>(CUSTOM_ALLOCATION),
+        ).filterNot { it.second == "null" }.toMap()
+        val batch = firestore.batch()
+        batch.delete(document)
+        batch.logActivity(
+            firestore, spaceId,
+            activityDocument(
+                userId, ActivityAction.DELETE, ActivityTarget.EXPENSE, expenseId,
+                before.field<String>("title").orEmpty(), removed,
+            ),
+        )
+        writeLocally("Deleting expense $expenseId") { batch.commit() }
     }
 
     private fun expenses(spaceId: String) = firestore.collection(SPACES).document(spaceId).collection(EXPENSES)
@@ -76,10 +127,14 @@ class FirestoreExpenseRepository(
             createdAt = document.instant("createdAt"),
             kind = document.field("kind"),
             itemId = document.field("itemId"),
-            customAllocation = document.field("customAllocation"),
+            customAllocation = document.field(CUSTOM_ALLOCATION),
         )
         return mapExpense(document.id, stored).also {
             if (it == null) Logger.w { "Skipping the malformed expense ${document.id}" }
         }
+    }
+
+    private companion object {
+        const val CUSTOM_ALLOCATION = "customAllocation"
     }
 }

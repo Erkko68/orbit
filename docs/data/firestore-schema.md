@@ -14,6 +14,7 @@ erDiagram
     SPACE ||--o{ INVITATION : "invites through"
     USER ||--o{ INVITATION : creates
     MEMBER ||--o{ ITEM : "creates, completes, is assigned"
+    SPACE ||--o{ ACTIVITY : "keeps its history in"
 
     USER {
         string uid PK "Firebase Auth uid"
@@ -75,6 +76,18 @@ erDiagram
         string createdBy FK
         timestamp createdAt
     }
+    ACTIVITY {
+        string entryId PK "auto id, made on the device"
+        string actorId FK
+        timestamp at
+        string action "create, edit, complete, reopen or delete"
+        string target "item or expense"
+        string targetId FK
+        string title
+        map changes "optional: field path to previous value"
+        string source "optional: assistant"
+        string planId "optional"
+    }
     INVITATION {
         string code PK "8 characters"
         string spaceId FK
@@ -94,10 +107,11 @@ spaces/{spaceId}/members/{uid}       one membership: role and public profile cop
 spaces/{spaceId}/items/{itemId}      one item: core fields and its modules
 spaces/{spaceId}/completions/{completionId}  one time an item was completed
 spaces/{spaceId}/expenses/{expenseId}  one entry of the ledger
+spaces/{spaceId}/activity/{entryId}  one change to an item or an expense
 invitations/{code}                   an invitation to one space; the id is the code
 ```
 
-The collection names are constants in `data/repository/Firestore.kt` (`USERS`, `SPACES`, `MEMBERS`, `ITEMS`, `COMPLETIONS`, `EXPENSES`, `INVITATIONS`).
+The collection names are constants in `data/repository/Firestore.kt` (`USERS`, `SPACES`, `MEMBERS`, `ITEMS`, `COMPLETIONS`, `EXPENSES`, `INVITATIONS`, `ACTIVITY`).
 
 ## Conventions
 
@@ -255,6 +269,24 @@ points are excluded from both their rows and the current total, without deleting
 still-recent contributions. Current members with no contributions remain at zero. No points means no measured
 share. Exact totals stay integer; the UI rounds percentages only, comparing against `1 / memberCount`.
 
+### `spaces/{spaceId}/activity/{entryId}`
+
+The history of a space (#83, [ADR 0018](../adr/0018-activity-history.md)): one document per write to an item or an expense, added in the same batch as the write, so the history never misses a change nor records one that did not happen. Append-only, like the completions. The completion history of an item and a member's "Lately" keep reading `completions`.
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `actorId` | uid | yes | The caller: who made the change |
+| `at` | timestamp | yes | Server time |
+| `action` | string | yes | `create`, `edit`, `complete`, `reopen` or `delete` |
+| `target` | string | yes | `item` or `expense` |
+| `targetId` | string | yes | The item or expense changed |
+| `title` | string | yes | Its title as the write left it, so a deleted one still reads |
+| `changes` | map | for an edit or a delete | Each stored field path the write changed (`title`, `modules.schedule`, `modules.checklist.entries.<id>.checked`) to its previous value as JSON text, `null` when it was not there. A delete keeps every field it took away but `createdAt`. A completion that rolls a recurring item forward keeps the schedule and turn it moved |
+| `source` | string | for the assistant | `assistant` on what a confirmed assistant plan or proposal wrote |
+| `planId` | string | for the assistant | Shared by the entries of one confirmation, so the whole plan can be undone (#84) |
+
+A completion that charges a cost adds two entries: the item's `complete` and the expense's `create`.
+
 ### `spaces/{spaceId}/expenses/{expenseId}`
 
 An entry of the ledger. Balances are derived from these on the device and never stored ([ADR 0003](../adr/0003-balances-on-device.md)). Amounts are in euro cents until the space has a currency (#111).
@@ -354,7 +386,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `observeItems` | `spaces/{id}/items` ordered by `createdAt` | Listener, retried for a few seconds while refused |
 | `observeAgenda` | `spaces/{id}/items` where `status == open` and `modules.schedule.date <=` a date | Listener, retried the same way. `agendaOf` sorts the result into overdue and each day to the end of the week. Calendar asks up to the later of the end of the week and the end of the month shown, so one listener serves both the list and the month |
 | `create` | `spaces/{id}/items/{itemId}` | `set` of the whole new item |
-| `delete` | same | `delete`. The rules allow its creator, an admin or the owner |
+| `delete` | same | `delete`. The rules allow its creator, an admin or the owner. Reads the item from the cache for its entry in the history |
 | `rename` | same | `update` of `title` |
 | `setDescription` | same | `update` of `description` (deleted when empty) and delete of the retired `details` |
 | `setModule` | same | `update` of `modules.<type>` (the whole module) |
@@ -371,11 +403,13 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 
 No method saves a whole existing item: every update writes only its field paths, so concurrent edits merge.
 
+Every write above but the reads also adds an entry to `spaces/{id}/activity` in the same batch. An edit, delete or reopening first reads the item from the cache the screen keeps, for the previous values and the title.
+
 ### `FirestorePlanRepository`
 
 | Method | Path | Operation |
 |---|---|---|
-| `confirm` | `spaces/{id}/items/{itemId}` for each accepted proposal and, for a new space, `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: the new space and the owner's membership as `createSpace` writes them, and a `set` of each item as `create` writes it. Saved whole or not at all, and queued offline like any write (#76) |
+| `confirm` | `spaces/{id}/items/{itemId}` for each accepted proposal and, for a new space, `spaces/{id}` and `spaces/{id}/members/{uid}` | One batch: the new space and the owner's membership as `createSpace` writes them, and a `set` of each item as `create` writes it, with its activity entry marked `source: assistant` and one `planId`. Saved whole or not at all, and queued offline like any write (#76) |
 
 ### `FirestoreExpenseRepository`
 
@@ -385,6 +419,14 @@ No method saves a whole existing item: every update writes only its field paths,
 | `add` | `spaces/{id}/expenses/{expenseId}` | `set` of the whole new expense |
 | `edit` | same | One `update` of `title`, `paidBy`, `split`, `date` and `customAllocation` (deleted when absent), so debt and editing intent are written together |
 | `delete` | same | `delete`. Deleting a settlement undoes it. |
+
+Each write also adds an entry to `spaces/{id}/activity` in the same batch. An edit keeps the previous value of each field that differs, and a delete every field, both read from the cache.
+
+### `FirestoreActivityRepository`
+
+| Method | Path | Operation |
+|---|---|---|
+| `observeActivity` | `spaces/{id}/activity` where `at >=` 30 days ago, ordered by `at` desc | Listener, retried for a few seconds while refused. The Activity screen groups it by day |
 
 ### `FirestoreInvitationRepository`
 
@@ -413,8 +455,9 @@ No method saves a whole existing item: every update writes only its field paths,
 | Member page | `spaces/{id}/completions` where `completedBy ==` uid ordered by `completedAt` desc | composite: `completedBy` asc, `completedAt` desc, in `firebase/firestore.indexes.json` |
 | Fairness in settings and member page | `spaces/{id}/completions` where `completedAt >=` the window start | automatic single-field timestamp index |
 | Item history | `spaces/{id}/completions` where `itemId ==` id ordered by `completedAt` desc | composite: `itemId` asc, `completedAt` desc, in `firebase/firestore.indexes.json` |
+| Activity | `spaces/{id}/activity` where `at >=` the window start ordered by `at` desc | automatic single-field timestamp index |
 | Agenda | `spaces/{id}/items` where `status == open` and `modules.schedule.date <=` end of week or of the month shown | composite: `status` asc, `modules.schedule.date` asc, in `firebase/firestore.indexes.json` |
 
 ## Coming next
 
-Each extends this page in the PR that adds it: the activity history (#83).
+Each extends this page in the PR that adds it: undo from the history (#84).
