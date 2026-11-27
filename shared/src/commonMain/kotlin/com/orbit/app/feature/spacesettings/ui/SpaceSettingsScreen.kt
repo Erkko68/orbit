@@ -39,6 +39,8 @@ import com.orbit.app.feature.spacesettings.invite.InviteSheet
 import com.orbit.app.feature.spacesettings.invite.InviteViewModel
 import orbit.shared.generated.resources.Res
 import orbit.shared.generated.resources.account_edit_name
+import orbit.shared.generated.resources.activity_settings_body
+import orbit.shared.generated.resources.activity_title
 import orbit.shared.generated.resources.back
 import orbit.shared.generated.resources.cancel
 import orbit.shared.generated.resources.close
@@ -48,6 +50,7 @@ import orbit.shared.generated.resources.delete_space_failed
 import orbit.shared.generated.resources.delete_space_title
 import orbit.shared.generated.resources.fairness_period
 import orbit.shared.generated.resources.ic_arrow_back
+import orbit.shared.generated.resources.ic_clock
 import orbit.shared.generated.resources.ic_delete
 import orbit.shared.generated.resources.ic_edit
 import orbit.shared.generated.resources.ic_home
@@ -78,8 +81,8 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * The settings of a space, a screen of its own: an owner or admin edits the name and colour, which Save writes, then
- * everyone sees the members, a tap on one opening their screen through [onOpenMember]. An owner or admin invites
- * people in a sheet. At the bottom the owner deletes the space and anyone else leaves it, after a dialog, and then
+ * everyone sees the members, a tap on one opening their screen through [onOpenMember], and the space's activity
+ * through [onOpenActivity]. An owner or admin invites people in a sheet. At the bottom the owner deletes the space and anyone else leaves it, after a dialog, and then
  * [onGone] runs.
  */
 @Composable
@@ -87,6 +90,7 @@ fun SpaceSettingsScreen(
     spaceId: String,
     onBack: () -> Unit,
     onOpenMember: (String) -> Unit,
+    onOpenActivity: () -> Unit,
     onGone: () -> Unit,
     viewModel: SpaceSettingsViewModel = koinViewModel { parametersOf(spaceId) },
     membersViewModel: SpaceMembersViewModel = koinViewModel(key = "members-$spaceId") { parametersOf(spaceId) },
@@ -127,6 +131,13 @@ fun SpaceSettingsScreen(
                     shape = OrbitShape.Clover,
                     onClick = inviteViewModel::open,
                 ).takeIf { invite.canInvite },
+                SpaceAction(
+                    title = stringResource(Res.string.activity_title),
+                    supporting = stringResource(Res.string.activity_settings_body),
+                    icon = Res.drawable.ic_clock,
+                    shape = OrbitShape.Flower,
+                    onClick = onOpenActivity,
+                ),
             ),
         )
         if (members.members.isNotEmpty()) {

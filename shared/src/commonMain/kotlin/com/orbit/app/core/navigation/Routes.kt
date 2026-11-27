@@ -25,6 +25,10 @@ data class SpaceHomeRoute(val spaceId: String)
 @Serializable
 data class SpaceSettingsRoute(val spaceId: String)
 
+/** What changed in a space in the last 30 days (#83), from its settings. */
+@Serializable
+data class ActivityRoute(val spaceId: String)
+
 /** One member of a space: their role, what they have and what they did lately. */
 @Serializable
 data class MemberRoute(val spaceId: String, val userId: String)
