@@ -63,6 +63,36 @@ describe('Activity subcollection', () => {
     await assertSucceeds(created.commit());
   });
 
+  it('lets a confirmed removal delete several items in one batch, each marked as the assistant\'s (#89)', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await space(context.firestore()).collection('items').doc('item2')
+        .set({ spaceId: 's1', title: 'Plants', status: 'open', createdBy: 'charlie' });
+    });
+    const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+    const batch = charlieDb.batch();
+    for (const [id, title] of [['item1', 'Trash'], ['item2', 'Plants']]) {
+      batch.delete(space(charlieDb).collection('items').doc(id));
+      batch.set(space(charlieDb).collection('activity').doc(), entry('charlie', {
+        action: 'delete', targetId: id, title, source: 'assistant', planId: 'p2',
+      }));
+    }
+    await assertSucceeds(batch.commit());
+  });
+
+  it('denies a removal of an item a member did not create, whatever its entry says', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await space(context.firestore()).collection('items').doc('item3')
+        .set({ spaceId: 's1', title: 'Rent', status: 'open', createdBy: 'alice' });
+    });
+    const charlieDb = testEnv.authenticatedContext('charlie').firestore();
+    const batch = charlieDb.batch();
+    batch.delete(space(charlieDb).collection('items').doc('item3'));
+    batch.set(space(charlieDb).collection('activity').doc(), entry('charlie', {
+      action: 'delete', targetId: 'item3', title: 'Rent', source: 'assistant', planId: 'p3',
+    }));
+    await assertFails(batch.commit());
+  });
+
   it('denies an entry in someone else\'s name, with other fields, or with a wrong time, action or source', async () => {
     const charlieDb = testEnv.authenticatedContext('charlie').firestore();
 
