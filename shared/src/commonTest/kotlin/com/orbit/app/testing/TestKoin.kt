@@ -1,6 +1,9 @@
 package com.orbit.app.testing
 
 import com.orbit.app.core.network.Connectivity
+import com.orbit.app.core.notification.NotificationAccess
+import com.orbit.app.core.notification.NotificationScheduler
+import com.orbit.app.core.notification.ReminderSync
 import com.orbit.app.core.share.TextSharer
 import com.orbit.app.core.speech.Dictation
 import com.orbit.app.domain.repository.AssistantRepository
@@ -15,7 +18,10 @@ import com.orbit.app.domain.repository.LastSpaceRepository
 import com.orbit.app.domain.repository.PlanRepository
 import com.orbit.app.domain.repository.SpaceRepository
 import com.orbit.app.domain.repository.ExpenseRepository
+import com.russhwolf.settings.MapSettings
+import com.russhwolf.settings.Settings
 import org.koin.core.context.startKoin
+import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 
 /**
@@ -34,6 +40,9 @@ internal fun startTestKoin(
     expenses: ExpenseRepository = InMemoryExpenseRepository(auth),
     plans: PlanRepository = InMemoryPlanRepository(spaces, items),
     connectivity: Connectivity = FakeConnectivity(),
+    notifications: NotificationAccess = FakeNotificationAccess(),
+    scheduler: NotificationScheduler = RecordingNotificationScheduler(),
+    settings: Settings = MapSettings(),
 ) = startKoin {
     modules(
         module {
@@ -48,6 +57,10 @@ internal fun startTestKoin(
             single { expenses }
             single { plans }
             single { connectivity }
+            single { notifications }
+            single { scheduler }
+            single { settings }
+            singleOf(::ReminderSync)
         },
         featureModule,
     )
