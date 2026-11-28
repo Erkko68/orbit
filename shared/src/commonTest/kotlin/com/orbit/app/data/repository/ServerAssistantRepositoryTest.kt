@@ -4,6 +4,9 @@ import com.orbit.app.domain.model.AssistantError
 import com.orbit.app.domain.model.Assignment
 import com.orbit.app.domain.model.Member
 import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Checklist
+import com.orbit.app.domain.model.ItemModules
+import com.orbit.app.domain.model.Removal
 import com.orbit.app.domain.model.Role
 import com.orbit.app.domain.model.Space
 import com.orbit.app.domain.repository.AuthRepository
@@ -90,6 +93,44 @@ class ServerAssistantRepositoryTest {
         assertEquals("""[{"name":"ben@orbit.app"},{"name":"ana@orbit.app"}]""", sent().getValue("data").jsonObject["members"].toString())
         val item = assertIs<InterviewStep.PlanReady>(step).plan.items.single()
         assertEquals(Assignment.ToMembers(setOf("ben@orbit.app")), item.modules.assignment)
+    }
+
+    @Test
+    fun aRemovalOffersOnlyWhatTheUserMayDeleteAndComesBackAsTheirItems() = runTest {
+        val removal = """{"items":[{"item":"i2","reason":"Not done since March"},{"item":"i9","reason":"Not sent"},{"item":"i2"}]}"""
+        val client = answering(HttpStatusCode.OK, """{"result":{"removal":$removal}}""")
+        val auth = signedIn()
+        val items = InMemoryItemRepository(auth)
+        items.create("space-1", NewItem("Bins"))
+        auth.register("ben@orbit.app", "secret", "Ben")
+        items.create("space-1", NewItem("Plants"))
+        val list = items.create("space-1", NewItem("Party shopping", modules = ItemModules(checklist = Checklist(emptyList()))))
+
+        // Ben is a member: he may delete only what he created.
+        val step = repository(client, auth, items).nextStep("space-1", emptyList())
+
+        val data = sent().getValue("data").jsonObject
+        assertEquals("""["Bins","Plants","Party shopping"]""", data["items"].toString())
+        assertEquals(
+            """[{"title":"Plants","kind":"task"},{"title":"Party shopping","kind":"list"}]""",
+            data["removable"].toString(),
+        )
+        assertEquals(listOf(Removal(list, "Party shopping", "Not done since March")), assertIs<InterviewStep.RemovalReady>(step).removals)
+    }
+
+    @Test
+    fun anOwnerMayRemoveAnyItem() = runTest {
+        val client = answering(HttpStatusCode.OK, """{"result":{"removal":{"items":[]}}}""")
+        val auth = signedIn()
+        val items = InMemoryItemRepository(auth)
+        auth.register("ben@orbit.app", "secret", "Ben")
+        items.create("space-1", NewItem("Plants"))
+        auth.register("ana@orbit.app", "secret", "Ana López")
+
+        val step = repository(client, auth, items).nextStep("space-1", emptyList())
+
+        assertEquals("""[{"title":"Plants","kind":"task"}]""", sent().getValue("data").jsonObject["removable"].toString())
+        assertEquals(emptyList(), assertIs<InterviewStep.RemovalReady>(step).removals)
     }
 
     @Test

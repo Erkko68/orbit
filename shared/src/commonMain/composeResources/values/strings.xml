@@ -306,6 +306,18 @@
     <string name="interview_error_unavailable">It is not answering right now. Try again in a moment, or close the chat and add things by hand.</string>
     <string name="interview_error_unknown_title">Something went wrong</string>
     <string name="interview_error_unknown">Try again, or close the chat and add things by hand.</string>
+    <!-- Removal requests (#89) -->
+    <string name="removal_title">Remove these?</string>
+    <string name="removal_body">The assistant proposes deleting these items. Untick any you want to keep.</string>
+    <string name="removal_none_body">The assistant found nothing you can remove that matches. Close this to say it another way.</string>
+    <string name="removal_remove_named">Remove %1$s</string>
+    <string name="removal_keep_named">Keep %1$s</string>
+    <string name="removal_failed">Could not delete them, so nothing was deleted. Try again.</string>
+    <string name="removal_close">Back to the chat</string>
+    <plurals name="removal_confirm">
+        <item quantity="one">Delete %1$d item</item>
+        <item quantity="other">Delete %1$d items</item>
+    </plurals>
     <!-- AI consent -->
     <string name="ai_consent_title">Before the assistant starts</string>
     <string name="ai_consent_body">To suggest a plan, Orbit sends your answers, and the titles of the space's items and the names of its members, to an AI provider (Google Gemini).</string>

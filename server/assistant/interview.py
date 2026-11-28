@@ -9,15 +9,17 @@ or email.
 import logging
 import os
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 from string import Template
 
 from assistant import PROMPTS
 from assistant.proposals import PLAN_SCHEMA, checked_plan
+from assistant.removals import REMOVAL_SCHEMA, Removable, checked_removal, parse_removable, removable_text
 
-QUESTION_PROMPT = Template((PROMPTS / "question.v3.md").read_text(encoding="utf-8"))
+QUESTION_PROMPT = Template((PROMPTS / "question.v4.md").read_text(encoding="utf-8"))
 PLAN_PROMPT = Template((PROMPTS / "plan.v3.md").read_text(encoding="utf-8"))
+REMOVAL_PROMPT = Template((PROMPTS / "removal.v1.md").read_text(encoding="utf-8"))
 
 # The model decides how many questions it needs, and never sees this: it is only a safety net, MAX_QUESTIONS in the
 # environment, that bounds the request and the calls one interview spends. Past it, the assistant proposes with what it has.
@@ -44,11 +46,13 @@ MAX_TEXT = 300
 
 # What the model writes, as JSON Schema. The server adds the id and the position, which are not the
 # model's to decide. [suggestion] is what the model would answer, for "Decide for me". [ready] says it knows enough to
-# propose instead. It comes first: the model writes the fields in order, so it decides whether to ask before it has
-# written a question it would then want to send.
+# propose instead, and [remove] that the user asks to remove items rather than add them (#89). They come first: the
+# model writes the fields in order, so it decides whether to ask before it has written a question it would then want
+# to send.
 QUESTION_SCHEMA = {
     "type": "object",
     "properties": {
+        "remove": {"type": "boolean"},
         "ready": {"type": "boolean"},
         "text": {"type": "string"},
         "options": {"type": "array", "items": {"type": "string"}, "maxItems": 5},
@@ -56,7 +60,7 @@ QUESTION_SCHEMA = {
         "freeText": {"type": "boolean"},
         "suggestion": {"type": "string"},
     },
-    "required": ["ready", "text", "options", "multiSelect", "freeText", "suggestion"],
+    "required": ["remove", "ready", "text", "options", "multiSelect", "freeText", "suggestion"],
     "additionalProperties": False,
 }
 
@@ -96,6 +100,8 @@ class Interview:
     items: list[str]
     # The space's name, empty for a new space.
     space: str = ""
+    # The items the user may delete, for a removal request (#89).
+    removable: list[Removable] = field(default_factory=list)
 
 
 def parse_interview(data: object) -> Interview:
@@ -122,6 +128,7 @@ def parse_interview(data: object) -> Interview:
                  for index, member in enumerate(members, start=1)],
         items=[title[:MAX_TEXT] for title in items[:MAX_ITEMS]],
         space=_optional_text(data.get("space"), "space"),
+        removable=parse_removable(data.get("removable")),
     )
 
 
@@ -234,8 +241,9 @@ def example_dates(today: date) -> dict[str, str]:
 
 def next_step(uid: str | None, data: object, generate: Generate) -> dict:
     """
-    The interview's next step for the signed-in caller [uid]: the next question, or `{"plan": …}` once the model has
-    enough or MAX_QUESTIONS are answered. A rejected call never reaches the AI.
+    The interview's next step for the signed-in caller [uid]: the next question, `{"plan": …}` once the model has
+    enough or MAX_QUESTIONS are answered, or `{"removal": …}` when the user asks to remove items of an existing space
+    (#89). A rejected call never reaches the AI.
     """
     if uid is None:
         raise AssistantError("UNAUTHENTICATED", "Sign in to use the assistant.")
@@ -249,6 +257,8 @@ def next_step(uid: str | None, data: object, generate: Generate) -> dict:
     try:
         if asked < MAX_QUESTIONS:
             answer = generate(_question_prompt(interview), QUESTION_SCHEMA)
+            if isinstance(answer, dict) and answer.get("remove") is True and not interview.new_space:
+                return {"removal": _removal(interview, generate)}
             if not (isinstance(answer, dict) and answer.get("ready") is True):
                 return parse_question(answer, position=asked + 1)
         return {"plan": _plan(interview, generate)}
@@ -303,3 +313,16 @@ def _plan(interview: Interview, generate: Generate) -> dict:
     if interview.new_space and "space" not in plan:
         raise ValueError("the plan for a new space does not name it")
     return plan
+
+
+def _removal(interview: Interview, generate: Generate) -> dict:
+    """The items the model proposes to delete, checked: only handles the app sent, each once. None to propose asks nothing."""
+    if not interview.removable:
+        return {"items": []}
+    prompt = REMOVAL_PROMPT.substitute(
+        language=interview.language,
+        today=f"{interview.today.strftime('%A')} {interview.today.isoformat()}",
+        removable=removable_text(interview.removable),
+        answers=answers_text(interview),
+    )
+    return checked_removal(generate(prompt, REMOVAL_SCHEMA), interview.removable)

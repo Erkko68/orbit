@@ -6,6 +6,15 @@ import com.orbit.app.domain.model.InterviewAnswer
 import com.orbit.app.domain.model.InterviewQuestion
 import com.orbit.app.domain.model.InterviewStep
 import com.orbit.app.domain.model.Plan
+import com.orbit.app.domain.model.Item
+import com.orbit.app.domain.model.ItemModules
+import com.orbit.app.domain.model.ItemStatus
+import com.orbit.app.domain.model.Removal
+import com.orbit.app.domain.model.Schedule
+import kotlinx.datetime.LocalDateTime
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -31,6 +40,38 @@ class InterviewMapperTest {
                 """"members":[{"name":"Ana"},{"name":"Member 2"}],"items":["Bins"],"space":"Flat 4B"}}""",
             body,
         )
+    }
+
+    @Test
+    fun sendsTheRemovableItemsWithTheirKindAndTheDayEachWasLastDone() {
+        val doneAt = LocalDateTime(2026, 3, 2, 12, 0).toInstant(TimeZone.currentSystemDefault())
+        fun item(id: String, modules: ItemModules = ItemModules(), status: ItemStatus = ItemStatus.Open) =
+            Item(id, "Title $id", null, status, "ana", doneAt, modules)
+        val context = InterviewContext(
+            "en", LocalDate(2026, 11, 16), newSpace = false, "Flat 4B", listOf("Ana"), emptyList(),
+            removable = listOf(
+                item("a", status = ItemStatus.Done("ana", doneAt)),
+                item("b", ItemModules(schedule = Schedule(LocalDate(2026, 12, 1), time = LocalTime(18, 0)))),
+            ),
+        )
+
+        val body = interviewRequest(emptyList(), context)
+
+        assertTrue(
+            """"removable":[{"title":"Title a","kind":"task","lastDone":"2026-03-02"},{"title":"Title b","kind":"event"}]""" in body,
+        )
+    }
+
+    @Test
+    fun aRemovalWithAHandleThatWasNotSentKeepsOnlyTheOthers() {
+        val bins = Item("bins", "Bins", null, ItemStatus.Open, "ana", Instant.fromEpochSeconds(0))
+        val step = interviewStep(
+            """{"result":{"removal":{"items":[{"item":"x1"},{"item":"i1","reason":" Old "},{"item":"i5"}]}}}""",
+            members = emptyList(),
+            removable = listOf(bins),
+        )
+
+        assertEquals(InterviewStep.RemovalReady(listOf(Removal("bins", "Bins", "Old"))), step)
     }
 
     @Test

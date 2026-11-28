@@ -12,6 +12,9 @@ data class ChatMessage(val text: String, val mine: Boolean, val decided: Boolean
     val skipped: Boolean get() = mine && text.isEmpty()
 }
 
+/** An item the assistant proposes to delete (#89), and whether it is still ticked to go. */
+data class RemovalRow(val itemId: String, val title: String, val reason: String, val ticked: Boolean = true)
+
 data class InterviewUiState(
     /** The user accepted what the assistant sends (#71): until then the consent notice is shown, and nothing is asked. */
     val consented: Boolean = false,
@@ -33,7 +36,20 @@ data class InterviewUiState(
     val planReady: Boolean = false,
     /** How many questions are answered: Back returns to the last one. */
     val answered: Int = 0,
+    /** What the assistant proposes to delete, shown in a sheet over the chat (#89). Null when it proposed nothing yet. */
+    val removal: List<RemovalRow>? = null,
+    /** The ticked items of [removal] are being deleted. */
+    val deleting: Boolean = false,
+    /** Deleting them failed: nothing was deleted. Cleared by the next attempt or tick. */
+    val deleteFailed: Boolean = false,
+    /** They were deleted: the screen closes. */
+    val removed: Boolean = false,
 ) {
+    /** How many items confirming deletes. */
+    val toDelete: Int get() = removal.orEmpty().count { it.ticked }
+
+    val canDelete: Boolean get() = toDelete > 0 && !deleting
+
     /** The question waits for the user: they can answer it, skip it or let the assistant decide. */
     val canAct: Boolean get() = question != null && !loading && error == null
 

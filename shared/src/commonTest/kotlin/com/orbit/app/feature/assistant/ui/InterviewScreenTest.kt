@@ -27,6 +27,11 @@ import com.orbit.app.domain.model.InterviewStep
 import com.orbit.app.domain.model.Plan
 import com.orbit.app.feature.assistant.InterviewViewModel
 import com.orbit.app.testing.FakeDictation
+import com.orbit.app.domain.model.NewItem
+import com.orbit.app.domain.model.Removal
+import kotlinx.coroutines.flow.first
+import androidx.compose.ui.test.performScrollTo
+import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.InMemorySpaceRepository
 import com.orbit.app.testing.InMemoryAuthRepository
 import com.orbit.app.testing.ScriptedAssistantRepository
@@ -49,6 +54,7 @@ class InterviewScreenTest : ComposeTest() {
         }
     }
     private val dictation = FakeDictation()
+    private val items = InMemoryItemRepository(auth)
     private var closed = 0
     private var plans = 0
 
@@ -65,7 +71,7 @@ class InterviewScreenTest : ComposeTest() {
                     spaceId = "space-1",
                     onClose = { closed++ },
                     onPlanReady = { plans++ },
-                    viewModel = InterviewViewModel("space-1", assistant, PlanDraft()),
+                    viewModel = InterviewViewModel("space-1", assistant, PlanDraft(), items),
                 )
             }
         }
@@ -225,7 +231,7 @@ class InterviewScreenTest : ComposeTest() {
         startTestKoin(auth = fresh, spaces = InMemorySpaceRepository(fresh), assistant = assistant, dictation = dictation)
         setContent {
             OrbitTheme {
-                InterviewScreen("space-1", onClose = { closed++ }, onPlanReady = {}, viewModel = InterviewViewModel("space-1", assistant, PlanDraft()))
+                InterviewScreen("space-1", onClose = { closed++ }, onPlanReady = {}, viewModel = InterviewViewModel("space-1", assistant, PlanDraft(), items))
             }
         }
 
@@ -234,5 +240,36 @@ class InterviewScreenTest : ComposeTest() {
         waitForIdle()
         assertEquals(1, closed)
         assertEquals(0, assistant.calls.size)
+    }
+
+    @Test
+    fun aRemovalRequestShowsTheProposalAndDeletesWhatStaysTicked() = runComposeUiTest {
+        val (bins, plants) = runBlocking { items.create("space-1", NewItem("Bins")) to items.create("space-1", NewItem("Plants")) }
+        val removal = InterviewStep.RemovalReady(listOf(Removal(bins, "Bins", "Not done since March"), Removal(plants, "Plants", "")))
+        show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(who), removal)))
+
+        onNodeWithText("Family").performClick()
+        onNodeWithContentDescription("Send").performClick()
+
+        onNodeWithText("Remove these?").assertIsDisplayed()
+        onNodeWithText("Not done since March").assertIsDisplayed()
+        onNodeWithText("Delete 2 items").assertIsEnabled()
+        onNodeWithContentDescription("Keep Plants").performScrollTo().performClick()
+        onNodeWithText("Delete 1 item").performScrollTo().performClick()
+
+        waitForIdle()
+        assertEquals(1, closed)
+        assertEquals(listOf("Plants"), runBlocking { items.observeItems("space-1").first() }.map { it.title })
+    }
+
+    @Test
+    fun aProposalOfNothingSaysSoAndOffersNoDelete() = runComposeUiTest {
+        show(ScriptedAssistantRepository(listOf(InterviewStep.Ask(who), InterviewStep.RemovalReady(emptyList()))))
+
+        onNodeWithText("Family").performClick()
+        onNodeWithContentDescription("Send").performClick()
+
+        onNodeWithText("The assistant found nothing", substring = true).assertIsDisplayed()
+        onNodeWithText("Delete", substring = true).assertDoesNotExist()
     }
 }

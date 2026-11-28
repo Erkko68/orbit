@@ -9,7 +9,14 @@ import com.orbit.app.domain.model.InterviewStep
 import com.orbit.app.domain.model.NewItem
 import com.orbit.app.domain.model.Plan
 import com.orbit.app.domain.model.PlanReview
+import com.orbit.app.domain.model.Removal
+import com.orbit.app.domain.repository.ItemRepository
+import com.orbit.app.testing.FailingItemRepository
+import com.orbit.app.testing.InMemoryAuthRepository
+import com.orbit.app.testing.InMemoryItemRepository
 import com.orbit.app.testing.ScriptedAssistantRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -32,6 +39,8 @@ class InterviewViewModelTest {
     private val rooms = question("q2", "Which rooms?", listOf("Kitchen", "Bathroom"), multiSelect = true)
     private val noPlan = InterviewStep.PlanReady(Plan(space = null, items = emptyList()))
     private val draft = PlanDraft()
+    private val auth = InMemoryAuthRepository().apply { runBlocking { signIn("ana", "secret") } }
+    private val items = InMemoryItemRepository(auth)
 
     private fun question(id: String, text: String, options: List<String>, multiSelect: Boolean = false) =
         InterviewQuestion(id, text, options, multiSelect, freeText = true)
@@ -46,11 +55,17 @@ class InterviewViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun interview(steps: List<InterviewStep>, failures: Map<Int, Exception> = emptyMap()) =
-        ScriptedAssistantRepository(steps, failures).let { it to InterviewViewModel("space-1", it, draft) }
+    private fun interview(
+        steps: List<InterviewStep>,
+        failures: Map<Int, Exception> = emptyMap(),
+        repository: ItemRepository = items,
+    ) = ScriptedAssistantRepository(steps, failures).let { it to InterviewViewModel("space-1", it, draft, repository) }
 
-    private fun started(steps: List<InterviewStep>, failures: Map<Int, Exception> = emptyMap()) =
-        interview(steps, failures).also { (_, viewModel) -> viewModel.onConsent() }
+    private fun started(
+        steps: List<InterviewStep>,
+        failures: Map<Int, Exception> = emptyMap(),
+        repository: ItemRepository = items,
+    ) = interview(steps, failures, repository).also { (_, viewModel) -> viewModel.onConsent() }
 
     @Test
     fun asksNothingBeforeConsent() {
@@ -348,5 +363,96 @@ class InterviewViewModelTest {
         assertFalse(off.uiState.value.canRetry)
         assertEquals(1, quotaAssistant.calls.size)
         assertEquals(1, offAssistant.calls.size)
+    }
+
+    /** Ana asked to remove things, and the assistant proposes deleting Bins and Plants. */
+    private fun removalProposed(repository: ItemRepository = items): InterviewViewModel {
+        val (bins, plants) = runBlocking { items.create("space-1", NewItem("Bins")) to items.create("space-1", NewItem("Plants")) }
+        val removal = InterviewStep.RemovalReady(listOf(Removal(bins, "Bins", "Not done since March"), Removal(plants, "Plants", "")))
+        val (_, viewModel) = started(listOf(InterviewStep.Ask(who), removal), repository = repository)
+        viewModel.onTextChange("We don't do the bins or the plants anymore")
+        viewModel.send()
+        return viewModel
+    }
+
+    private fun titles() = runBlocking { items.observeItems("space-1").first() }.map { it.title }
+
+    @Test
+    fun aRemovalRequestProposesItemsAllTickedAndDeletesNothingYet() {
+        val viewModel = removalProposed()
+
+        val state = viewModel.uiState.value
+        assertEquals(listOf("Bins", "Plants"), state.removal?.map { it.title })
+        assertEquals(listOf("Not done since March", ""), state.removal?.map { it.reason })
+        assertEquals(2, state.toDelete)
+        assertTrue(state.canDelete)
+        assertFalse(state.loading)
+        assertEquals(listOf("Bins", "Plants"), titles())
+    }
+
+    @Test
+    fun confirmingDeletesOnlyTheTickedOnesInOneBatch() {
+        val viewModel = removalProposed()
+        val plants = viewModel.uiState.value.removal!!.last().itemId
+
+        viewModel.toggleRemoval(plants)
+        assertEquals(1, viewModel.uiState.value.toDelete)
+        viewModel.confirmRemoval()
+
+        assertTrue(viewModel.uiState.value.removed)
+        assertEquals(listOf("Plants"), titles())
+        assertEquals(1, items.proposedDeletions.size)
+    }
+
+    @Test
+    fun nothingTickedDeletesNothing() {
+        val viewModel = removalProposed()
+        viewModel.uiState.value.removal!!.forEach { viewModel.toggleRemoval(it.itemId) }
+
+        assertFalse(viewModel.uiState.value.canDelete)
+        viewModel.confirmRemoval()
+
+        assertFalse(viewModel.uiState.value.removed)
+        assertTrue(items.proposedDeletions.isEmpty())
+    }
+
+    @Test
+    fun aFailedDeleteSaysSoAndDeletesNothing() {
+        val viewModel = removalProposed(FailingItemRepository())
+
+        viewModel.confirmRemoval()
+
+        val state = viewModel.uiState.value
+        assertTrue(state.deleteFailed)
+        assertFalse(state.removed)
+        assertFalse(state.deleting)
+        assertEquals(listOf("Bins", "Plants"), titles())
+
+        viewModel.toggleRemoval(state.removal!!.first().itemId)
+        assertFalse(viewModel.uiState.value.deleteFailed)
+    }
+
+    @Test
+    fun dismissingTheProposalGoesBackToTheRequestAsWritten() {
+        val viewModel = removalProposed()
+
+        viewModel.dismissRemoval()
+
+        val state = viewModel.uiState.value
+        assertNull(state.removal)
+        assertEquals(who, state.question)
+        assertEquals("We don't do the bins or the plants anymore", state.text)
+        assertEquals(listOf("Bins", "Plants"), titles())
+    }
+
+    @Test
+    fun aProposalOfNothingHasNothingToDelete() {
+        val (_, viewModel) = started(listOf(InterviewStep.Ask(who), InterviewStep.RemovalReady(emptyList())))
+        viewModel.select("Family")
+        viewModel.send()
+
+        val state = viewModel.uiState.value
+        assertEquals(emptyList(), state.removal)
+        assertFalse(state.canDelete)
     }
 }

@@ -116,6 +116,24 @@ class FirestoreItemRepository(
         writeLocally("Deleting item $itemId") { batch.commit() }
     }
 
+    override suspend fun deleteProposed(spaceId: String, itemIds: List<String>) {
+        val userId = auth.requireUser().id
+        val batch = firestore.batch()
+        val planId = firestore.collection(SPACES).document(spaceId).collection(ACTIVITY).document.id
+        itemIds.distinct().forEach { itemId ->
+            val document = items(spaceId).document(itemId)
+            val before = document.get(Source.CACHE)
+            batch.delete(document)
+            batch.logActivity(
+                firestore, spaceId,
+                activityDocument(
+                    userId, ActivityAction.DELETE, ActivityTarget.ITEM, itemId, titleOf(before), removed(before), planId,
+                ),
+            )
+        }
+        writeLocally("Deleting ${itemIds.size} items the assistant proposed") { batch.commit() }
+    }
+
     override suspend fun rename(spaceId: String, itemId: String, title: String) =
         update(spaceId, itemId, { mapOf(it.previous<String>("title")) }, title) { FieldPath("title") to title }
 

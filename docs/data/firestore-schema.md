@@ -387,6 +387,7 @@ Every read and write the app makes, by repository. Reads are live listeners unle
 | `observeAgenda` | `spaces/{id}/items` where `status == open` and `modules.schedule.date <=` a date | Listener, retried the same way. `agendaOf` sorts the result into overdue and each day to the end of the week. Calendar asks up to the later of the end of the week and the end of the month shown, so one listener serves both the list and the month |
 | `create` | `spaces/{id}/items/{itemId}` | `set` of the whole new item |
 | `delete` | same | `delete`. The rules allow its creator, an admin or the owner. Reads the item from the cache for its entry in the history |
+| `deleteProposed` | same, for each item | One batch: `delete` of every item of a confirmed removal (#89), each with its history entry marked `source: assistant` under one `planId`. The app offers only items the rules let the user delete |
 | `rename` | same | `update` of `title` |
 | `setDescription` | same | `update` of `description` (deleted when empty) and delete of the retired `details` |
 | `setModule` | same | `update` of `modules.<type>` (the whole module) |

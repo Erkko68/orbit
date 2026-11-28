@@ -10,6 +10,7 @@ import com.orbit.app.domain.model.InterviewAnswer
 import com.orbit.app.domain.model.InterviewQuestion
 import com.orbit.app.domain.model.InterviewStep
 import com.orbit.app.domain.repository.AssistantRepository
+import com.orbit.app.domain.repository.ItemRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,12 +22,15 @@ import kotlinx.datetime.toLocalDateTime
 /**
  * The assistant's interview, as a chat: once the user consents, one question at a time, each answered with chips,
  * words or both. The words can be dictated: they go after what was already written. A plan goes to the [plan] draft,
- * which the review board shows (#75). The interview is about [spaceId], or a new space when it is empty.
+ * which the review board shows (#75). A removal request ends in a proposal to delete items instead (#89): all ticked,
+ * the user unticks what stays, and confirming deletes the rest in one batch. The interview is about [spaceId], or a
+ * new space when it is empty.
  */
 class InterviewViewModel(
     private val spaceId: String,
     private val assistant: AssistantRepository,
     private val plan: PlanDraft,
+    private val items: ItemRepository,
 ) : ViewModel() {
     private val state = MutableStateFlow(InterviewUiState())
     val uiState: StateFlow<InterviewUiState> = state.asStateFlow()
@@ -159,6 +163,34 @@ class InterviewViewModel(
             )
         } + listOfNotNull(current?.let { ChatMessage(it.text, mine = false) })
 
+    /** Ticks or unticks a proposed removal: an unticked item stays. */
+    fun toggleRemoval(itemId: String) = state.update { current ->
+        val rows = current.removal ?: return@update current
+        current.copy(
+            removal = rows.map { if (it.itemId == itemId) it.copy(ticked = !it.ticked) else it },
+            deleteFailed = false,
+        )
+    }
+
+    /** Nothing is deleted: back to the request, as it was written, so it can be put another way. */
+    fun dismissRemoval() {
+        if (state.value.removal == null || state.value.deleting) return
+        state.update { it.copy(removal = null, deleteFailed = false) }
+        back()
+    }
+
+    /** Deletes the ticked items, all in one batch. */
+    fun confirmRemoval() {
+        val current = state.value
+        if (!current.canDelete) return
+        val ids = current.removal.orEmpty().filter { it.ticked }.map { it.itemId }
+        state.update { it.copy(deleting = true, deleteFailed = false) }
+        viewModelScope.launch {
+            val deleted = attempt("Deleting what the assistant proposed") { items.deleteProposed(spaceId, ids) }.isSuccess
+            state.update { it.copy(deleting = false, deleteFailed = !deleted, removed = deleted) }
+        }
+    }
+
     /** Asks again after a failure that asking again can fix. */
     fun retry() {
         if (state.value.canRetry) ask()
@@ -180,6 +212,12 @@ class InterviewViewModel(
                                 plan.propose(step.plan)
                                 it.copy(loading = false, planReady = true)
                             }
+                            is InterviewStep.RemovalReady -> it.copy(
+                                loading = false,
+                                removal = step.removals.map { removal ->
+                                    RemovalRow(removal.itemId, removal.title, removal.reason)
+                                },
+                            )
                         }
                     }
                 },
