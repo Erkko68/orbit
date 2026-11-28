@@ -25,6 +25,8 @@ internal class FailingItemRepository(
 
     override suspend fun delete(spaceId: String, itemId: String) = throw failure
 
+    override suspend fun deleteProposed(spaceId: String, itemIds: List<String>) = throw failure
+
     override suspend fun rename(spaceId: String, itemId: String, title: String) = throw failure
 
     override suspend fun setDescription(spaceId: String, itemId: String, description: String?) = throw failure

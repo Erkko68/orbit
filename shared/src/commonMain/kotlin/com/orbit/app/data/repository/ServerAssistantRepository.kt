@@ -9,6 +9,7 @@ import com.orbit.app.domain.model.AssistantError
 import com.orbit.app.domain.model.AssistantException
 import com.orbit.app.domain.model.InterviewAnswer
 import com.orbit.app.domain.model.InterviewStep
+import com.orbit.app.domain.model.deletableBy
 import com.orbit.app.domain.repository.AssistantRepository
 import com.orbit.app.domain.repository.AuthRepository
 import com.orbit.app.domain.repository.ItemRepository
@@ -32,7 +33,8 @@ internal const val ASSISTANT_SERVER_URL = "https://orbit.biri.es"
 /**
  * Calls `POST /interview` on the assistant server, as the signed-in user, with what the interview is about (#66): the
  * phone's language and day, and the space's name, member names (the user's first, so the server names them m1) and item
- * titles. A new space has only the user.
+ * titles. A new space has only the user. For a removal request (#89) it also sends the items the user may delete, as
+ * `firestore.rules` decides, so the assistant never proposes one the user could not.
  */
 class ServerAssistantRepository(
     private val client: HttpClient,
@@ -46,7 +48,8 @@ class ServerAssistantRepository(
         val me = orNetworkError { auth.session.first()?.id }
         // Stable: the others keep their order. The plan's handles map back through this same list.
         val members = orNetworkError { spaces.membersOrYou(spaceId, auth).first() }.sortedByDescending { it.userId == me }
-        val titles = if (spaceId.isEmpty()) emptyList() else orNetworkError { items.observeItems(spaceId).first().map { it.title } }
+        val all = if (spaceId.isEmpty()) emptyList() else orNetworkError { items.observeItems(spaceId).first() }
+        val removable = all.filter { it.deletableBy(me, members) }
         val space = if (spaceId.isEmpty()) null else orNetworkError { spaces.observeSpaces().first().find { it.id == spaceId } }
         val context = InterviewContext(
             language = Locale.current.language,
@@ -54,7 +57,8 @@ class ServerAssistantRepository(
             newSpace = spaceId.isEmpty(),
             spaceName = space?.name.orEmpty(),
             memberNames = members.map { it.displayName },
-            itemTitles = titles,
+            itemTitles = all.map { it.title },
+            removable = removable,
         )
         val body = orNetworkError {
             client.post("${baseUrl.trimEnd('/')}/interview") {
@@ -62,8 +66,8 @@ class ServerAssistantRepository(
                 setBody(TextContent(interviewRequest(answers, context), ContentType.Application.Json))
             }.bodyAsText()
         }
-        // The server named the members m1, m2… in this order.
-        return interviewStep(body, members = members.map { it.userId })
+        // The server named the members m1, m2… and the removable items i1, i2… in these orders.
+        return interviewStep(body, members = members.map { it.userId }, removable = removable)
     }
 
     /** What the call needs from Firestore or the network: a failure means the assistant cannot be reached. */

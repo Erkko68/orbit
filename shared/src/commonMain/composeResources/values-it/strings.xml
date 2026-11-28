@@ -306,6 +306,18 @@
     <string name="interview_error_unavailable">Non risponde in questo momento. Riprova tra poco, oppure chiudi la chat e aggiungi cose a mano.</string>
     <string name="interview_error_unknown_title">Qualcosa è andato storto</string>
     <string name="interview_error_unknown">Riprova, oppure chiudi la chat e aggiungi cose a mano.</string>
+    <!-- Removal requests (#89) -->
+    <string name="removal_title">Rimuovere questi?</string>
+    <string name="removal_body">L&apos;assistente propone di eliminare questi elementi. Togli la spunta a quelli che vuoi tenere.</string>
+    <string name="removal_none_body">L&apos;assistente non ha trovato nulla che puoi rimuovere che corrisponda. Chiudi per dirlo in un altro modo.</string>
+    <string name="removal_remove_named">Rimuovi %1$s</string>
+    <string name="removal_keep_named">Tieni %1$s</string>
+    <string name="removal_failed">Non è stato possibile eliminarli, quindi non è stato eliminato nulla. Riprova.</string>
+    <string name="removal_close">Torna alla chat</string>
+    <plurals name="removal_confirm">
+        <item quantity="one">Elimina %1$d elemento</item>
+        <item quantity="other">Elimina %1$d elementi</item>
+    </plurals>
     <!-- AI consent -->
     <string name="ai_consent_title">Prima che l&apos;assistente inizi</string>
     <string name="ai_consent_body">Per suggerire un piano, Orbit invia le tue risposte, i titoli degli elementi dello spazio e i nomi dei suoi membri a un fornitore di IA (Google Gemini).</string>

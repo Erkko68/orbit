@@ -306,6 +306,18 @@
     <string name="interview_error_unavailable">No respon ara mateix. Torna-ho a provar d&apos;aquí a una estona o tanca el xat i afegeix coses a mà.</string>
     <string name="interview_error_unknown_title">Alguna cosa ha fallat</string>
     <string name="interview_error_unknown">Torna-ho a provar o tanca el xat i afegeix coses a mà.</string>
+    <!-- Removal requests (#89) -->
+    <string name="removal_title">Vols treure aquests?</string>
+    <string name="removal_body">L&apos;assistent proposa esborrar aquests elements. Desmarca els que vulguis conservar.</string>
+    <string name="removal_none_body">L&apos;assistent no ha trobat res que puguis treure que hi encaixi. Tanca això per dir-ho d&apos;una altra manera.</string>
+    <string name="removal_remove_named">Treure %1$s</string>
+    <string name="removal_keep_named">Conservar %1$s</string>
+    <string name="removal_failed">No s&apos;han pogut esborrar, així que no s&apos;ha esborrat res. Torna-ho a provar.</string>
+    <string name="removal_close">Torna al xat</string>
+    <plurals name="removal_confirm">
+        <item quantity="one">Esborrar %1$d element</item>
+        <item quantity="other">Esborrar %1$d elements</item>
+    </plurals>
     <!-- AI consent -->
     <string name="ai_consent_title">Abans que comenci l&apos;assistent</string>
     <string name="ai_consent_body">Per suggerir un pla, Orbit envia les teves respostes, els títols dels elements de l&apos;espai i els noms dels seus membres a un proveïdor d&apos;IA (Google Gemini).</string>

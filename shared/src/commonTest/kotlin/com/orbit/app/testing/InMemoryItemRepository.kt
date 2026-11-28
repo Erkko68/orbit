@@ -75,6 +75,14 @@ class InMemoryItemRepository(
         items.update { all -> all + (spaceId to all[spaceId].orEmpty().filterNot { it.id == itemId }) }
     }
 
+    /** The ids each confirmed removal deleted, in order, so a test sees it was one batch. */
+    val proposedDeletions = mutableListOf<List<String>>()
+
+    override suspend fun deleteProposed(spaceId: String, itemIds: List<String>) {
+        proposedDeletions += itemIds
+        items.update { all -> all + (spaceId to all[spaceId].orEmpty().filterNot { it.id in itemIds }) }
+    }
+
     override suspend fun rename(spaceId: String, itemId: String, title: String) =
         edit(spaceId, itemId) { it.copy(title = title) }
 

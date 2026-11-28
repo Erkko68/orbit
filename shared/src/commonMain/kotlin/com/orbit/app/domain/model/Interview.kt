@@ -36,7 +36,16 @@ sealed interface InterviewStep {
 
     /** The assistant proposes [plan], which the review board (#75) shows. */
     data class PlanReady(val plan: Plan) : InterviewStep
+
+    /**
+     * The user asked to remove things, and the assistant proposes deleting [removals] (#89): only items the user may
+     * delete, each once. Empty when nothing matched.
+     */
+    data class RemovalReady(val removals: List<Removal>) : InterviewStep
 }
+
+/** An item the assistant proposes to delete: its [itemId] and [title], and why, in the user's language. */
+data class Removal(val itemId: String, val title: String, val reason: String)
 
 /** Why the assistant did not answer, in terms a screen can explain. */
 enum class AssistantError {

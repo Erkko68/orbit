@@ -63,6 +63,10 @@ internal class ControlledItemRepository(private val delegate: ItemRepository) : 
         write("delete") { delegate.delete(spaceId, itemId) }
     }
 
+    override suspend fun deleteProposed(spaceId: String, itemIds: List<String>) {
+        write("deleteProposed") { delegate.deleteProposed(spaceId, itemIds) }
+    }
+
     override suspend fun rename(spaceId: String, itemId: String, title: String) {
         write("rename") { delegate.rename(spaceId, itemId, title) }
     }

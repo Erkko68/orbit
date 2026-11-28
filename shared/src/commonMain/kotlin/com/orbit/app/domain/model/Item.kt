@@ -26,6 +26,13 @@ data class Item(
     val effortRecorded: Boolean = false,
 )
 
+/**
+ * The rule of `firestore.rules`: [userId] may delete the item if they created it or manage the space, as their role
+ * among [members] says.
+ */
+fun Item.deletableBy(userId: String?, members: List<Member>): Boolean =
+    userId != null && (createdBy == userId || members.firstOrNull { it.userId == userId }?.role?.managesSpace == true)
+
 /** The item is still to do, it is [userId]'s, and it is due by [today]. */
 fun Item.isDueFor(userId: String, today: LocalDate): Boolean {
     val deadline = modules.schedule?.deadline ?: return false

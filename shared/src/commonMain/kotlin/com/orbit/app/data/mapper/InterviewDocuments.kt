@@ -22,7 +22,16 @@ internal data class InterviewRequestData(
     val items: List<String>,
     /** The space's name, left out for a new space. */
     val space: String = "",
+    /**
+     * The items the user may delete, for a removal request (#89). The server gives each a handle by its place here
+     * (`i1` first): their ids never leave the phone.
+     */
+    val removable: List<RemovableDocument> = emptyList(),
 )
+
+/** An item the user may delete: what it is called, `task`, `list` or `event`, and the day it was last done. */
+@Serializable
+internal data class RemovableDocument(val title: String, val kind: String, val lastDone: String? = null)
 
 @Serializable
 internal data class AnswerDocument(
@@ -49,7 +58,15 @@ internal data class StepDocument(
     val freeText: Boolean = false,
     val suggestion: String? = null,
     val plan: JsonObject? = null,
+    val removal: RemovalDocument? = null,
 )
+
+/** The items to remove (#89), each by its handle in the request's `removable`, with why. */
+@Serializable
+internal data class RemovalDocument(val items: List<RemovalItemDocument> = emptyList())
+
+@Serializable
+internal data class RemovalItemDocument(val item: String, val reason: String = "")
 
 @Serializable
 internal data class ErrorDocument(val status: String, val message: String? = null, val details: ErrorDetailsDocument? = null)

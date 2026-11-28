@@ -29,6 +29,12 @@ interface ItemRepository {
     /** Only its creator, an admin or the owner may. */
     suspend fun delete(spaceId: String, itemId: String)
 
+    /**
+     * Deletes [itemIds], the assistant's removal proposal as the user confirmed it (#89), in one batch: all of them or
+     * none. Each goes in the history as the assistant's, under one plan id.
+     */
+    suspend fun deleteProposed(spaceId: String, itemIds: List<String>)
+
     suspend fun rename(spaceId: String, itemId: String, title: String)
 
     /** Null takes the description off. It also clears the retired `details`, which reads as part of it (ADR 0010). */
