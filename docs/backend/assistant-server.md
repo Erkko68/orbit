@@ -16,7 +16,7 @@ server/
 │   ├── quota.py         each user's calls a day and a month, counted in SQLite
 │   ├── net.py           JSON over HTTP
 │   └── proposals.py     the catalogue's schemas, loaded whole for the model
-├── prompts/             the prompts, as versioned files: question.v3.md, plan.v3.md
+├── prompts/             the prompts, as versioned files: question.v4.md, plan.v3.md, removal.v1.md
 ├── schemas/             what the assistant may propose, as JSON Schemas, and samples/ of each (the app reads them too)
 ├── tests/               pytest, one file per module, with a fake model and a fake token check
 ├── Dockerfile           the server's image (port 8080); installs nothing
@@ -64,13 +64,16 @@ The server keeps no state between calls (#64), so each call brings everything th
   "answers": [{"questionId": "q1", "question": "Who lives there?", "selected": ["Family"], "text": "two kids"}],
   "language": "es", "today": "2026-11-16", "newSpace": false,
   "members": [{"name": "Ana"}, {"name": "Ben"}],
-  "items": ["Groceries"]
+  "items": ["Groceries"],
+  "removable": [{"title": "Groceries", "kind": "list", "lastDone": "2026-11-15"}]
 }}
 ```
 
 - **Members go by name only**, never uid or email. The server gives each a handle by its place in the list (`m1`, `m2`), which is all the model sees of them, and the app maps a plan's handles back to uids in the same order. The user comes first, so `m1` is always the one talking to the assistant. A new space (`newSpace`) lists only the user; an existing one also sends its name (`space`), the first clue to what it is about. The assistant keeps nothing between conversations: each starts from the space's name, members and items.
+- **`removable`** lists the items the user may delete, as `firestore.rules` decides (their own, or any when they manage the space), for a removal request (#89). Each has its title, `kind` (`task`, `list` or `event`) and the day it was last done, if it is done. The server gives each a handle by its place (`i1`, `i2`), as it does members: the model never sees an item's id, and the app maps the handles back.
 - **`language`** is the phone's (`es`, `ca`, `it`, `en`; anything else is English), and `today` its date, from which the plan's dates start.
-- **The steps.** The first question is always the same, asked without the model: a hello and "What do you want to organise?", in the user's words. The model is then asked with `prompts/question.v3.md` whether it needs to ask anything. It decides `ready` first, before it writes a question: a clear request ("a list with bread, tomatoes and eggs") is proposed straight away, and it asks only what changes the plan and cannot be guessed (for a trip: where and when), and how to share chores that repeat. How many questions it asks is its own call: it never sees a budget. Once `ready`, or past `MAX_QUESTIONS` (10, from the environment, only a safety net), it writes the plan with `prompts/plan.v3.md` and `PLAN_SCHEMA`, which `checked_plan` checks before it leaves. A new space's plan must name the space, and assigns only to the user or anyone; an existing space's never proposes one.
+- **The steps.** The first question is always the same, asked without the model: a hello and "What do you want to organise?", in the user's words. The model is then asked with `prompts/question.v4.md` whether it needs to ask anything. It decides `remove` first: the user asks to remove things the space has ("we don't do the plants anymore") rather than add. Then `ready`, before it writes a question: a clear request ("a list with bread, tomatoes and eggs") is proposed straight away, and it asks only what changes the plan and cannot be guessed (for a trip: where and when), and how to share chores that repeat. How many questions it asks is its own call: it never sees a budget. Once `ready`, or past `MAX_QUESTIONS` (10, from the environment, only a safety net), it writes the plan with `prompts/plan.v3.md` and `PLAN_SCHEMA`, which `checked_plan` checks before it leaves. A new space's plan must name the space, and assigns only to the user or anyone; an existing space's never proposes one.
+- **Removal requests (#89).** In an existing space, once the model sets `remove`, it is asked with `prompts/removal.v1.md` and `REMOVAL_SCHEMA` which of the `removable` items to delete, by handle, each with a short reason in the user's language. `checked_removal` keeps only handles that were sent, each once, and cuts the reason to 120 characters. With nothing removable the server answers an empty removal without asking the model. A new space never gets one. The app shows the proposal in a sheet, all ticked, and deletes what stays ticked in one batch, each delete in the history as the assistant's under one plan id. The manual path is deleting the items from Tasks.
 - **The prompts** explain every module with examples, and walk through an example conversation and example items. The plan covers only what the user asked to organise, never the rest of their life, and shares the work as they said. The plan's prompt lays out the next 14 days with their weekday numbers, and its examples' dates are filled in from `today`, so a small model reads dates instead of working them out and never copies one in the past. Each prompt puts its fixed text first and what changes between calls last (the language, today, the space, then the conversation), so Ollama reuses its cache of the fixed part instead of reading it again on every call: on a CPU, reading the prompt is most of the wait.
 - **Skip, Decide for me and Back (#74).** Each question carries a `suggestion`: what the model would answer, one of its options or a few words. "Decide for me" answers with it in the app and marks the answer `decided`, which the next prompt shows as "(chosen by the assistant)". A skipped answer has nothing selected nor written, and reads "(skipped)". Back happens in the app alone: the server keeps no state, so the next call simply sends fewer answers.
 - **The prompts are files** in `server/prompts/`, versioned in their names: a change that changes what the model is asked for gets a new version.
@@ -79,6 +82,7 @@ The server keeps no state between calls (#64), so each call brings everything th
 |---|---|---|
 | Signed in, the next question | 200 | `{"result": {id, text, options, multiSelect, freeText, position, suggestion}}`; `suggestion` only when there is one |
 | Signed in, the plan | 200 | `{"result": {"plan": …}}`, in the shape of [the catalogue](#the-catalogue) |
+| Signed in, a removal | 200 | `{"result": {"removal": {"items": [{"item": "i2", "reason": "Not used since March"}]}}}`; `items` may be empty |
 | `data` is not an interview | 400 | `{"error": {"status": "INVALID_ARGUMENT", …}}`, before the model |
 | No token, or not a valid one | 401 | `{"error": {"status": "UNAUTHENTICATED", …}}` |
 | The caller's quota is spent ([the quota](#the-quota)) | 429 | `{"error": {"status": "RESOURCE_EXHAUSTED", …, "details": {"reason": "quota", "resetsAt": "2026-11-18T00:00:00Z"}}}`, before the model |
